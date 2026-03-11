@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2 } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -7,6 +7,7 @@ import { useProfile, usePendingCount } from '@/hooks/useProfile'
 import { useToast } from '@/hooks/useToast'
 import TabOrcamentos from '@/components/tabs/TabOrcamentos'
 import TabAgenteIA from '@/components/tabs/TabAgenteIA'
+import TabCotacao from '@/components/tabs/TabCotacao'
 import TabCalculoCusto from '@/components/tabs/TabCalculoCusto'
 import TabAnalises from '@/components/tabs/TabAnalises'
 import PainelAdmin from '@/components/admin/PainelAdmin'
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const TABS = [
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
+    { id: 'cotacao', label: 'Cotação', icon: ClipboardList, badge: 0 },
     { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
@@ -114,6 +116,7 @@ export default function Dashboard() {
           {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} toast={toast} />}
           {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
           {activeTab === 'agente-ia' && <TabAgenteIA />}
+          {activeTab === 'cotacao' && <TabCotacao />}
           {activeTab === 'calculo-custo' && <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />}
           {activeTab === 'admin' && isAdmin && <PainelAdmin toast={toast} />}
         </div>
