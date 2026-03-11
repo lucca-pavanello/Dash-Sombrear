@@ -4,6 +4,16 @@ import { cn, formatCurrency } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 
+const RESPONSAVEIS = [
+  'Stella',
+  'Rogério',
+  'Thais',
+  'Gregório',
+  'Sueli',
+  'Sombrear Teste',
+  'Persianas de Fábrica',
+]
+
 const MODELOS = [
   'Rolo',
   'Painel',
@@ -42,7 +52,7 @@ interface FormState {
 }
 
 const INITIAL_FORM: FormState = {
-  responsavel: '',
+  responsavel: RESPONSAVEIS[0],
   zap: '',
   cliente: '',
   largura: '',
@@ -81,12 +91,13 @@ export default function TabCotacao() {
         : null
 
   function validate(): string | null {
-    if (!form.responsavel.trim()) return 'Responsável é obrigatório.'
+    if (!form.responsavel) return 'Responsável é obrigatório.'
     if (!form.cliente.trim()) return 'Cliente é obrigatório.'
+    if (!form.largura || parseFloat(form.largura) <= 0) return 'Largura é obrigatória.'
+    if (!form.altura || parseFloat(form.altura) <= 0) return 'Altura é obrigatória.'
     if (!form.modelo) return 'Modelo é obrigatório.'
     if (!form.tecido.trim()) return 'Tecido é obrigatório.'
     if (!form.quantidade || parseInt(form.quantidade) < 1) return 'Quantidade inválida.'
-    if (!form.custo_m2 || parseFloat(form.custo_m2) <= 0) return 'Custo por m² é obrigatório.'
     return null
   }
 
@@ -170,14 +181,16 @@ export default function TabCotacao() {
                   <label className={labelClass}>
                     Responsável <span className="text-destructive ml-0.5">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={form.responsavel}
                     onChange={(e) => set('responsavel', e.target.value)}
-                    className={inputClass}
-                    placeholder="Nome do responsável"
-                  />
+                    className={cn(inputClass, 'cursor-pointer')}
+                  >
+                    {RESPONSAVEIS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -276,10 +289,13 @@ export default function TabCotacao() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Largura (m)</label>
+                  <label className={labelClass}>
+                    Largura (m) <span className="text-destructive ml-0.5">*</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
+                    required
                     value={form.largura}
                     onChange={(e) => set('largura', e.target.value)}
                     className={inputClass}
@@ -288,10 +304,13 @@ export default function TabCotacao() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Altura (m)</label>
+                  <label className={labelClass}>
+                    Altura (m) <span className="text-destructive ml-0.5">*</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
+                    required
                     value={form.altura}
                     onChange={(e) => set('altura', e.target.value)}
                     className={inputClass}
