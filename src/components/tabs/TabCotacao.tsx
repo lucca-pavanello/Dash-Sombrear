@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Send, CheckCircle2, Loader2 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
-import SectionDivider from '@/components/shared/SectionDivider'
 import Toaster from '@/components/ui/Toaster'
 
 const MODELOS = [
