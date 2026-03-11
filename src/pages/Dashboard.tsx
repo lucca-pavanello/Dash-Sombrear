@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('orcamentos')
+  const [activeTab, setActiveTab] = useState('calcular-orcamento')
   const [unreadCount, setUnreadCount] = useState(0)
   const { isDark, toggle } = useTheme()
   const { toasts, toast, dismiss } = useToast()
@@ -39,9 +39,9 @@ export default function Dashboard() {
   const { data: pendingCount = 0 } = usePendingCount()
 
   const TABS = [
+    { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
-    { id: 'cotacao', label: 'Cotação', icon: ClipboardList, badge: 0 },
     { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
@@ -116,7 +116,7 @@ export default function Dashboard() {
           {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} toast={toast} />}
           {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
           {activeTab === 'agente-ia' && <TabAgenteIA />}
-          {activeTab === 'cotacao' && <TabCotacao />}
+          {activeTab === 'calcular-orcamento' && <TabCotacao />}
           {activeTab === 'calculo-custo' && <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />}
           {activeTab === 'admin' && isAdmin && <PainelAdmin toast={toast} />}
         </div>
