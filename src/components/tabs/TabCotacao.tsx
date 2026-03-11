@@ -1,21 +1,17 @@
 import { useState } from 'react'
 import {
   Send, CheckCircle2, Loader2, Plus, Trash2, Home,
-  User, Ruler, Layers, MessageSquare, ArrowRight,
+  User, Ruler, Layers, MessageSquare, ArrowRight, AlertCircle, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
+import { useModelosTecidos } from '@/hooks/useModelosTecidos'
 
 /* ─── Constants ─────────────────────────────────────────── */
 const RESPONSAVEIS = [
   'Stella', 'Rogério', 'Thais', 'Gregório',
   'Sueli', 'Sombrear Teste', 'Persianas de Fábrica',
-]
-
-const MODELOS = [
-  'Rolo', 'Painel', 'Romana', 'Persiana Horizontal',
-  'Persiana Vertical', 'Zebra', 'Double Vision', 'Celular', 'Plissado',
 ]
 
 const N8N_WEBHOOK = 'https://n8n-n8n.yjlhot.easypanel.host/webhook/Sombrear_sheet'
@@ -48,11 +44,11 @@ interface FormState {
 
 /* ─── Helpers ────────────────────────────────────────────── */
 let nextId = 1
-function newAmbiente(): Ambiente {
+function newAmbiente(primeiroModelo = ''): Ambiente {
   return {
     id: nextId++,
     ambiente: '',
-    modelo: MODELOS[0],
+    modelo: primeiroModelo,
     tecido: '',
     largura: '',
     altura: '',
@@ -76,13 +72,32 @@ export default function TabCotacao() {
   const [isSuccess, setIsSuccess] = useState(false)
   const { toasts, toast, dismiss } = useToast()
 
+  const {
+    data: catalogoData,
+    isLoading: catalogoLoading,
+    isError: catalogoError,
+    refetch: catalogoRefetch,
+  } = useModelosTecidos()
+
+  const modelos = catalogoData?.modelos ?? []
+  const tecidosPorModelo = catalogoData?.tecidosPorModelo ?? {}
+
+  // quando o catálogo carrega pela primeira vez, inicializa o modelo do primeiro ambiente
+  const primeiroModelo = modelos[0] ?? ''
+
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
   function setAmbienteField(id: number, key: keyof Omit<Ambiente, 'id'>, value: string) {
     setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, [key]: value } : a)))
   }
-  function addAmbiente() { setAmbientes((prev) => [...prev, newAmbiente()]) }
+  function setModelo(id: number, modelo: string) {
+    // ao trocar modelo, reseta tecido pois as opções mudam
+    setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, modelo, tecido: '' } : a)))
+  }
+  function addAmbiente() {
+    setAmbientes((prev) => [...prev, newAmbiente(primeiroModelo)])
+  }
   function removeAmbiente(id: number) { setAmbientes((prev) => prev.filter((a) => a.id !== id)) }
 
   function validate(): string | null {
@@ -134,7 +149,7 @@ export default function TabCotacao() {
       setTimeout(() => {
         setIsSuccess(false)
         setForm(INITIAL_FORM)
-        setAmbientes([newAmbiente()])
+        setAmbientes([newAmbiente(primeiroModelo)])
       }, 2000)
     } catch (err) {
       console.error('[TabCotacao] submit error:', err)
@@ -171,6 +186,30 @@ export default function TabCotacao() {
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">n8n conectado</span>
         </div>
       </div>
+
+      {/* Banner de status do catálogo */}
+      {catalogoLoading && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+          <p className="text-sm text-muted-foreground">Carregando modelos e tecidos da planilha...</p>
+        </div>
+      )}
+      {catalogoError && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-sm text-destructive">Erro ao carregar catálogo da planilha. Verifique a API key e tente novamente.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => catalogoRefetch()}
+            className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
@@ -288,22 +327,42 @@ export default function TabCotacao() {
                           <select
                             required
                             value={a.modelo}
-                            onChange={(e) => setAmbienteField(a.id, 'modelo', e.target.value)}
+                            onChange={(e) => setModelo(a.id, e.target.value)}
                             className={selectClass}
+                            disabled={catalogoLoading}
                           >
-                            {MODELOS.map((m) => <option key={m} value={m}>{m}</option>)}
+                            {catalogoLoading && <option value="">Carregando...</option>}
+                            {!catalogoLoading && modelos.length === 0 && (
+                              <option value="">Nenhum modelo encontrado</option>
+                            )}
+                            {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
                           </select>
                         </div>
                         <div>
                           <label className={labelClass}>Tecido <Req /></label>
-                          <input
-                            type="text"
-                            required
-                            value={a.tecido}
-                            onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
-                            className={inputClass}
-                            placeholder="Ex: Blackout, Solar Screen..."
-                          />
+                          {(() => {
+                            const opcoes = tecidosPorModelo[a.modelo] ?? []
+                            return opcoes.length > 0 ? (
+                              <select
+                                required
+                                value={a.tecido}
+                                onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
+                                className={selectClass}
+                              >
+                                <option value="">Selecione o tecido...</option>
+                                {opcoes.map((t) => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                required
+                                value={a.tecido}
+                                onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
+                                className={inputClass}
+                                placeholder={catalogoLoading ? 'Aguardando catálogo...' : 'Ex: Blackout, Solar Screen...'}
+                              />
+                            )
+                          })()}
                         </div>
                         <div>
                           <label className={labelClass}>Cor Ferragem</label>
