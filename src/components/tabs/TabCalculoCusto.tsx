@@ -44,8 +44,8 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
 
   const usosSemana = filterByPeriod(comCusto, 'semana').length
 
-  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
-  const mediaDiaria = totalMes / diasNoMes
+  const diasDecorridos = hoje.getDate()
+  const mediaDiaria = diasDecorridos > 0 ? totalMes / diasDecorridos : 0
 
   const custoPorModelo = comCusto.reduce<Record<string, { total: number; count: number }>>((acc, o) => {
     const k = o.modelo
@@ -62,7 +62,7 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
         {[
           { label: 'Total no Mês', value: formatCurrency(totalMes), icon: TrendingDown, highlight: true },
           { label: 'Usos na Semana', value: usosSemana, icon: Calendar, highlight: false },
-          { label: 'Média Diária', value: formatCurrency(mediaDiaria), icon: BarChart2, highlight: false },
+          { label: `Média Diária (${diasDecorridos}d)`, value: formatCurrency(mediaDiaria), icon: BarChart2, highlight: false },
         ].map(({ label, value, icon: Icon, highlight }) => (
           <div
             key={label}
@@ -85,7 +85,10 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex items-center gap-2 border-b px-5 py-4">
           <Calculator className="h-4 w-4 text-primary" />
-          <h2 className="font-display font-semibold">Custo por Modelo</h2>
+          <div>
+            <h2 className="font-display font-semibold">Custo por Modelo</h2>
+            <p className="text-xs text-muted-foreground">Acumulado total</p>
+          </div>
         </div>
         {Object.keys(custoPorModelo).length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-muted-foreground">

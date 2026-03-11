@@ -16,14 +16,14 @@ const PAGE_SIZE = 50
 function FechadoCheckbox({ orcamento }: { orcamento: Orcamento }) {
   const { mutate: update, isPending } = useUpdateOrcamento()
   const [showUndo, setShowUndo] = useState(false)
-  const [prevFechado, setPrevFechado] = useState(orcamento.fechado)
+  const prevFechadoRef = useRef(orcamento.fechado)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function handleClick() {
     const wasFechado = orcamento.fechado
     update({ id: orcamento.id, fechado: !orcamento.fechado }, {
       onSuccess: () => {
-        setPrevFechado(!!wasFechado)
+        prevFechadoRef.current = !!wasFechado
         setShowUndo(true)
         if (undoTimer.current) clearTimeout(undoTimer.current)
         undoTimer.current = setTimeout(() => setShowUndo(false), 5000)
@@ -33,7 +33,7 @@ function FechadoCheckbox({ orcamento }: { orcamento: Orcamento }) {
 
   function handleUndo(e: React.MouseEvent) {
     e.stopPropagation()
-    update({ id: orcamento.id, fechado: prevFechado })
+    update({ id: orcamento.id, fechado: prevFechadoRef.current })
     setShowUndo(false)
     if (undoTimer.current) clearTimeout(undoTimer.current)
   }
@@ -243,6 +243,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
   }
 
   function calcMargem(o: Orcamento) {
+    if (o.margem != null) return o.margem
     const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
     return o.custo_tecido && o.custo_tecido > 0 && receita > 0
       ? ((receita - o.custo_tecido) / receita) * 100

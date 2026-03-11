@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, STATUS_AGUARDANDO, STATUS_CONVERTIDO } from '@/hooks/useAgenteIA'
 import type { CrmLead, OrcamentoIA } from '@/hooks/useAgenteIA'
 import { formatCurrency } from '@/lib/utils'
@@ -193,7 +193,11 @@ export default function TabAgenteIA() {
   const animConv   = useCountUp(convertidos.length, 750, hasLoaded)
   const animValor  = useCountUp(valorTotal, 900, hasLoaded)
   const animMed    = useCountUp(comMedicao.length, 750, hasLoaded)
-  const animFora   = useCountUp(foraLeads.length + foraMsgs.length, 700, hasLoaded)
+  const foraSet = new Set([
+    ...foraLeads.map(l => l.id),
+    ...foraMsgs.map(l => l.id)
+  ])
+  const animFora   = useCountUp(foraSet.size, 700, hasLoaded)
 
   const kpis = [
     { label: 'Leads atendidos',        value: Math.round(animLeads),  icon: Users,         highlight: true,  sub: 'no período' },
@@ -357,14 +361,13 @@ export default function TabAgenteIA() {
                     const status    = getStatus(lead.status_lead)
 
                     return (
-                      <>
+                      <React.Fragment key={lead.id}>
                         <tr
-                          key={lead.id}
                           className={`border-b last:border-0 transition-colors
                             ${aguard   ? 'border-l-2 border-l-amber-400' : ''}
                             ${conv     ? 'opacity-60' : ''}
                             ${expanded ? 'bg-muted/30' : 'hover:bg-muted/20 cursor-pointer'}`}
-                          onClick={() => !expanded || setExpandedId(null)}
+                          onClick={() => setExpandedId(expanded ? null : lead.id)}
                         >
                           <td className="px-5 py-3.5 text-muted-foreground tabular-nums whitespace-nowrap"
                             onClick={() => setExpandedId(expanded ? null : lead.id)}>
@@ -463,7 +466,7 @@ export default function TabAgenteIA() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     )
                   })}
                 </tbody>

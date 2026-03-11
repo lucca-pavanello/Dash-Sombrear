@@ -25,6 +25,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
   const { mutateAsync: remove, isPending: isDeleting } = useDeleteOrcamento()
   const { mutate: addHistorico } = useAddHistorico()
   const { data: historico } = useOrcamentoHistorico(orcamento.id)
+  const userEditedDimensions = useRef(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [copied, setCopied] = useState(false)
   const [historicoOpen, setHistoricoOpen] = useState(false)
@@ -82,6 +83,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
 
   // TAREFA A: auto-preenche custo_tecido quando as dimensões e custo_m2 são válidos
   useEffect(() => {
+    if (!userEditedDimensions.current) return  // don't auto-fill on initial mount
     const l = parseFloat(form.largura)
     const h = parseFloat(form.altura)
     const cm2 = parseFloat(form.custo_m2)
@@ -239,11 +241,11 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
 
             <div>
               <label className={labelClass}>Largura (m)</label>
-              <input type="number" step="0.01" value={form.largura} onChange={(e) => set('largura', e.target.value)} className={inputClass} placeholder="0.00" />
+              <input type="number" step="0.01" value={form.largura} onChange={(e) => { userEditedDimensions.current = true; set('largura', e.target.value) }} className={inputClass} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Altura (m)</label>
-              <input type="number" step="0.01" value={form.altura} onChange={(e) => set('altura', e.target.value)} className={inputClass} placeholder="0.00" />
+              <input type="number" step="0.01" value={form.altura} onChange={(e) => { userEditedDimensions.current = true; set('altura', e.target.value) }} className={inputClass} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Modelo *</label>
@@ -253,7 +255,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
             </div>
             <div>
               <label className={labelClass}>Quantidade *</label>
-              <input required type="number" min="1" value={form.quantidade} onChange={(e) => set('quantidade', e.target.value)} className={inputClass} />
+              <input required type="number" min="1" value={form.quantidade} onChange={(e) => { userEditedDimensions.current = true; set('quantidade', e.target.value) }} className={inputClass} />
             </div>
             <div className="col-span-2">
               <label className={labelClass}>Tecido *</label>
@@ -283,11 +285,11 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
                 Custo por m² (R$)
                 <span className="ml-1.5 text-xs font-normal text-muted-foreground">do tecido</span>
               </label>
-              <input type="number" step="0.01" value={form.custo_m2} onChange={(e) => set('custo_m2', e.target.value)} className={inputClass} placeholder="0.00" />
+              <input type="number" step="0.01" value={form.custo_m2} onChange={(e) => { userEditedDimensions.current = true; set('custo_m2', e.target.value) }} className={inputClass} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>Custo Acabamento (R$)</label>
-              <input type="number" step="0.01" value={form.custo_acabamento} onChange={(e) => set('custo_acabamento', e.target.value)} className={inputClass} placeholder="0.00" />
+              <input type="number" step="0.01" value={form.custo_acabamento} onChange={(e) => { userEditedDimensions.current = true; set('custo_acabamento', e.target.value) }} className={inputClass} placeholder="0.00" />
             </div>
             <div className="col-span-2">
               {/* TAREFA A: badge "calculado automaticamente" */}

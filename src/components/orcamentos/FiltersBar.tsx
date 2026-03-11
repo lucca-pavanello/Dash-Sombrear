@@ -161,9 +161,9 @@ export default function FiltersBar({
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground shrink-0">Filtros ativos:</span>
-          {chips.map((chip) => (
+          {chips.map((chip, i) => (
             <span
-              key={chip.label}
+              key={`${chip.label}-${i}`}
               className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
             >
               {chip.label}

@@ -11,11 +11,12 @@ export default function ResetPassword() {
 
   useEffect(() => {
     // Supabase coloca o token na URL automaticamente
-    supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         // pronto para redefinir
       }
     })
+    return () => subscription.unsubscribe()
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {

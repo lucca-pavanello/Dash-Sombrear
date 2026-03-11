@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAllProfiles } from '@/hooks/useProfile'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +12,7 @@ interface Props {
 export default function PainelAdmin({ toast }: Props) {
   const { data: profiles = [], isLoading } = useAllProfiles()
   const qc = useQueryClient()
+  const [pendingId, setPendingId] = useState<string | null>(null)
 
   const approve = useMutation({
     mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
@@ -49,16 +51,24 @@ export default function PainelAdmin({ toast }: Props) {
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <button
-                    onClick={() => approve.mutate({ id: p.id, approved: true })}
-                    disabled={approve.isPending}
+                    onClick={async () => {
+                      setPendingId(p.id)
+                      await approve.mutateAsync({ id: p.id, approved: true })
+                      setPendingId(null)
+                    }}
+                    disabled={pendingId === p.id}
                     title="Aprovar"
                     className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/25 transition-colors disabled:opacity-50"
                   >
                     <Check className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => approve.mutate({ id: p.id, approved: false })}
-                    disabled={approve.isPending}
+                    onClick={async () => {
+                      setPendingId(p.id)
+                      await approve.mutateAsync({ id: p.id, approved: false })
+                      setPendingId(null)
+                    }}
+                    disabled={pendingId === p.id}
                     title="Recusar"
                     className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
                   >
@@ -92,8 +102,12 @@ export default function PainelAdmin({ toast }: Props) {
                 </div>
                 {p.email !== ADMIN_EMAIL && (
                   <button
-                    onClick={() => approve.mutate({ id: p.id, approved: false })}
-                    disabled={approve.isPending}
+                    onClick={async () => {
+                      setPendingId(p.id)
+                      await approve.mutateAsync({ id: p.id, approved: false })
+                      setPendingId(null)
+                    }}
+                    disabled={pendingId === p.id}
                     title="Revogar acesso"
                     className="flex shrink-0 h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
                   >

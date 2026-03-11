@@ -142,7 +142,7 @@ export default function KPIGrid({ data }: Props) {
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-muted-foreground truncate">Faturamento</p>
             <p className="font-display mt-1 text-xl font-bold truncate text-primary tabular-nums">
-              {formatCurrency(animFaturamento)}
+              {formatCurrency(Math.round(animFaturamento))}
             </p>
 
             {meta > 0 ? (
