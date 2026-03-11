@@ -7,7 +7,7 @@ interface Props { data: Orcamento[] }
 
 export default function OrcamentosFechadosCard({ data }: Props) {
   const fechados = data.filter((o) => o.fechado === true)
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
 
   return (
     <div className="rounded-xl border bg-card shadow-sm">

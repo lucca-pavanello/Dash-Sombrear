@@ -1,25 +1,48 @@
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { Calculator, TrendingDown, Calendar, BarChart2 } from 'lucide-react'
+import { Calculator, TrendingDown, Calendar, BarChart2, AlertCircle } from 'lucide-react'
+import SkeletonCard from '@/components/shared/SkeletonCard'
+import { filterByPeriod } from '@/hooks/usePeriodFilter'
 
 interface Props {
   data: Orcamento[]
+  isLoading?: boolean
+  error?: boolean
 }
 
-export default function TabCalculoCusto({ data }: Props) {
+export default function TabCalculoCusto({ data, isLoading, error }: Props) {
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </div>
+        <div className="rounded-xl border bg-card shadow-sm animate-pulse">
+          <div className="border-b px-5 py-4"><div className="h-5 w-48 rounded bg-muted" /></div>
+          <div className="p-5 space-y-3">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded bg-muted" />)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-8 flex items-center gap-3">
+        <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+        <p className="text-sm font-medium text-destructive">Erro ao carregar dados de custo. Tente recarregar a página.</p>
+      </div>
+    )
+  }
   const comCusto = data.filter((o) => o.custo_tecido != null && o.custo_tecido > 0)
 
   const hoje = new Date()
 
-  const comCustoMes = comCusto.filter((o) => {
-    const d = new Date(o.created_at)
-    return d.getMonth() === hoje.getMonth() && d.getFullYear() === hoje.getFullYear()
-  })
+  const comCustoMes = filterByPeriod(comCusto, 'mes')
   const totalMes = comCustoMes.reduce((s, o) => s + (o.custo_tecido ?? 0), 0)
 
-  const inicioSemana = new Date(hoje)
-  inicioSemana.setDate(hoje.getDate() - hoje.getDay())
-  const usosSemana = comCusto.filter((o) => new Date(o.created_at) >= inicioSemana).length
+  const usosSemana = filterByPeriod(comCusto, 'semana').length
 
   const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
   const mediaDiaria = totalMes / diasNoMes

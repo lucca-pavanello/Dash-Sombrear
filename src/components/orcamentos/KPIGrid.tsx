@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Check, Clock } from 'lucide-react'
+import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Check, Clock, X } from 'lucide-react'
 import { useMonthlyComparison } from '@/hooks/useOrcamentos'
 import { useCountUp } from '@/hooks/useCountUp'
 
@@ -193,8 +193,15 @@ export default function KPIGrid({ data }: Props) {
               placeholder="Meta R$"
               className="flex-1 min-w-0 rounded border bg-background px-2 py-1 text-xs outline-none ring-ring focus:ring-1"
             />
-            <button onClick={saveMeta} className="rounded bg-primary px-2 py-1 text-white">
+            <button onClick={saveMeta} className="rounded bg-primary px-2 py-1 text-white" title="Salvar meta">
               <Check className="h-3 w-3" />
+            </button>
+            <button
+              onClick={() => setEditingMeta(false)}
+              className="rounded border px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Cancelar"
+            >
+              <X className="h-3 w-3" />
             </button>
           </div>
         )}

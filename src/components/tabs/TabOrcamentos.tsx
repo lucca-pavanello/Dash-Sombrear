@@ -163,7 +163,7 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
       {/* Mobile FAB */}
       <button
         onClick={() => setFormOpen(true)}
-        className="fixed bottom-20 right-4 z-40 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-brand-gradient text-white hover:scale-110 active:scale-90 transition-all duration-200 fab-pulse"
+        className="fixed bottom-28 right-4 z-40 md:hidden flex h-14 w-14 items-center justify-center rounded-full bg-brand-gradient text-white hover:scale-110 active:scale-90 transition-all duration-200 fab-pulse"
         aria-label="Novo Orçamento"
       >
         <Plus className="h-6 w-6" />

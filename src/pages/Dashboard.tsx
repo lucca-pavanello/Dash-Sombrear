@@ -12,15 +12,14 @@ import TabAnalises from '@/components/tabs/TabAnalises'
 import PainelAdmin from '@/components/admin/PainelAdmin'
 import Toaster from '@/components/ui/Toaster'
 import { cn } from '@/lib/utils'
-
-const ADMIN_EMAIL = 'luccapavanallo@gmail.com'
+import { ADMIN_EMAIL } from '@/lib/constants'
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('orcamentos')
   const [unreadCount, setUnreadCount] = useState(0)
   const { isDark, toggle } = useTheme()
   const { toasts, toast, dismiss } = useToast()
-  const { data: orcamentos = [], isLoading } = useOrcamentos((novo) => {
+  const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
     toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel}`)
     if (!document.hasFocus()) setUnreadCount((n) => n + 1)
   })
@@ -113,9 +112,9 @@ export default function Dashboard() {
 
         <div key={activeTab} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
           {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} toast={toast} />}
-          {activeTab === 'analises' && <TabAnalises data={orcamentos} />}
+          {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
           {activeTab === 'agente-ia' && <TabAgenteIA />}
-          {activeTab === 'calculo-custo' && <TabCalculoCusto data={orcamentos} />}
+          {activeTab === 'calculo-custo' && <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />}
           {activeTab === 'admin' && isAdmin && <PainelAdmin toast={toast} />}
         </div>
       </main>

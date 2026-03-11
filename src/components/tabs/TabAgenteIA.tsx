@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, STATUS_AGUARDANDO, STATUS_CONVERTIDO } from '@/hooks/useAgenteIA'
 import type { CrmLead, OrcamentoIA } from '@/hooks/useAgenteIA'
 import { formatCurrency } from '@/lib/utils'
@@ -167,6 +167,18 @@ export default function TabAgenteIA() {
   const filtrados    = filterLeads(leads, periodo)
   const orcFiltrados = filterOrcs(orcamentosIA, periodo)
 
+  // Track first data load — skip count-up re-animation on period changes
+  const hasLoadedRef = useRef(false)
+  const [hasLoaded, setHasLoaded] = useState(false)
+  useEffect(() => {
+    if (!loadingCrm && !loadingOrc && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      // Small delay so initial animation runs, then lock
+      const t = setTimeout(() => setHasLoaded(true), 1200)
+      return () => clearTimeout(t)
+    }
+  }, [loadingCrm, loadingOrc])
+
   // KPIs
   const aguardando   = filtrados.filter((l) => isAguardando(l.status_lead))
   const convertidos  = filtrados.filter((l) => isConvertido(l.status_lead))
@@ -176,12 +188,12 @@ export default function TabAgenteIA() {
   const valorTotal   = orcFiltrados.reduce((s, o) =>
     s + (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0), 0)
 
-  const animLeads  = useCountUp(filtrados.length, 700)
-  const animAguard = useCountUp(aguardando.length, 700)
-  const animConv   = useCountUp(convertidos.length, 750)
-  const animValor  = useCountUp(valorTotal, 900)
-  const animMed    = useCountUp(comMedicao.length, 750)
-  const animFora   = useCountUp(foraLeads.length + foraMsgs.length, 700)
+  const animLeads  = useCountUp(filtrados.length, 700, hasLoaded)
+  const animAguard = useCountUp(aguardando.length, 700, hasLoaded)
+  const animConv   = useCountUp(convertidos.length, 750, hasLoaded)
+  const animValor  = useCountUp(valorTotal, 900, hasLoaded)
+  const animMed    = useCountUp(comMedicao.length, 750, hasLoaded)
+  const animFora   = useCountUp(foraLeads.length + foraMsgs.length, 700, hasLoaded)
 
   const kpis = [
     { label: 'Leads atendidos',        value: Math.round(animLeads),  icon: Users,         highlight: true,  sub: 'no período' },
@@ -572,21 +584,22 @@ export default function TabAgenteIA() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <OrcTh label="Data"    k="created_at" />
-                    <OrcTh label="Modelo"  k="modelo" />
+                    <OrcTh label="Data"          k="created_at" />
+                    <OrcTh label="Modelo"         k="modelo" />
                     <th className="px-5 py-3 text-left font-medium text-muted-foreground">Ambiente</th>
-                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Medidas</th>
-                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Tecido / Acabamento</th>
-                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Qtd</th>
-                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Custo base</th>
+                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Medidas / Qtd</th>
+                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Tecido / Acab.</th>
+                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Custo</th>
                     <th className="px-5 py-3 text-left font-medium text-muted-foreground">Valor venda</th>
                     <th className="px-5 py-3 text-left font-medium text-muted-foreground">Colocação</th>
-                    <OrcTh label="Total"   k="valor" />
+                    <OrcTh label="Total"          k="valor" />
                   </tr>
                 </thead>
                 <tbody>
                   {sortedOrcs.map((o) => {
                     const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
+                    const custoBase = o.custo_total_base != null ? formatCurrency(o.custo_total_base) : null
+                    const custoAcab = o.custo_acabamento_total != null ? formatCurrency(o.custo_acabamento_total) : null
                     return (
                       <tr key={o.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                         <td className="px-5 py-3.5 text-muted-foreground tabular-nums whitespace-nowrap">
@@ -595,15 +608,20 @@ export default function TabAgenteIA() {
                         </td>
                         <td className="px-5 py-3.5 font-medium">{o.modelo ?? '—'}</td>
                         <td className="px-5 py-3.5 text-muted-foreground">{o.ambiente ?? '—'}</td>
-                        <td className="px-5 py-3.5 text-muted-foreground tabular-nums">
-                          {o.largura && o.altura ? `${o.largura}m × ${o.altura}m` : '—'}
+                        <td className="px-5 py-3.5 tabular-nums whitespace-nowrap">
+                          <span className="block">
+                            {o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—'}
+                            {o.quantidade && o.quantidade > 1 ? ` (×${o.quantidade})` : ''}
+                          </span>
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="block">{o.tecido ?? '—'}</span>
                           {o.acabamento && <span className="text-xs text-muted-foreground">{o.acabamento}</span>}
                         </td>
-                        <td className="px-5 py-3.5 text-center tabular-nums">{o.quantidade ?? '—'}</td>
-                        <td className="px-5 py-3.5 tabular-nums text-muted-foreground">{o.custo_total_base != null ? formatCurrency(o.custo_total_base) : '—'}</td>
+                        <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
+                          {custoBase ? <span className="block">{custoBase}</span> : <span>—</span>}
+                          {custoAcab && <span className="text-xs opacity-70">{custoAcab}</span>}
+                        </td>
                         <td className="px-5 py-3.5 tabular-nums">{o.valor_venda_total_base != null ? formatCurrency((o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0)) : '—'}</td>
                         <td className="px-5 py-3.5 tabular-nums text-muted-foreground">{o.valor_colocacao != null ? formatCurrency(o.valor_colocacao) : '—'}</td>
                         <td className="px-5 py-3.5 font-bold text-primary tabular-nums">{total > 0 ? formatCurrency(total) : '—'}</td>

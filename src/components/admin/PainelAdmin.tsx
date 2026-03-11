@@ -2,6 +2,7 @@ import { useAllProfiles } from '@/hooks/useProfile'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { Check, X, Users, CheckCircle2 } from 'lucide-react'
+import { ADMIN_EMAIL } from '@/lib/constants'
 
 interface Props {
   toast: (type: 'success' | 'error', message: string) => void
@@ -89,7 +90,7 @@ export default function PainelAdmin({ toast }: Props) {
                   <p className="font-medium truncate">{p.full_name || 'Sem nome'}</p>
                   <p className="text-sm text-muted-foreground truncate">{p.email}</p>
                 </div>
-                {p.email !== 'luccapavanallo@gmail.com' && (
+                {p.email !== ADMIN_EMAIL && (
                   <button
                     onClick={() => approve.mutate({ id: p.id, approved: false })}
                     disabled={approve.isPending}

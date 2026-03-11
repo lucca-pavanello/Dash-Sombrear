@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHistorico } from '@/hooks/useOrcamentos'
 import type { Orcamento } from '@/lib/supabase'
@@ -28,6 +28,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [copied, setCopied] = useState(false)
   const [historicoOpen, setHistoricoOpen] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -36,6 +37,14 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null
+    panelRef.current?.focus()
+    return () => {
+      previousFocus?.focus()
+    }
+  }, [])
 
   const [form, setForm] = useState({
     responsavel: orcamento.responsavel ?? '',
@@ -164,11 +173,20 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title-edit"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
+      >
         <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
           <div>
-            <h2 className="font-display font-semibold">Editar Orçamento</h2>
+            <h2 id="modal-title-edit" className="font-display font-semibold">Editar Orçamento</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Criado em {new Date(orcamento.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </p>
@@ -358,15 +376,56 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
               </button>
               {historicoOpen && (
                 <div className="border-t divide-y">
-                  {historico.map((h) => {
+                  {historico.map((h, idx) => {
                     const snap = h.snapshot as Record<string, unknown>
+                    const TRACKED_FIELDS: Array<{ key: string; label: string; currency?: boolean }> = [
+                      { key: 'responsavel', label: 'Responsável' },
+                      { key: 'cliente', label: 'Cliente' },
+                      { key: 'modelo', label: 'Modelo' },
+                      { key: 'tecido', label: 'Tecido' },
+                      { key: 'status', label: 'Status' },
+                      { key: 'valor_venda', label: 'Valor venda', currency: true },
+                      { key: 'custo_tecido', label: 'Custo', currency: true },
+                      { key: 'quantidade', label: 'Quantidade' },
+                    ]
+
+                    const prevSnap = idx < historico.length - 1
+                      ? historico[idx + 1].snapshot as Record<string, unknown>
+                      : null
+
+                    const changes = prevSnap
+                      ? TRACKED_FIELDS.filter(({ key }) => String(snap[key] ?? '') !== String(prevSnap[key] ?? ''))
+                      : null
+
                     return (
                       <div key={h.id} className="px-4 py-3 text-xs text-muted-foreground">
                         <span className="font-medium text-foreground">{h.changed_by}</span>
                         {' · '}
                         {formatHistoricoDate(h.changed_at)}
-                        {snap.valor_venda !== undefined && (
-                          <p className="mt-0.5">Valor: {snap.valor_venda ? formatCurrency(Number(snap.valor_venda)) : '—'}</p>
+                        {changes === null ? (
+                          <p className="mt-1 text-foreground/70 italic">Registro criado</p>
+                        ) : changes.length === 0 ? (
+                          <p className="mt-1 italic">Sem alterações detectadas</p>
+                        ) : (
+                          <ul className="mt-1 space-y-0.5">
+                            {changes.map(({ key, label, currency }) => {
+                              const oldVal = prevSnap![key]
+                              const newVal = snap[key]
+                              const fmt = (v: unknown) => {
+                                if (v == null || v === '') return '—'
+                                if (currency) return formatCurrency(Number(v))
+                                return String(v)
+                              }
+                              return (
+                                <li key={key}>
+                                  <span className="font-medium text-foreground">{label}:</span>{' '}
+                                  <span className="line-through opacity-60">{fmt(oldVal)}</span>
+                                  {' → '}
+                                  <span className="text-foreground">{fmt(newVal)}</span>
+                                </li>
+                              )
+                            })}
+                          </ul>
                         )}
                       </div>
                     )

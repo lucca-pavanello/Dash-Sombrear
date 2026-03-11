@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAddOrcamento } from '@/hooks/useOrcamentos'
 import { cn, formatCurrency } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
@@ -17,6 +17,7 @@ interface Props {
 
 export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }: Props) {
   const { mutateAsync, isPending } = useAddOrcamento()
+  const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -25,6 +26,15 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
+
+  useEffect(() => {
+    if (!open) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    panelRef.current?.focus()
+    return () => {
+      previousFocus?.focus()
+    }
+  }, [open])
 
   const [form, setForm] = useState({
     responsavel: '', cliente: '', telefone: '', largura: '', altura: '',
@@ -113,10 +123,19 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title-novo"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
+      >
         <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
-          <h2 className="font-display font-semibold">Novo Orçamento</h2>
+          <h2 id="modal-title-novo" className="font-display font-semibold">Novo Orçamento</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted transition-colors">
             <X className="h-4 w-4" />
           </button>
@@ -273,3 +292,4 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
     </div>
   )
 }
+

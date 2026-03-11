@@ -4,13 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 const easeOutExpo = (t: number): number =>
   t === 1 ? 1 : 1 - Math.pow(2, -10 * t)
 
-export function useCountUp(target: number, duration = 850): number {
+export function useCountUp(target: number, duration = 850, skipAnimation = false): number {
   const [current, setCurrent] = useState(0)
   const rafRef = useRef<number>(0)
   const startRef = useRef<number>(0)
   const currentRef = useRef(0)
 
   useEffect(() => {
+    if (skipAnimation) {
+      currentRef.current = target
+      setCurrent(target)
+      return
+    }
+
     const from = currentRef.current
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
     startRef.current = 0
@@ -32,7 +38,7 @@ export function useCountUp(target: number, duration = 850): number {
 
     rafRef.current = requestAnimationFrame(step)
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [target, duration])
+  }, [target, duration, skipAnimation])
 
   return current
 }

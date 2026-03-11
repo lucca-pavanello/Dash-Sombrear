@@ -1,6 +1,6 @@
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { Bot, TrendingUp, TrendingDown, Minus, FileDown } from 'lucide-react'
+import { Bot, TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
@@ -8,7 +8,7 @@ import {
   AreaChart, Area, CartesianGrid,
 } from 'recharts'
 
-interface Props { data: Orcamento[] }
+interface Props { data: Orcamento[]; isLoading?: boolean; error?: boolean }
 
 function getMonthlyData(data: Orcamento[]) {
   const now = new Date()
@@ -254,7 +254,31 @@ function exportPDF(data: Orcamento[]) {
   doc.save(`relatorio-sombrear-${now.toISOString().slice(0, 10)}.pdf`)
 }
 
-export default function TabAnalises({ data }: Props) {
+export default function TabAnalises({ data, isLoading, error }: Props) {
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="animate-pulse bg-muted rounded-xl h-20" />)}
+        </div>
+        <div className="animate-pulse bg-muted rounded-xl h-48" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="animate-pulse bg-muted rounded-xl h-48" />
+          <div className="animate-pulse bg-muted rounded-xl h-48" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-8 flex items-center gap-3">
+        <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+        <p className="text-sm font-medium text-destructive">Erro ao carregar análises. Tente recarregar a página.</p>
+      </div>
+    )
+  }
+
   const monthly = getMonthlyData(data)
   const daily = getDailyTrend(data)
   const insights = generateInsights(data)
