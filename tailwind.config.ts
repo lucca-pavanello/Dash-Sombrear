@@ -50,6 +50,7 @@ const config: Config = {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Space Grotesk', 'sans-serif'],
+        gotham: ['Montserrat', 'sans-serif'],
       },
       boxShadow: {
         elevated: '0 4px 24px -4px rgba(0,0,0,0.15)',

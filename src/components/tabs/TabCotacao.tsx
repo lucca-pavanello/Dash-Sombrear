@@ -30,7 +30,7 @@ const inputCls =
 const selectCls =
   'w-full cursor-pointer rounded-lg border border-border/80 bg-background px-3.5 py-2.5 text-sm text-foreground outline-none hover:border-border focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
 const labelCls =
-  'mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60'
+  'mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground dark:text-foreground/70'
 
 /* ─── Types ──────────────────────────────────────────────── */
 interface Ambiente {
@@ -182,23 +182,22 @@ export default function TabCotacao() {
   return (
     <>
       {/* ── Page Header ── */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-8 flex flex-col items-center text-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Dashboard</span>
+          <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+          <span className="text-xs font-medium text-primary">Calcular Orçamento</span>
+        </div>
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium text-muted-foreground/60">Dashboard</span>
-            <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
-            <span className="text-xs font-medium text-primary">Calcular Orçamento</span>
-          </div>
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="font-gotham text-3xl font-bold tracking-tight text-foreground">
             Novo Orçamento
           </h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Preencha os dados e envie para o n8n gerar automaticamente.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start">
-          {/* Catalog status */}
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           {catalogoLoading && (
             <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5">
               <Loader2 className="h-3 w-3 animate-spin text-primary" />
@@ -216,7 +215,6 @@ export default function TabCotacao() {
               <RefreshCw className="h-3 w-3" />
             </button>
           )}
-          {/* n8n status */}
           <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/8 px-3 py-1.5">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -395,11 +393,15 @@ export default function TabCotacao() {
                                 className={selectCls}
                                 disabled={catalogoLoading}
                               >
-                                {catalogoLoading && <option value="">Carregando catálogo...</option>}
-                                {!catalogoLoading && modelos.length === 0 && (
-                                  <option value="">Nenhum modelo encontrado</option>
-                                )}
-                                {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
+                                {catalogoLoading
+                                  ? <option value="">Carregando catálogo...</option>
+                                  : modelos.length === 0
+                                    ? <option value="">Nenhum modelo encontrado</option>
+                                    : <>
+                                        <option value="">Selecione o modelo...</option>
+                                        {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
+                                      </>
+                                }
                               </select>
                             </div>
                             <div>
@@ -554,13 +556,13 @@ export default function TabCotacao() {
                 {/* Cliente destaque */}
                 {form.cliente ? (
                   <div className="rounded-lg bg-primary/5 border border-primary/15 px-4 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-0.5">Cliente</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">Cliente</p>
                     <p className="text-base font-bold text-foreground leading-tight">{form.cliente}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">via {form.responsavel}</p>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-border/50 px-4 py-3">
-                    <p className="text-xs text-muted-foreground/50 italic">Aguardando dados do cliente...</p>
+                    <p className="text-xs text-muted-foreground italic">Aguardando dados do cliente...</p>
                   </div>
                 )}
 
@@ -576,7 +578,7 @@ export default function TabCotacao() {
 
                 {/* Lista de ambientes */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground dark:text-foreground/60">
                     Ambientes ({ambientes.length})
                   </p>
                   {ambientes.map((a, index) => {
@@ -630,11 +632,11 @@ export default function TabCotacao() {
                 {/* Totais */}
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-primary/60">Ambientes</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-primary/80">Ambientes</p>
                     <p className="font-display text-2xl font-bold text-primary leading-tight">{ambientes.length}</p>
                   </div>
                   <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">Área Total</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground dark:text-foreground/60">Área Total</p>
                     <p className="font-display text-lg font-bold text-foreground leading-tight mt-0.5">
                       {totalArea > 0 ? `${totalArea.toFixed(1)}` : '—'}
                       {totalArea > 0 && <span className="text-sm font-medium text-muted-foreground"> m²</span>}
@@ -698,8 +700,8 @@ function SectionHeader({ step, icon, title, badge }: SectionHeaderProps) {
         {step}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-muted-foreground/60">{icon}</span>
-        <span className="text-sm font-bold text-foreground">{title}</span>
+        <span className="text-muted-foreground dark:text-foreground/60">{icon}</span>
+        <span className="text-sm font-bold text-foreground dark:text-foreground">{title}</span>
         {badge && (
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
             {badge}
@@ -721,8 +723,8 @@ function FieldGroup({ icon, label, children }: FieldGroupProps) {
   return (
     <div className="rounded-lg bg-muted/20 border border-border/40 overflow-hidden">
       <div className="flex items-center gap-1.5 px-3.5 py-2 border-b border-border/30 bg-muted/30">
-        <span className="text-muted-foreground/50">{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/50">{label}</span>
+        <span className="text-muted-foreground dark:text-foreground/50">{icon}</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground dark:text-foreground/60">{label}</span>
       </div>
       <div className="p-3.5">{children}</div>
     </div>
@@ -732,7 +734,7 @@ function FieldGroup({ icon, label, children }: FieldGroupProps) {
 function MiniRow({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-start justify-between gap-2 text-[11px]">
-      <span className="shrink-0 text-muted-foreground/60">{k}</span>
+      <span className="shrink-0 text-muted-foreground dark:text-foreground/60">{k}</span>
       <span className="truncate text-right font-medium text-foreground max-w-[55%]">{v}</span>
     </div>
   )
