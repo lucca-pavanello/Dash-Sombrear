@@ -341,7 +341,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       {/* Comparativo mês a mês */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {comparisons.map(({ label, value, delta }) => (
-          <div key={label} className="rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-elevated cursor-default">
+          <div key={label} className="rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default">
             <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
             <p className="font-display mt-1 text-xl font-bold truncate">{value}</p>
             <div className="mt-0.5">{delta ?? <span className="text-xs text-muted-foreground">base de comparação</span>}</div>
@@ -351,14 +351,14 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
       {/* Faturamento mensal */}
       <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-        <h3 className="mb-4 font-display font-semibold">Faturamento mensal (últimos 6 meses)</h3>
+        <h3 className="mb-4 font-display text-base font-semibold">Faturamento mensal (últimos 6 meses)</h3>
         {monthly.every((m) => m.faturamento === 0) ? (
           <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados de faturamento</div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
-              <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
               <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="#E8701A" fillOpacity={0.85} />
             </BarChart>
@@ -369,11 +369,11 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Volume mensal */}
         <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display font-semibold">Volume de orçamentos (últimos 6 meses)</h3>
+          <h3 className="mb-4 font-display text-base font-semibold">Volume de orçamentos (últimos 6 meses)</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-              <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
               <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} />
             </BarChart>
@@ -382,7 +382,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
         {/* Tendência diária */}
         <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display font-semibold">Tendência diária — {now.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
+          <h3 className="mb-4 font-display text-base font-semibold">Tendência diária — {now.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
           {daily.length === 0 ? (
             <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">Sem dados este mês</div>
           ) : (
@@ -390,13 +390,13 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <AreaChart data={daily} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#E8701A" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#E8701A" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#E8701A" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#E8701A" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="dia" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
                 <Area type="monotone" dataKey="orçamentos" stroke="#E8701A" strokeWidth={2} fill="url(#areaGrad)" />
               </AreaChart>
@@ -411,7 +411,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           <div className="rounded-lg bg-primary/10 p-1.5">
             <Bot className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="font-display font-semibold">Análise Automática</h3>
+          <h3 className="font-display text-base font-semibold">Análise Automática</h3>
           <span className="ml-auto text-xs text-muted-foreground">baseado nos dados atuais</span>
         </div>
         <ul className="space-y-2.5">

@@ -17,17 +17,17 @@ export default function ResponsavelChart({ data }: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 font-display font-semibold">Orçamentos por Responsável</h3>
+      <h3 className="mb-4 font-display text-base font-semibold">Orçamentos por Responsável</h3>
       {chartData.length === 0 ? (
         <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados</div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+          <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }} barSize={28}>
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+            <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
             <Tooltip
               contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
-              labelStyle={{ fontWeight: 600 }}
+              labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
             />
             <Bar dataKey="total" radius={[6, 6, 0, 0]}>
               {chartData.map((_, i) => (

@@ -1,6 +1,7 @@
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import AvatarInitials from '@/components/shared/AvatarInitials'
+import { Trophy } from 'lucide-react'
 
 interface Props { data: Orcamento[] }
 
@@ -27,10 +28,14 @@ export default function RankingResponsavel({ data }: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 font-display font-semibold">Ranking de Responsáveis</h3>
+      <h3 className="mb-4 font-display text-base font-semibold">Ranking de Responsáveis</h3>
       {ranked.length === 0 ? (
-        <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-          Nenhum fechamento ainda
+        <div className="flex h-48 flex-col items-center justify-center gap-2">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
+            <Trophy className="h-6 w-6 text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-semibold text-foreground">Nenhum fechamento ainda</p>
+          <p className="text-xs text-muted-foreground">Os dados aparecerão conforme os orçamentos forem fechados</p>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -38,7 +43,7 @@ export default function RankingResponsavel({ data }: Props) {
             const topValue = ranked[0].value
             const pct = topValue > 0 ? (value / topValue) * 100 : 0
             return (
-              <div key={name} className={`rounded-lg border p-3 transition-all duration-200 hover:scale-[1.02] hover:shadow-sm cursor-default ${i < 3 ? MEDAL_BG[i] : 'bg-muted/30 border-border'}`}>
+              <div key={name} className={`rounded-lg border p-3 transition-all duration-200 hover:shadow-sm cursor-default ${i < 3 ? MEDAL_BG[i] : 'bg-muted/30 border-border'}`}>
                 <div className="flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     <AvatarInitials name={name} size="md" />

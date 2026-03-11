@@ -86,7 +86,7 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
         <div className="flex items-center gap-2 border-b px-5 py-4">
           <Calculator className="h-4 w-4 text-primary" />
           <div>
-            <h2 className="font-display font-semibold">Custo por Modelo</h2>
+            <h2 className="font-display text-base font-semibold">Custo por Modelo</h2>
             <p className="text-xs text-muted-foreground">Acumulado total</p>
           </div>
         </div>

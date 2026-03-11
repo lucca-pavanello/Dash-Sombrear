@@ -5,8 +5,8 @@ import { cn, formatCurrency } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 
 const MODELOS = ['Rolo', 'Romeu e Julieta', 'Vertical', 'Horizontal', 'Painel', 'Cortina']
-const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2'
-const labelClass = 'mb-1.5 block text-sm font-medium'
+const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
+const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
 interface Props {
   toast: (type: 'success' | 'error', message: string) => void
@@ -135,7 +135,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
         className="w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
       >
         <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
-          <h2 id="modal-title-novo" className="font-display font-semibold">Novo Orçamento</h2>
+          <h2 id="modal-title-novo" className="font-display text-base font-semibold">Novo Orçamento</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted transition-colors">
             <X className="h-4 w-4" />
           </button>
@@ -147,7 +147,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
             <SectionDivider label="Cliente" />
 
             <div className="col-span-2 sm:col-span-1">
-              <label className={labelClass}>Responsável *</label>
+              <label className={labelClass}>Responsável <span className="text-destructive ml-0.5">*</span></label>
               {/* TAREFA F: datalist para autocomplete */}
               <input
                 required
@@ -181,17 +181,17 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
               <input type="number" step="0.01" value={form.altura} onChange={(e) => set('altura', e.target.value)} className={inputClass} placeholder="0.00" />
             </div>
             <div>
-              <label className={labelClass}>Modelo *</label>
+              <label className={labelClass}>Modelo <span className="text-destructive ml-0.5">*</span></label>
               <select required value={form.modelo} onChange={(e) => set('modelo', e.target.value)} className={cn(inputClass, 'cursor-pointer')}>
                 {MODELOS.map((m) => <option key={m}>{m}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelClass}>Quantidade *</label>
+              <label className={labelClass}>Quantidade <span className="text-destructive ml-0.5">*</span></label>
               <input required type="number" min="1" value={form.quantidade} onChange={(e) => set('quantidade', e.target.value)} className={inputClass} />
             </div>
             <div className="col-span-2">
-              <label className={labelClass}>Tecido *</label>
+              <label className={labelClass}>Tecido <span className="text-destructive ml-0.5">*</span></label>
               <input required value={form.tecido} onChange={(e) => set('tecido', e.target.value)} className={inputClass} placeholder="Ex: Blackout, Solar Screen..." />
             </div>
             <div className="col-span-2">

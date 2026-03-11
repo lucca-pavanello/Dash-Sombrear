@@ -95,7 +95,7 @@ export default function Dashboard() {
               className={cn(
                 'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap active:scale-95',
                 activeTab === id
-                  ? 'bg-card text-primary shadow-elevated scale-[1.02]'
+                  ? 'bg-card text-primary shadow-elevated'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
               )}
             >

@@ -15,7 +15,7 @@ export default function ModelosChart({ data }: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 font-display font-semibold">Orçamentos por Modelo</h3>
+      <h3 className="mb-4 font-display text-base font-semibold">Orçamentos por Modelo</h3>
       {chartData.length === 0 ? (
         <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados</div>
       ) : (
@@ -28,8 +28,9 @@ export default function ModelosChart({ data }: Props) {
             </Pie>
             <Tooltip
               contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
+              labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
             />
-            <Legend iconType="circle" iconSize={8} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }} />
           </PieChart>
         </ResponsiveContainer>
       )}

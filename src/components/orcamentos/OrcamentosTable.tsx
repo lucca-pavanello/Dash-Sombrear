@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
@@ -287,26 +287,26 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     <>
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="font-display font-semibold">Todos os Orçamentos</h2>
+          <h2 className="font-display text-base font-semibold">Todos os Orçamentos</h2>
           {data.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-lg bg-muted/40 p-1">
               <button
                 onClick={() => exportCSV(sorted)}
-                className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
               >
                 <Download className="h-3.5 w-3.5" />
                 CSV
               </button>
               <button
                 onClick={() => exportXLSX(sorted)}
-                className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
               >
                 <Download className="h-3.5 w-3.5" />
                 XLSX
               </button>
               <button
                 onClick={() => exportPDF(sorted, !!isFiltered)}
-                className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
               >
                 <FileDown className="h-3.5 w-3.5" />
                 PDF
@@ -316,17 +316,20 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
         </div>
 
         {data.length === 0 ? (
-          <div className="py-12 text-center">
-            <p className="text-sm font-medium text-foreground">
-              {isFiltered ? 'Nenhum resultado para os filtros aplicados' : 'Nenhum orçamento ainda'}
+          <div className="py-16 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
+              <FileX className="h-7 w-7 text-muted-foreground/50" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">
+              {isFiltered ? 'Nenhum resultado encontrado' : 'Nenhum orçamento ainda'}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               {isFiltered ? 'Tente ajustar ou limpar os filtros' : 'Clique em "+ Novo Orçamento" para começar'}
             </p>
             {isFiltered && onClearFilters && (
               <button
                 onClick={onClearFilters}
-                className="mt-3 rounded-lg border px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="mt-4 rounded-lg bg-muted px-4 py-2 text-xs font-medium hover:bg-muted/80 transition-colors"
               >
                 Limpar todos os filtros
               </button>
@@ -372,7 +375,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         key={o.id}
                         onClick={() => setEditing(o)}
                         className={cn(
-                          'border-b last:border-0 hover:bg-muted/30 hover:translate-x-0.5 transition-all duration-150 cursor-pointer',
+                          'border-b last:border-0 hover:bg-muted/30 transition-all duration-150 cursor-pointer',
                           o.fechado && !hasFlash && 'row-fechado',
                           hasFlash && 'animate-row-close'
                         )}

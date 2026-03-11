@@ -121,7 +121,7 @@ function KpiCard({ label, value, icon: Icon, highlight, sub, attention, delay }:
 }) {
   return (
     <div
-      className={`animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border p-4 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-elevated cursor-default
+      className={`animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default
         ${attention  ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10'
         : highlight  ? 'border-primary/30 bg-primary/5 dark:bg-primary/10'
         : 'bg-card'}`}
@@ -323,16 +323,18 @@ export default function TabAgenteIA() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-primary" />
-            <h2 className="font-display font-semibold">Leads do Agente IA</h2>
+            <h2 className="font-display text-base font-semibold">Leads do Agente IA</h2>
             <span className="text-xs text-muted-foreground">{filtrados.length} lead{filtrados.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
 
         {filtrados.length === 0 ? (
           <div className="py-12 text-center space-y-1">
-            <Bot className="mx-auto h-8 w-8 text-muted-foreground/40 mb-3" />
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
+              <Bot className="h-6 w-6 text-muted-foreground/50" />
+            </div>
             <p className="text-sm font-medium">Nenhum lead neste período</p>
-            <p className="text-xs text-muted-foreground">{leads.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela crm_sombrear_ia'}</p>
+            <p className="text-sm text-muted-foreground">{leads.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela crm_sombrear_ia'}</p>
           </div>
         ) : (
           <>
@@ -570,16 +572,18 @@ export default function TabAgenteIA() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
-            <h2 className="font-display font-semibold">Orçamentos gerados pela IA</h2>
+            <h2 className="font-display text-base font-semibold">Orçamentos gerados pela IA</h2>
             <span className="text-xs text-muted-foreground">{orcFiltrados.length} orçamento{orcFiltrados.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
 
         {orcFiltrados.length === 0 ? (
           <div className="py-12 text-center space-y-1">
-            <FileText className="mx-auto h-8 w-8 text-muted-foreground/40 mb-3" />
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
+              <Bot className="h-6 w-6 text-muted-foreground/50" />
+            </div>
             <p className="text-sm font-medium">Nenhum orçamento neste período</p>
-            <p className="text-xs text-muted-foreground">{orcamentosIA.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela orcamentos_sombrear_ia'}</p>
+            <p className="text-sm text-muted-foreground">{orcamentosIA.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela orcamentos_sombrear_ia'}</p>
           </div>
         ) : (
           <>

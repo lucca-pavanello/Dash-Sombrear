@@ -37,7 +37,7 @@ export default function PainelAdmin({ toast }: Props) {
         <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 shadow-sm">
           <div className="flex items-center gap-2 border-b border-yellow-500/20 px-5 py-4">
             <Users className="h-4 w-4 text-primary" />
-            <h2 className="font-display font-semibold">Aguardando aprovação</h2>
+            <h2 className="font-display text-base font-semibold">Aguardando aprovação</h2>
             <span className="ml-auto rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-xs font-semibold text-yellow-700 dark:text-yellow-400">
               {pendentes.length}
             </span>
@@ -85,7 +85,7 @@ export default function PainelAdmin({ toast }: Props) {
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex items-center gap-2 border-b px-5 py-4">
           <CheckCircle2 className="h-4 w-4 text-primary" />
-          <h2 className="font-display font-semibold">Usuários aprovados</h2>
+          <h2 className="font-display text-base font-semibold">Usuários aprovados</h2>
           <span className="ml-auto rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-600">
             {aprovados.length}
           </span>
