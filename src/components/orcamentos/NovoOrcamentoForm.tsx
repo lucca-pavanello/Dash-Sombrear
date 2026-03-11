@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAddOrcamento } from '@/hooks/useOrcamentos'
 import { cn, formatCurrency } from '@/lib/utils'
+import SectionDivider from '@/components/shared/SectionDivider'
 
 const MODELOS = ['Rolo', 'Romeu e Julieta', 'Vertical', 'Horizontal', 'Painel', 'Cortina']
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2'
@@ -12,16 +13,6 @@ interface Props {
   open: boolean
   onClose: () => void
   responsaveis?: string[]
-}
-
-function SectionDivider({ label }: { label: string }) {
-  return (
-    <div className="col-span-2 flex items-center gap-2 pt-2">
-      <div className="flex-1 border-t" />
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
-      <div className="flex-1 border-t" />
-    </div>
-  )
 }
 
 export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }: Props) {

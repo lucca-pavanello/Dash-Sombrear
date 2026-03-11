@@ -1,24 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight } from 'lucide-react'
-
-const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-purple-500', 'bg-pink-500',
-  'bg-indigo-500', 'bg-teal-500', 'bg-cyan-500',
-  'bg-rose-500', 'bg-violet-500',
-]
-function avatarColor(name: string) {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
-}
-function AvatarInitials({ name }: { name: string }) {
-  const initials = name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
-  return (
-    <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${avatarColor(name)}`}>
-      {initials}
-    </span>
-  )
-}
+import AvatarInitials from '@/components/shared/AvatarInitials'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -362,7 +344,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         key={label}
                         onClick={() => key && toggleSort(key)}
                         className={cn(
-                          'sticky top-0 z-10 bg-card px-4 py-3 text-left font-medium text-muted-foreground select-none',
+                          'sticky top-0 z-10 bg-muted/40 px-4 py-3 text-left font-medium text-muted-foreground select-none',
                           key && 'cursor-pointer hover:text-foreground transition-colors'
                         )}
                       >
@@ -468,13 +450,13 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 {/* TAREFA C: tfoot sticky no bottom — sticky deve estar no <td>, não no <tfoot> */}
                 <tfoot>
                   <tr className="border-t">
-                    <td colSpan={7} className="sticky bottom-0 bg-card px-4 py-2.5 text-xs text-muted-foreground">
+                    <td colSpan={7} className="sticky bottom-0 bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
                       {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}
                     </td>
-                    <td className="sticky bottom-0 bg-card px-4 py-2.5 text-sm font-bold text-primary">
+                    <td className="sticky bottom-0 bg-muted/40 px-4 py-2.5 text-sm font-bold text-primary">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}
                     </td>
-                    <td colSpan={2} className="sticky bottom-0 bg-card" />
+                    <td colSpan={2} className="sticky bottom-0 bg-muted/40" />
                   </tr>
                 </tfoot>
               </table>

@@ -16,7 +16,7 @@ export default function OrcamentosFechadosCard({ data }: Props) {
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-2 border-b px-5 py-4 hover:bg-muted/30 transition-colors rounded-t-xl"
       >
-        <Trophy className="h-5 w-5 text-primary shrink-0" />
+        <Trophy className="h-4 w-4 text-primary shrink-0" />
         <h2 className="font-display font-semibold">Orçamentos Fechados</h2>
         <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
           {fechados.length}

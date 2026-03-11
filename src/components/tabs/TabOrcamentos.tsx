@@ -10,21 +10,12 @@ import FiltersBar from '@/components/orcamentos/FiltersBar'
 import ResponsavelChart from '@/components/charts/ResponsavelChart'
 import ModelosChart from '@/components/charts/ModelosChart'
 import RankingResponsavel from '@/components/orcamentos/RankingResponsavel'
+import SkeletonCard from '@/components/shared/SkeletonCard'
 
 interface Props {
   data: Orcamento[]
   loading: boolean
   toast: (type: 'success' | 'error', message: string) => void
-}
-
-function SkeletonCard() {
-  return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm animate-pulse">
-      <div className="h-3 w-20 rounded bg-muted mb-3" />
-      <div className="h-7 w-28 rounded bg-muted mb-2" />
-      <div className="h-3 w-16 rounded bg-muted" />
-    </div>
-  )
 }
 
 export default function TabOrcamentos({ data, loading, toast }: Props) {

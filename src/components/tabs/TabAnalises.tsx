@@ -351,7 +351,7 @@ export default function TabAnalises({ data }: Props) {
               <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.4} />
+              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} />
             </BarChart>
           </ResponsiveContainer>
         </div>

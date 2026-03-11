@@ -9,9 +9,14 @@ interface Props {
 export default function TabCalculoCusto({ data }: Props) {
   const comCusto = data.filter((o) => o.custo_tecido != null && o.custo_tecido > 0)
 
-  const totalMes = comCusto.reduce((s, o) => s + (o.custo_tecido ?? 0), 0)
-
   const hoje = new Date()
+
+  const comCustoMes = comCusto.filter((o) => {
+    const d = new Date(o.created_at)
+    return d.getMonth() === hoje.getMonth() && d.getFullYear() === hoje.getFullYear()
+  })
+  const totalMes = comCustoMes.reduce((s, o) => s + (o.custo_tecido ?? 0), 0)
+
   const inicioSemana = new Date(hoje)
   inicioSemana.setDate(hoje.getDate() - hoje.getDay())
   const usosSemana = comCusto.filter((o) => new Date(o.created_at) >= inicioSemana).length
@@ -38,15 +43,15 @@ export default function TabCalculoCusto({ data }: Props) {
         ].map(({ label, value, icon: Icon, highlight }) => (
           <div
             key={label}
-            className={`rounded-xl border p-5 shadow-sm ${highlight ? 'border-primary/30 bg-primary/5' : 'bg-card'}`}
+            className={`rounded-xl border p-4 shadow-sm ${highlight ? 'border-primary/30 bg-primary/5' : 'bg-card'}`}
           >
-            <div className="flex items-center gap-3">
-              <div className={`rounded-lg p-2 ${highlight ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="font-display text-2xl font-bold">{value}</p>
+                <p className="font-display mt-1 text-xl font-bold">{value}</p>
+              </div>
+              <div className={`shrink-0 rounded-lg p-1.5 ${highlight ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                <Icon className="h-4 w-4" />
               </div>
             </div>
           </div>
@@ -56,7 +61,7 @@ export default function TabCalculoCusto({ data }: Props) {
       {/* Custo por modelo */}
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex items-center gap-2 border-b px-5 py-4">
-          <Calculator className="h-5 w-5 text-primary" />
+          <Calculator className="h-4 w-4 text-primary" />
           <h2 className="font-display font-semibold">Custo por Modelo</h2>
         </div>
         {Object.keys(custoPorModelo).length === 0 ? (

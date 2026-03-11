@@ -88,7 +88,7 @@ export default function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="w-full rounded-lg border bg-background px-3.5 py-2.5 text-sm outline-none ring-ring focus:ring-2"
+                  className="w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2"
                   placeholder="Seu nome"
                 />
               </div>
@@ -101,7 +101,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-lg border bg-background px-3.5 py-2.5 text-sm outline-none ring-ring focus:ring-2"
+                className="w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2"
                 placeholder="seu@email.com"
               />
             </div>
@@ -114,7 +114,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full rounded-lg border bg-background px-3.5 py-2.5 text-sm outline-none ring-ring focus:ring-2"
+                  className="w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2"
                   placeholder="••••••••"
                 />
               </div>
@@ -134,7 +134,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-brand-gradient py-2.5 text-sm font-semibold text-white shadow-brand transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="w-full rounded-lg bg-brand-gradient py-3 text-sm font-semibold text-white shadow-brand transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : 'Enviar email'}
             </button>

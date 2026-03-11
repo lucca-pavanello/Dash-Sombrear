@@ -7,7 +7,9 @@ import {
   Bot, DollarSign, FileText, Moon, Users, CalendarCheck,
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
+  Clock, MessageCircle, XCircle, Circle,
 } from 'lucide-react'
+import SkeletonCard from '@/components/shared/SkeletonCard'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 const HORA_INICIO = 8
@@ -56,28 +58,30 @@ function filterOrcs(data: OrcamentoIA[], periodo: string) {
 }
 
 // ── Sistema de cores de status (único e consistente) ─────────────────────────
-type StatusInfo = { badge: string; label: string }
+type StatusInfo = { badge: string; label: string; Icon: React.ElementType }
 
 function getStatus(raw: string | null): StatusInfo {
   const s = raw?.toLowerCase().trim() ?? ''
   if (s === STATUS_CONVERTIDO || s === 'fechado')
-    return { badge: 'bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/20', label: 'Convertido' }
+    return { badge: 'bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/20', label: 'Convertido', Icon: CheckCircle2 }
   if (s === STATUS_AGUARDANDO || s === 'aguardando_atendente' || s === 'transferido')
-    return { badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30', label: 'Aguardando atendimento' }
+    return { badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30', label: 'Aguardando atendimento', Icon: Clock }
   if (s === 'qualificado')
-    return { badge: 'bg-blue-500/15 text-blue-700 dark:text-blue-400', label: 'Qualificado' }
+    return { badge: 'bg-blue-500/15 text-blue-700 dark:text-blue-400', label: 'Qualificado', Icon: Circle }
   if (s === 'cotado')
-    return { badge: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400', label: 'Cotado' }
+    return { badge: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400', label: 'Cotado', Icon: FileText }
   if (s === 'agendado')
-    return { badge: 'bg-purple-500/15 text-purple-700 dark:text-purple-400', label: 'Agendado' }
+    return { badge: 'bg-purple-500/15 text-purple-700 dark:text-purple-400', label: 'Agendado', Icon: CalendarCheck }
   if (s === 'em_atendimento' || s === 'em atendimento')
-    return { badge: 'bg-sky-500/15 text-sky-700 dark:text-sky-400', label: 'Em atendimento' }
+    return { badge: 'bg-sky-500/15 text-sky-700 dark:text-sky-400', label: 'Em atendimento', Icon: MessageCircle }
   if (s === 'perdido' || s === 'desistiu')
-    return { badge: 'bg-red-500/15 text-red-600 dark:text-red-400', label: 'Perdido' }
+    return { badge: 'bg-red-500/15 text-red-600 dark:text-red-400', label: 'Perdido', Icon: XCircle }
+  if (s === 'fora_horario' || s === 'fora do horário' || s === 'fora horario')
+    return { badge: 'bg-blue-500/15 text-blue-700 dark:text-blue-400', label: 'Fora do horário', Icon: Moon }
   if (!s || s === 'aguardando' || s === 'novo')
-    return { badge: 'bg-muted text-muted-foreground', label: raw ? (raw.charAt(0).toUpperCase() + raw.slice(1)) : 'Sem status' }
+    return { badge: 'bg-muted text-muted-foreground', label: raw ? (raw.charAt(0).toUpperCase() + raw.slice(1)) : 'Sem status', Icon: Circle }
   // Qualquer outro status desconhecido
-  return { badge: 'bg-muted text-muted-foreground', label: raw!.charAt(0).toUpperCase() + raw!.slice(1).replace(/_/g, ' ') }
+  return { badge: 'bg-muted text-muted-foreground', label: raw!.charAt(0).toUpperCase() + raw!.slice(1).replace(/_/g, ' '), Icon: Circle }
 }
 
 function isConvertido(s: string | null) {
@@ -144,16 +148,6 @@ function KpiCard({ label, value, icon: Icon, highlight, sub, attention, delay }:
   )
 }
 
-function SkeletonCard() {
-  return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm animate-pulse">
-      <div className="h-3 w-24 rounded bg-muted mb-3" />
-      <div className="h-7 w-16 rounded bg-muted mb-2" />
-      <div className="h-3 w-20 rounded bg-muted" />
-    </div>
-  )
-}
-
 type LeadSort = { key: 'created_at' | 'nome' | 'timestamp_ultima_msg'; dir: 'asc' | 'desc' }
 type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
@@ -168,6 +162,7 @@ export default function TabAgenteIA() {
   const [orcSort,  setOrcSort]  = useState<OrcSort>({  key: 'created_at', dir: 'desc' })
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [mobileConfirmId, setMobileConfirmId] = useState<string | null>(null)
 
   const filtrados    = filterLeads(leads, periodo)
   const orcFiltrados = filterOrcs(orcamentosIA, periodo)
@@ -301,6 +296,12 @@ export default function TabAgenteIA() {
         </div>
       )}
 
+      {/* ── Seletor de Período (único, acima das duas tabelas) ── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground">Período:</span>
+        <PeriodTabs value={periodo} onChange={setPeriodo} />
+      </div>
+
       {/* ── Tabela de Leads ── */}
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
@@ -309,7 +310,6 @@ export default function TabAgenteIA() {
             <h2 className="font-display font-semibold">Leads do Agente IA</h2>
             <span className="text-xs text-muted-foreground">{filtrados.length} lead{filtrados.length !== 1 ? 's' : ''}</span>
           </div>
-          <PeriodTabs value={periodo} onChange={setPeriodo} />
         </div>
 
         {filtrados.length === 0 ? (
@@ -387,7 +387,8 @@ export default function TabAgenteIA() {
                             </span>
                           </td>
                           <td className="px-5 py-3.5" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${status.badge}`}>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${status.badge}`}>
+                              <status.Icon className="h-3 w-3 shrink-0" />
                               {status.label}
                             </span>
                           </td>
@@ -472,7 +473,8 @@ export default function TabAgenteIA() {
                           <p className="font-semibold text-sm">{lead.nome ?? 'Sem nome'}</p>
                           {lead.whatsapp && <p className="text-xs text-muted-foreground mt-0.5">{lead.whatsapp}</p>}
                         </div>
-                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${status.badge}`}>
+                        <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${status.badge}`}>
+                          <status.Icon className="h-3 w-3 shrink-0" />
                           {status.label}
                         </span>
                       </div>
@@ -481,13 +483,30 @@ export default function TabAgenteIA() {
                         <div className="flex items-center gap-1.5">
                           {lead.ultimo_valor_cotado && <span className="text-sm font-bold text-primary">{lead.ultimo_valor_cotado}</span>}
                           {!conv && (
-                            <button
-                              onClick={() => marcarConvertido(lead.id)}
-                              disabled={marcando}
-                              className="rounded-lg border px-2 py-0.5 text-xs font-medium text-muted-foreground hover:border-green-500/50 hover:text-green-600 transition-colors"
-                            >
-                              <CheckCircle2 className="inline h-3 w-3 mr-0.5" />Converteu
-                            </button>
+                            mobileConfirmId === lead.id ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); marcarConvertido(lead.id); setMobileConfirmId(null) }}
+                                  disabled={marcando}
+                                  className="rounded-lg bg-green-500 px-2 py-0.5 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-60 transition-colors"
+                                >
+                                  {marcando ? '...' : <><Check className="inline h-3 w-3 mr-0.5" />Confirmar</>}
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setMobileConfirmId(null) }}
+                                  className="rounded-lg border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted transition-colors"
+                                >
+                                  Não
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setMobileConfirmId(lead.id) }}
+                                className="rounded-lg border px-2 py-0.5 text-xs font-medium text-muted-foreground hover:border-green-500/50 hover:text-green-600 transition-colors"
+                              >
+                                <CheckCircle2 className="inline h-3 w-3 mr-0.5" />Converteu
+                              </button>
+                            )
                           )}
                           <button onClick={() => setExpandedId(expanded ? null : lead.id)}>
                             <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`} />
@@ -539,7 +558,6 @@ export default function TabAgenteIA() {
             <h2 className="font-display font-semibold">Orçamentos gerados pela IA</h2>
             <span className="text-xs text-muted-foreground">{orcFiltrados.length} orçamento{orcFiltrados.length !== 1 ? 's' : ''}</span>
           </div>
-          <PeriodTabs value={periodo} onChange={setPeriodo} />
         </div>
 
         {orcFiltrados.length === 0 ? (

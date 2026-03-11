@@ -1,6 +1,8 @@
 import type { Orcamento } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
+const CHART_COLORS = ['#E8701A', '#F59E0B', '#D97706', '#B45309', '#92400E', '#F97316', '#FB923C', '#FDBA74']
+
 interface Props { data: Orcamento[] }
 
 export default function ResponsavelChart({ data }: Props) {
@@ -29,7 +31,7 @@ export default function ResponsavelChart({ data }: Props) {
             />
             <Bar dataKey="total" radius={[6, 6, 0, 0]}>
               {chartData.map((_, i) => (
-                <Cell key={i} fill={i === 0 ? '#E8701A' : `hsl(25 85% ${62 - i * 8}%)`} />
+                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Bar>
           </BarChart>
