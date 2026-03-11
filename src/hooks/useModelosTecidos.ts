@@ -1,42 +1,50 @@
 import { useQuery } from '@tanstack/react-query'
 
-const SHEET_ID  = import.meta.env.VITE_GOOGLE_SHEETS_ID  as string
-const GID       = import.meta.env.VITE_GOOGLE_SHEETS_GID  as string
-const API_KEY   = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY as string
-const BASE      = 'https://sheets.googleapis.com/v4/spreadsheets'
+const SHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_ID as string
+const GID      = import.meta.env.VITE_GOOGLE_SHEETS_GID  as string
+
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`
 
 export interface ModelosTecidos {
   modelos: string[]
   tecidosPorModelo: Record<string, string[]>
 }
 
+/** Parser CSV simples que respeita campos com aspas */
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = []
+  const lines = text.split(/\r?\n/)
+  for (const line of lines) {
+    if (!line.trim()) continue
+    const cols: string[] = []
+    let cur = ''
+    let inQuote = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        if (inQuote && line[i + 1] === '"') { cur += '"'; i++ }
+        else inQuote = !inQuote
+      } else if (ch === ',' && !inQuote) {
+        cols.push(cur.trim()); cur = ''
+      } else {
+        cur += ch
+      }
+    }
+    cols.push(cur.trim())
+    rows.push(cols)
+  }
+  return rows
+}
+
 async function fetchModelosTecidos(): Promise<ModelosTecidos> {
-  // 1. busca metadados para descobrir o nome da aba pelo GID
-  const metaRes = await fetch(`${BASE}/${SHEET_ID}?key=${API_KEY}`)
-  if (!metaRes.ok) throw new Error(`Metadados: HTTP ${metaRes.status}`)
-  const meta = await metaRes.json()
+  const res = await fetch(CSV_URL)
+  if (!res.ok) throw new Error(`CSV fetch: HTTP ${res.status}`)
+  const text = await res.text()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sheet = (meta.sheets as any[]).find(
-    (s) => s.properties.sheetId === parseInt(GID)
-  )
-  if (!sheet) throw new Error(`Aba com GID ${GID} não encontrada`)
-
-  const sheetTitle: string = sheet.properties.title
-
-  // 2. busca os valores da aba
-  const valRes = await fetch(
-    `${BASE}/${SHEET_ID}/values/${encodeURIComponent(sheetTitle)}?key=${API_KEY}`
-  )
-  if (!valRes.ok) throw new Error(`Valores: HTTP ${valRes.status}`)
-  const data = await valRes.json()
-
-  const rows: string[][] = (data.values ?? []).map((row: string[]) =>
-    row.map((cell) => (cell ?? '').trim())
-  )
-
+  const rows = parseCSV(text)
   if (rows.length === 0) return { modelos: [], tecidosPorModelo: {} }
 
+  // Linha 0 = nomes dos modelos (cabeçalho)
   const headers = rows[0]
   const dataRows = rows.slice(1)
 
@@ -46,7 +54,7 @@ async function fetchModelosTecidos(): Promise<ModelosTecidos> {
   headers.forEach((model, colIdx) => {
     if (!model) return
     tecidosPorModelo[model] = dataRows
-      .map((row) => row[colIdx] ?? '')
+      .map((row) => (row[colIdx] ?? '').trim())
       .filter((cell) => cell.length > 0)
   })
 
@@ -57,7 +65,7 @@ export function useModelosTecidos() {
   return useQuery<ModelosTecidos, Error>({
     queryKey: ['modelos-tecidos'],
     queryFn: fetchModelosTecidos,
-    staleTime: 5 * 60 * 1000,   // cache 5 minutos
+    staleTime: 5 * 60 * 1000,
     retry: 2,
     refetchOnWindowFocus: false,
   })
