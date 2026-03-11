@@ -14,6 +14,13 @@ const RESPONSAVEIS = [
   'Sueli', 'Sombrear Teste', 'Persianas de Fábrica',
 ]
 
+const CORES_FERRAGEM = ['Sem', 'Branca', 'Preta']
+
+const ACABAMENTOS = [
+  'Sem', 'Bando Branco', 'Bando Preto', 'Kit Box',
+  'Cadarço', 'Fita', 'Barra Niveladora',
+]
+
 const N8N_WEBHOOK = 'https://n8n-n8n.yjlhot.easypanel.host/webhook/Sombrear_sheet'
 
 const inputClass =
@@ -53,8 +60,8 @@ function newAmbiente(primeiroModelo = ''): Ambiente {
     largura: '',
     altura: '',
     quantidade: '1',
-    cor_ferragem: '',
-    acabamento: '',
+    cor_ferragem: 'Sem',
+    acabamento: 'Sem',
   }
 }
 
@@ -111,6 +118,7 @@ export default function TabCotacao() {
       if (!a.modelo) return `Modelo é obrigatório${n}.`
       if (!a.tecido.trim()) return `Tecido é obrigatório${n}.`
       if (!a.quantidade || parseInt(a.quantidade) < 1) return `Quantidade inválida${n}.`
+      if (!a.cor_ferragem) return `Cor Ferragem é obrigatória${n}.`
     }
     return null
   }
@@ -365,24 +373,25 @@ export default function TabCotacao() {
                           })()}
                         </div>
                         <div>
-                          <label className={labelClass}>Cor Ferragem</label>
-                          <input
-                            type="text"
+                          <label className={labelClass}>Cor Ferragem <Req /></label>
+                          <select
+                            required
                             value={a.cor_ferragem}
                             onChange={(e) => setAmbienteField(a.id, 'cor_ferragem', e.target.value)}
-                            className={inputClass}
-                            placeholder="Ex: Branco, Preto..."
-                          />
+                            className={selectClass}
+                          >
+                            {CORES_FERRAGEM.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
                         </div>
                         <div>
                           <label className={labelClass}>Acabamento</label>
-                          <input
-                            type="text"
+                          <select
                             value={a.acabamento}
                             onChange={(e) => setAmbienteField(a.id, 'acabamento', e.target.value)}
-                            className={inputClass}
-                            placeholder="Ex: Bandô, Sem acabamento..."
-                          />
+                            className={selectClass}
+                          >
+                            {ACABAMENTOS.map((ac) => <option key={ac} value={ac}>{ac}</option>)}
+                          </select>
                         </div>
                       </div>
                     </SubSection>
