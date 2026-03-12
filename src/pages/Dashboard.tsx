@@ -17,6 +17,11 @@ import { ADMIN_EMAIL } from '@/lib/constants'
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('calcular-orcamento')
+
+  function handleTabChange(id: string) {
+    setActiveTab(id)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   const [unreadCount, setUnreadCount] = useState(0)
   const { isDark, toggle } = useTheme()
   const { toasts, toast, dismiss } = useToast()
@@ -65,11 +70,15 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-1">
+            <span className="hidden sm:block mr-1 text-xs text-muted-foreground tabular-nums">
+              {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
+            </span>
             {isAdmin && pendingCount > 0 && (
               <button
-                onClick={() => setActiveTab('admin')}
+                onClick={() => handleTabChange('admin')}
                 className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
                 title="Aprovações pendentes"
+                aria-label="Aprovações pendentes"
               >
                 <ShieldCheck className="h-4 w-4" />
                 <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
@@ -77,10 +86,19 @@ export default function Dashboard() {
                 </span>
               </button>
             )}
-            <button onClick={toggle} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95">
+            <button
+              onClick={toggle}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+              aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
+            >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <button onClick={() => supabase.auth.signOut()} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95" title="Sair">
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+              title="Sair"
+              aria-label="Sair"
+            >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
@@ -93,7 +111,8 @@ export default function Dashboard() {
           {TABS.map(({ id, label, icon: Icon, badge }) => (
             <button
               key={id}
-              onClick={() => setActiveTab(id)}
+              onClick={() => handleTabChange(id)}
+              title={label}
               className={cn(
                 'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap active:scale-95',
                 activeTab === id
@@ -102,11 +121,14 @@ export default function Dashboard() {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span>{label}</span>
+              <span className="hidden sm:inline">{label}</span>
               {badge > 0 && (
                 <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
                   {badge}
                 </span>
+              )}
+              {activeTab === id && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-primary sm:hidden" />
               )}
             </button>
           ))}

@@ -375,7 +375,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         key={o.id}
                         onClick={() => setEditing(o)}
                         className={cn(
-                          'border-b last:border-0 hover:bg-muted/30 transition-all duration-150 cursor-pointer',
+                          'border-b last:border-0 transition-all duration-150 cursor-pointer',
+                          i % 2 === 1 ? 'bg-muted/[0.15] hover:bg-muted/30' : 'hover:bg-primary/[0.04]',
                           o.fechado && !hasFlash && 'row-fechado',
                           hasFlash && 'animate-row-close'
                         )}

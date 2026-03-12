@@ -29,7 +29,7 @@ export default function ResponsavelChart({ data }: Props) {
               contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
               labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
             />
-            <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+            <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer">
               {chartData.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}

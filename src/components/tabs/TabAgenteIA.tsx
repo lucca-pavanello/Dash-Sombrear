@@ -354,7 +354,7 @@ export default function TabAgenteIA() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedLeads.map((lead) => {
+                  {sortedLeads.map((lead, rowIdx) => {
                     const aguard    = isAguardando(lead.status_lead)
                     const conv      = isConvertido(lead.status_lead)
                     const foraMsg   = isForaDoHorario(lead.timestamp_ultima_msg)
@@ -365,10 +365,10 @@ export default function TabAgenteIA() {
                     return (
                       <React.Fragment key={lead.id}>
                         <tr
-                          className={`border-b last:border-0 transition-colors
+                          className={`border-b last:border-0 transition-colors cursor-pointer
                             ${aguard   ? 'border-l-2 border-l-amber-400' : ''}
                             ${conv     ? 'opacity-60' : ''}
-                            ${expanded ? 'bg-muted/30' : 'hover:bg-muted/20 cursor-pointer'}`}
+                            ${expanded ? 'bg-muted/30' : rowIdx % 2 === 1 ? 'bg-muted/[0.15] hover:bg-muted/30' : 'hover:bg-primary/[0.04]'}`}
                           onClick={() => setExpandedId(expanded ? null : lead.id)}
                         >
                           <td className="px-5 py-3.5 text-muted-foreground tabular-nums whitespace-nowrap"
@@ -603,12 +603,12 @@ export default function TabAgenteIA() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedOrcs.map((o) => {
+                  {sortedOrcs.map((o, rowIdx) => {
                     const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
                     const custoBase = o.custo_total_base != null ? formatCurrency(o.custo_total_base) : null
                     const custoAcab = o.custo_acabamento_total != null ? formatCurrency(o.custo_acabamento_total) : null
                     return (
-                      <tr key={o.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                      <tr key={o.id} className={`border-b last:border-0 transition-colors ${rowIdx % 2 === 1 ? 'bg-muted/[0.15] hover:bg-muted/30' : 'hover:bg-primary/[0.04]'}`}>
                         <td className="px-5 py-3.5 text-muted-foreground tabular-nums whitespace-nowrap">
                           <span className="block">{fmtDate(o.created_at)}</span>
                           <span className="text-xs opacity-70">{fmtTime(o.created_at)}</span>
