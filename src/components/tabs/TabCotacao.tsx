@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Send, CheckCircle2, Loader2, Plus, Trash2, Home,
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
-  ChevronRight, Package, PenLine,
+  ChevronRight, ChevronDown, Package, PenLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
@@ -24,9 +24,9 @@ const DRAFT_KEY = 'sombrear-cotacao-draft-v2'
 
 /* ─── Style tokens ───────────────────────────────────────── */
 const inputCls =
-  'w-full rounded-lg border border-border bg-background px-3.5 py-3 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
+  'w-full rounded-lg border border-border bg-background px-3.5 py-3 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/30'
 const selectCls =
-  'w-full cursor-pointer rounded-lg border border-border bg-background px-3.5 py-3 text-sm font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
+  'w-full cursor-pointer appearance-none rounded-lg border border-border bg-background pl-4 pr-10 py-3 text-sm font-medium text-foreground text-center outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/30'
 const labelCls =
   'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55'
 
@@ -331,14 +331,16 @@ export default function TabCotacao() {
 
                     <div>
                       <label className={labelCls}>Responsável <Req /></label>
-                      <select
-                        required
-                        value={form.responsavel}
-                        onChange={(e) => setField('responsavel', e.target.value)}
-                        className={selectCls}
-                      >
-                        {RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}
-                      </select>
+                      <SelectWrapper>
+                        <select
+                          required
+                          value={form.responsavel}
+                          onChange={(e) => setField('responsavel', e.target.value)}
+                          className={selectCls}
+                        >
+                          {RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </SelectWrapper>
                     </div>
 
                     <div>
@@ -515,23 +517,25 @@ export default function TabCotacao() {
                                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div>
                                       <label className={labelCls}>Modelo <Req /></label>
-                                      <select
-                                        required
-                                        value={p.modelo}
-                                        onChange={(e) => setPersianaModelo(a.id, p.id, e.target.value)}
-                                        className={selectCls}
-                                        disabled={catalogoLoading}
-                                      >
-                                        {catalogoLoading
-                                          ? <option value="">Carregando...</option>
-                                          : modelos.length === 0
-                                            ? <option value="">Nenhum modelo encontrado</option>
-                                            : <>
-                                                <option value="">Selecione o modelo...</option>
-                                                {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
-                                              </>
-                                        }
-                                      </select>
+                                      <SelectWrapper>
+                                        <select
+                                          required
+                                          value={p.modelo}
+                                          onChange={(e) => setPersianaModelo(a.id, p.id, e.target.value)}
+                                          className={selectCls}
+                                          disabled={catalogoLoading}
+                                        >
+                                          {catalogoLoading
+                                            ? <option value="">Carregando...</option>
+                                            : modelos.length === 0
+                                              ? <option value="">Nenhum modelo encontrado</option>
+                                              : <>
+                                                  <option value="">Selecione o modelo...</option>
+                                                  {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
+                                                </>
+                                          }
+                                        </select>
+                                      </SelectWrapper>
                                     </div>
                                     <div key={p.modelo}>
                                       <div className="mb-1.5 flex items-center justify-between">
@@ -546,16 +550,18 @@ export default function TabCotacao() {
                                         )}
                                       </div>
                                       {tecidoOpcoes.length > 0 ? (
-                                        <select
-                                          required
-                                          disabled={!p.modelo}
-                                          value={p.tecido}
-                                          onChange={(e) => setPersianaField(a.id, p.id, 'tecido', e.target.value)}
-                                          className={selectCls}
-                                        >
-                                          <option value="">Selecione o tecido...</option>
-                                          {tecidoOpcoes.map((t) => <option key={t} value={t}>{t}</option>)}
-                                        </select>
+                                        <SelectWrapper>
+                                          <select
+                                            required
+                                            disabled={!p.modelo}
+                                            value={p.tecido}
+                                            onChange={(e) => setPersianaField(a.id, p.id, 'tecido', e.target.value)}
+                                            className={selectCls}
+                                          >
+                                            <option value="">Selecione o tecido...</option>
+                                            {tecidoOpcoes.map((t) => <option key={t} value={t}>{t}</option>)}
+                                          </select>
+                                        </SelectWrapper>
                                       ) : (
                                         <input
                                           type="text"
@@ -570,24 +576,28 @@ export default function TabCotacao() {
                                     </div>
                                     <div>
                                       <label className={labelCls}>Cor Ferragem <Req /></label>
-                                      <select
-                                        required
-                                        value={p.cor_ferragem}
-                                        onChange={(e) => setPersianaField(a.id, p.id, 'cor_ferragem', e.target.value)}
-                                        className={selectCls}
-                                      >
-                                        {CORES_FERRAGEM.map((c) => <option key={c} value={c}>{c}</option>)}
-                                      </select>
+                                      <SelectWrapper>
+                                        <select
+                                          required
+                                          value={p.cor_ferragem}
+                                          onChange={(e) => setPersianaField(a.id, p.id, 'cor_ferragem', e.target.value)}
+                                          className={selectCls}
+                                        >
+                                          {CORES_FERRAGEM.map((c) => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                      </SelectWrapper>
                                     </div>
                                     <div>
                                       <label className={labelCls}>Acabamento</label>
-                                      <select
-                                        value={p.acabamento}
-                                        onChange={(e) => setPersianaField(a.id, p.id, 'acabamento', e.target.value)}
-                                        className={selectCls}
-                                      >
-                                        {ACABAMENTOS.map((ac) => <option key={ac} value={ac}>{ac}</option>)}
-                                      </select>
+                                      <SelectWrapper>
+                                        <select
+                                          value={p.acabamento}
+                                          onChange={(e) => setPersianaField(a.id, p.id, 'acabamento', e.target.value)}
+                                          className={selectCls}
+                                        >
+                                          {ACABAMENTOS.map((ac) => <option key={ac} value={ac}>{ac}</option>)}
+                                        </select>
+                                      </SelectWrapper>
                                     </div>
                                   </div>
                                 </FieldGroup>
@@ -949,12 +959,21 @@ interface FieldGroupProps {
 
 function FieldGroup({ icon, label, children }: FieldGroupProps) {
   return (
-    <div className="rounded-lg bg-muted/20 border border-border/60 overflow-hidden">
-      <div className="flex items-center gap-1.5 px-3.5 py-2 border-b border-border/40 bg-muted/30">
-        <span className="text-foreground/40">{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-foreground/45 dark:text-foreground/55">{label}</span>
+    <div className="rounded-xl bg-muted/10 border border-border/50 overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40 bg-muted/30">
+        <span className="text-primary/60">{icon}</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/50">{label}</span>
       </div>
-      <div className="p-3 sm:p-3.5">{children}</div>
+      <div className="p-3.5 sm:p-4">{children}</div>
+    </div>
+  )
+}
+
+function SelectWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative">
+      {children}
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 shrink-0" />
     </div>
   )
 }
