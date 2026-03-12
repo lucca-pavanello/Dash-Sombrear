@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAllProfiles } from '@/hooks/useProfile'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { Check, X, Users, CheckCircle2 } from 'lucide-react'
+import { Check, X, Users, CheckCircle2, Loader2 } from 'lucide-react'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
 interface Props {
@@ -24,7 +24,7 @@ export default function PainelAdmin({ toast }: Props) {
       qc.invalidateQueries({ queryKey: ['profiles-pending-count'] })
       toast('success', vars.approved ? 'Usuário aprovado!' : 'Acesso revogado.')
     },
-    onError: () => toast('error', 'Erro ao atualizar usuário.'),
+    onError: (err) => { console.error('[PainelAdmin] mutation error:', err); toast('error', 'Erro ao atualizar usuário.') },
   })
 
   const pendentes = profiles.filter((p) => p.approved === null)
@@ -53,26 +53,26 @@ export default function PainelAdmin({ toast }: Props) {
                   <button
                     onClick={async () => {
                       setPendingId(p.id)
-                      await approve.mutateAsync({ id: p.id, approved: true })
-                      setPendingId(null)
+                      try { await approve.mutateAsync({ id: p.id, approved: true }) }
+                      finally { setPendingId(null) }
                     }}
                     disabled={pendingId === p.id}
                     title="Aprovar"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/25 transition-colors disabled:opacity-50"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/25 transition-colors disabled:opacity-50"
                   >
-                    <Check className="h-4 w-4" />
+                    {pendingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   </button>
                   <button
                     onClick={async () => {
                       setPendingId(p.id)
-                      await approve.mutateAsync({ id: p.id, approved: false })
-                      setPendingId(null)
+                      try { await approve.mutateAsync({ id: p.id, approved: false }) }
+                      finally { setPendingId(null) }
                     }}
                     disabled={pendingId === p.id}
                     title="Recusar"
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
                   >
-                    <X className="h-4 w-4" />
+                    {pendingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
@@ -92,6 +92,8 @@ export default function PainelAdmin({ toast }: Props) {
         </div>
         {isLoading ? (
           <div className="py-8 text-center text-sm text-muted-foreground">Carregando...</div>
+        ) : aprovados.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Nenhum usuário aprovado ainda.</div>
         ) : (
           <div className="divide-y">
             {aprovados.map((p) => (
@@ -104,14 +106,14 @@ export default function PainelAdmin({ toast }: Props) {
                   <button
                     onClick={async () => {
                       setPendingId(p.id)
-                      await approve.mutateAsync({ id: p.id, approved: false })
-                      setPendingId(null)
+                      try { await approve.mutateAsync({ id: p.id, approved: false }) }
+                      finally { setPendingId(null) }
                     }}
                     disabled={pendingId === p.id}
                     title="Revogar acesso"
-                    className="flex shrink-0 h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+                    className="flex shrink-0 h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
                   >
-                    <X className="h-4 w-4" />
+                    {pendingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                   </button>
                 )}
               </div>

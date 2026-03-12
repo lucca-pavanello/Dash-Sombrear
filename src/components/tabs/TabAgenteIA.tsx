@@ -395,7 +395,9 @@ export default function TabAgenteIA() {
                             {lead.ambiente && <span className="text-xs text-muted-foreground">{lead.ambiente}</span>}
                           </td>
                           <td className="px-5 py-3.5 font-medium tabular-nums" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                            {lead.ultimo_valor_cotado ?? '—'}
+                            {lead.ultimo_valor_cotado && !isNaN(parseFloat(lead.ultimo_valor_cotado))
+                              ? formatCurrency(parseFloat(lead.ultimo_valor_cotado))
+                              : (lead.ultimo_valor_cotado ?? '—')}
                           </td>
                           <td className="px-5 py-3.5 tabular-nums whitespace-nowrap" onClick={() => setExpandedId(expanded ? null : lead.id)}>
                             <span className={`block text-sm ${foraMsg ? 'text-blue-500 dark:text-blue-400' : 'text-muted-foreground'}`}>
@@ -509,7 +511,9 @@ export default function TabAgenteIA() {
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xs text-muted-foreground">{fmtDate(lead.created_at)} {fmtTime(lead.created_at)}</span>
                         <div className="flex items-center gap-1.5">
-                          {lead.ultimo_valor_cotado && <span className="text-sm font-bold text-primary">{lead.ultimo_valor_cotado}</span>}
+                          {lead.ultimo_valor_cotado && !isNaN(parseFloat(lead.ultimo_valor_cotado)) && (
+                            <span className="text-sm font-bold text-primary">{formatCurrency(parseFloat(lead.ultimo_valor_cotado))}</span>
+                          )}
                           {!conv && (
                             mobileConfirmId === lead.id ? (
                               <div className="flex items-center gap-1">

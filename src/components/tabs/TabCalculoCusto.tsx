@@ -111,7 +111,7 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
                     <td className="px-5 py-3.5 font-medium">{modelo}</td>
                     <td className="px-5 py-3.5 text-center">{count}</td>
                     <td className="px-5 py-3.5 text-right">{formatCurrency(total)}</td>
-                    <td className="px-5 py-3.5 text-right">{formatCurrency(total / count)}</td>
+                    <td className="px-5 py-3.5 text-right">{formatCurrency(count > 0 ? total / count : 0)}</td>
                   </tr>
                 ))}
               </tbody>
