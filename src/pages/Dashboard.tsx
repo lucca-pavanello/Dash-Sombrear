@@ -12,6 +12,7 @@ import TabCalculoCusto from '@/components/tabs/TabCalculoCusto'
 import TabAnalises from '@/components/tabs/TabAnalises'
 import PainelAdmin from '@/components/admin/PainelAdmin'
 import Toaster from '@/components/ui/Toaster'
+import EditProfileModal from '@/components/profile/EditProfileModal'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
@@ -41,6 +42,7 @@ export default function Dashboard() {
   }, [])
   const { data: profile } = useProfile()
   const isAdmin = profile?.email === ADMIN_EMAIL
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
   const { data: pendingCount = 0 } = usePendingCount()
 
   const TABS = [
@@ -61,12 +63,17 @@ export default function Dashboard() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient shadow-brand transition-transform duration-200 hover:scale-110 cursor-default">
               <span className="font-display text-base font-bold text-white">S</span>
             </div>
-            <div>
+            <button
+              onClick={() => profile && setProfileModalOpen(true)}
+              className="group text-left rounded-lg px-1 py-0.5 hover:bg-muted transition-colors disabled:cursor-default"
+              disabled={!profile}
+              title="Editar perfil"
+            >
               <h1 className="font-display text-lg font-bold leading-none text-foreground">Sombrear</h1>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
                 {profile?.full_name ? profile.full_name.split(' ')[0] : 'Dashboard'}
               </p>
-            </div>
+            </button>
           </div>
 
           <div className="flex items-center gap-1">
@@ -143,6 +150,15 @@ export default function Dashboard() {
           {activeTab === 'admin' && isAdmin && <PainelAdmin toast={toast} />}
         </div>
       </main>
+
+      {profileModalOpen && profile && (
+        <EditProfileModal
+          mode="self"
+          targetProfile={profile}
+          onClose={() => setProfileModalOpen(false)}
+          toast={toast}
+        />
+      )}
 
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
