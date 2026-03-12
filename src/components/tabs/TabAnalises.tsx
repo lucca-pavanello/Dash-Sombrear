@@ -360,7 +360,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
-              <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="#E8701A" fillOpacity={0.85} />
+              <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -375,7 +375,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} />
+              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -390,15 +390,15 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <AreaChart data={daily} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#E8701A" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#E8701A" stopOpacity={0.05} />
+                    <stop offset="5%" stopColor="#fb923c" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#fb923c" stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
-                <Area type="monotone" dataKey="orçamentos" stroke="#E8701A" strokeWidth={2} fill="url(#areaGrad)" />
+                <Area type="monotone" dataKey="orçamentos" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#areaGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           )}

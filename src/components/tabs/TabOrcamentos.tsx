@@ -12,6 +12,15 @@ import ModelosChart from '@/components/charts/ModelosChart'
 import RankingResponsavel from '@/components/orcamentos/RankingResponsavel'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 
+const FILTER_KEY = 'sombrear-orcamentos-filters'
+
+function loadFilters() {
+  try {
+    const s = localStorage.getItem(FILTER_KEY)
+    return s ? JSON.parse(s) : {}
+  } catch { return {} }
+}
+
 interface Props {
   data: Orcamento[]
   loading: boolean
@@ -19,16 +28,21 @@ interface Props {
 }
 
 export default function TabOrcamentos({ data, loading, toast }: Props) {
+  const saved = loadFilters()
   const [formOpen, setFormOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [responsavel, setResponsavel] = useState('todos')
-  const [modelo, setModelo] = useState('todos')
-  const [fechadoFilter, setFechadoFilter] = useState('todos')
-  const [periodo, setPeriodo] = useState('todos')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [responsavel, setResponsavel] = useState(saved.responsavel ?? 'todos')
+  const [modelo, setModelo] = useState(saved.modelo ?? 'todos')
+  const [fechadoFilter, setFechadoFilter] = useState(saved.fechado ?? 'todos')
+  const [periodo, setPeriodo] = useState(saved.periodo ?? 'todos')
+  const [dateFrom, setDateFrom] = useState(saved.dateFrom ?? '')
+  const [dateTo, setDateTo] = useState(saved.dateTo ?? '')
 
   const debouncedSearch = useDebounce(search, 220)
+
+  useEffect(() => {
+    localStorage.setItem(FILTER_KEY, JSON.stringify({ responsavel, modelo, fechado: fechadoFilter, periodo, dateFrom, dateTo }))
+  }, [responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo])
 
   function clearFilters() {
     setSearch('')
@@ -126,6 +140,9 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
           >
             <Plus className="h-4 w-4" />
             Novo Orçamento
+            <kbd className="hidden lg:inline-flex items-center justify-center rounded border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-mono font-normal leading-none">
+              N
+            </kbd>
           </button>
         </div>
 

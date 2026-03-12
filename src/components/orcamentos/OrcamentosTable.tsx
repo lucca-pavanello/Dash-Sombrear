@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX } from 'lucide-react'
+import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
@@ -208,6 +208,14 @@ interface Props {
 export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, responsaveis }: Props) {
   const [editing, setEditing] = useState<Orcamento | null>(null)
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' })
+  const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
+
+  function copyPhone(e: React.MouseEvent, phone: string) {
+    e.stopPropagation()
+    navigator.clipboard.writeText(phone).catch(() => {})
+    setCopiedPhone(phone)
+    setTimeout(() => setCopiedPhone((prev) => prev === phone ? null : prev), 2000)
+  }
   const [page, setPage] = useState(1)
   // TAREFA E: rastrear quais rows tiveram flash
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set())
@@ -397,13 +405,17 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             <span className="flex flex-col">
                               <Highlight text={o.cliente} query={search} />
                               {o.telefone && (
-                                <a
-                                  href={`tel:${o.telefone}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                                <button
+                                  onClick={(e) => copyPhone(e, o.telefone!)}
+                                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                                  title="Copiar telefone"
                                 >
-                                  {o.telefone}
-                                </a>
+                                  {copiedPhone === o.telefone ? (
+                                    <><Check className="h-2.5 w-2.5 text-emerald-500" /><span className="text-emerald-500 font-medium">Copiado!</span></>
+                                  ) : (
+                                    <><Copy className="h-2.5 w-2.5 opacity-50" />{o.telefone}</>
+                                  )}
+                                </button>
                               )}
                             </span>
                             {o.observacoes && <span title={o.observacoes}><StickyNote className="h-3 w-3 shrink-0 text-muted-foreground" /></span>}

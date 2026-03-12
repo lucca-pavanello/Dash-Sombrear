@@ -404,8 +404,12 @@ export default function TabAgenteIA() {
                             </span>
                           </td>
                           <td className="px-5 py-3.5" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${status.badge}`}>
-                              <status.Icon className="h-3 w-3 shrink-0" />
+                            <span
+                              role="status"
+                              aria-label={status.label}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${status.badge}`}
+                            >
+                              <status.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
                               {status.label}
                             </span>
                           </td>
@@ -490,8 +494,12 @@ export default function TabAgenteIA() {
                           <p className="font-semibold text-sm">{lead.nome ?? 'Sem nome'}</p>
                           {lead.whatsapp && <p className="text-xs text-muted-foreground mt-0.5">{lead.whatsapp}</p>}
                         </div>
-                        <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${status.badge}`}>
-                          <status.Icon className="h-3 w-3 shrink-0" />
+                        <span
+                          role="status"
+                          aria-label={status.label}
+                          className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${status.badge}`}
+                        >
+                          <status.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
                           {status.label}
                         </span>
                       </div>
