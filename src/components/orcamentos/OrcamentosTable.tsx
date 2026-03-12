@@ -390,8 +390,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                           hasFlash && 'animate-row-close'
                         )}
                       >
-                        <td className="sticky left-0 z-10 bg-card px-3 py-3 border-r border-border/40 text-center">
-                          <span className="text-[11px] font-bold tabular-nums text-muted-foreground/40">
+                        <td className="sticky left-0 z-10 bg-card px-2 py-3 border-r border-border/50 text-center w-10">
+                          <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] rounded bg-muted/70 px-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
                             {globalIndex}
                           </span>
                         </td>
