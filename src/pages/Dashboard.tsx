@@ -13,6 +13,7 @@ import TabAnalises from '@/components/tabs/TabAnalises'
 import PainelAdmin from '@/components/admin/PainelAdmin'
 import Toaster from '@/components/ui/Toaster'
 import EditProfileModal from '@/components/profile/EditProfileModal'
+import AvatarInitials from '@/components/shared/AvatarInitials'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
@@ -60,26 +61,45 @@ export default function Dashboard() {
       <header className="sticky top-0 z-50 border-b border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] backdrop-blur-md shadow-sm">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient shadow-brand transition-transform duration-200 hover:scale-110 cursor-default">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-gradient shadow-brand">
               <span className="font-display text-base font-bold text-white">S</span>
             </div>
-            <button
-              onClick={() => profile && setProfileModalOpen(true)}
-              className="group text-left rounded-lg px-1 py-0.5 hover:bg-muted transition-colors disabled:cursor-default"
-              disabled={!profile}
-              title="Editar perfil"
-            >
+            <div>
               <h1 className="font-display text-lg font-bold leading-none text-foreground">Sombrear</h1>
-              <p className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
-                {profile?.full_name ? profile.full_name.split(' ')[0] : 'Dashboard'}
-              </p>
-            </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">
             <span className="hidden sm:block mr-1 text-xs text-muted-foreground tabular-nums">
               {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
             </span>
+
+            {/* Profile button */}
+            {profile && (
+              <button
+                onClick={() => setProfileModalOpen(true)}
+                className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted transition-colors"
+                title="Meu perfil"
+              >
+                <div className="relative">
+                  <AvatarInitials name={profile.full_name || profile.email} size="sm" />
+                  {isAdmin && (
+                    <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-primary shadow-sm ring-1 ring-background">
+                      <ShieldCheck className="h-2 w-2 text-white" />
+                    </span>
+                  )}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-semibold leading-none text-foreground group-hover:text-primary transition-colors">
+                    {profile.full_name ? profile.full_name.split(' ')[0] : profile.email.split('@')[0]}
+                  </p>
+                  {isAdmin && (
+                    <p className="text-[10px] leading-none text-primary font-medium mt-0.5">Admin</p>
+                  )}
+                </div>
+              </button>
+            )}
+
             {isAdmin && pendingCount > 0 && (
               <button
                 onClick={() => handleTabChange('admin')}
