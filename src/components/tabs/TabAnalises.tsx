@@ -341,10 +341,10 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       {/* Comparativo mês a mês */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {comparisons.map(({ label, value, delta }) => (
-          <div key={label} className="rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default">
-            <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
-            <p className="font-display mt-1 text-xl font-bold truncate">{value}</p>
-            <div className="mt-0.5">{delta ?? <span className="text-xs text-muted-foreground">base de comparação</span>}</div>
+          <div key={label} className="rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
+            <p className="font-display mt-1.5 text-2xl font-bold tracking-tight truncate">{value}</p>
+            <div className="mt-0.5">{delta ?? <span className="text-xs text-muted-foreground/60">base de comparação</span>}</div>
           </div>
         ))}
       </div>

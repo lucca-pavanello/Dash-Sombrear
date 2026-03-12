@@ -1,4 +1,4 @@
-import { Search, ChevronDown, X, SlidersHorizontal } from 'lucide-react'
+import { Search, ChevronDown, X } from 'lucide-react'
 
 interface Props {
   search: string; onSearchChange: (v: string) => void
@@ -79,11 +79,7 @@ export default function FiltersBar({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 mb-2">
-        <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Filtros</span>
-      </div>
-      {/* TAREFA D: id para foco via atalho "/" + hint de teclado */}
+      {/* id para foco via atalho "/" + hint de teclado */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input

@@ -72,8 +72,6 @@ export default function KPIGrid({ data }: Props) {
       value: String(Math.round(animFechados)),
       icon: CheckCircle2,
       highlight: true,
-      iconCls: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-      borderCls: 'border-l-4 border-l-emerald-500',
       sub: `${Math.round(animConv)}% conversão`,
       tooltip: [`${fechados.length} de ${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''}`, `Taxa de conversão: ${convRate.toFixed(1)}%`],
     },
@@ -82,8 +80,6 @@ export default function KPIGrid({ data }: Props) {
       value: String(Math.round(animTotalOrc)),
       icon: FileText,
       highlight: false,
-      iconCls: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-      borderCls: 'border-l-4 border-l-blue-500',
       sub: 'no período',
       tooltip: [`${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''} no período`, `${totalOrc - fechados.length} em aberto`],
     },
@@ -92,8 +88,6 @@ export default function KPIGrid({ data }: Props) {
       value: ticketMedio > 0 ? formatCurrency(animTicket) : '—',
       icon: ReceiptText,
       highlight: false,
-      iconCls: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-      borderCls: 'border-l-4 border-l-purple-500',
       sub: 'por fechamento',
       tooltip: ticketMedio > 0
         ? [`${formatCurrency(faturamento)} ÷ ${fechados.length} fechamentos`]
@@ -104,8 +98,6 @@ export default function KPIGrid({ data }: Props) {
       value: margemMedia > 0 ? `${animMargem.toFixed(1)}%` : '—',
       icon: TrendingUp,
       highlight: false,
-      iconCls: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
-      borderCls: 'border-l-4 border-l-cyan-500',
       sub: comMargem.length > 0 ? `${comMargem.length} com custo` : 'sem custo informado',
       tooltip: comMargem.length > 0
         ? [`Baseado em ${comMargem.length} orçamento${comMargem.length !== 1 ? 's' : ''} com margem calculada`, `(venda + instalação − custo) / receita`]
@@ -116,8 +108,6 @@ export default function KPIGrid({ data }: Props) {
       value: valorEmAberto > 0 ? formatCurrency(animEmAberto) : '—',
       icon: Clock,
       highlight: false,
-      iconCls: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-      borderCls: 'border-l-4 border-l-amber-500',
       sub: `${emAberto.length} orçamento${emAberto.length !== 1 ? 's' : ''}`,
       tooltip: [
         `${emAberto.length} orçamento${emAberto.length !== 1 ? 's' : ''} pendente${emAberto.length !== 1 ? 's' : ''}`,
@@ -131,7 +121,7 @@ export default function KPIGrid({ data }: Props) {
       {/* Faturamento — shimmer + tooltip + meta */}
       <div
         tabIndex={0}
-        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border border-primary/30 bg-primary/5 dark:bg-primary/10 p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default outline-none border-l-4 border-l-primary"
+        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
         style={{ animationFillMode: 'both', animationDelay: '0ms' }}
       >
         <KpiTooltip lines={[
@@ -150,8 +140,8 @@ export default function KPIGrid({ data }: Props) {
 
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-muted-foreground truncate">Faturamento</p>
-            <p className="font-display mt-1 text-xl font-bold truncate text-primary tabular-nums">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">Faturamento</p>
+            <p className="font-display mt-1.5 text-2xl font-bold tracking-tight truncate text-primary tabular-nums">
               {formatCurrency(Math.round(animFaturamento))}
             </p>
 
@@ -179,7 +169,7 @@ export default function KPIGrid({ data }: Props) {
             )}
           </div>
           <div className="flex flex-col items-center gap-1 shrink-0">
-            <div className="rounded-lg p-1.5 bg-primary/15 text-primary">
+            <div className="rounded-lg p-1.5 bg-muted/60 text-muted-foreground/50">
               <DollarSign className="h-4 w-4" />
             </div>
             <button
@@ -217,23 +207,23 @@ export default function KPIGrid({ data }: Props) {
         )}
       </div>
 
-      {kpis.map(({ label, value, icon: Icon, highlight, iconCls, borderCls, sub, tooltip }, i) => (
+      {kpis.map(({ label, value, icon: Icon, highlight, sub, tooltip }, i) => (
         <div
           key={label}
           tabIndex={0}
-          className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default outline-none ${borderCls} ${highlight ? 'border-primary/30 bg-primary/5 dark:bg-primary/10' : 'bg-card'}`}
+          className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none ${highlight ? 'border-primary/20 bg-primary/5 dark:bg-primary/10' : 'bg-card'}`}
           style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms` }}
         >
           <KpiTooltip lines={tooltip} />
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
-              <p className={`font-display mt-1 text-xl font-bold truncate tabular-nums ${highlight ? 'text-primary' : ''}`}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
+              <p className={`font-display mt-1.5 text-2xl font-bold tracking-tight truncate tabular-nums ${highlight ? 'text-primary' : ''}`}>
                 {value}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground truncate tabular-nums">{sub}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground/60 truncate tabular-nums">{sub}</p>
             </div>
-            <div className={`shrink-0 rounded-lg p-1.5 ${iconCls}`}>
+            <div className="shrink-0 rounded-lg p-1.5 bg-muted/60 text-muted-foreground/50">
               <Icon className="h-4 w-4" />
             </div>
           </div>

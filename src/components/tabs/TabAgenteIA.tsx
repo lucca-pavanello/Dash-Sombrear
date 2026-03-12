@@ -129,13 +129,13 @@ function KpiCard({ label, value, icon: Icon, highlight, sub, attention, delay }:
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
-          <p className={`font-display mt-1 text-xl font-bold truncate tabular-nums
+          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
+          <p className={`font-display mt-1.5 text-2xl font-bold tracking-tight truncate tabular-nums
             ${attention ? 'text-amber-600 dark:text-amber-400'
             : highlight ? 'text-primary' : ''}`}>
             {value}
           </p>
-          {sub && <p className="mt-0.5 text-xs text-muted-foreground truncate">{sub}</p>}
+          {sub && <p className="mt-0.5 text-xs text-muted-foreground/60 truncate">{sub}</p>}
         </div>
         <div className={`shrink-0 rounded-lg p-1.5
           ${attention ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
