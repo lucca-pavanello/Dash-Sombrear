@@ -62,6 +62,12 @@ export default function OrcamentosFechadosCard({ data }: Props) {
                     )}
                   </div>
                   <div className="space-y-1 text-sm">
+                    {o.ambiente && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Ambiente</span>
+                        <span className="font-medium">{o.ambiente}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Modelo</span>
                       <span className="font-medium">{o.modelo}</span>

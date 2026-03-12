@@ -49,6 +49,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
     custo_acabamento: orcamento.custo_acabamento?.toString() ?? '',
     fechado: orcamento.fechado ?? false,
     observacoes: orcamento.observacoes ?? '',
+    ambiente: orcamento.ambiente ?? '',
   }
   const [form, setForm] = useState(initialForm)
   const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm)
@@ -122,6 +123,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
       orcamento.largura && orcamento.altura ? `Medidas: ${orcamento.largura}m x ${orcamento.altura}m` : null,
       `Qtd: ${orcamento.quantidade}`,
       orcamento.cor_ferragem_motor ? `Ferragem/Motor: ${orcamento.cor_ferragem_motor}` : null,
+      orcamento.ambiente ? `Ambiente: ${orcamento.ambiente}` : null,
       orcamento.acabamentos ? `Acabamentos: ${orcamento.acabamentos}` : null,
       orcamento.valor_venda ? `Valor: ${formatCurrency(orcamento.valor_venda)}` : null,
       orcamento.instacao ? `Instalação: ${formatCurrency(orcamento.instacao)}` : null,
@@ -161,6 +163,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
         custo_acabamento: form.custo_acabamento ? Number(form.custo_acabamento) : null,
         fechado: form.fechado,
         observacoes: form.observacoes || null,
+        ambiente: form.ambiente || null,
         margem,
       })
       addHistorico({ orcamento_id: orcamento.id, snapshot: updated as object })
@@ -253,6 +256,21 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
             </div>
 
             <SectionDivider label="Produto" />
+
+            <div className="col-span-2">
+              <label className={labelClass}>Ambiente <span className="text-destructive ml-0.5">*</span></label>
+              <input
+                required
+                value={form.ambiente}
+                onChange={(e) => set('ambiente', e.target.value)}
+                className={inputClass}
+                placeholder="Ex: Sala, Quarto, Escritório..."
+                list="ambientes-list-edit"
+              />
+              <datalist id="ambientes-list-edit">
+                {['Sala', 'Quarto', 'Quarto 1', 'Quarto 2', 'Escritório', 'Cozinha', 'Varanda', 'Banheiro', 'Hall', 'Suíte'].map(a => <option key={a} value={a} />)}
+              </datalist>
+            </div>
 
             <div>
               <label className={labelClass}>Largura (m)</label>

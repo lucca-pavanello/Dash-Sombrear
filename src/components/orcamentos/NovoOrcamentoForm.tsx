@@ -37,7 +37,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
   }, [open])
 
   const [form, setForm] = useState({
-    responsavel: '', cliente: '', telefone: '', largura: '', altura: '',
+    responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
     modelo: MODELOS[0], tecido: '', quantidade: '1',
     cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
     custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
@@ -104,12 +104,13 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
         custo_acabamento: form.custo_acabamento ? Number(form.custo_acabamento) : null,
         fechado: false,
         observacoes: form.observacoes || null,
+        ambiente: form.ambiente || null,
         margem,
       })
       toast('success', 'Orçamento salvo com sucesso!')
       onClose()
       setForm({
-        responsavel: '', cliente: '', telefone: '', largura: '', altura: '',
+        responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
         modelo: MODELOS[0], tecido: '', quantidade: '1',
         cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
         custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
@@ -171,6 +172,21 @@ export default function NovoOrcamentoForm({ toast, open, onClose, responsaveis }
             </div>
 
             <SectionDivider label="Produto" />
+
+            <div className="col-span-2">
+              <label className={labelClass}>Ambiente <span className="text-destructive ml-0.5">*</span></label>
+              <input
+                required
+                value={form.ambiente}
+                onChange={(e) => set('ambiente', e.target.value)}
+                className={inputClass}
+                placeholder="Ex: Sala, Quarto, Escritório..."
+                list="ambientes-list-novo"
+              />
+              <datalist id="ambientes-list-novo">
+                {['Sala', 'Quarto', 'Quarto 1', 'Quarto 2', 'Escritório', 'Cozinha', 'Varanda', 'Banheiro', 'Hall', 'Suíte'].map(a => <option key={a} value={a} />)}
+              </datalist>
+            </div>
 
             <div>
               <label className={labelClass}>Largura (m)</label>

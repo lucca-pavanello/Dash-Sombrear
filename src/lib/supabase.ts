@@ -27,4 +27,5 @@ export type Orcamento = {
   margem?: number | null
   observacoes?: string | null
   fonte?: string | null
+  ambiente?: string | null
 }

@@ -90,13 +90,14 @@ function formatDate(iso: string) {
 }
 
 function exportCSV(data: Orcamento[]) {
-  const headers = ['#', 'Data', 'Cliente', 'Telefone', 'Responsável', 'Modelo', 'Tecido', 'Qtd', 'Valor', 'Instalação', 'Fechado']
+  const headers = ['#', 'Data', 'Cliente', 'Telefone', 'Responsável', 'Ambiente', 'Modelo', 'Tecido', 'Qtd', 'Valor', 'Instalação', 'Fechado']
   const rows = data.map((o, i) => [
     i + 1,
     formatDate(o.created_at),
     o.cliente ?? '',
     o.telefone ?? '',
     o.responsavel,
+    o.ambiente ?? '',
     o.modelo,
     o.tecido,
     o.quantidade,
@@ -121,6 +122,7 @@ function exportXLSX(data: Orcamento[]) {
     Cliente: o.cliente ?? '',
     Telefone: o.telefone ?? '',
     Responsável: o.responsavel,
+    Ambiente: o.ambiente ?? '',
     Modelo: o.modelo,
     Tecido: o.tecido,
     Quantidade: o.quantidade,
@@ -160,12 +162,13 @@ function exportPDF(data: Orcamento[], isFiltered: boolean) {
 
   autoTable(doc, {
     startY: 26,
-    head: [['#', 'Data', 'Cliente', 'Responsável', 'Modelo', 'Tecido', 'Qtd', 'Valor Venda', 'Instalação', 'Total', 'Fechado']],
+    head: [['#', 'Data', 'Cliente', 'Responsável', 'Ambiente', 'Modelo', 'Tecido', 'Qtd', 'Valor Venda', 'Instalação', 'Total', 'Fechado']],
     body: data.map((o, i) => [
       `#${i + 1}`,
       formatDate(o.created_at),
       o.cliente ?? '—',
       o.responsavel,
+      o.ambiente ?? '—',
       o.modelo,
       o.tecido,
       String(o.quantidade),
@@ -174,12 +177,12 @@ function exportPDF(data: Orcamento[], isFiltered: boolean) {
       formatCurrency((o.valor_venda ?? 0) + (o.instacao ?? 0)),
       o.fechado ? 'Sim' : 'Não',
     ]),
-    foot: [['', '', '', '', '', `${fechados} fechados`, '', formatCurrency(totalVenda), formatCurrency(totalInst), formatCurrency(totalGeral), '']],
+    foot: [['', '', '', '', '', '', `${fechados} fechados`, '', formatCurrency(totalVenda), formatCurrency(totalInst), formatCurrency(totalGeral), '']],
     theme: 'striped',
     headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 8 },
     bodyStyles: { fontSize: 7.5 },
     footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245] as [number, number, number], textColor: [40, 40, 40] as [number, number, number], fontSize: 8 },
-    columnStyles: { 7: { halign: 'right' }, 8: { halign: 'right' }, 9: { halign: 'right', fontStyle: 'bold' } },
+    columnStyles: { 8: { halign: 'right' }, 9: { halign: 'right' }, 10: { halign: 'right', fontStyle: 'bold' } },
     margin: { left: 8, right: 8 },
   })
 
@@ -289,6 +292,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     { label: 'Data', key: 'created_at' },
     { label: 'Cliente', key: 'cliente' },
     { label: 'Responsável', key: 'responsavel' },
+    { label: 'Ambiente' },
     { label: 'Modelo' },
     { label: 'Tecido' },
     { label: 'Qtd' },
@@ -446,6 +450,12 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             <Highlight text={o.responsavel} query={search} />
                           </span>
                         </td>
+                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                          {o.ambiente
+                            ? <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{o.ambiente}</span>
+                            : <span className="text-muted-foreground/30 text-xs">—</span>
+                          }
+                        </td>
                         <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.modelo}</td>
                         <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.tecido}</td>
                         <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.quantidade}</td>
@@ -486,7 +496,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 {/* TAREFA C: tfoot sticky no bottom — sticky deve estar no <td>, não no <tfoot> */}
                 <tfoot>
                   <tr className="border-t bg-muted/60">
-                    <td colSpan={7} className="px-4 py-2.5 text-xs text-muted-foreground">
+                    <td colSpan={8} className="px-4 py-2.5 text-xs text-muted-foreground">
                       {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}
                     </td>
                     <td className="px-4 py-2.5 text-sm font-bold text-primary">
@@ -537,7 +547,10 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                       </div>
                     </div>
                     <div className="flex items-center justify-between pl-8">
-                      <span className="text-xs text-muted-foreground">{o.modelo} · {o.tecido}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {o.ambiente && <span className="mr-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{o.ambiente}</span>}
+                        {o.modelo} · {o.tecido}
+                      </span>
                       {o.valor_venda
                         ? <span className="text-sm font-bold text-primary">{formatCurrency(o.valor_venda)}</span>
                         : <span className="text-xs text-muted-foreground">Sem valor</span>
