@@ -108,7 +108,14 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
 
   const responsaveis = [...new Set(data.map((o) => o.responsavel))].filter(Boolean)
   const modelos = [...new Set(data.map((o) => o.modelo))].filter(Boolean)
-  const isFiltered = filtered.length !== data.length
+  const isFiltered =
+    !!debouncedSearch ||
+    responsavel !== 'todos' ||
+    modelo !== 'todos' ||
+    fechadoFilter !== 'todos' ||
+    periodo !== 'todos' ||
+    !!dateFrom ||
+    !!dateTo
 
   if (loading) {
     return (

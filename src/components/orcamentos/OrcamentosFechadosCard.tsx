@@ -49,7 +49,7 @@ export default function OrcamentosFechadosCard({ data }: Props) {
                       <p className="font-semibold">{o.cliente ?? 'Cliente não informado'}</p>
                       <p className="text-xs text-muted-foreground">{o.responsavel}</p>
                     </div>
-                    {margem != null && (
+                    {margem != null ? (
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                         margem >= 30
                           ? 'bg-green-500/10 text-green-600 dark:text-green-400'
@@ -59,6 +59,8 @@ export default function OrcamentosFechadosCard({ data }: Props) {
                       }`}>
                         {margem.toFixed(1)}%
                       </span>
+                    ) : (
+                      <span className="rounded-full px-2 py-0.5 text-xs text-muted-foreground/40 italic">sem custo</span>
                     )}
                   </div>
                   <div className="space-y-1 text-sm">

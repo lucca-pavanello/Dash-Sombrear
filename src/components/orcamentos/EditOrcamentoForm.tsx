@@ -115,19 +115,19 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
   function handleCopy() {
     const lines = [
       `*Orçamento Sombrear*`,
-      orcamento.cliente ? `Cliente: ${orcamento.cliente}` : null,
-      orcamento.telefone ? `Telefone: ${orcamento.telefone}` : null,
-      `Responsável: ${orcamento.responsavel}`,
-      `Modelo: ${orcamento.modelo}`,
-      `Tecido: ${orcamento.tecido}`,
-      orcamento.largura && orcamento.altura ? `Medidas: ${orcamento.largura}m x ${orcamento.altura}m` : null,
-      `Qtd: ${orcamento.quantidade}`,
-      orcamento.cor_ferragem_motor ? `Ferragem/Motor: ${orcamento.cor_ferragem_motor}` : null,
-      orcamento.ambiente ? `Ambiente: ${orcamento.ambiente}` : null,
-      orcamento.acabamentos ? `Acabamentos: ${orcamento.acabamentos}` : null,
-      orcamento.valor_venda ? `Valor: ${formatCurrency(orcamento.valor_venda)}` : null,
-      orcamento.instacao ? `Instalação: ${formatCurrency(orcamento.instacao)}` : null,
-      orcamento.observacoes ? `Obs: ${orcamento.observacoes}` : null,
+      form.cliente ? `Cliente: ${form.cliente}` : null,
+      form.telefone ? `Telefone: ${form.telefone}` : null,
+      `Responsável: ${form.responsavel}`,
+      form.ambiente ? `Ambiente: ${form.ambiente}` : null,
+      `Modelo: ${form.modelo}`,
+      `Tecido: ${form.tecido}`,
+      form.largura && form.altura ? `Medidas: ${form.largura}m x ${form.altura}m` : null,
+      `Qtd: ${form.quantidade}`,
+      form.cor_ferragem_motor ? `Ferragem/Motor: ${form.cor_ferragem_motor}` : null,
+      form.acabamentos ? `Acabamentos: ${form.acabamentos}` : null,
+      form.valor_venda ? `Valor: ${formatCurrency(Number(form.valor_venda))}` : null,
+      form.instacao ? `Instalação: ${formatCurrency(Number(form.instacao))}` : null,
+      form.observacoes ? `Obs: ${form.observacoes}` : null,
     ].filter(Boolean).join('\n')
 
     navigator.clipboard.writeText(lines).then(() => {
@@ -258,9 +258,8 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
             <SectionDivider label="Produto" />
 
             <div className="col-span-2">
-              <label className={labelClass}>Ambiente <span className="text-destructive ml-0.5">*</span></label>
+              <label className={labelClass}>Ambiente</label>
               <input
-                required
                 value={form.ambiente}
                 onChange={(e) => set('ambiente', e.target.value)}
                 className={inputClass}
