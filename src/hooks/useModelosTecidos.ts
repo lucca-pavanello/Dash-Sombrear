@@ -58,9 +58,11 @@ async function fetchModelosTecidos(): Promise<ModelosTecidos> {
   const tecidosPorModelo: Record<string, string[]> = {}
   headers.forEach((model, colIdx) => {
     if (!model) return
-    tecidosPorModelo[model] = dataRows
-      .map((row) => (row[colIdx] ?? '').trim())
-      .filter((cell) => cell.length > 0)
+    tecidosPorModelo[model] = [...new Set(
+      dataRows
+        .map((row) => (row[colIdx] ?? '').trim())
+        .filter((cell) => cell.length > 0)
+    )]
   })
 
   return { modelos, tecidosPorModelo }
