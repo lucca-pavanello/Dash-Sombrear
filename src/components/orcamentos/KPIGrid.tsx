@@ -202,12 +202,12 @@ export default function KPIGrid({ data }: Props) {
                 placeholder="Ex: 50000"
                 className="flex-1 min-w-0 rounded border bg-background px-2 py-1 text-xs outline-none ring-ring focus:ring-1"
               />
-              <button onClick={saveMeta} className="rounded bg-primary px-2 py-1 text-white" title="Salvar meta">
+              <button onClick={saveMeta} className="rounded bg-primary px-2.5 py-2 text-white" title="Salvar meta">
                 <Check className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setEditingMeta(false)}
-                className="rounded border px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="rounded border px-2.5 py-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Cancelar"
               >
                 <X className="h-3 w-3" />

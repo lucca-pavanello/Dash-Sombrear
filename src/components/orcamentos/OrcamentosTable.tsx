@@ -48,7 +48,7 @@ function FechadoCheckbox({ orcamento }: { orcamento: Orcamento }) {
         onClick={handleClick}
         disabled={isPending}
         className={cn(
-          'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-200',
+          'flex items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-semibold transition-all duration-200',
           orcamento.fechado
             ? 'bg-green-500/10 text-green-600 dark:text-green-400'
             : 'bg-muted text-muted-foreground hover:bg-muted/60',
