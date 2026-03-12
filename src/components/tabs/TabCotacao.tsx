@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Send, CheckCircle2, Loader2, Plus, Trash2, Home,
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
-  ChevronRight, Package, PenLine,
+  ChevronRight, ChevronDown, Package, PenLine, Copy,
 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { cn } from '@/lib/utils'
@@ -20,6 +20,7 @@ const ACABAMENTOS = [
   'Sem', 'Bando Branco', 'Bando Preto', 'Kit Box',
   'Cadarço', 'Fita', 'Barra Niveladora',
 ]
+const SUGESTOES_AMBIENTE = ['Sala', 'Quarto', 'Quarto 1', 'Quarto 2', 'Escritório', 'Cozinha', 'Varanda', 'Banheiro', 'Hall', 'Suíte']
 const N8N_WEBHOOK = (import.meta.env.VITE_N8N_WEBHOOK as string) ?? 'https://n8n-n8n.yjlhot.easypanel.host/webhook/Sombrear_sheet'
 const DRAFT_KEY = 'sombrear-cotacao-draft-v2'
 
@@ -45,6 +46,7 @@ interface Ambiente {
   id: number
   ambiente: string
   persianas: Persiana[]
+  collapsed: boolean
 }
 
 interface FormState {
@@ -57,24 +59,23 @@ interface FormState {
 let nextId = 1
 
 function newPersiana(): Persiana {
-  return {
-    id: nextId++,
-    modelo: '',
-    tecido: '',
-    largura: '',
-    altura: '',
-    quantidade: '1',
-    cor_ferragem: 'Sem',
-    acabamento: 'Sem',
-  }
+  return { id: nextId++, modelo: '', tecido: '', largura: '', altura: '', quantidade: '1', cor_ferragem: 'Sem', acabamento: 'Sem' }
+}
+
+function copyPersiana(p: Persiana): Persiana {
+  return { ...p, id: nextId++, largura: '', altura: '', quantidade: '1' }
 }
 
 function newAmbiente(): Ambiente {
-  return {
-    id: nextId++,
-    ambiente: '',
-    persianas: [newPersiana()],
-  }
+  return { id: nextId++, ambiente: '', persianas: [newPersiana()], collapsed: false }
+}
+
+function persianaFilled(p: Persiana) {
+  return !!(p.modelo && p.tecido && p.largura && p.altura)
+}
+
+function ambienteFilled(a: Ambiente) {
+  return a.persianas.length > 0 && a.persianas.every(persianaFilled)
 }
 
 const INITIAL_FORM: FormState = { responsavel: RESPONSAVEIS[0], whatsapp: false, cliente: '' }
@@ -84,7 +85,6 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
     const s = localStorage.getItem(DRAFT_KEY)
     if (!s) return null
     const draft = JSON.parse(s)
-    // Verifica estrutura nova com persianas
     if (!draft?.ambientes?.[0]?.persianas) return null
     return draft
   } catch { return null }
@@ -99,15 +99,11 @@ export default function TabCotacao() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [resetCountdown, setResetCountdown] = useState<number | null>(null)
   const resetTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const newAmbienteRef = useRef<HTMLDivElement>(null)
+  const newPersianaRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const { toasts, toast, dismiss } = useToast()
 
-  const {
-    data: catalogoData,
-    isLoading: catalogoLoading,
-    isError: catalogoError,
-    refetch: catalogoRefetch,
-  } = useModelosTecidos()
-
+  const { data: catalogoData, isLoading: catalogoLoading, isError: catalogoError, refetch: catalogoRefetch } = useModelosTecidos()
   const modelos = catalogoData?.modelos ?? []
   const tecidosPorModelo = catalogoData?.tecidosPorModelo ?? {}
 
@@ -117,48 +113,73 @@ export default function TabCotacao() {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, ambientes }))
   }, [form, ambientes, isSuccess])
 
-  /* ── Cleanup timer on unmount ── */
+  /* ── Cleanup timer ── */
   useEffect(() => {
     return () => { if (resetTimerRef.current) clearInterval(resetTimerRef.current) }
   }, [])
 
+  /* ── State helpers ── */
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((f) => ({ ...f, [key]: value }))
+    setForm(f => ({ ...f, [key]: value }))
   }
 
   function setPersianaField(ambienteId: number, persianaId: number, key: keyof Omit<Persiana, 'id'>, value: string) {
-    setAmbientes((prev) => prev.map((a) =>
+    setAmbientes(prev => prev.map(a =>
       a.id === ambienteId
-        ? { ...a, persianas: a.persianas.map((p) => p.id === persianaId ? { ...p, [key]: value } : p) }
+        ? { ...a, persianas: a.persianas.map(p => p.id === persianaId ? { ...p, [key]: value } : p) }
         : a
     ))
   }
 
   function setPersianaModelo(ambienteId: number, persianaId: number, modelo: string) {
-    setAmbientes((prev) => prev.map((a) =>
+    setAmbientes(prev => prev.map(a =>
       a.id === ambienteId
-        ? { ...a, persianas: a.persianas.map((p) => p.id === persianaId ? { ...p, modelo, tecido: '' } : p) }
+        ? { ...a, persianas: a.persianas.map(p => p.id === persianaId ? { ...p, modelo, tecido: '' } : p) }
         : a
     ))
   }
 
   function setAmbienteNome(ambienteId: number, nome: string) {
-    setAmbientes((prev) => prev.map((a) => a.id === ambienteId ? { ...a, ambiente: nome } : a))
+    setAmbientes(prev => prev.map(a => a.id === ambienteId ? { ...a, ambiente: nome } : a))
   }
 
-  function addAmbiente() { setAmbientes((prev) => [...prev, newAmbiente()]) }
-  function removeAmbiente(id: number) { setAmbientes((prev) => prev.filter((a) => a.id !== id)) }
+  function toggleCollapse(ambienteId: number) {
+    setAmbientes(prev => prev.map(a => a.id === ambienteId ? { ...a, collapsed: !a.collapsed } : a))
+  }
+
+  function addAmbiente() {
+    const novo = newAmbiente()
+    setAmbientes(prev => {
+      // Colapsa ambientes preenchidos ao adicionar novo
+      const updated = prev.map(a => ambienteFilled(a) ? { ...a, collapsed: true } : a)
+      return [...updated, novo]
+    })
+    requestAnimationFrame(() => {
+      newAmbienteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  function removeAmbiente(id: number) {
+    setAmbientes(prev => prev.filter(a => a.id !== id))
+  }
 
   function addPersiana(ambienteId: number) {
-    setAmbientes((prev) => prev.map((a) =>
-      a.id === ambienteId ? { ...a, persianas: [...a.persianas, newPersiana()] } : a
-    ))
+    setAmbientes(prev => prev.map(a => {
+      if (a.id !== ambienteId) return a
+      const lastP = a.persianas[a.persianas.length - 1]
+      const novo = lastP ? copyPersiana(lastP) : newPersiana()
+      // Scroll to new persiana after render
+      setTimeout(() => {
+        newPersianaRefs.current[novo.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 50)
+      return { ...a, persianas: [...a.persianas, novo] }
+    }))
   }
 
   function removePersiana(ambienteId: number, persianaId: number) {
-    setAmbientes((prev) => prev.map((a) =>
+    setAmbientes(prev => prev.map(a =>
       a.id === ambienteId
-        ? { ...a, persianas: a.persianas.filter((p) => p.id !== persianaId) }
+        ? { ...a, persianas: a.persianas.filter(p => p.id !== persianaId) }
         : a
     ))
   }
@@ -166,7 +187,7 @@ export default function TabCotacao() {
   function startResetCountdown() {
     setResetCountdown(3)
     resetTimerRef.current = setInterval(() => {
-      setResetCountdown((prev) => {
+      setResetCountdown(prev => {
         if (prev === null || prev <= 1) {
           clearInterval(resetTimerRef.current!)
           setIsSuccess(false)
@@ -192,17 +213,16 @@ export default function TabCotacao() {
     if (!form.cliente.trim()) return 'Cliente é obrigatório.'
     for (let i = 0; i < ambientes.length; i++) {
       const a = ambientes[i]
-      const nA = ambientes.length > 1 ? ` (Ambiente ${i + 1})` : ''
+      const nA = ambientes.length > 1 ? ` (Amb. ${i + 1})` : ''
       for (let j = 0; j < a.persianas.length; j++) {
         const p = a.persianas[j]
-        const nP = a.persianas.length > 1 ? ` — Persiana ${j + 1}` : ''
+        const nP = a.persianas.length > 1 ? ` — P${j + 1}` : ''
         const n = `${nA}${nP}`
         if (!p.largura || parseFloat(p.largura) <= 0) return `Largura é obrigatória${n}.`
         if (!p.altura || parseFloat(p.altura) <= 0) return `Altura é obrigatória${n}.`
         if (!p.modelo) return `Modelo é obrigatório${n}.`
         if (!p.tecido.trim()) return `Tecido é obrigatório${n}.`
         if (!p.quantidade || parseInt(p.quantidade) < 1) return `Quantidade inválida${n}.`
-        if (!p.cor_ferragem) return `Cor Ferragem é obrigatória${n}.`
       }
     }
     return null
@@ -218,9 +238,9 @@ export default function TabCotacao() {
       responsavel: form.responsavel,
       whatsapp: form.whatsapp,
       cliente: form.cliente.trim(),
-      ambientes: ambientes.map((a) => ({
+      ambientes: ambientes.map(a => ({
         ambiente: a.ambiente.trim(),
-        persianas: a.persianas.map((p) => ({
+        persianas: a.persianas.map(p => ({
           modelo: p.modelo,
           tecido: p.tecido.trim(),
           largura: parseFloat(p.largura),
@@ -233,11 +253,7 @@ export default function TabCotacao() {
     }
 
     try {
-      const res = await fetch(N8N_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const res = await fetch(N8N_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setIsSuccess(true)
       toast('success', 'Orçamento enviado com sucesso!')
@@ -251,34 +267,23 @@ export default function TabCotacao() {
   }
 
   const totalArea = ambientes.reduce((sum, a) =>
-    sum + a.persianas.reduce((s, p) => {
-      const l = parseFloat(p.largura) || 0
-      const h = parseFloat(p.altura) || 0
-      const q = parseInt(p.quantidade) || 1
-      return s + l * h * q
-    }, 0), 0)
-
+    sum + a.persianas.reduce((s, p) => s + (parseFloat(p.largura) || 0) * (parseFloat(p.altura) || 0) * (parseInt(p.quantidade) || 1), 0), 0)
   const totalPersianas = ambientes.reduce((sum, a) => sum + a.persianas.length, 0)
-
-  const isFormValid = form.cliente.trim().length > 0 &&
-    ambientes.every(a => a.persianas.every(p => p.largura && p.altura && p.modelo && p.tecido && p.quantidade))
+  const isFormValid = form.cliente.trim().length > 0 && ambientes.every(a => a.persianas.every(persianaFilled))
+  const sec1Done = !!(form.responsavel && form.cliente.trim())
 
   return (
     <>
       {/* ── Page Header ── */}
       <div className="mb-6 flex flex-col items-center text-center gap-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-foreground/40 dark:text-foreground/40">Dashboard</span>
+          <span className="text-xs font-medium text-foreground/40">Dashboard</span>
           <ChevronRight className="h-3 w-3 text-foreground/30" />
           <span className="text-xs font-medium text-primary">Calcular Orçamento</span>
         </div>
         <div>
-          <h2 className="font-gotham text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Novo Orçamento
-          </h2>
-          <p className="mt-0.5 text-sm text-foreground/50 dark:text-foreground/50">
-            Preencha os dados e envie para o n8n gerar automaticamente.
-          </p>
+          <h2 className="font-gotham text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Novo Orçamento</h2>
+          <p className="mt-0.5 text-sm text-foreground/50">Preencha os dados e envie para o n8n gerar automaticamente.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center">
           {hasDraft && (
@@ -294,14 +299,9 @@ export default function TabCotacao() {
             </div>
           )}
           {catalogoError && (
-            <button
-              type="button"
-              onClick={() => catalogoRefetch()}
-              className="flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <AlertCircle className="h-3 w-3" />
-              Erro no catálogo — Tentar novamente
-              <RefreshCw className="h-3 w-3" />
+            <button type="button" onClick={() => catalogoRefetch()}
+              className="flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors">
+              <AlertCircle className="h-3 w-3" />Erro no catálogo — Tentar novamente<RefreshCw className="h-3 w-3" />
             </button>
           )}
           <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/8 px-3 py-1.5">
@@ -322,64 +322,45 @@ export default function TabCotacao() {
 
             {/* SEÇÃO 1: Dados do Pedido */}
             <section>
-              <SectionHeader step="1" icon={<User className="h-3.5 w-3.5" />} title="Dados do Pedido" />
-
+              <SectionHeader
+                step="1" icon={<User className="h-3.5 w-3.5" />} title="Dados do Pedido"
+                done={sec1Done}
+              />
               <div className="mt-3 rounded-xl border border-border bg-card shadow-sm">
                 <div className="p-4 sm:p-5">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-
                     <div>
                       <label className={labelCls}>Responsável <Req /></label>
-                      <CustomSelect
-                        value={form.responsavel}
-                        onChange={(v) => setField('responsavel', v)}
-                        options={RESPONSAVEIS}
-                      />
+                      <CustomSelect value={form.responsavel} onChange={v => setField('responsavel', v)} options={RESPONSAVEIS} />
                     </div>
-
                     <div>
                       <label className={labelCls}>Cliente <Req /></label>
                       <input
-                        type="text"
-                        required
-                        value={form.cliente}
-                        onChange={(e) => setField('cliente', e.target.value)}
-                        className={inputCls}
-                        placeholder="Nome do cliente"
-                        autoComplete="off"
+                        type="text" required value={form.cliente}
+                        onChange={e => setField('cliente', e.target.value)}
+                        className={inputCls} placeholder="Nome do cliente" autoComplete="off"
                       />
                     </div>
-
                     <div className="sm:col-span-2">
                       <label className={labelCls}>
                         <MessageSquare className="inline h-3 w-3 mr-1 -mt-px" />
                         Envio via WhatsApp
                       </label>
                       <button
-                        type="button"
-                        role="checkbox"
-                        aria-checked={form.whatsapp}
+                        type="button" role="checkbox" aria-checked={form.whatsapp}
                         onClick={() => setField('whatsapp', !form.whatsapp)}
                         className={cn(
                           'flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition-all duration-200 touch-manipulation',
                           form.whatsapp
                             ? 'border-emerald-500/50 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300'
-                            : 'border-border bg-background text-foreground/60 hover:border-muted-foreground/40 hover:bg-muted/30 dark:text-foreground/60'
+                            : 'border-border bg-background text-foreground/60 hover:border-muted-foreground/40 hover:bg-muted/30'
                         )}
                       >
-                        <span className={cn(
-                          'relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 transition-all duration-200',
-                          form.whatsapp ? 'border-emerald-500 bg-emerald-500' : 'border-foreground/20 bg-muted'
-                        )}>
-                          <span className={cn(
-                            'absolute top-0 left-0 inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
-                            form.whatsapp ? 'translate-x-4' : 'translate-x-0'
-                          )} />
+                        <span className={cn('relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 transition-all duration-200', form.whatsapp ? 'border-emerald-500 bg-emerald-500' : 'border-foreground/20 bg-muted')}>
+                          <span className={cn('absolute top-0 left-0 inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200', form.whatsapp ? 'translate-x-4' : 'translate-x-0')} />
                         </span>
                         <span>Enviar pelo WhatsApp</span>
-                        {form.whatsapp && (
-                          <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">Ativado</span>
-                        )}
+                        {form.whatsapp && <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">Ativado</span>}
                       </button>
                     </div>
                   </div>
@@ -390,98 +371,129 @@ export default function TabCotacao() {
             {/* SEÇÃO 2: Ambientes */}
             <section>
               <SectionHeader
-                step="2"
-                icon={<Home className="h-3.5 w-3.5" />}
-                title="Ambientes"
+                step="2" icon={<Home className="h-3.5 w-3.5" />} title="Ambientes"
                 badge={ambientes.length > 1 ? `${ambientes.length} ambientes` : undefined}
+                done={ambientes.length > 0 && ambientes.every(ambienteFilled)}
               />
 
               <div className="mt-3 space-y-3">
                 {ambientes.map((a, ambienteIndex) => {
-                  const totalAmbienteArea = a.persianas.reduce((s, p) => {
-                    const l = parseFloat(p.largura) || 0
-                    const h = parseFloat(p.altura) || 0
-                    const q = parseInt(p.quantidade) || 1
-                    return s + l * h * q
-                  }, 0)
-                  const isFilled = a.persianas.every(p => !!(p.largura && p.altura && p.modelo && p.tecido))
+                  const totalAmbienteArea = a.persianas.reduce((s, p) =>
+                    s + (parseFloat(p.largura) || 0) * (parseFloat(p.altura) || 0) * (parseInt(p.quantidade) || 1), 0)
+                  const isFilled = ambienteFilled(a)
+                  const isCollapsed = a.collapsed && isFilled
+                  const isLast = ambienteIndex === ambientes.length - 1
+                  const refProp = isLast ? { ref: newAmbienteRef } : {}
 
                   return (
-                    <div
-                      key={a.id}
+                    <div key={a.id} {...refProp}
                       className={cn(
-                        'rounded-xl border bg-card shadow-sm overflow-hidden transition-colors duration-200',
+                        'rounded-xl border bg-card shadow-sm transition-all duration-200',
                         isFilled ? 'border-primary/25' : 'border-border'
                       )}
                     >
                       {/* Ambiente header */}
-                      <div className={cn(
-                        'flex items-center justify-between px-4 py-3 border-b sm:px-5',
-                        isFilled ? 'bg-primary/[0.04] border-primary/15' : 'bg-muted/20 border-border/60'
-                      )}>
-                        <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={cn(
+                          'flex items-center justify-between px-4 py-3 sm:px-5',
+                          isCollapsed ? 'rounded-xl' : 'rounded-t-xl border-b',
+                          isFilled ? 'bg-primary/[0.04] border-primary/15' : 'bg-muted/20 border-border/60'
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleCollapse(a.id)}
+                          className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+                        >
                           <span className={cn(
-                            'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
+                            'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors',
                             isFilled ? 'bg-primary text-white' : 'bg-foreground/10 text-foreground/50'
                           )}>
-                            {ambienteIndex + 1}
+                            {isFilled ? <CheckCircle2 className="h-3.5 w-3.5" /> : ambienteIndex + 1}
                           </span>
                           <span className="text-sm font-semibold text-foreground truncate">
                             {a.ambiente || (ambientes.length > 1 ? `Ambiente ${ambienteIndex + 1}` : 'Ambiente')}
                           </span>
-                          {totalAmbienteArea > 0 && (
+                          {isCollapsed && (
+                            <span className="hidden sm:flex items-center gap-1.5 flex-wrap">
+                              {a.persianas.map((p, pi) => (
+                                <span key={p.id} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                  {p.modelo}{a.persianas.length > 1 ? ` P${pi + 1}` : ''} · {p.largura}×{p.altura}m
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                          {totalAmbienteArea > 0 && !isCollapsed && (
                             <span className="hidden xs:inline-flex shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                               {totalAmbienteArea.toFixed(2)} m²
                             </span>
                           )}
-                          {a.persianas.length > 1 && (
+                          {a.persianas.length > 1 && !isCollapsed && (
                             <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                               {a.persianas.length} persianas
                             </span>
                           )}
+                        </button>
+
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          {isFilled && (
+                            <button
+                              type="button"
+                              onClick={() => toggleCollapse(a.id)}
+                              className="rounded-lg p-1.5 text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 transition-colors"
+                              title={isCollapsed ? 'Expandir' : 'Recolher'}
+                            >
+                              <ChevronDown className={cn('h-4 w-4 transition-transform duration-200', !isCollapsed && 'rotate-180')} />
+                            </button>
+                          )}
+                          {ambientes.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeAmbiente(a.id)}
+                              className="rounded-lg p-1.5 text-foreground/30 hover:bg-destructive/10 hover:text-destructive transition-all duration-150 touch-manipulation"
+                              title="Remover ambiente"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
-                        {ambientes.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeAmbiente(a.id)}
-                            className="ml-2 shrink-0 rounded-lg p-2 text-foreground/30 hover:bg-destructive/10 hover:text-destructive transition-all duration-150 touch-manipulation"
-                            title="Remover ambiente"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
                       </div>
 
-                      <div className="p-4 space-y-4 sm:p-5 sm:space-y-5">
-                        {/* Nome do ambiente */}
-                        <div>
-                          <label className={labelCls}>Nome do Ambiente</label>
-                          <input
-                            type="text"
-                            value={a.ambiente}
-                            onChange={(e) => setAmbienteNome(a.id, e.target.value)}
-                            className={inputCls}
-                            placeholder="Sala, Quarto, Escritório..."
-                          />
-                        </div>
+                      {/* Conteúdo do ambiente */}
+                      {!isCollapsed && (
+                        <div className="p-4 space-y-4 sm:p-5 sm:space-y-5">
+                          {/* Nome do ambiente */}
+                          <div>
+                            <label className={labelCls}>Nome do Ambiente</label>
+                            <input
+                              type="text" value={a.ambiente}
+                              onChange={e => setAmbienteNome(a.id, e.target.value)}
+                              className={inputCls}
+                              placeholder="Sala, Quarto, Escritório..."
+                              list="sugestoes-ambiente"
+                            />
+                          </div>
 
-                        {/* Persianas */}
-                        <div className="space-y-4">
-                          {a.persianas.map((p, persianaIndex) => {
-                            const l = parseFloat(p.largura) || 0
-                            const h = parseFloat(p.altura) || 0
-                            const q = parseInt(p.quantidade) || 1
-                            const area = l * h
-                            const areaTotal = area * q
-                            const tecidoOpcoes = tecidosPorModelo[p.modelo] ?? []
-                            const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
+                          {/* Persianas */}
+                          <div className="space-y-5">
+                            {a.persianas.map((p, persianaIndex) => {
+                              const l = parseFloat(p.largura) || 0
+                              const h = parseFloat(p.altura) || 0
+                              const q = parseInt(p.quantidade) || 1
+                              const area = l * h
+                              const areaTotal = area * q
+                              const tecidoOpcoes = tecidosPorModelo[p.modelo] ?? []
+                              const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
+                              const isLastPersiana = persianaIndex === a.persianas.length - 1
 
-                            return (
-                              <div key={p.id}>
-                                {/* Persiana header — só aparece quando há mais de 1 */}
-                                {a.persianas.length > 1 && (
-                                  <div className="mb-3 flex items-center gap-2">
-                                    <div className="flex items-center gap-2 min-w-0">
+                              return (
+                                <div
+                                  key={p.id}
+                                  ref={el => { newPersianaRefs.current[p.id] = el }}
+                                >
+                                  {/* Persiana header — só quando há mais de 1 */}
+                                  {a.persianas.length > 1 && (
+                                    <div className="mb-3 flex items-center gap-2">
                                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
                                         {persianaIndex + 1}
                                       </span>
@@ -493,174 +505,183 @@ export default function TabCotacao() {
                                           {areaTotal.toFixed(2)} m²
                                         </span>
                                       )}
-                                    </div>
-                                    <div className="flex-1 h-px bg-border/50" />
-                                    <button
-                                      type="button"
-                                      onClick={() => removePersiana(a.id, p.id)}
-                                      className="shrink-0 rounded-lg p-1.5 text-foreground/30 hover:bg-destructive/10 hover:text-destructive transition-all duration-150 touch-manipulation"
-                                      title="Remover persiana"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                )}
-
-                                {/* Grupo: Produto */}
-                                <FieldGroup icon={<Layers className="h-3 w-3" />} label="Produto">
-                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    <div>
-                                      <label className={labelCls}>Modelo <Req /></label>
-                                      <CustomSelect
-                                        value={p.modelo}
-                                        onChange={(v) => setPersianaModelo(a.id, p.id, v)}
-                                        options={modelos}
-                                        placeholder={catalogoLoading ? 'Carregando...' : modelos.length === 0 ? 'Nenhum modelo' : 'Selecione o modelo...'}
-                                        disabled={catalogoLoading}
-                                      />
-                                    </div>
-                                    <div key={p.modelo}>
-                                      <div className="mb-1.5 flex items-center justify-between">
-                                        <label className="block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55">
-                                          Tecido <Req />
-                                        </label>
-                                        {tecidoLivre && p.modelo && (
-                                          <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                            <PenLine className="h-2.5 w-2.5" />
-                                            Texto livre
-                                          </span>
-                                        )}
-                                      </div>
-                                      {tecidoOpcoes.length > 0 ? (
-                                        <CustomSelect
-                                          value={p.tecido}
-                                          onChange={(v) => setPersianaField(a.id, p.id, 'tecido', v)}
-                                          options={tecidoOpcoes}
-                                          placeholder="Selecione o tecido..."
-                                          disabled={!p.modelo}
-                                        />
-                                      ) : (
-                                        <input
-                                          type="text"
-                                          required
-                                          disabled={!p.modelo}
-                                          value={p.tecido}
-                                          onChange={(e) => setPersianaField(a.id, p.id, 'tecido', e.target.value)}
-                                          className={inputCls}
-                                          placeholder={!p.modelo ? 'Selecione um modelo primeiro' : catalogoLoading ? 'Aguardando...' : 'Ex: Blackout, Solar Screen...'}
-                                        />
+                                      <div className="flex-1 h-px bg-border/50" />
+                                      {/* Copiar da persiana anterior */}
+                                      {persianaIndex > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const prev = a.persianas[persianaIndex - 1]
+                                            setAmbientes(s => s.map(amb => amb.id === a.id ? {
+                                              ...amb,
+                                              persianas: amb.persianas.map(pp => pp.id === p.id
+                                                ? { ...pp, modelo: prev.modelo, tecido: prev.tecido, cor_ferragem: prev.cor_ferragem, acabamento: prev.acabamento }
+                                                : pp
+                                              )
+                                            } : amb))
+                                          }}
+                                          className="flex items-center gap-1 shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                          title="Copiar modelo/tecido da persiana anterior"
+                                        >
+                                          <Copy className="h-3 w-3" />
+                                          Copiar anterior
+                                        </button>
                                       )}
+                                      <button
+                                        type="button"
+                                        onClick={() => removePersiana(a.id, p.id)}
+                                        className="shrink-0 rounded-lg p-1.5 text-foreground/30 hover:bg-destructive/10 hover:text-destructive transition-all duration-150 touch-manipulation"
+                                        title="Remover persiana"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
                                     </div>
-                                    <div>
-                                      <label className={labelCls}>Cor Ferragem <Req /></label>
-                                      <CustomSelect
-                                        value={p.cor_ferragem}
-                                        onChange={(v) => setPersianaField(a.id, p.id, 'cor_ferragem', v)}
-                                        options={CORES_FERRAGEM}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className={labelCls}>Acabamento</label>
-                                      <CustomSelect
-                                        value={p.acabamento}
-                                        onChange={(v) => setPersianaField(a.id, p.id, 'acabamento', v)}
-                                        options={ACABAMENTOS}
-                                      />
-                                    </div>
-                                  </div>
-                                </FieldGroup>
+                                  )}
 
-                                {/* Grupo: Medidas */}
-                                <div className="mt-3">
-                                  <FieldGroup icon={<Ruler className="h-3 w-3" />} label="Medidas">
-                                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                                  {/* Grupo: Produto */}
+                                  <FieldGroup icon={<Layers className="h-3 w-3" />} label="Produto">
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                       <div>
-                                        <label className={labelCls}>
-                                          <span className="sm:hidden">Larg. (m)</span>
-                                          <span className="hidden sm:inline">Largura (m)</span>
-                                          {' '}<Req />
-                                        </label>
-                                        <input
-                                          type="number" step="0.01" min="0" required
-                                          inputMode="decimal"
-                                          value={p.largura}
-                                          onChange={(e) => setPersianaField(a.id, p.id, 'largura', e.target.value)}
-                                          className={inputCls}
-                                          placeholder="2.50"
+                                        <label className={labelCls}>Modelo <Req /></label>
+                                        <CustomSelect
+                                          value={p.modelo}
+                                          onChange={v => setPersianaModelo(a.id, p.id, v)}
+                                          options={modelos}
+                                          placeholder={catalogoLoading ? 'Carregando...' : modelos.length === 0 ? 'Nenhum modelo' : 'Selecione...'}
+                                          disabled={catalogoLoading}
                                         />
                                       </div>
-                                      <div>
-                                        <label className={labelCls}>
-                                          <span className="sm:hidden">Alt. (m)</span>
-                                          <span className="hidden sm:inline">Altura (m)</span>
-                                          {' '}<Req />
-                                        </label>
-                                        <input
-                                          type="number" step="0.01" min="0" required
-                                          inputMode="decimal"
-                                          value={p.altura}
-                                          onChange={(e) => setPersianaField(a.id, p.id, 'altura', e.target.value)}
-                                          className={inputCls}
-                                          placeholder="1.80"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className={labelCls}>Qtd <Req /></label>
-                                        <input
-                                          type="number" min="1" required
-                                          inputMode="numeric"
-                                          value={p.quantidade}
-                                          onChange={(e) => setPersianaField(a.id, p.id, 'quantidade', e.target.value)}
-                                          className={inputCls}
-                                        />
-                                      </div>
-                                    </div>
-
-                                    {area > 0 && (
-                                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                                        <span className="text-xs text-foreground/50 dark:text-foreground/50">
-                                          {p.largura} × {p.altura} m =
-                                        </span>
-                                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                                          {area.toFixed(2)} m²
-                                        </span>
-                                        {q > 1 && (
-                                          <>
-                                            <span className="text-xs text-foreground/50 dark:text-foreground/50">× {q} unid =</span>
-                                            <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary">
-                                              {areaTotal.toFixed(2)} m² total
+                                      <div key={p.modelo}>
+                                        <div className="mb-1.5 flex items-center justify-between">
+                                          <label className="block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55">
+                                            Tecido <Req />
+                                          </label>
+                                          {tecidoLivre && p.modelo && (
+                                            <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                              <PenLine className="h-2.5 w-2.5" />Texto livre
                                             </span>
-                                          </>
+                                          )}
+                                        </div>
+                                        {tecidoOpcoes.length > 0 ? (
+                                          <CustomSelect
+                                            value={p.tecido}
+                                            onChange={v => setPersianaField(a.id, p.id, 'tecido', v)}
+                                            options={tecidoOpcoes}
+                                            placeholder="Selecione o tecido..."
+                                            disabled={!p.modelo}
+                                          />
+                                        ) : (
+                                          <input
+                                            type="text" required disabled={!p.modelo}
+                                            value={p.tecido}
+                                            onChange={e => setPersianaField(a.id, p.id, 'tecido', e.target.value)}
+                                            className={inputCls}
+                                            placeholder={!p.modelo ? 'Selecione um modelo primeiro' : 'Ex: Blackout, Solar Screen...'}
+                                          />
                                         )}
                                       </div>
-                                    )}
+                                      <div>
+                                        <label className={labelCls}>Cor Ferragem</label>
+                                        <CustomSelect
+                                          value={p.cor_ferragem}
+                                          onChange={v => setPersianaField(a.id, p.id, 'cor_ferragem', v)}
+                                          options={CORES_FERRAGEM}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className={labelCls}>Acabamento</label>
+                                        <CustomSelect
+                                          value={p.acabamento}
+                                          onChange={v => setPersianaField(a.id, p.id, 'acabamento', v)}
+                                          options={ACABAMENTOS}
+                                        />
+                                      </div>
+                                    </div>
                                   </FieldGroup>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
 
-                        {/* Botão adicionar persiana */}
-                        <button
-                          type="button"
-                          onClick={() => addPersiana(a.id)}
-                          className="group flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 py-2.5 text-xs font-semibold text-foreground/40 transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] hover:text-primary touch-manipulation"
-                        >
-                          <span className="flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-current transition-all duration-200 group-hover:bg-primary group-hover:border-primary group-hover:text-white">
-                            <Plus className="h-2.5 w-2.5" />
-                          </span>
-                          Adicionar Persiana
-                        </button>
-                      </div>
+                                  {/* Grupo: Medidas */}
+                                  <div className="mt-3">
+                                    <FieldGroup icon={<Ruler className="h-3 w-3" />} label="Medidas">
+                                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                                        <div>
+                                          <label className={labelCls}>
+                                            <span className="sm:hidden">Larg. (m)</span>
+                                            <span className="hidden sm:inline">Largura (m)</span>
+                                            {' '}<Req />
+                                          </label>
+                                          <input type="number" step="0.01" min="0" required inputMode="decimal"
+                                            value={p.largura} onChange={e => setPersianaField(a.id, p.id, 'largura', e.target.value)}
+                                            className={inputCls} placeholder="2.50" />
+                                        </div>
+                                        <div>
+                                          <label className={labelCls}>
+                                            <span className="sm:hidden">Alt. (m)</span>
+                                            <span className="hidden sm:inline">Altura (m)</span>
+                                            {' '}<Req />
+                                          </label>
+                                          <input type="number" step="0.01" min="0" required inputMode="decimal"
+                                            value={p.altura} onChange={e => setPersianaField(a.id, p.id, 'altura', e.target.value)}
+                                            className={inputCls} placeholder="1.80" />
+                                        </div>
+                                        <div>
+                                          <label className={labelCls}>Qtd <Req /></label>
+                                          <input type="number" min="1" required inputMode="numeric"
+                                            value={p.quantidade} onChange={e => setPersianaField(a.id, p.id, 'quantidade', e.target.value)}
+                                            className={inputCls} />
+                                        </div>
+                                      </div>
+
+                                      {area > 0 && (
+                                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                                          <span className="text-xs text-foreground/50">{p.largura} × {p.altura} m =</span>
+                                          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{area.toFixed(2)} m²</span>
+                                          {q > 1 && (
+                                            <>
+                                              <span className="text-xs text-foreground/50">× {q} unid =</span>
+                                              <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary">{areaTotal.toFixed(2)} m² total</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
+                                    </FieldGroup>
+                                  </div>
+
+                                  {/* Separador entre persianas */}
+                                  {!isLastPersiana && <div className="mt-5 border-t border-dashed border-border/60" />}
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          {/* Botão adicionar persiana */}
+                          <button
+                            type="button" onClick={() => addPersiana(a.id)}
+                            className="group flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 py-2.5 text-xs font-semibold text-foreground/40 transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] hover:text-primary touch-manipulation"
+                          >
+                            <span className="flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-current transition-all duration-200 group-hover:bg-primary group-hover:border-primary group-hover:text-white">
+                              <Plus className="h-2.5 w-2.5" />
+                            </span>
+                            {a.persianas.length > 0 ? `Adicionar Persiana ${a.persianas.length + 1}` : 'Adicionar Persiana'}
+                            {a.persianas.length > 0 && (
+                              <span className="text-[10px] font-normal text-muted-foreground/60 group-hover:text-primary/60">
+                                (copia configurações da anterior)
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
 
+                {/* Datalist sugestões */}
+                <datalist id="sugestoes-ambiente">
+                  {SUGESTOES_AMBIENTE.map(s => <option key={s} value={s} />)}
+                </datalist>
+
                 {/* Botão adicionar ambiente */}
                 <button
-                  type="button"
-                  onClick={addAmbiente}
+                  type="button" onClick={addAmbiente}
                   className="group flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-semibold text-foreground/40 transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] hover:text-primary touch-manipulation"
                 >
                   <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-current transition-all duration-200 group-hover:bg-primary group-hover:border-primary group-hover:text-white">
@@ -673,17 +694,15 @@ export default function TabCotacao() {
 
             {/* ── SUBMIT mobile ── */}
             <div className="xl:hidden rounded-xl border border-border bg-card p-4 shadow-sm">
-              <SubmitButton isLoading={isLoading} isSuccess={isSuccess} />
-              {resetCountdown !== null && (
-                <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />
-              )}
+              <SubmitButton isLoading={isLoading} isSuccess={isSuccess} isValid={isFormValid} />
+              {resetCountdown !== null && <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />}
               <p className="mt-2 text-center text-[11px] text-foreground/40">
                 Campos com <span className="text-destructive font-bold">*</span> são obrigatórios
               </p>
             </div>
           </div>
 
-          {/* ── RIGHT COLUMN: Summary + Submit (desktop) ── */}
+          {/* ── RIGHT COLUMN ── */}
           <div className="xl:sticky xl:top-24 h-fit space-y-3">
 
             {/* Resumo */}
@@ -703,12 +722,11 @@ export default function TabCotacao() {
               </div>
 
               <div className="p-4 space-y-3">
-                {/* Cliente */}
                 {form.cliente ? (
                   <div className="rounded-lg bg-primary/5 border border-primary/15 px-4 py-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">Cliente</p>
                     <p className="text-base font-bold text-foreground leading-tight">{form.cliente}</p>
-                    <p className="text-xs font-medium text-foreground/60 dark:text-foreground/65 mt-0.5">via {form.responsavel}</p>
+                    <p className="text-xs font-medium text-foreground/60 mt-0.5">via {form.responsavel}</p>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-border px-4 py-3">
@@ -725,70 +743,35 @@ export default function TabCotacao() {
 
                 <div className="border-t border-border/50" />
 
-                {/* Ambientes + persianas */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-foreground/45 dark:text-foreground/55">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-foreground/45">
                     Ambientes ({ambientes.length})
                   </p>
                   {ambientes.map((a, aIdx) => {
-                    const ambienteArea = a.persianas.reduce((s, p) => {
-                      const l = parseFloat(p.largura) || 0
-                      const h = parseFloat(p.altura) || 0
-                      const q = parseInt(p.quantidade) || 1
-                      return s + l * h * q
-                    }, 0)
-                    const hasData = a.persianas.some(p => !!(p.largura && p.altura && p.modelo && p.tecido))
+                    const ambienteArea = a.persianas.reduce((s, p) =>
+                      s + (parseFloat(p.largura) || 0) * (parseFloat(p.altura) || 0) * (parseInt(p.quantidade) || 1), 0)
+                    const hasData = a.persianas.some(persianaFilled)
 
                     return (
-                      <div
-                        key={a.id}
-                        className={cn(
-                          'rounded-lg border overflow-hidden transition-opacity',
-                          hasData ? 'border-border/60' : 'border-border/30 opacity-50'
-                        )}
-                      >
-                        <div className={cn(
-                          'flex items-center justify-between px-3 py-2',
-                          hasData ? 'bg-muted/30' : 'bg-muted/10'
-                        )}>
+                      <div key={a.id} className={cn('rounded-lg border overflow-hidden transition-opacity', hasData ? 'border-border/60' : 'border-border/30 opacity-50')}>
+                        <div className={cn('flex items-center justify-between px-3 py-2', hasData ? 'bg-muted/30' : 'bg-muted/10')}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className={cn(
-                                'flex shrink-0 items-center justify-center rounded-full text-[9px] font-bold',
-                                hasData ? 'bg-primary/15 text-primary' : 'bg-foreground/10 text-foreground/40'
-                              )}
-                              style={{ width: 18, height: 18 }}
-                            >
+                            <span className={cn('flex shrink-0 items-center justify-center rounded-full text-[9px] font-bold', hasData ? 'bg-primary/15 text-primary' : 'bg-foreground/10 text-foreground/40')} style={{ width: 18, height: 18 }}>
                               {aIdx + 1}
                             </span>
-                            <span className="text-xs font-semibold text-foreground truncate">
-                              {a.ambiente || `Ambiente ${aIdx + 1}`}
-                            </span>
+                            <span className="text-xs font-semibold text-foreground truncate">{a.ambiente || `Ambiente ${aIdx + 1}`}</span>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                            {a.persianas.length > 1 && (
-                              <span className="text-[10px] font-semibold text-muted-foreground">
-                                {a.persianas.length}×
-                              </span>
-                            )}
-                            {ambienteArea > 0 && (
-                              <span className="text-[10px] font-bold text-primary">{ambienteArea.toFixed(2)}m²</span>
-                            )}
+                            {a.persianas.length > 1 && <span className="text-[10px] font-semibold text-muted-foreground">{a.persianas.length}×</span>}
+                            {ambienteArea > 0 && <span className="text-[10px] font-bold text-primary">{ambienteArea.toFixed(2)}m²</span>}
                           </div>
                         </div>
-
-                        {/* Persianas do ambiente */}
                         {a.persianas.map((p, pIdx) => {
-                          const pHasData = !!(p.largura && p.altura && p.modelo && p.tecido)
-                          if (!pHasData) return null
+                          if (!persianaFilled(p)) return null
                           const pArea = (parseFloat(p.largura) || 0) * (parseFloat(p.altura) || 0) * (parseInt(p.quantidade) || 1)
                           return (
                             <div key={p.id} className={cn('px-3 py-2 bg-background/50', pIdx > 0 && 'border-t border-border/30')}>
-                              {a.persianas.length > 1 && (
-                                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">
-                                  Persiana {pIdx + 1}
-                                </p>
-                              )}
+                              {a.persianas.length > 1 && <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Persiana {pIdx + 1}</p>}
                               <div className="space-y-0.5">
                                 <MiniRow k="Modelo" v={p.modelo} />
                                 <MiniRow k="Tecido" v={p.tecido} />
@@ -812,14 +795,14 @@ export default function TabCotacao() {
                     <p className="font-display text-2xl font-bold text-primary leading-tight">{ambientes.length}</p>
                   </div>
                   <div className="rounded-lg border border-border bg-muted/20 p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/45 dark:text-foreground/55">Persianas</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/45">Persianas</p>
                     <p className="font-display text-2xl font-bold text-foreground leading-tight">{totalPersianas}</p>
                   </div>
                   <div className="rounded-lg border border-border bg-muted/20 p-2.5 text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/45 dark:text-foreground/55">Área Total</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/45">Área</p>
                     <p className="font-display text-lg font-bold text-foreground leading-tight mt-0.5">
-                      {totalArea > 0 ? totalArea.toFixed(2) : '—'}
-                      {totalArea > 0 && <span className="text-xs font-medium text-foreground/50"> m²</span>}
+                      {totalArea > 0 ? totalArea.toFixed(1) : '—'}
+                      {totalArea > 0 && <span className="text-xs font-medium text-foreground/50">m²</span>}
                     </p>
                   </div>
                 </div>
@@ -828,10 +811,8 @@ export default function TabCotacao() {
 
             {/* Submit desktop */}
             <div className="hidden xl:block rounded-xl border border-border bg-card p-4 shadow-sm">
-              <SubmitButton isLoading={isLoading} isSuccess={isSuccess} />
-              {resetCountdown !== null && (
-                <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />
-              )}
+              <SubmitButton isLoading={isLoading} isSuccess={isSuccess} isValid={isFormValid} />
+              {resetCountdown !== null && <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />}
               <p className="mt-2 text-center text-[10px] text-foreground/40">
                 Campos com <span className="text-destructive font-bold">*</span> são obrigatórios
               </p>
@@ -847,9 +828,7 @@ export default function TabCotacao() {
 
 /* ─── Sub-components ─────────────────────────────────────── */
 
-function Req() {
-  return <span className="text-destructive ml-0.5">*</span>
-}
+function Req() { return <span className="text-destructive ml-0.5">*</span> }
 
 function ResetBanner({ countdown, onCancel }: { countdown: number; onCancel: () => void }) {
   return (
@@ -857,37 +836,29 @@ function ResetBanner({ countdown, onCancel }: { countdown: number; onCancel: () 
       <span className="text-xs text-emerald-700 dark:text-emerald-400">
         Formulário será limpo em <strong>{countdown}s</strong>…
       </span>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 underline underline-offset-2 hover:opacity-70 transition-opacity"
-      >
+      <button type="button" onClick={onCancel} className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 underline underline-offset-2 hover:opacity-70 transition-opacity">
         Cancelar
       </button>
     </div>
   )
 }
 
-function SubmitButton({ isLoading, isSuccess }: { isLoading: boolean; isSuccess: boolean }) {
+function SubmitButton({ isLoading, isSuccess, isValid }: { isLoading: boolean; isSuccess: boolean; isValid: boolean }) {
   return (
     <button
       type="submit"
       disabled={isLoading || isSuccess}
       className={cn(
         'w-full flex items-center justify-center gap-2.5 rounded-xl px-4 py-4 text-sm font-bold text-white transition-all duration-200 touch-manipulation',
-        isSuccess
-          ? 'bg-emerald-500 cursor-default'
-          : isLoading
-            ? 'bg-primary/70 cursor-not-allowed'
-            : 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98]',
+        isSuccess ? 'bg-emerald-500 cursor-default'
+          : isLoading ? 'bg-primary/70 cursor-not-allowed'
+          : isValid ? 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98]'
+          : 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98] opacity-80',
       )}
     >
-      {isLoading
-        ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
-        : isSuccess
-          ? <><CheckCircle2 className="h-4 w-4" /> Orçamento enviado!</>
-          : <><Send className="h-4 w-4" /> Gerar Orçamento</>
-      }
+      {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+        : isSuccess ? <><CheckCircle2 className="h-4 w-4" /> Orçamento enviado!</>
+        : <><Send className="h-4 w-4" /> Gerar Orçamento</>}
     </button>
   )
 }
@@ -897,33 +868,30 @@ interface SectionHeaderProps {
   icon: React.ReactNode
   title: string
   badge?: string
+  done?: boolean
 }
 
-function SectionHeader({ step, icon, title, badge }: SectionHeaderProps) {
+function SectionHeader({ step, icon, title, badge, done }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-        {step}
+      <div className={cn(
+        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white transition-colors duration-300',
+        done ? 'bg-emerald-500' : 'bg-primary'
+      )}>
+        {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : step}
       </div>
       <div className="flex items-center gap-2">
         <span className="text-foreground/40">{icon}</span>
         <span className="text-sm font-bold text-foreground">{title}</span>
-        {badge && (
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-            {badge}
-          </span>
-        )}
+        {badge && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{badge}</span>}
+        {done && <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Completo</span>}
       </div>
       <div className="flex-1 h-px bg-border/60" />
     </div>
   )
 }
 
-interface FieldGroupProps {
-  icon: React.ReactNode
-  label: string
-  children: React.ReactNode
-}
+interface FieldGroupProps { icon: React.ReactNode; label: string; children: React.ReactNode }
 
 function FieldGroup({ icon, label, children }: FieldGroupProps) {
   return (
@@ -940,7 +908,7 @@ function FieldGroup({ icon, label, children }: FieldGroupProps) {
 function MiniRow({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-start justify-between gap-2 text-[11px]">
-      <span className="shrink-0 font-medium text-foreground/50 dark:text-foreground/55">{k}</span>
+      <span className="shrink-0 font-medium text-foreground/50">{k}</span>
       <span className="truncate text-right font-semibold text-foreground max-w-[55%]">{v}</span>
     </div>
   )
