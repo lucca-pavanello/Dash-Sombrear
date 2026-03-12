@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { useAllProfiles } from '@/hooks/useProfile'
-import { useQueryClient, useMutation } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
-import { Check, X, CheckCircle2, Loader2, Pencil, ShieldCheck, Clock, UserPlus, UserX } from 'lucide-react'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { supabaseAdmin } from '@/lib/supabase'
+import { Check, X, CheckCircle2, Loader2, Pencil, ShieldCheck, Clock, UserPlus, UserX, AlertTriangle } from 'lucide-react'
 import { ADMIN_EMAIL } from '@/lib/constants'
 import type { Profile } from '@/hooks/useProfile'
 import EditProfileModal from '@/components/profile/EditProfileModal'
@@ -13,17 +12,45 @@ interface Props {
   toast: (type: 'success' | 'error', message: string) => void
 }
 
-
 export default function PainelAdmin({ toast }: Props) {
-  const { data: profiles = [], isLoading } = useAllProfiles()
   const qc = useQueryClient()
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null)
   const [showNovoUsuario, setShowNovoUsuario] = useState(false)
 
+  const { data: profiles = [], isLoading } = useQuery({
+    queryKey: ['profiles'],
+    enabled: !!supabaseAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabaseAdmin!
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data as Profile[]
+    },
+  })
+
+  if (!supabaseAdmin) {
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-8 flex items-start gap-3">
+        <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-destructive">Chave de administrador não configurada</p>
+          <p className="text-xs text-muted-foreground">
+            Adicione <code className="rounded bg-muted px-1 py-0.5 font-mono">VITE_SUPABASE_SERVICE_ROLE_KEY</code> nas variáveis de ambiente do Vercel e redeploy.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Encontre a chave em: <span className="font-medium">Supabase → Project Settings → API → service_role</span>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const approve = useMutation({
     mutationFn: async ({ id, approved }: { id: string; approved: boolean | null }) => {
-      const { error } = await supabase.from('profiles').update({ approved }).eq('id', id)
+      const { error } = await supabaseAdmin!.from('profiles').update({ approved }).eq('id', id)
       if (error) throw error
     },
     onSuccess: (_data, vars) => {
