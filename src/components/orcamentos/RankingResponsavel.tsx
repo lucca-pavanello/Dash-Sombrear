@@ -28,7 +28,7 @@ export default function RankingResponsavel({ data }: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 font-display text-base font-semibold">Ranking de Responsáveis</h3>
+      <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Ranking de Responsáveis</h3>
       {ranked.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center gap-2">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">

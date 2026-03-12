@@ -290,7 +290,10 @@ export default function TabAgenteIA() {
     <div className="space-y-5">
 
       {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      <div
+        key={periodo}
+        className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6 animate-in fade-in-0 duration-200"
+      >
         {kpis.map(({ label, value, icon, highlight, attention, sub }, i) => (
           <KpiCard key={label} label={label} value={value} icon={icon}
             highlight={highlight} attention={attention} sub={sub} delay={i * 80} />
@@ -323,7 +326,7 @@ export default function TabAgenteIA() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-primary" />
-            <h2 className="font-display text-base font-semibold">Leads do Agente IA</h2>
+            <h2 className="font-display text-sm font-medium tracking-wide">Leads do Agente IA</h2>
             <span className="text-xs text-muted-foreground">{filtrados.length} lead{filtrados.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
@@ -580,7 +583,7 @@ export default function TabAgenteIA() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
-            <h2 className="font-display text-base font-semibold">Orçamentos gerados pela IA</h2>
+            <h2 className="font-display text-sm font-medium tracking-wide">Orçamentos gerados pela IA</h2>
             <span className="text-xs text-muted-foreground">{orcFiltrados.length} orçamento{orcFiltrados.length !== 1 ? 's' : ''}</span>
           </div>
         </div>

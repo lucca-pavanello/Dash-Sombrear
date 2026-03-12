@@ -295,7 +295,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     <>
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="font-display text-base font-semibold">Todos os Orçamentos</h2>
+          <h2 className="font-display text-sm font-medium tracking-wide">Todos os Orçamentos</h2>
           {data.length > 0 && (
             <div className="flex items-center gap-1 rounded-lg bg-muted/40 p-1">
               <button

@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 const SHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_ID as string
 const GID      = import.meta.env.VITE_GOOGLE_SHEETS_GID  as string
 
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`
+// gviz/tq é CORS-safe; /export tem problemas de CORS e redireciona para login
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`
 
 export interface ModelosTecidos {
   modelos: string[]
@@ -40,6 +41,10 @@ async function fetchModelosTecidos(): Promise<ModelosTecidos> {
   const res = await fetch(CSV_URL)
   if (!res.ok) throw new Error(`CSV fetch: HTTP ${res.status}`)
   const text = await res.text()
+  // Google retorna HTML (login/erro) quando a planilha não está pública
+  if (text.trimStart().startsWith('<')) {
+    throw new Error('Planilha não acessível — verifique se está compartilhada publicamente (qualquer pessoa com o link)')
+  }
 
   const rows = parseCSV(text)
   if (rows.length === 0) return { modelos: [], tecidosPorModelo: {} }

@@ -132,6 +132,8 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
       <div className="space-y-5">
         <KPIGrid data={filtered} />
 
+        <hr className="border-border/25" />
+
         {/* Desktop button */}
         <div className="hidden md:flex justify-end">
           <button
@@ -164,6 +166,8 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
           <ResponsavelChart data={filtered} />
           <ModelosChart data={filtered} />
         </div>
+
+        <hr className="border-border/25" />
 
         <OrcamentosFechadosCard data={filtered} />
         {/* TAREFA F: passa responsaveis */}

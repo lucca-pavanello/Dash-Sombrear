@@ -17,7 +17,7 @@ export default function ResponsavelChart({ data }: Props) {
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <h3 className="mb-4 font-display text-base font-semibold">Orçamentos por Responsável</h3>
+      <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Orçamentos por Responsável</h3>
       {chartData.length === 0 ? (
         <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados</div>
       ) : (

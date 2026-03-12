@@ -4,3 +4,5 @@ dist/
 .env.local
 venv/
 aios_link
+
+.vercel

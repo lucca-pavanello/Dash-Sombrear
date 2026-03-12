@@ -351,7 +351,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
       {/* Faturamento mensal */}
       <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-        <h3 className="mb-4 font-display text-base font-semibold">Faturamento mensal (últimos 6 meses)</h3>
+        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Faturamento mensal (últimos 6 meses)</h3>
         {monthly.every((m) => m.faturamento === 0) ? (
           <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados de faturamento</div>
         ) : (
@@ -369,7 +369,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Volume mensal */}
         <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-base font-semibold">Volume de orçamentos (últimos 6 meses)</h3>
+          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Volume de orçamentos (últimos 6 meses)</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
@@ -382,7 +382,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
         {/* Tendência diária */}
         <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-base font-semibold">Tendência diária — {now.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
+          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Tendência diária — {now.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
           {daily.length === 0 ? (
             <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">Sem dados este mês</div>
           ) : (
@@ -411,7 +411,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           <div className="rounded-lg bg-primary/10 p-1.5">
             <Bot className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="font-display text-base font-semibold">Análise Automática</h3>
+          <h3 className="font-display text-sm font-medium tracking-wide">Análise Automática</h3>
           <span className="ml-auto text-xs text-muted-foreground">baseado nos dados atuais</span>
         </div>
         <ul className="space-y-2.5">
