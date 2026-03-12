@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, UserCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -13,7 +13,6 @@ import TabAnalises from '@/components/tabs/TabAnalises'
 import PainelAdmin from '@/components/admin/PainelAdmin'
 import Toaster from '@/components/ui/Toaster'
 import EditProfileModal from '@/components/profile/EditProfileModal'
-import AvatarInitials from '@/components/shared/AvatarInitials'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
@@ -75,30 +74,15 @@ export default function Dashboard() {
             </span>
 
             {/* Profile button */}
-            {profile && (
-              <button
-                onClick={() => setProfileModalOpen(true)}
-                className="group flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted transition-colors"
-                title="Meu perfil"
-              >
-                <div className="relative">
-                  <AvatarInitials name={profile.full_name || profile.email} size="sm" />
-                  {isAdmin && (
-                    <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-primary shadow-sm ring-1 ring-background">
-                      <ShieldCheck className="h-2 w-2 text-white" />
-                    </span>
-                  )}
-                </div>
-                <div className="hidden sm:block text-left">
-                  <p className="text-xs font-semibold leading-none text-foreground group-hover:text-primary transition-colors">
-                    {profile.full_name ? profile.full_name.split(' ')[0] : profile.email.split('@')[0]}
-                  </p>
-                  {isAdmin && (
-                    <p className="text-[10px] leading-none text-primary font-medium mt-0.5">Admin</p>
-                  )}
-                </div>
-              </button>
-            )}
+            <button
+              onClick={() => profile && setProfileModalOpen(true)}
+              disabled={!profile}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95 disabled:opacity-50"
+              title="Meu perfil"
+              aria-label="Meu perfil"
+            >
+              <UserCircle className="h-4 w-4" />
+            </button>
 
             {isAdmin && pendingCount > 0 && (
               <button
