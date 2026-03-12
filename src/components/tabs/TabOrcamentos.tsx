@@ -74,7 +74,7 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
   }, [])
 
   const filtered = data.filter((o) => {
-    const matchSearch = !debouncedSearch || [o.cliente, o.responsavel, o.modelo, o.tecido, o.telefone]
+    const matchSearch = !debouncedSearch || [o.cliente, o.responsavel, o.modelo, o.tecido, o.telefone, o.ambiente]
       .some((v) => v?.toLowerCase().includes(debouncedSearch.toLowerCase()))
     const matchResp = responsavel === 'todos' || o.responsavel === responsavel
     const matchModelo = modelo === 'todos' || o.modelo === modelo
@@ -90,7 +90,7 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
       if (periodo === 'hoje') {
         matchPeriodo = created.toDateString() === now.toDateString()
       } else if (periodo === 'semana') {
-        const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7)
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
         matchPeriodo = created >= weekAgo
       } else if (periodo === 'mes') {
         matchPeriodo = created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
