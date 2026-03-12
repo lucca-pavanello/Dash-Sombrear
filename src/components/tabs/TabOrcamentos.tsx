@@ -109,7 +109,7 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
   const responsaveis = [...new Set(data.map((o) => o.responsavel))].filter(Boolean)
   const modelos = [...new Set(data.map((o) => o.modelo))].filter(Boolean)
   const isFiltered =
-    !!debouncedSearch ||
+    !!search ||
     responsavel !== 'todos' ||
     modelo !== 'todos' ||
     fechadoFilter !== 'todos' ||
@@ -185,6 +185,7 @@ export default function TabOrcamentos({ data, loading, toast }: Props) {
           search={debouncedSearch}
           onClearFilters={clearFilters}
           responsaveis={responsaveis}
+          filterKey={[debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo].join('|')}
         />
       </div>
 

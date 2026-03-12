@@ -206,9 +206,10 @@ interface Props {
   search?: string
   onClearFilters?: () => void
   responsaveis?: string[]
+  filterKey?: string
 }
 
-export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, responsaveis }: Props) {
+export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, responsaveis, filterKey }: Props) {
   const [editing, setEditing] = useState<Orcamento | null>(null)
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' })
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
@@ -224,7 +225,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set())
   const prevFechadoMap = useRef<Map<string, boolean>>(new Map())
 
-  useEffect(() => { setPage(1) }, [data])
+  useEffect(() => { setPage(1) }, [filterKey])
   useEffect(() => { setPage(1) }, [sort])
 
   // TAREFA E: detectar quando o.fechado muda para true
@@ -357,7 +358,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
           <>
             {/* Desktop — TAREFA C: overflow-auto max-h-[70vh] para scroll com header sticky */}
             <div className="hidden md:block overflow-auto max-h-[70vh]">
-              <table className="w-full text-sm" style={{ minWidth: '860px' }}>
+              <table className="w-full text-sm" style={{ minWidth: '920px' }}>
                 {/* TAREFA C: thead sticky — sticky deve estar no <th>, não no <tr> */}
                 <thead>
                   <tr>
