@@ -20,7 +20,7 @@ const ACABAMENTOS = [
   'Cadarço', 'Fita', 'Barra Niveladora',
 ]
 const N8N_WEBHOOK = (import.meta.env.VITE_N8N_WEBHOOK as string) ?? 'https://n8n-n8n.yjlhot.easypanel.host/webhook/Sombrear_sheet'
-const DRAFT_KEY = 'sombrear-cotacao-draft'
+const DRAFT_KEY = 'sombrear-cotacao-draft-v2'
 
 /* ─── Style tokens ───────────────────────────────────────── */
 const inputCls =
@@ -31,9 +31,8 @@ const labelCls =
   'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55'
 
 /* ─── Types ──────────────────────────────────────────────── */
-interface Ambiente {
+interface Persiana {
   id: number
-  ambiente: string
   modelo: string
   tecido: string
   largura: string
@@ -42,6 +41,13 @@ interface Ambiente {
   cor_ferragem: string
   acabamento: string
 }
+
+interface Ambiente {
+  id: number
+  ambiente: string
+  persianas: Persiana[]
+}
+
 interface FormState {
   responsavel: string
   whatsapp: boolean
@@ -50,11 +56,11 @@ interface FormState {
 
 /* ─── Helpers ────────────────────────────────────────────── */
 let nextId = 1
-function newAmbiente(primeiroModelo = ''): Ambiente {
+
+function newPersiana(): Persiana {
   return {
     id: nextId++,
-    ambiente: '',
-    modelo: primeiroModelo,
+    modelo: '',
     tecido: '',
     largura: '',
     altura: '',
@@ -63,13 +69,25 @@ function newAmbiente(primeiroModelo = ''): Ambiente {
     acabamento: 'Sem',
   }
 }
+
+function newAmbiente(): Ambiente {
+  return {
+    id: nextId++,
+    ambiente: '',
+    persianas: [newPersiana()],
+  }
+}
+
 const INITIAL_FORM: FormState = { responsavel: RESPONSAVEIS[0], whatsapp: false, cliente: '' }
 
 function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
   try {
     const s = localStorage.getItem(DRAFT_KEY)
     if (!s) return null
-    return JSON.parse(s)
+    const draft = JSON.parse(s)
+    // Verifica estrutura nova com persianas
+    if (!draft?.ambientes?.[0]?.persianas) return null
+    return draft
   } catch { return null }
 }
 
@@ -108,14 +126,43 @@ export default function TabCotacao() {
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
-  function setAmbienteField(id: number, key: keyof Omit<Ambiente, 'id'>, value: string) {
-    setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, [key]: value } : a)))
+
+  function setPersianaField(ambienteId: number, persianaId: number, key: keyof Omit<Persiana, 'id'>, value: string) {
+    setAmbientes((prev) => prev.map((a) =>
+      a.id === ambienteId
+        ? { ...a, persianas: a.persianas.map((p) => p.id === persianaId ? { ...p, [key]: value } : p) }
+        : a
+    ))
   }
-  function setModelo(id: number, modelo: string) {
-    setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, modelo, tecido: '' } : a)))
+
+  function setPersianaModelo(ambienteId: number, persianaId: number, modelo: string) {
+    setAmbientes((prev) => prev.map((a) =>
+      a.id === ambienteId
+        ? { ...a, persianas: a.persianas.map((p) => p.id === persianaId ? { ...p, modelo, tecido: '' } : p) }
+        : a
+    ))
   }
+
+  function setAmbienteNome(ambienteId: number, nome: string) {
+    setAmbientes((prev) => prev.map((a) => a.id === ambienteId ? { ...a, ambiente: nome } : a))
+  }
+
   function addAmbiente() { setAmbientes((prev) => [...prev, newAmbiente()]) }
   function removeAmbiente(id: number) { setAmbientes((prev) => prev.filter((a) => a.id !== id)) }
+
+  function addPersiana(ambienteId: number) {
+    setAmbientes((prev) => prev.map((a) =>
+      a.id === ambienteId ? { ...a, persianas: [...a.persianas, newPersiana()] } : a
+    ))
+  }
+
+  function removePersiana(ambienteId: number, persianaId: number) {
+    setAmbientes((prev) => prev.map((a) =>
+      a.id === ambienteId
+        ? { ...a, persianas: a.persianas.filter((p) => p.id !== persianaId) }
+        : a
+    ))
+  }
 
   function startResetCountdown() {
     setResetCountdown(3)
@@ -146,13 +193,18 @@ export default function TabCotacao() {
     if (!form.cliente.trim()) return 'Cliente é obrigatório.'
     for (let i = 0; i < ambientes.length; i++) {
       const a = ambientes[i]
-      const n = ambientes.length > 1 ? ` (Ambiente ${i + 1})` : ''
-      if (!a.largura || parseFloat(a.largura) <= 0) return `Largura é obrigatória${n}.`
-      if (!a.altura || parseFloat(a.altura) <= 0) return `Altura é obrigatória${n}.`
-      if (!a.modelo) return `Modelo é obrigatório${n}.`
-      if (!a.tecido.trim()) return `Tecido é obrigatório${n}.`
-      if (!a.quantidade || parseInt(a.quantidade) < 1) return `Quantidade inválida${n}.`
-      if (!a.cor_ferragem) return `Cor Ferragem é obrigatória${n}.`
+      const nA = ambientes.length > 1 ? ` (Ambiente ${i + 1})` : ''
+      for (let j = 0; j < a.persianas.length; j++) {
+        const p = a.persianas[j]
+        const nP = a.persianas.length > 1 ? ` — Persiana ${j + 1}` : ''
+        const n = `${nA}${nP}`
+        if (!p.largura || parseFloat(p.largura) <= 0) return `Largura é obrigatória${n}.`
+        if (!p.altura || parseFloat(p.altura) <= 0) return `Altura é obrigatória${n}.`
+        if (!p.modelo) return `Modelo é obrigatório${n}.`
+        if (!p.tecido.trim()) return `Tecido é obrigatório${n}.`
+        if (!p.quantidade || parseInt(p.quantidade) < 1) return `Quantidade inválida${n}.`
+        if (!p.cor_ferragem) return `Cor Ferragem é obrigatória${n}.`
+      }
     }
     return null
   }
@@ -169,13 +221,15 @@ export default function TabCotacao() {
       cliente: form.cliente.trim(),
       ambientes: ambientes.map((a) => ({
         ambiente: a.ambiente.trim(),
-        modelo: a.modelo,
-        tecido: a.tecido.trim(),
-        largura: parseFloat(a.largura),
-        altura: parseFloat(a.altura),
-        quantidade: parseInt(a.quantidade) || 1,
-        cor_ferragem: a.cor_ferragem.trim(),
-        acabamento: a.acabamento.trim(),
+        persianas: a.persianas.map((p) => ({
+          modelo: p.modelo,
+          tecido: p.tecido.trim(),
+          largura: parseFloat(p.largura),
+          altura: parseFloat(p.altura),
+          quantidade: parseInt(p.quantidade) || 1,
+          cor_ferragem: p.cor_ferragem.trim(),
+          acabamento: p.acabamento.trim(),
+        })),
       })),
     }
 
@@ -197,15 +251,18 @@ export default function TabCotacao() {
     }
   }
 
-  const totalArea = ambientes.reduce((sum, a) => {
-    const l = parseFloat(a.largura) || 0
-    const h = parseFloat(a.altura) || 0
-    const q = parseInt(a.quantidade) || 1
-    return sum + l * h * q
-  }, 0)
+  const totalArea = ambientes.reduce((sum, a) =>
+    sum + a.persianas.reduce((s, p) => {
+      const l = parseFloat(p.largura) || 0
+      const h = parseFloat(p.altura) || 0
+      const q = parseInt(p.quantidade) || 1
+      return s + l * h * q
+    }, 0), 0)
+
+  const totalPersianas = ambientes.reduce((sum, a) => sum + a.persianas.length, 0)
 
   const isFormValid = form.cliente.trim().length > 0 &&
-    ambientes.every(a => a.largura && a.altura && a.modelo && a.tecido && a.quantidade)
+    ambientes.every(a => a.persianas.every(p => p.largura && p.altura && p.modelo && p.tecido && p.quantidade))
 
   return (
     <>
@@ -259,7 +316,6 @@ export default function TabCotacao() {
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
-        {/* ── Main grid: 1 col mobile → 2 col desktop ── */}
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_340px] xl:gap-5">
 
           {/* ── LEFT COLUMN ── */}
@@ -341,19 +397,18 @@ export default function TabCotacao() {
                 step="2"
                 icon={<Home className="h-3.5 w-3.5" />}
                 title="Ambientes"
-                badge={ambientes.length > 1 ? `${ambientes.length} adicionados` : undefined}
+                badge={ambientes.length > 1 ? `${ambientes.length} ambientes` : undefined}
               />
 
               <div className="mt-3 space-y-3">
-                {ambientes.map((a, index) => {
-                  const l = parseFloat(a.largura) || 0
-                  const h = parseFloat(a.altura) || 0
-                  const q = parseInt(a.quantidade) || 1
-                  const area = l * h
-                  const areaTotal = area * q
-                  const isFilled = !!(a.largura && a.altura && a.modelo && a.tecido)
-                  const tecidoOpcoes = tecidosPorModelo[a.modelo] ?? []
-                  const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
+                {ambientes.map((a, ambienteIndex) => {
+                  const totalAmbienteArea = a.persianas.reduce((s, p) => {
+                    const l = parseFloat(p.largura) || 0
+                    const h = parseFloat(p.altura) || 0
+                    const q = parseInt(p.quantidade) || 1
+                    return s + l * h * q
+                  }, 0)
+                  const isFilled = a.persianas.every(p => !!(p.largura && p.altura && p.modelo && p.tecido))
 
                   return (
                     <div
@@ -363,7 +418,7 @@ export default function TabCotacao() {
                         isFilled ? 'border-primary/25' : 'border-border'
                       )}
                     >
-                      {/* Card header */}
+                      {/* Ambiente header */}
                       <div className={cn(
                         'flex items-center justify-between px-4 py-3 border-b sm:px-5',
                         isFilled ? 'bg-primary/[0.04] border-primary/15' : 'bg-muted/20 border-border/60'
@@ -373,14 +428,19 @@ export default function TabCotacao() {
                             'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
                             isFilled ? 'bg-primary text-white' : 'bg-foreground/10 text-foreground/50'
                           )}>
-                            {index + 1}
+                            {ambienteIndex + 1}
                           </span>
                           <span className="text-sm font-semibold text-foreground truncate">
-                            {a.ambiente || (ambientes.length > 1 ? `Ambiente ${index + 1}` : 'Ambiente')}
+                            {a.ambiente || (ambientes.length > 1 ? `Ambiente ${ambienteIndex + 1}` : 'Ambiente')}
                           </span>
-                          {isFilled && area > 0 && (
+                          {totalAmbienteArea > 0 && (
                             <span className="hidden xs:inline-flex shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                              {areaTotal.toFixed(2)} m²
+                              {totalAmbienteArea.toFixed(2)} m²
+                            </span>
+                          )}
+                          {a.persianas.length > 1 && (
+                            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              {a.persianas.length} persianas
                             </span>
                           )}
                         </div>
@@ -397,170 +457,229 @@ export default function TabCotacao() {
                       </div>
 
                       <div className="p-4 space-y-4 sm:p-5 sm:space-y-5">
-                        {/* Nome */}
+                        {/* Nome do ambiente */}
                         <div>
                           <label className={labelCls}>Nome do Ambiente</label>
                           <input
                             type="text"
                             value={a.ambiente}
-                            onChange={(e) => setAmbienteField(a.id, 'ambiente', e.target.value)}
+                            onChange={(e) => setAmbienteNome(a.id, e.target.value)}
                             className={inputCls}
                             placeholder="Sala, Quarto, Escritório..."
                           />
                         </div>
 
-                        {/* Grupo: Produto */}
-                        <FieldGroup icon={<Layers className="h-3 w-3" />} label="Produto">
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <div>
-                              <label className={labelCls}>Modelo <Req /></label>
-                              <select
-                                required
-                                value={a.modelo}
-                                onChange={(e) => setModelo(a.id, e.target.value)}
-                                className={selectCls}
-                                disabled={catalogoLoading}
-                              >
-                                {catalogoLoading
-                                  ? <option value="">Carregando...</option>
-                                  : modelos.length === 0
-                                    ? <option value="">Nenhum modelo encontrado</option>
-                                    : <>
-                                        <option value="">Selecione o modelo...</option>
-                                        {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
-                                      </>
-                                }
-                              </select>
-                            </div>
-                            <div key={a.modelo}>
-                              <div className="mb-1.5 flex items-center justify-between">
-                                <label className="block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55">
-                                  Tecido <Req />
-                                </label>
-                                {tecidoLivre && a.modelo && (
-                                  <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                    <PenLine className="h-2.5 w-2.5" />
-                                    Texto livre
-                                  </span>
+                        {/* Persianas */}
+                        <div className="space-y-4">
+                          {a.persianas.map((p, persianaIndex) => {
+                            const l = parseFloat(p.largura) || 0
+                            const h = parseFloat(p.altura) || 0
+                            const q = parseInt(p.quantidade) || 1
+                            const area = l * h
+                            const areaTotal = area * q
+                            const tecidoOpcoes = tecidosPorModelo[p.modelo] ?? []
+                            const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
+
+                            return (
+                              <div key={p.id}>
+                                {/* Persiana header — só aparece quando há mais de 1 */}
+                                {a.persianas.length > 1 && (
+                                  <div className="mb-3 flex items-center gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                                        {persianaIndex + 1}
+                                      </span>
+                                      <span className="text-xs font-semibold text-muted-foreground">
+                                        Persiana {persianaIndex + 1}
+                                      </span>
+                                      {areaTotal > 0 && (
+                                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                                          {areaTotal.toFixed(2)} m²
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex-1 h-px bg-border/50" />
+                                    <button
+                                      type="button"
+                                      onClick={() => removePersiana(a.id, p.id)}
+                                      className="shrink-0 rounded-lg p-1.5 text-foreground/30 hover:bg-destructive/10 hover:text-destructive transition-all duration-150 touch-manipulation"
+                                      title="Remover persiana"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
                                 )}
+
+                                {/* Grupo: Produto */}
+                                <FieldGroup icon={<Layers className="h-3 w-3" />} label="Produto">
+                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div>
+                                      <label className={labelCls}>Modelo <Req /></label>
+                                      <select
+                                        required
+                                        value={p.modelo}
+                                        onChange={(e) => setPersianaModelo(a.id, p.id, e.target.value)}
+                                        className={selectCls}
+                                        disabled={catalogoLoading}
+                                      >
+                                        {catalogoLoading
+                                          ? <option value="">Carregando...</option>
+                                          : modelos.length === 0
+                                            ? <option value="">Nenhum modelo encontrado</option>
+                                            : <>
+                                                <option value="">Selecione o modelo...</option>
+                                                {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
+                                              </>
+                                        }
+                                      </select>
+                                    </div>
+                                    <div key={p.modelo}>
+                                      <div className="mb-1.5 flex items-center justify-between">
+                                        <label className="block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55">
+                                          Tecido <Req />
+                                        </label>
+                                        {tecidoLivre && p.modelo && (
+                                          <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                            <PenLine className="h-2.5 w-2.5" />
+                                            Texto livre
+                                          </span>
+                                        )}
+                                      </div>
+                                      {tecidoOpcoes.length > 0 ? (
+                                        <select
+                                          required
+                                          disabled={!p.modelo}
+                                          value={p.tecido}
+                                          onChange={(e) => setPersianaField(a.id, p.id, 'tecido', e.target.value)}
+                                          className={selectCls}
+                                        >
+                                          <option value="">Selecione o tecido...</option>
+                                          {tecidoOpcoes.map((t) => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                      ) : (
+                                        <input
+                                          type="text"
+                                          required
+                                          disabled={!p.modelo}
+                                          value={p.tecido}
+                                          onChange={(e) => setPersianaField(a.id, p.id, 'tecido', e.target.value)}
+                                          className={inputCls}
+                                          placeholder={!p.modelo ? 'Selecione um modelo primeiro' : catalogoLoading ? 'Aguardando...' : 'Ex: Blackout, Solar Screen...'}
+                                        />
+                                      )}
+                                    </div>
+                                    <div>
+                                      <label className={labelCls}>Cor Ferragem <Req /></label>
+                                      <select
+                                        required
+                                        value={p.cor_ferragem}
+                                        onChange={(e) => setPersianaField(a.id, p.id, 'cor_ferragem', e.target.value)}
+                                        className={selectCls}
+                                      >
+                                        {CORES_FERRAGEM.map((c) => <option key={c} value={c}>{c}</option>)}
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label className={labelCls}>Acabamento</label>
+                                      <select
+                                        value={p.acabamento}
+                                        onChange={(e) => setPersianaField(a.id, p.id, 'acabamento', e.target.value)}
+                                        className={selectCls}
+                                      >
+                                        {ACABAMENTOS.map((ac) => <option key={ac} value={ac}>{ac}</option>)}
+                                      </select>
+                                    </div>
+                                  </div>
+                                </FieldGroup>
+
+                                {/* Grupo: Medidas */}
+                                <div className="mt-3">
+                                  <FieldGroup icon={<Ruler className="h-3 w-3" />} label="Medidas">
+                                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                                      <div>
+                                        <label className={labelCls}>
+                                          <span className="sm:hidden">Larg. (m)</span>
+                                          <span className="hidden sm:inline">Largura (m)</span>
+                                          {' '}<Req />
+                                        </label>
+                                        <input
+                                          type="number" step="0.01" min="0" required
+                                          inputMode="decimal"
+                                          value={p.largura}
+                                          onChange={(e) => setPersianaField(a.id, p.id, 'largura', e.target.value)}
+                                          className={inputCls}
+                                          placeholder="2.50"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className={labelCls}>
+                                          <span className="sm:hidden">Alt. (m)</span>
+                                          <span className="hidden sm:inline">Altura (m)</span>
+                                          {' '}<Req />
+                                        </label>
+                                        <input
+                                          type="number" step="0.01" min="0" required
+                                          inputMode="decimal"
+                                          value={p.altura}
+                                          onChange={(e) => setPersianaField(a.id, p.id, 'altura', e.target.value)}
+                                          className={inputCls}
+                                          placeholder="1.80"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className={labelCls}>Qtd <Req /></label>
+                                        <input
+                                          type="number" min="1" required
+                                          inputMode="numeric"
+                                          value={p.quantidade}
+                                          onChange={(e) => setPersianaField(a.id, p.id, 'quantidade', e.target.value)}
+                                          className={inputCls}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {area > 0 && (
+                                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                                        <span className="text-xs text-foreground/50 dark:text-foreground/50">
+                                          {p.largura} × {p.altura} m =
+                                        </span>
+                                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+                                          {area.toFixed(2)} m²
+                                        </span>
+                                        {q > 1 && (
+                                          <>
+                                            <span className="text-xs text-foreground/50 dark:text-foreground/50">× {q} unid =</span>
+                                            <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary">
+                                              {areaTotal.toFixed(2)} m² total
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </FieldGroup>
+                                </div>
                               </div>
-                              {tecidoOpcoes.length > 0 ? (
-                                <select
-                                  required
-                                  disabled={!a.modelo}
-                                  value={a.tecido}
-                                  onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
-                                  className={selectCls}
-                                >
-                                  <option value="">Selecione o tecido...</option>
-                                  {tecidoOpcoes.map((t) => <option key={t} value={t}>{t}</option>)}
-                                </select>
-                              ) : (
-                                <input
-                                  type="text"
-                                  required
-                                  disabled={!a.modelo}
-                                  value={a.tecido}
-                                  onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
-                                  className={inputCls}
-                                  placeholder={!a.modelo ? 'Selecione um modelo primeiro' : catalogoLoading ? 'Aguardando...' : 'Ex: Blackout, Solar Screen...'}
-                                />
-                              )}
-                            </div>
-                            <div>
-                              <label className={labelCls}>Cor Ferragem <Req /></label>
-                              <select
-                                required
-                                value={a.cor_ferragem}
-                                onChange={(e) => setAmbienteField(a.id, 'cor_ferragem', e.target.value)}
-                                className={selectCls}
-                              >
-                                {CORES_FERRAGEM.map((c) => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <label className={labelCls}>Acabamento</label>
-                              <select
-                                value={a.acabamento}
-                                onChange={(e) => setAmbienteField(a.id, 'acabamento', e.target.value)}
-                                className={selectCls}
-                              >
-                                {ACABAMENTOS.map((ac) => <option key={ac} value={ac}>{ac}</option>)}
-                              </select>
-                            </div>
-                          </div>
-                        </FieldGroup>
+                            )
+                          })}
+                        </div>
 
-                        {/* Grupo: Medidas */}
-                        <FieldGroup icon={<Ruler className="h-3 w-3" />} label="Medidas">
-                          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                            <div>
-                              <label className={labelCls}>
-                                <span className="sm:hidden">Larg. (m)</span>
-                                <span className="hidden sm:inline">Largura (m)</span>
-                                {' '}<Req />
-                              </label>
-                              <input
-                                type="number" step="0.01" min="0" required
-                                inputMode="decimal"
-                                value={a.largura}
-                                onChange={(e) => setAmbienteField(a.id, 'largura', e.target.value)}
-                                className={inputCls}
-                                placeholder="2.50"
-                              />
-                            </div>
-                            <div>
-                              <label className={labelCls}>
-                                <span className="sm:hidden">Alt. (m)</span>
-                                <span className="hidden sm:inline">Altura (m)</span>
-                                {' '}<Req />
-                              </label>
-                              <input
-                                type="number" step="0.01" min="0" required
-                                inputMode="decimal"
-                                value={a.altura}
-                                onChange={(e) => setAmbienteField(a.id, 'altura', e.target.value)}
-                                className={inputCls}
-                                placeholder="1.80"
-                              />
-                            </div>
-                            <div>
-                              <label className={labelCls}>Qtd <Req /></label>
-                              <input
-                                type="number" min="1" required
-                                inputMode="numeric"
-                                value={a.quantidade}
-                                onChange={(e) => setAmbienteField(a.id, 'quantidade', e.target.value)}
-                                className={inputCls}
-                              />
-                            </div>
-                          </div>
-
-                          {area > 0 && (
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                              <span className="text-xs text-foreground/50 dark:text-foreground/50">
-                                {a.largura} × {a.altura} m =
-                              </span>
-                              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                                {area.toFixed(2)} m²
-                              </span>
-                              {q > 1 && (
-                                <>
-                                  <span className="text-xs text-foreground/50 dark:text-foreground/50">× {q} unid =</span>
-                                  <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold text-primary">
-                                    {areaTotal.toFixed(2)} m² total
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </FieldGroup>
+                        {/* Botão adicionar persiana */}
+                        <button
+                          type="button"
+                          onClick={() => addPersiana(a.id)}
+                          className="group flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 py-2.5 text-xs font-semibold text-foreground/40 transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] hover:text-primary touch-manipulation"
+                        >
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-current transition-all duration-200 group-hover:bg-primary group-hover:border-primary group-hover:text-white">
+                            <Plus className="h-2.5 w-2.5" />
+                          </span>
+                          Adicionar Persiana
+                        </button>
                       </div>
                     </div>
                   )
                 })}
 
-                {/* Add ambiente */}
+                {/* Botão adicionar ambiente */}
                 <button
                   type="button"
                   onClick={addAmbiente}
@@ -606,7 +725,7 @@ export default function TabCotacao() {
               </div>
 
               <div className="p-4 space-y-3">
-                {/* Cliente destaque */}
+                {/* Cliente */}
                 {form.cliente ? (
                   <div className="rounded-lg bg-primary/5 border border-primary/15 px-4 py-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-0.5">Cliente</p>
@@ -628,17 +747,19 @@ export default function TabCotacao() {
 
                 <div className="border-t border-border/50" />
 
-                {/* Ambientes */}
+                {/* Ambientes + persianas */}
                 <div className="space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-foreground/45 dark:text-foreground/55">
                     Ambientes ({ambientes.length})
                   </p>
-                  {ambientes.map((a, index) => {
-                    const l = parseFloat(a.largura) || 0
-                    const h = parseFloat(a.altura) || 0
-                    const q = parseInt(a.quantidade) || 1
-                    const area = l * h * q
-                    const hasData = !!(a.largura && a.altura && a.modelo && a.tecido)
+                  {ambientes.map((a, aIdx) => {
+                    const ambienteArea = a.persianas.reduce((s, p) => {
+                      const l = parseFloat(p.largura) || 0
+                      const h = parseFloat(p.altura) || 0
+                      const q = parseInt(p.quantidade) || 1
+                      return s + l * h * q
+                    }, 0)
+                    const hasData = a.persianas.some(p => !!(p.largura && p.altura && p.modelo && p.tecido))
 
                     return (
                       <div
@@ -660,41 +781,67 @@ export default function TabCotacao() {
                               )}
                               style={{ width: 18, height: 18 }}
                             >
-                              {index + 1}
+                              {aIdx + 1}
                             </span>
                             <span className="text-xs font-semibold text-foreground truncate">
-                              {a.ambiente || `Ambiente ${index + 1}`}
+                              {a.ambiente || `Ambiente ${aIdx + 1}`}
                             </span>
                           </div>
-                          {area > 0 && (
-                            <span className="text-[10px] font-bold text-primary shrink-0 ml-2">{area.toFixed(2)}m²</span>
-                          )}
-                        </div>
-                        {hasData && (
-                          <div className="px-3 py-2 space-y-1 bg-background/50">
-                            <MiniRow k="Modelo" v={a.modelo} />
-                            <MiniRow k="Tecido" v={a.tecido} />
-                            <MiniRow k="Medidas" v={`${a.largura}×${a.altura}m × ${a.quantidade}`} />
-                            {a.cor_ferragem !== 'Sem' && <MiniRow k="Ferragem" v={a.cor_ferragem} />}
-                            {a.acabamento !== 'Sem' && <MiniRow k="Acabamento" v={a.acabamento} />}
+                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                            {a.persianas.length > 1 && (
+                              <span className="text-[10px] font-semibold text-muted-foreground">
+                                {a.persianas.length}×
+                              </span>
+                            )}
+                            {ambienteArea > 0 && (
+                              <span className="text-[10px] font-bold text-primary">{ambienteArea.toFixed(2)}m²</span>
+                            )}
                           </div>
-                        )}
+                        </div>
+
+                        {/* Persianas do ambiente */}
+                        {a.persianas.map((p, pIdx) => {
+                          const pHasData = !!(p.largura && p.altura && p.modelo && p.tecido)
+                          if (!pHasData) return null
+                          const pArea = (parseFloat(p.largura) || 0) * (parseFloat(p.altura) || 0) * (parseInt(p.quantidade) || 1)
+                          return (
+                            <div key={p.id} className={cn('px-3 py-2 bg-background/50', pIdx > 0 && 'border-t border-border/30')}>
+                              {a.persianas.length > 1 && (
+                                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">
+                                  Persiana {pIdx + 1}
+                                </p>
+                              )}
+                              <div className="space-y-0.5">
+                                <MiniRow k="Modelo" v={p.modelo} />
+                                <MiniRow k="Tecido" v={p.tecido} />
+                                <MiniRow k="Medidas" v={`${p.largura}×${p.altura}m × ${p.quantidade}`} />
+                                {pArea > 0 && <MiniRow k="Área" v={`${pArea.toFixed(2)} m²`} />}
+                                {p.cor_ferragem !== 'Sem' && <MiniRow k="Ferragem" v={p.cor_ferragem} />}
+                                {p.acabamento !== 'Sem' && <MiniRow k="Acabamento" v={p.acabamento} />}
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     )
                   })}
                 </div>
 
                 {/* Totais */}
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-3 gap-2 pt-1">
                   <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-center">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-primary/70">Ambientes</p>
                     <p className="font-display text-2xl font-bold text-primary leading-tight">{ambientes.length}</p>
                   </div>
                   <div className="rounded-lg border border-border bg-muted/20 p-2.5 text-center">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/45 dark:text-foreground/55">Persianas</p>
+                    <p className="font-display text-2xl font-bold text-foreground leading-tight">{totalPersianas}</p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 p-2.5 text-center">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/45 dark:text-foreground/55">Área Total</p>
                     <p className="font-display text-lg font-bold text-foreground leading-tight mt-0.5">
                       {totalArea > 0 ? totalArea.toFixed(2) : '—'}
-                      {totalArea > 0 && <span className="text-sm font-medium text-foreground/50"> m²</span>}
+                      {totalArea > 0 && <span className="text-xs font-medium text-foreground/50"> m²</span>}
                     </p>
                   </div>
                 </div>
