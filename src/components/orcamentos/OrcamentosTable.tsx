@@ -357,6 +357,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         onClick={() => key && toggleSort(key)}
                         className={cn(
                           'sticky top-0 z-10 bg-muted/40 px-4 py-3 text-left font-medium text-muted-foreground select-none',
+                          label === '#' && 'left-0 z-20 border-r border-border/40 w-10',
                           key && 'cursor-pointer hover:text-foreground transition-colors'
                         )}
                       >
@@ -389,7 +390,11 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                           hasFlash && 'animate-row-close'
                         )}
                       >
-                        <td className="px-4 py-3 text-xs text-muted-foreground font-mono">#{globalIndex}</td>
+                        <td className="sticky left-0 z-10 bg-card px-3 py-3 border-r border-border/40 text-center">
+                          <span className="text-[11px] font-bold tabular-nums text-muted-foreground/40">
+                            {globalIndex}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">
                           <span className="flex flex-col leading-tight gap-0.5">
                             <span>{formatDate(o.created_at)}</span>
