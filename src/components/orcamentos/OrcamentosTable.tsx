@@ -356,12 +356,13 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         key={label}
                         onClick={() => key && toggleSort(key)}
                         className={cn(
-                          'sticky top-0 z-10 bg-muted/40 px-4 py-3 text-left font-medium text-muted-foreground select-none',
+                          'sticky top-0 z-10 px-4 py-3 text-left font-medium text-muted-foreground select-none border-b border-border/60',
                           label === '#'
-                            ? 'left-0 z-20 bg-card border-r border-border/50 w-10 text-center backdrop-blur-none'
+                            ? 'left-0 z-20 border-r border-border/50 w-10 text-center'
                             : '',
                           key && 'cursor-pointer hover:text-foreground transition-colors'
                         )}
+                        style={{ background: 'hsl(var(--card))' }}
                       >
                         <span className="flex items-center gap-1">
                           {label}
@@ -393,7 +394,10 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         )}
                       >
                         <td className="sticky left-0 z-10 px-2 py-3 border-r border-border/50 text-center w-10" style={{ background: 'hsl(var(--card))' }}>
-                          <span className="inline-flex items-center justify-center h-5 min-w-[1.4rem] rounded-md bg-primary/[0.12] px-1.5 text-[10px] font-bold tabular-nums text-primary">
+                          <span
+                            className="inline-flex items-center justify-center h-5 min-w-[1.4rem] rounded-md px-1.5 text-[10px] font-bold tabular-nums"
+                            style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}
+                          >
                             {globalIndex}
                           </span>
                         </td>
