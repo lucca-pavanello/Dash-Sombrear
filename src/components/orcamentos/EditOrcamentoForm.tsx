@@ -4,6 +4,7 @@ import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHi
 import type { Orcamento } from '@/lib/supabase'
 import { cn, formatCurrency } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
+import { RESPONSAVEIS } from '@/lib/constants'
 
 const MODELOS = ['Rolo', 'Romeu e Julieta', 'Vertical', 'Horizontal', 'Painel', 'Cortina']
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
@@ -20,7 +21,7 @@ function formatHistoricoDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function EditOrcamentoForm({ orcamento, onClose, toast, responsaveis }: Props) {
+export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) {
   const { mutateAsync: update, isPending: isUpdating } = useUpdateOrcamento()
   const { mutateAsync: remove, isPending: isDeleting } = useDeleteOrcamento()
   const { mutate: addHistorico } = useAddHistorico()
@@ -235,16 +236,15 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Responsável <span className="text-destructive ml-0.5">*</span></label>
               {/* TAREFA F: datalist para autocomplete */}
-              <input
+              <select
                 required
                 value={form.responsavel}
                 onChange={(e) => set('responsavel', e.target.value)}
                 className={inputClass}
-                list="responsaveis-list-edit"
-              />
-              <datalist id="responsaveis-list-edit">
-                {(responsaveis ?? []).map((r) => <option key={r} value={r} />)}
-              </datalist>
+              >
+                <option value="">Selecione...</option>
+                {RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Cliente</label>
