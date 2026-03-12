@@ -357,7 +357,9 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         onClick={() => key && toggleSort(key)}
                         className={cn(
                           'sticky top-0 z-10 bg-muted/40 px-4 py-3 text-left font-medium text-muted-foreground select-none',
-                          label === '#' && 'left-0 z-20 border-r border-border/40 w-10',
+                          label === '#'
+                            ? 'left-0 z-20 bg-card border-r border-border/50 w-10 text-center backdrop-blur-none'
+                            : '',
                           key && 'cursor-pointer hover:text-foreground transition-colors'
                         )}
                       >
@@ -390,8 +392,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                           hasFlash && 'animate-row-close'
                         )}
                       >
-                        <td className="sticky left-0 z-10 bg-card px-2 py-3 border-r border-border/50 text-center w-10">
-                          <span className="inline-flex items-center justify-center h-5 min-w-[1.25rem] rounded bg-muted/70 px-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                        <td className="sticky left-0 z-10 px-2 py-3 border-r border-border/50 text-center w-10" style={{ background: 'hsl(var(--card))' }}>
+                          <span className="inline-flex items-center justify-center h-5 min-w-[1.4rem] rounded-md bg-primary/[0.12] px-1.5 text-[10px] font-bold tabular-nums text-primary">
                             {globalIndex}
                           </span>
                         </td>
