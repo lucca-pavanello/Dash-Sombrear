@@ -53,8 +53,15 @@ export default function KPIGrid({ data }: Props) {
 
   function saveMeta() {
     const val = Number(metaInput.replace(/\D/g, ''))
+    if (!metaInput.trim() || isNaN(val)) { setEditingMeta(false); return }
     setMeta(val)
     localStorage.setItem(META_KEY, String(val))
+    setEditingMeta(false)
+  }
+
+  function clearMeta() {
+    setMeta(0)
+    localStorage.removeItem(META_KEY)
     setEditingMeta(false)
   }
 
@@ -183,26 +190,34 @@ export default function KPIGrid({ data }: Props) {
         </div>
 
         {editingMeta && (
-          <div className="mt-2 flex gap-1">
-            <input
-              autoFocus
-              type="number"
-              value={metaInput}
-              onChange={(e) => setMetaInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') saveMeta(); if (e.key === 'Escape') setEditingMeta(false) }}
-              placeholder="Meta R$"
-              className="flex-1 min-w-0 rounded border bg-background px-2 py-1 text-xs outline-none ring-ring focus:ring-1"
-            />
-            <button onClick={saveMeta} className="rounded bg-primary px-2 py-1 text-white" title="Salvar meta">
-              <Check className="h-3 w-3" />
-            </button>
-            <button
-              onClick={() => setEditingMeta(false)}
-              className="rounded border px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title="Cancelar"
-            >
-              <X className="h-3 w-3" />
-            </button>
+          <div className="mt-2 space-y-1">
+            <div className="flex gap-1">
+              <input
+                autoFocus
+                type="text"
+                inputMode="numeric"
+                value={metaInput}
+                onChange={(e) => setMetaInput(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveMeta(); if (e.key === 'Escape') setEditingMeta(false) }}
+                placeholder="Ex: 50000"
+                className="flex-1 min-w-0 rounded border bg-background px-2 py-1 text-xs outline-none ring-ring focus:ring-1"
+              />
+              <button onClick={saveMeta} className="rounded bg-primary px-2 py-1 text-white" title="Salvar meta">
+                <Check className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => setEditingMeta(false)}
+                className="rounded border px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Cancelar"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            {meta > 0 && (
+              <button onClick={clearMeta} className="text-[10px] text-muted-foreground hover:text-destructive transition-colors underline underline-offset-2">
+                Limpar meta
+              </button>
+            )}
           </div>
         )}
       </div>

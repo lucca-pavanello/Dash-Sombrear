@@ -31,23 +31,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
   const [historicoOpen, setHistoricoOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [onClose])
-
-  useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null
-    panelRef.current?.focus()
-    return () => {
-      previousFocus?.focus()
-    }
-  }, [])
-
-  const [form, setForm] = useState({
+  const initialForm = {
     responsavel: orcamento.responsavel ?? '',
     cliente: orcamento.cliente ?? '',
     telefone: orcamento.telefone ?? '',
@@ -65,11 +49,35 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
     custo_acabamento: orcamento.custo_acabamento?.toString() ?? '',
     fechado: orcamento.fechado ?? false,
     observacoes: orcamento.observacoes ?? '',
-  })
+  }
+  const [form, setForm] = useState(initialForm)
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm)
 
   function set(key: string, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }))
   }
+
+  function handleClose() {
+    if (isDirty && !window.confirm('Há alterações não salvas. Deseja descartar as mudanças?')) return
+    onClose()
+  }
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') handleClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty])
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null
+    panelRef.current?.focus()
+    return () => {
+      previousFocus?.focus()
+    }
+  }, [])
 
   const calcCusto = (() => {
     const l = parseFloat(form.largura)
@@ -188,9 +196,16 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
       >
         <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
           <div>
-            <h2 id="modal-title-edit" className="font-display text-base font-semibold">Editar Orçamento</h2>
+            <div className="flex items-center gap-2">
+              <h2 id="modal-title-edit" className="font-display text-base font-semibold">Editar Orçamento</h2>
+              {isDirty && (
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                  não salvo
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Criado em {new Date(orcamento.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              Criado em {new Date(orcamento.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -203,7 +218,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
               {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? 'Copiado!' : 'Copiar'}
             </button>
-            <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted transition-colors">
+            <button onClick={handleClose} className="rounded-lg p-1.5 hover:bg-muted transition-colors">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -454,7 +469,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast, responsav
               <button type="button" onClick={() => setConfirmDelete(true)} className="rounded-lg border border-destructive/40 px-3 py-3 text-destructive hover:bg-destructive/10 transition-colors">
                 <Trash2 className="h-4 w-4" />
               </button>
-              <button type="button" onClick={onClose} className="flex-1 rounded-lg border px-4 py-3 text-sm font-medium hover:bg-muted transition-colors">
+              <button type="button" onClick={handleClose} className="flex-1 rounded-lg border px-4 py-3 text-sm font-medium hover:bg-muted transition-colors">
                 Cancelar
               </button>
               <button type="submit" disabled={isUpdating} className="flex-1 rounded-lg bg-brand-gradient px-4 py-3 text-sm font-semibold text-white shadow-brand hover:opacity-90 disabled:opacity-60 transition-opacity">

@@ -136,21 +136,28 @@ export default function FiltersBar({
       </div>
 
       {periodo === 'custom' && (
-        <div className="flex gap-2 items-center">
-          <span className="text-xs text-muted-foreground shrink-0">De</span>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => onDateFromChange(e.target.value)}
-            className={dateClass}
-          />
-          <span className="text-xs text-muted-foreground shrink-0">até</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => onDateToChange(e.target.value)}
-            className={dateClass}
-          />
+        <div className="flex flex-col gap-1.5">
+          <div className="flex gap-2 items-center">
+            <span className="text-xs text-muted-foreground shrink-0">De</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => onDateFromChange(e.target.value)}
+              className={dateClass}
+            />
+            <span className="text-xs text-muted-foreground shrink-0">até</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => onDateToChange(e.target.value)}
+              className={dateClass}
+            />
+          </div>
+          {dateFrom && dateTo && dateTo < dateFrom && (
+            <p className="text-xs font-medium text-destructive flex items-center gap-1">
+              ⚠ Data final é anterior à inicial — nenhum resultado será exibido.
+            </p>
+          )}
         </div>
       )}
 

@@ -50,7 +50,13 @@ export default function OrcamentosFechadosCard({ data }: Props) {
                       <p className="text-xs text-muted-foreground">{o.responsavel}</p>
                     </div>
                     {margem != null && (
-                      <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-semibold text-green-600 dark:text-green-400">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        margem >= 30
+                          ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                          : margem >= 15
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                          : 'bg-destructive/10 text-destructive'
+                      }`}>
                         {margem.toFixed(1)}%
                       </span>
                     )}

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Send, CheckCircle2, Loader2, Plus, Trash2, Home,
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
-  ChevronRight, Package,
+  ChevronRight, Package, PenLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
@@ -19,7 +19,8 @@ const ACABAMENTOS = [
   'Sem', 'Bando Branco', 'Bando Preto', 'Kit Box',
   'Cadarço', 'Fita', 'Barra Niveladora',
 ]
-const N8N_WEBHOOK = 'https://n8n-n8n.yjlhot.easypanel.host/webhook/Sombrear_sheet'
+const N8N_WEBHOOK = (import.meta.env.VITE_N8N_WEBHOOK as string) ?? 'https://n8n-n8n.yjlhot.easypanel.host/webhook/Sombrear_sheet'
+const DRAFT_KEY = 'sombrear-cotacao-draft'
 
 /* ─── Style tokens ───────────────────────────────────────── */
 const inputCls =
@@ -64,12 +65,23 @@ function newAmbiente(primeiroModelo = ''): Ambiente {
 }
 const INITIAL_FORM: FormState = { responsavel: RESPONSAVEIS[0], whatsapp: false, cliente: '' }
 
+function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
+  try {
+    const s = localStorage.getItem(DRAFT_KEY)
+    if (!s) return null
+    return JSON.parse(s)
+  } catch { return null }
+}
+
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
-  const [form, setForm] = useState<FormState>(INITIAL_FORM)
-  const [ambientes, setAmbientes] = useState<Ambiente[]>([newAmbiente()])
+  const [hasDraft, setHasDraft] = useState(() => loadDraft() !== null)
+  const [form, setForm] = useState<FormState>(() => loadDraft()?.form ?? INITIAL_FORM)
+  const [ambientes, setAmbientes] = useState<Ambiente[]>(() => loadDraft()?.ambientes ?? [newAmbiente()])
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [resetCountdown, setResetCountdown] = useState<number | null>(null)
+  const resetTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { toasts, toast, dismiss } = useToast()
 
   const {
@@ -81,7 +93,17 @@ export default function TabCotacao() {
 
   const modelos = catalogoData?.modelos ?? []
   const tecidosPorModelo = catalogoData?.tecidosPorModelo ?? {}
-  const primeiroModelo = modelos[0] ?? ''
+
+  /* ── Auto-save draft ── */
+  useEffect(() => {
+    if (isSuccess) return
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, ambientes }))
+  }, [form, ambientes, isSuccess])
+
+  /* ── Cleanup timer on unmount ── */
+  useEffect(() => {
+    return () => { if (resetTimerRef.current) clearInterval(resetTimerRef.current) }
+  }, [])
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -92,8 +114,32 @@ export default function TabCotacao() {
   function setModelo(id: number, modelo: string) {
     setAmbientes((prev) => prev.map((a) => (a.id === id ? { ...a, modelo, tecido: '' } : a)))
   }
-  function addAmbiente() { setAmbientes((prev) => [...prev, newAmbiente(primeiroModelo)]) }
+  function addAmbiente() { setAmbientes((prev) => [...prev, newAmbiente()]) }
   function removeAmbiente(id: number) { setAmbientes((prev) => prev.filter((a) => a.id !== id)) }
+
+  function startResetCountdown() {
+    setResetCountdown(3)
+    resetTimerRef.current = setInterval(() => {
+      setResetCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(resetTimerRef.current!)
+          setIsSuccess(false)
+          setForm(INITIAL_FORM)
+          setAmbientes([newAmbiente()])
+          localStorage.removeItem(DRAFT_KEY)
+          setHasDraft(false)
+          return null
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  function cancelReset() {
+    if (resetTimerRef.current) clearInterval(resetTimerRef.current)
+    setResetCountdown(null)
+    setIsSuccess(false)
+  }
 
   function validate(): string | null {
     if (!form.responsavel) return 'Responsável é obrigatório.'
@@ -142,11 +188,7 @@ export default function TabCotacao() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setIsSuccess(true)
       toast('success', 'Orçamento enviado com sucesso!')
-      setTimeout(() => {
-        setIsSuccess(false)
-        setForm(INITIAL_FORM)
-        setAmbientes([newAmbiente(primeiroModelo)])
-      }, 2500)
+      startResetCountdown()
     } catch (err) {
       console.error('[TabCotacao] submit error:', err)
       toast('error', 'Erro ao enviar. Tente novamente.')
@@ -183,6 +225,12 @@ export default function TabCotacao() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center">
+          {hasDraft && (
+            <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/8 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Rascunho restaurado</span>
+            </div>
+          )}
           {catalogoLoading && (
             <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5">
               <Loader2 className="h-3 w-3 animate-spin text-primary" />
@@ -253,7 +301,7 @@ export default function TabCotacao() {
                     <div className="sm:col-span-2">
                       <label className={labelCls}>
                         <MessageSquare className="inline h-3 w-3 mr-1 -mt-px" />
-                        Envio
+                        Envio via WhatsApp
                       </label>
                       <button
                         type="button"
@@ -304,6 +352,8 @@ export default function TabCotacao() {
                   const area = l * h
                   const areaTotal = area * q
                   const isFilled = !!(a.largura && a.altura && a.modelo && a.tecido)
+                  const tecidoOpcoes = tecidosPorModelo[a.modelo] ?? []
+                  const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
 
                   return (
                     <div
@@ -330,7 +380,7 @@ export default function TabCotacao() {
                           </span>
                           {isFilled && area > 0 && (
                             <span className="hidden xs:inline-flex shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                              {areaTotal.toFixed(1)} m²
+                              {areaTotal.toFixed(2)} m²
                             </span>
                           )}
                         </div>
@@ -382,31 +432,40 @@ export default function TabCotacao() {
                                 }
                               </select>
                             </div>
-                            <div>
-                              <label className={labelCls}>Tecido <Req /></label>
-                              {(() => {
-                                const opcoes = tecidosPorModelo[a.modelo] ?? []
-                                return opcoes.length > 0 ? (
-                                  <select
-                                    required
-                                    value={a.tecido}
-                                    onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
-                                    className={selectCls}
-                                  >
-                                    <option value="">Selecione...</option>
-                                    {opcoes.map((t) => <option key={t} value={t}>{t}</option>)}
-                                  </select>
-                                ) : (
-                                  <input
-                                    type="text"
-                                    required
-                                    value={a.tecido}
-                                    onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
-                                    className={inputCls}
-                                    placeholder={catalogoLoading ? 'Aguardando...' : 'Ex: Blackout, Solar Screen...'}
-                                  />
-                                )
-                              })()}
+                            <div key={a.modelo}>
+                              <div className="mb-1.5 flex items-center justify-between">
+                                <label className="block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55">
+                                  Tecido <Req />
+                                </label>
+                                {tecidoLivre && a.modelo && (
+                                  <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                    <PenLine className="h-2.5 w-2.5" />
+                                    Texto livre
+                                  </span>
+                                )}
+                              </div>
+                              {tecidoOpcoes.length > 0 ? (
+                                <select
+                                  required
+                                  disabled={!a.modelo}
+                                  value={a.tecido}
+                                  onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
+                                  className={selectCls}
+                                >
+                                  <option value="">Selecione o tecido...</option>
+                                  {tecidoOpcoes.map((t) => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  required
+                                  disabled={!a.modelo}
+                                  value={a.tecido}
+                                  onChange={(e) => setAmbienteField(a.id, 'tecido', e.target.value)}
+                                  className={inputCls}
+                                  placeholder={!a.modelo ? 'Selecione um modelo primeiro' : catalogoLoading ? 'Aguardando...' : 'Ex: Blackout, Solar Screen...'}
+                                />
+                              )}
                             </div>
                             <div>
                               <label className={labelCls}>Cor Ferragem <Req /></label>
@@ -515,9 +574,12 @@ export default function TabCotacao() {
               </div>
             </section>
 
-            {/* ── SUBMIT mobile (aparece no fluxo, antes do resumo) ── */}
+            {/* ── SUBMIT mobile ── */}
             <div className="xl:hidden rounded-xl border border-border bg-card p-4 shadow-sm">
               <SubmitButton isLoading={isLoading} isSuccess={isSuccess} />
+              {resetCountdown !== null && (
+                <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />
+              )}
               <p className="mt-2 text-center text-[11px] text-foreground/40">
                 Campos com <span className="text-destructive font-bold">*</span> são obrigatórios
               </p>
@@ -605,7 +667,7 @@ export default function TabCotacao() {
                             </span>
                           </div>
                           {area > 0 && (
-                            <span className="text-[10px] font-bold text-primary shrink-0 ml-2">{area.toFixed(1)}m²</span>
+                            <span className="text-[10px] font-bold text-primary shrink-0 ml-2">{area.toFixed(2)}m²</span>
                           )}
                         </div>
                         {hasData && (
@@ -631,7 +693,7 @@ export default function TabCotacao() {
                   <div className="rounded-lg border border-border bg-muted/20 p-2.5 text-center">
                     <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/45 dark:text-foreground/55">Área Total</p>
                     <p className="font-display text-lg font-bold text-foreground leading-tight mt-0.5">
-                      {totalArea > 0 ? totalArea.toFixed(1) : '—'}
+                      {totalArea > 0 ? totalArea.toFixed(2) : '—'}
                       {totalArea > 0 && <span className="text-sm font-medium text-foreground/50"> m²</span>}
                     </p>
                   </div>
@@ -642,6 +704,9 @@ export default function TabCotacao() {
             {/* Submit desktop */}
             <div className="hidden xl:block rounded-xl border border-border bg-card p-4 shadow-sm">
               <SubmitButton isLoading={isLoading} isSuccess={isSuccess} />
+              {resetCountdown !== null && (
+                <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />
+              )}
               <p className="mt-2 text-center text-[10px] text-foreground/40">
                 Campos com <span className="text-destructive font-bold">*</span> são obrigatórios
               </p>
@@ -659,6 +724,23 @@ export default function TabCotacao() {
 
 function Req() {
   return <span className="text-destructive ml-0.5">*</span>
+}
+
+function ResetBanner({ countdown, onCancel }: { countdown: number; onCancel: () => void }) {
+  return (
+    <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+      <span className="text-xs text-emerald-700 dark:text-emerald-400">
+        Formulário será limpo em <strong>{countdown}s</strong>…
+      </span>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 underline underline-offset-2 hover:opacity-70 transition-opacity"
+      >
+        Cancelar
+      </button>
+    </div>
+  )
 }
 
 function SubmitButton({ isLoading, isSuccess }: { isLoading: boolean; isSuccess: boolean }) {

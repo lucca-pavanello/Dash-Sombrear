@@ -263,7 +263,13 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     if (sort.key === 'created_at') { av = a.created_at; bv = b.created_at }
     else if (sort.key === 'cliente') { av = a.cliente ?? ''; bv = b.cliente ?? '' }
     else if (sort.key === 'responsavel') { av = a.responsavel; bv = b.responsavel }
-    else if (sort.key === 'margem') { av = calcMargem(a) ?? -999; bv = calcMargem(b) ?? -999 }
+    else if (sort.key === 'margem') {
+      const ma = calcMargem(a); const mb = calcMargem(b)
+      if (ma === null && mb === null) return 0
+      if (ma === null) return 1
+      if (mb === null) return -1
+      av = ma; bv = mb
+    }
     else { av = a.valor_venda ?? -1; bv = b.valor_venda ?? -1 }
     if (av < bv) return sort.dir === 'asc' ? -1 : 1
     if (av > bv) return sort.dir === 'asc' ? 1 : -1
@@ -297,7 +303,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-display text-sm font-medium tracking-wide">Todos os Orçamentos</h2>
           {data.length > 0 && (
-            <div className="flex items-center gap-1 rounded-lg bg-muted/40 p-1">
+            <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
               <button
                 onClick={() => exportCSV(sorted)}
                 className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
@@ -347,22 +353,27 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
           <>
             {/* Desktop — TAREFA C: overflow-auto max-h-[70vh] para scroll com header sticky */}
             <div className="hidden md:block overflow-auto max-h-[70vh]">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm" style={{ minWidth: '860px' }}>
                 {/* TAREFA C: thead sticky — sticky deve estar no <th>, não no <tr> */}
                 <thead>
-                  <tr className="border-b">
+                  <tr>
                     {COLS.map(({ label, key }) => (
                       <th
                         key={label}
                         onClick={() => key && toggleSort(key)}
                         className={cn(
-                          'sticky top-0 z-10 px-4 py-3 text-left font-medium text-muted-foreground select-none border-b border-border/60',
-                          label === '#'
-                            ? 'left-0 z-20 border-r border-border/50 w-10 text-center'
-                            : '',
+                          'px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 select-none border-y border-border/80',
+                          label === '#' ? 'w-10 text-center' : '',
                           key && 'cursor-pointer hover:text-foreground transition-colors'
                         )}
-                        style={{ background: 'hsl(var(--card))' }}
+                        style={{
+                          position: 'sticky',
+                          top: 0,
+                          backgroundColor: 'hsl(var(--muted))',
+                          zIndex: label === '#' ? 30 : label === 'Status' ? 30 : 10,
+                          ...(label === '#' ? { left: 0, boxShadow: '4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
+                          ...(label === 'Status' ? { right: 0, boxShadow: '-4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
+                        }}
                       >
                         <span className="flex items-center gap-1">
                           {label}
@@ -387,21 +398,18 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         key={o.id}
                         onClick={() => setEditing(o)}
                         className={cn(
-                          'border-b last:border-0 transition-all duration-150 cursor-pointer',
-                          i % 2 === 1 ? 'bg-muted/[0.15] hover:bg-muted/30' : 'hover:bg-primary/[0.04]',
+                          'border-b last:border-0 transition-colors duration-150 cursor-pointer group',
                           o.fechado && !hasFlash && 'row-fechado',
                           hasFlash && 'animate-row-close'
                         )}
                       >
-                        <td className="sticky left-0 z-10 px-2 py-3 border-r border-border/50 text-center w-10" style={{ background: 'hsl(var(--card))' }}>
-                          <span
-                            className="inline-flex items-center justify-center h-5 min-w-[1.4rem] rounded-md px-1.5 text-[10px] font-bold tabular-nums"
-                            style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}
-                          >
+                        {/* sticky left */}
+                        <td className="px-2 py-3 text-center w-10" style={{ position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.12)' }}>
+                          <span className="inline-flex items-center justify-center h-5 min-w-[1.4rem] rounded-md px-1.5 text-[10px] font-bold tabular-nums bg-primary/10 dark:bg-primary/25 text-primary">
                             {globalIndex}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                        <td className={cn('px-4 py-3 text-muted-foreground text-xs', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           <span className="flex flex-col leading-tight gap-0.5">
                             <span>{formatDate(o.created_at)}</span>
                             {diasAberto > 0 && (
@@ -411,7 +419,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             )}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-medium">
+                        <td className={cn('px-4 py-3 font-medium', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           <span className="flex items-center gap-1.5">
                             <span className="flex flex-col">
                               <Highlight text={o.cliente} query={search} />
@@ -432,16 +440,16 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             {o.observacoes && <span title={o.observacoes}><StickyNote className="h-3 w-3 shrink-0 text-muted-foreground" /></span>}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           <span className="flex items-center gap-2">
                             <AvatarInitials name={o.responsavel} />
                             <Highlight text={o.responsavel} query={search} />
                           </span>
                         </td>
-                        <td className="px-4 py-3">{o.modelo}</td>
-                        <td className="px-4 py-3">{o.tecido}</td>
-                        <td className="px-4 py-3 text-center">{o.quantidade}</td>
-                        <td className="px-4 py-3">
+                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.modelo}</td>
+                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.tecido}</td>
+                        <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.quantidade}</td>
+                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           <span className="flex flex-col leading-tight">
                             <span>{o.valor_venda ? formatCurrency(o.valor_venda) : '—'}</span>
                             {o.instacao ? (
@@ -449,7 +457,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             ) : null}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           {margem !== null ? (
                             <span className={cn(
                               'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
@@ -469,22 +477,22 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             <span className="text-xs text-muted-foreground/30">—</span>
                           )}
                         </td>
-                        {/* TAREFA B: passa toast para FechadoCheckbox */}
-                        <td className="px-4 py-3"><FechadoCheckbox orcamento={o} /></td>
+                        {/* sticky right */}
+                        <td className="px-4 py-3" style={{ position: 'sticky', right: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '-4px 0 6px -2px rgba(0,0,0,0.12)' }}><FechadoCheckbox orcamento={o} /></td>
                       </tr>
                     )
                   })}
                 </tbody>
                 {/* TAREFA C: tfoot sticky no bottom — sticky deve estar no <td>, não no <tfoot> */}
                 <tfoot>
-                  <tr className="border-t">
-                    <td colSpan={7} className="sticky bottom-0 bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground">
+                  <tr className="border-t bg-muted/60">
+                    <td colSpan={7} className="px-4 py-2.5 text-xs text-muted-foreground">
                       {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}
                     </td>
-                    <td className="sticky bottom-0 bg-muted/40 px-4 py-2.5 text-sm font-bold text-primary">
+                    <td className="px-4 py-2.5 text-sm font-bold text-primary">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}
                     </td>
-                    <td colSpan={2} className="sticky bottom-0 bg-muted/40" />
+                    <td colSpan={2} />
                   </tr>
                 </tfoot>
               </table>
