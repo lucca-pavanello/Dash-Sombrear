@@ -86,6 +86,10 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
     if (!s) return null
     const draft = JSON.parse(s)
     if (!draft?.ambientes?.[0]?.persianas) return null
+    // Force expand all ambientes on draft load
+    if (draft?.ambientes) {
+      draft.ambientes = draft.ambientes.map((a: Ambiente) => ({ ...a, collapsed: false }))
+    }
     return draft
   } catch { return null }
 }
@@ -461,7 +465,7 @@ export default function TabCotacao() {
 
                       {/* Conteúdo do ambiente */}
                       {!isCollapsed && (
-                        <div className="p-4 space-y-4 sm:p-5 sm:space-y-5">
+                        <div className="p-4 space-y-4 sm:p-5 sm:space-y-5 animate-in fade-in-0 slide-in-from-top-1 duration-200">
                           {/* Nome do ambiente */}
                           <div>
                             <label className={labelCls}>Nome do Ambiente</label>
@@ -611,6 +615,7 @@ export default function TabCotacao() {
                                           </label>
                                           <input type="number" step="0.01" min="0" required inputMode="decimal"
                                             value={p.largura} onChange={e => setPersianaField(a.id, p.id, 'largura', e.target.value)}
+                                            onKeyDown={e => ['e','E','+','-'].includes(e.key) && e.preventDefault()}
                                             className={inputCls} placeholder="2.50" />
                                         </div>
                                         <div>
@@ -621,12 +626,14 @@ export default function TabCotacao() {
                                           </label>
                                           <input type="number" step="0.01" min="0" required inputMode="decimal"
                                             value={p.altura} onChange={e => setPersianaField(a.id, p.id, 'altura', e.target.value)}
+                                            onKeyDown={e => ['e','E','+','-'].includes(e.key) && e.preventDefault()}
                                             className={inputCls} placeholder="1.80" />
                                         </div>
                                         <div>
                                           <label className={labelCls}>Qtd <Req /></label>
                                           <input type="number" min="1" required inputMode="numeric"
                                             value={p.quantidade} onChange={e => setPersianaField(a.id, p.id, 'quantidade', e.target.value)}
+                                            onKeyDown={e => ['e','E','+','-'].includes(e.key) && e.preventDefault()}
                                             className={inputCls} />
                                         </div>
                                       </div>
@@ -664,7 +671,7 @@ export default function TabCotacao() {
                             {a.persianas.length > 0 ? `Adicionar Persiana ${a.persianas.length + 1}` : 'Adicionar Persiana'}
                             {a.persianas.length > 0 && (
                               <span className="text-[10px] font-normal text-muted-foreground/60 group-hover:text-primary/60">
-                                (copia configurações da anterior)
+                                (copia da anterior)
                               </span>
                             )}
                           </button>
