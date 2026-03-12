@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, UserCircle } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -13,6 +13,7 @@ import TabAnalises from '@/components/tabs/TabAnalises'
 import PainelAdmin from '@/components/admin/PainelAdmin'
 import Toaster from '@/components/ui/Toaster'
 import EditProfileModal from '@/components/profile/EditProfileModal'
+import AvatarInitials from '@/components/shared/AvatarInitials'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
@@ -74,15 +75,21 @@ export default function Dashboard() {
             </span>
 
             {/* Profile button */}
-            <button
-              onClick={() => profile && setProfileModalOpen(true)}
-              disabled={!profile}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95 disabled:opacity-50"
-              title="Meu perfil"
-              aria-label="Meu perfil"
-            >
-              <UserCircle className="h-4 w-4" />
-            </button>
+            {profile && (
+              <button
+                onClick={() => setProfileModalOpen(true)}
+                className="relative rounded-full hover:ring-2 hover:ring-primary/50 hover:scale-110 transition-all duration-150 active:scale-95"
+                title="Meu perfil"
+                aria-label="Meu perfil"
+              >
+                <AvatarInitials name={profile.full_name || profile.email} size="sm" />
+                {isAdmin && (
+                  <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary ring-1 ring-background">
+                    <ShieldCheck className="h-2 w-2 text-white" />
+                  </span>
+                )}
+              </button>
+            )}
 
             {isAdmin && pendingCount > 0 && (
               <button
