@@ -245,7 +245,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
                 Custo (R$)
                 <span className="ml-1.5 text-xs font-normal text-muted-foreground">para calcular margem</span>
                 {isAutocalc && (
-                  <span className="ml-2 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-600 dark:text-green-400">
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                     calculado automaticamente
                   </span>
                 )}
@@ -272,8 +272,8 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
             </div>
 
             {previewMargem !== null && (
-              <div className="col-span-2 rounded-lg bg-green-500/10 px-3 py-2.5 flex items-center justify-between">
-                <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+              <div className="col-span-2 rounded-lg bg-primary/10 px-3 py-2.5 flex items-center justify-between">
+                <span className="text-sm font-semibold text-primary">
                   Margem estimada: {previewMargem.toFixed(1)}%
                 </span>
                 <span className="text-xs text-muted-foreground">

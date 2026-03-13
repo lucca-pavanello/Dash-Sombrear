@@ -86,7 +86,7 @@ export default function FiltersBar({
           id="filter-search-input"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar cliente, responsável, telefone..."
+          placeholder="Buscar cliente, responsável, modelo, tecido, ambiente..."
           className={`w-full rounded-lg border bg-card py-2.5 pl-9 text-sm outline-none ring-ring focus:ring-2 ${search ? 'pr-8' : 'pr-10'}`}
         />
         {search ? (

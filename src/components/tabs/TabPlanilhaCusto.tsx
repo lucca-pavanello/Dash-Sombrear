@@ -339,7 +339,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         {o.margem != null ? (
-                          <span className={o.margem >= 30 ? 'text-green-600 font-medium' : o.margem >= 15 ? 'text-yellow-600 font-medium' : 'text-red-500 font-medium'}>
+                          <span className={o.margem >= 30 ? 'text-primary font-medium' : o.margem >= 15 ? 'text-foreground font-medium' : 'text-destructive font-medium'}>
                             {formatPercent(o.margem)}
                           </span>
                         ) : <span className="text-muted-foreground">—</span>}
@@ -357,7 +357,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                     <td className="px-4 py-3 text-right">{formatCurrency(totais.valorVenda)}</td>
                     <td className="px-4 py-3 text-right">
                       {totais.margemMedia != null ? (
-                        <span className={totais.margemMedia >= 30 ? 'text-green-600' : totais.margemMedia >= 15 ? 'text-yellow-600' : 'text-red-500'}>
+                        <span className={totais.margemMedia >= 30 ? 'text-primary' : totais.margemMedia >= 15 ? 'text-foreground' : 'text-destructive'}>
                           {formatPercent(totais.margemMedia)}
                         </span>
                       ) : '—'}

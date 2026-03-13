@@ -308,7 +308,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
   function Delta({ pct, suffix = '%' }: { pct: number | null; suffix?: string }) {
     if (pct === null) return <span className="text-xs text-muted-foreground">—</span>
     const Icon = pct > 0 ? TrendingUp : pct < 0 ? TrendingDown : Minus
-    const color = pct > 0 ? 'text-green-600 dark:text-green-400' : pct < 0 ? 'text-destructive' : 'text-muted-foreground'
+    const color = pct > 0 ? 'text-primary' : pct < 0 ? 'text-destructive' : 'text-muted-foreground'
     return (
       <span className={`flex items-center gap-0.5 text-xs font-medium ${color}`}>
         <Icon className="h-3 w-3" />

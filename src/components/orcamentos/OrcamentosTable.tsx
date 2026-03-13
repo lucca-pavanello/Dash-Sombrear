@@ -216,9 +216,12 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
 
   function copyPhone(e: React.MouseEvent, phone: string) {
     e.stopPropagation()
-    navigator.clipboard.writeText(phone).catch(() => {})
-    setCopiedPhone(phone)
-    setTimeout(() => setCopiedPhone((prev) => prev === phone ? null : prev), 2000)
+    navigator.clipboard.writeText(phone)
+      .then(() => {
+        setCopiedPhone(phone)
+        setTimeout(() => setCopiedPhone((prev) => prev === phone ? null : prev), 2000)
+      })
+      .catch(() => {})
   }
   const [page, setPage] = useState(1)
   // TAREFA E: rastrear quais rows tiveram flash
@@ -419,7 +422,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                           <span className="flex flex-col leading-tight gap-0.5">
                             <span>{formatDate(o.created_at)}</span>
                             {diasAberto > 0 && (
-                              <span className={cn('font-medium', diasAberto > 7 ? 'text-yellow-600 dark:text-yellow-400' : 'text-muted-foreground/60')}>
+                              <span className={cn('font-medium', diasAberto > 7 ? 'text-primary' : 'text-muted-foreground/60')}>
                                 {diasAberto}d aberto
                               </span>
                             )}
@@ -473,8 +476,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                           {margem !== null ? (
                             <span className={cn(
                               'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
-                              margem >= 30 ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                                : margem >= 15 ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                              margem >= 30 ? 'bg-primary/10 text-primary'
+                                : margem >= 15 ? 'bg-muted text-foreground'
                                 : 'bg-destructive/10 text-destructive'
                             )}>
                               {margem.toFixed(1)}%
@@ -538,7 +541,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         <p className="text-xs text-muted-foreground mt-0.5 pl-8">
                           <Highlight text={o.responsavel} query={search} /> · {formatDate(o.created_at)}
                           {diasAberto > 0 && (
-                            <span className={cn('ml-1.5 font-medium', diasAberto > 7 ? 'text-yellow-600 dark:text-yellow-400' : '')}>
+                            <span className={cn('ml-1.5 font-medium', diasAberto > 7 ? 'text-primary' : '')}>
                               · {diasAberto}d aberto
                             </span>
                           )}

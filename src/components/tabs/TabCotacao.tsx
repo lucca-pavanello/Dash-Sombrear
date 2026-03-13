@@ -9,12 +9,9 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { useModelosTecidos } from '@/hooks/useModelosTecidos'
+import { RESPONSAVEIS } from '@/lib/constants'
 
 /* ─── Constants ─────────────────────────────────────────── */
-const RESPONSAVEIS = [
-  'Stella', 'Rogério', 'Thais', 'Gregório',
-  'Sueli', 'Sombrear Teste', 'Persianas de Fábrica',
-]
 const CORES_FERRAGEM = ['Sem', 'Branca', 'Preta']
 const ACABAMENTOS = [
   'Sem', 'Bando Branco', 'Bando Preto', 'Kit Box',
