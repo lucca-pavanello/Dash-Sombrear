@@ -241,13 +241,14 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     })
     if (newFlash.size > 0) {
       setFlashIds((prev) => new Set([...prev, ...newFlash]))
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setFlashIds((prev) => {
           const next = new Set(prev)
           newFlash.forEach((id) => next.delete(id))
           return next
         })
       }, 700)
+      return () => clearTimeout(timer)
     }
   }, [data])
 
