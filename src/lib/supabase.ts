@@ -2,15 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://nlswyjpjzibuvdsaooyg.supabase.co'
 const SUPABASE_ANON_KEY = 'sb_publishable_fzqnvcRh3yww4V_2nATdTg_4V_o_Mi3'
-const SERVICE_ROLE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-// Admin client — só usado no PainelAdmin para criar usuários
-// Requer VITE_SUPABASE_SERVICE_ROLE_KEY no .env e no Vercel
-export const supabaseAdmin = SERVICE_ROLE_KEY
-  ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
-  : null
 
 export type Orcamento = {
   id: string

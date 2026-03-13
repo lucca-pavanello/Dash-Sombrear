@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 
@@ -43,28 +43,13 @@ export default function NovoUsuarioModal({ onClose, toast }: Props) {
     if (!email.trim()) { toast('error', 'Email obrigatório.'); return }
     if (password.length < 6) { toast('error', 'Senha deve ter pelo menos 6 caracteres.'); return }
 
-    if (!supabaseAdmin) {
-      toast('error', 'Chave de administrador não configurada. Adicione VITE_SUPABASE_SERVICE_ROLE_KEY ao .env e ao Vercel.')
-      return
-    }
-
     setIsLoading(true)
     try {
-      const { data, error } = await supabaseAdmin.auth.admin.createUser({
-        email: email.trim(),
-        password,
-        user_metadata: { full_name: fullName.trim() },
-        email_confirm: true,
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: { email: email.trim(), password, full_name: fullName.trim() },
       })
       if (error) throw error
-
-      // Aprovar automaticamente e setar full_name no profiles
-      if (data.user) {
-        await supabaseAdmin
-          .from('profiles')
-          .update({ full_name: fullName.trim() || null, approved: true })
-          .eq('id', data.user.id)
-      }
+      if (data?.error) throw new Error(data.error)
 
       qc.invalidateQueries({ queryKey: ['profiles'] })
       qc.invalidateQueries({ queryKey: ['profiles-pending-count'] })
