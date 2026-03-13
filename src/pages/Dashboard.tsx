@@ -50,10 +50,10 @@ export default function Dashboard() {
 
   const TABS = [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
-    { id: 'planilha', label: 'Planilha', icon: Table2, badge: 0 },
-    { id: 'planilha-custo', label: 'Planilha de Custo', icon: Receipt, badge: 0 },
-    { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
+    { id: 'planilha', label: 'Planilha Orçamento', icon: Table2, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
+    { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
+    { id: 'planilha-custo', label: 'Planilha de Custo', icon: Receipt, badge: 0 },
     { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
