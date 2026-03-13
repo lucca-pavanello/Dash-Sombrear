@@ -46,7 +46,9 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
           }
         },
       )
-      .subscribe()
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR') console.error('[useOrcamentos] realtime error:', err)
+      })
 
     return () => { supabase.removeChannel(channel) }
   }, [qc])

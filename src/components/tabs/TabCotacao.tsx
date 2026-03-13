@@ -253,15 +253,20 @@ export default function TabCotacao() {
       })),
     }
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
     try {
-      const res = await fetch(N8N_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const res = await fetch(N8N_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal })
+      clearTimeout(timeoutId)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setIsSuccess(true)
       toast('success', 'Orçamento enviado com sucesso!')
       startResetCountdown()
     } catch (err) {
+      clearTimeout(timeoutId)
       console.error('[TabCotacao] submit error:', err)
-      toast('error', 'Erro ao enviar. Tente novamente.')
+      const isTimeout = err instanceof Error && err.name === 'AbortError'
+      toast('error', isTimeout ? 'Tempo limite excedido. Verifique a conexão e tente novamente.' : 'Erro ao enviar. Tente novamente.')
     } finally {
       setIsLoading(false)
     }
@@ -288,9 +293,9 @@ export default function TabCotacao() {
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center">
           {hasDraft && (
-            <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/8 px-3 py-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Rascunho restaurado</span>
+            <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              <span className="text-xs font-medium text-primary">Rascunho restaurado</span>
             </div>
           )}
           {catalogoLoading && (
