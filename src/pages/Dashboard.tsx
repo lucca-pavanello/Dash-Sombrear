@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2 } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -10,6 +10,7 @@ import TabPlanilha from '@/components/tabs/TabPlanilha'
 import TabAgenteIA from '@/components/tabs/TabAgenteIA'
 import TabCotacao from '@/components/tabs/TabCotacao'
 import TabCalculoCusto from '@/components/tabs/TabCalculoCusto'
+import TabPlanilhaCusto from '@/components/tabs/TabPlanilhaCusto'
 import TabAnalises from '@/components/tabs/TabAnalises'
 import PainelAdmin from '@/components/admin/PainelAdmin'
 import Toaster from '@/components/ui/Toaster'
@@ -50,6 +51,7 @@ export default function Dashboard() {
   const TABS = [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'planilha', label: 'Planilha', icon: Table2, badge: 0 },
+    { id: 'planilha-custo', label: 'Planilha de Custo', icon: Receipt, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
@@ -156,6 +158,7 @@ export default function Dashboard() {
 
         <div key={activeTab} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
           {activeTab === 'planilha' && <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />}
+          {activeTab === 'planilha-custo' && <TabPlanilhaCusto data={orcamentos} loading={isLoading} />}
           {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} toast={toast} />}
           {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
           {activeTab === 'agente-ia' && <TabAgenteIA />}
