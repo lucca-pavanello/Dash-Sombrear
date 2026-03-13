@@ -10,7 +10,7 @@ export default function OrcamentosFechadosCard({ data }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm">
+    <div className="rounded-xl border-2 bg-card shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -42,7 +42,7 @@ export default function OrcamentosFechadosCard({ data }: Props) {
               return (
                 <div
                   key={o.id}
-                  className="rounded-xl border bg-background p-4 transition-shadow hover:shadow-md"
+                  className="rounded-xl border-2 bg-background p-4 transition-shadow hover:shadow-md"
                 >
                   <div className="mb-3 flex items-start justify-between">
                     <div>

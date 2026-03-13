@@ -121,9 +121,9 @@ function KpiCard({ label, value, icon: Icon, highlight, sub, attention, delay }:
 }) {
   return (
     <div
-      className={`animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default
-        ${attention  ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10'
-        : highlight  ? 'border-primary/30 bg-primary/5 dark:bg-primary/10'
+      className={`animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default
+        ${attention  ? 'border-amber-500/50 bg-amber-500/5 dark:bg-amber-500/10'
+        : highlight  ? 'border-primary/40 bg-primary/5 dark:bg-primary/10'
         : 'bg-card'}`}
       style={{ animationFillMode: 'both', animationDelay: `${delay}ms` }}
     >
@@ -279,7 +279,7 @@ export default function TabAgenteIA() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
-        <div className="rounded-xl border bg-card shadow-sm animate-pulse">
+        <div className="rounded-xl border-2 bg-card shadow-sm animate-pulse">
           <div className="border-b px-5 py-4"><div className="h-5 w-48 rounded bg-muted" /></div>
           <div className="p-5 space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-10 rounded bg-muted" />)}</div>
         </div>
@@ -333,7 +333,7 @@ export default function TabAgenteIA() {
       </div>
 
       {/* ── Tabela de Leads ── */}
-      <div className="rounded-xl border bg-card shadow-sm">
+      <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-primary" />
@@ -594,7 +594,7 @@ export default function TabAgenteIA() {
       </div>
 
       {/* ── Tabela de Orçamentos IA ── */}
-      <div className="rounded-xl border bg-card shadow-sm">
+      <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />

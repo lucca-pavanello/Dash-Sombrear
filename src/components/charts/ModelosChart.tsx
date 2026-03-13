@@ -16,7 +16,7 @@ export default function ModelosChart({ data }: Props) {
     .sort((a, b) => b.count - a.count)
 
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm">
+    <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-display text-sm font-medium tracking-wide">Orçamentos por Modelo</h3>
         <span className="text-xs text-muted-foreground">{total} total</span>

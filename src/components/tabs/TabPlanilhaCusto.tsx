@@ -286,7 +286,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
       </div>
 
       {/* Tabela */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

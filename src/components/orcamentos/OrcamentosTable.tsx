@@ -221,11 +221,12 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
         setCopiedPhone(phone)
         setTimeout(() => setCopiedPhone((prev) => prev === phone ? null : prev), 2000)
       })
-      .catch(() => {})
+      .catch(() => { toast('error', 'Falha ao copiar telefone.') })
   }
   const [page, setPage] = useState(1)
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set())
   const prevFechadoMap = useRef<Map<string, boolean>>(new Map())
+  const flashTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   useEffect(() => { setPage(1) }, [filterKey])
   useEffect(() => { setPage(1) }, [sort])
@@ -234,21 +235,23 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     const newFlash = new Set<string>()
     data.forEach((o) => {
       const prev = prevFechadoMap.current.get(o.id)
-      if (o.fechado && prev === false) {
-        newFlash.add(o.id)
-      }
+      if (o.fechado && prev === false) newFlash.add(o.id)
       prevFechadoMap.current.set(o.id, !!o.fechado)
     })
     if (newFlash.size > 0) {
       setFlashIds((prev) => new Set([...prev, ...newFlash]))
-      const timer = setTimeout(() => {
-        setFlashIds((prev) => {
-          const next = new Set(prev)
-          newFlash.forEach((id) => next.delete(id))
-          return next
-        })
-      }, 700)
-      return () => clearTimeout(timer)
+      newFlash.forEach((id) => {
+        if (flashTimers.current.has(id)) clearTimeout(flashTimers.current.get(id)!)
+        const timer = setTimeout(() => {
+          setFlashIds((prev) => { const next = new Set(prev); next.delete(id); return next })
+          flashTimers.current.delete(id)
+        }, 700)
+        flashTimers.current.set(id, timer)
+      })
+    }
+    return () => {
+      flashTimers.current.forEach((t) => clearTimeout(t))
+      flashTimers.current.clear()
     }
   }, [data])
 
@@ -306,7 +309,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
 
   return (
     <>
-      <div className="rounded-xl border bg-card shadow-sm">
+      <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-display text-sm font-medium tracking-wide">Todos os Orçamentos</h2>
           {data.length > 0 && (
@@ -482,7 +485,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             <span className="text-xs text-muted-foreground/50 italic">sem custo</span>
                           ) : temCustoSemReceita ? (
                             <span className="text-xs text-muted-foreground/60 italic" title="Informe o valor de venda para calcular a margem">
-                              custo {formatCurrency(o.custo_tecido!)}
+                              custo {formatCurrency(o.custo_tecido || 0)}
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground/30">—</span>

@@ -17,7 +17,7 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
-        <div className="rounded-xl border bg-card shadow-sm animate-pulse">
+        <div className="rounded-xl border-2 bg-card shadow-sm animate-pulse">
           <div className="border-b px-5 py-4"><div className="h-5 w-48 rounded bg-muted" /></div>
           <div className="p-5 space-y-3">
             {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded bg-muted" />)}
@@ -66,7 +66,7 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
         ].map(({ label, value, icon: Icon, highlight }) => (
           <div
             key={label}
-            className={`rounded-xl border p-4 shadow-sm ${highlight ? 'border-primary/30 bg-primary/5' : 'bg-card'}`}
+            className={`rounded-xl border-2 p-4 shadow-sm ${highlight ? 'border-primary/40 bg-primary/5' : 'bg-card'}`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -82,7 +82,7 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
       </div>
 
       {/* Custo por modelo */}
-      <div className="rounded-xl border bg-card shadow-sm">
+      <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex items-center gap-2 border-b px-5 py-4">
           <Calculator className="h-4 w-4 text-primary" />
           <div>

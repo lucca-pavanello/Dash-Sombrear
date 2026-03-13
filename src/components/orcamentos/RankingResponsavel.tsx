@@ -27,7 +27,7 @@ export default function RankingResponsavel({ data }: Props) {
     .sort((a, b) => b.value - a.value)
 
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm">
+    <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
       <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Ranking de Responsáveis</h3>
       {ranked.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center gap-2">

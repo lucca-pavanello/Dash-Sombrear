@@ -348,17 +348,17 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
       {/* Destaques financeiros */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
           <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Valor de Venda</p>
           <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(valorVendaTotal)}</p>
           <p className="mt-1 text-xs text-muted-foreground">{fechados.length} pedido{fechados.length !== 1 ? 's' : ''} fechado{fechados.length !== 1 ? 's' : ''}</p>
         </div>
-        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
           <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Faturamento Total</p>
           <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(faturamentoGeral)}</p>
           <p className="mt-1 text-xs text-muted-foreground">venda + instalação</p>
         </div>
-        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
           <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Margem Média</p>
           <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">
             {margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—'}
@@ -372,7 +372,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       {/* Comparativo mês a mês */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {comparisons.map(({ label, value, delta }) => (
-          <div key={label} className="rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
+          <div key={label} className="rounded-xl border-2 bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
             <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
             <p className="font-display mt-1.5 text-2xl font-bold tracking-tight truncate">{value}</p>
             <div className="mt-0.5">{delta ?? <span className="text-xs text-muted-foreground/60">base de comparação</span>}</div>
@@ -381,7 +381,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       </div>
 
       {/* Faturamento mensal */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Faturamento mensal (últimos 6 meses)</h3>
         {monthly.every((m) => m.faturamento === 0) ? (
           <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados de faturamento</div>
@@ -399,7 +399,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Volume mensal */}
-        <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+        <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Volume de orçamentos (últimos 6 meses)</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
@@ -412,7 +412,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         </div>
 
         {/* Tendência diária */}
-        <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+        <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Tendência diária — {now.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
           {daily.length === 0 ? (
             <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">Sem dados este mês</div>
@@ -437,7 +437,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       </div>
 
       {/* Insights IA */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <div className="flex items-center gap-2 mb-4">
           <div className="rounded-lg bg-primary/10 p-1.5">
             <Bot className="h-4 w-4 text-primary" />

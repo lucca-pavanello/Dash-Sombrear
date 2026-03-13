@@ -102,7 +102,7 @@ export default function KPIGrid({ data }: Props) {
     },
     {
       label: 'Margem Média',
-      value: margemMedia > 0 ? `${animMargem.toFixed(1)}%` : '—',
+      value: comMargem.length > 0 ? `${animMargem.toFixed(1)}%` : '—',
       icon: TrendingUp,
       highlight: false,
       sub: comMargem.length > 0 ? `${comMargem.length} com custo` : 'sem custo informado',
@@ -128,7 +128,7 @@ export default function KPIGrid({ data }: Props) {
       {/* Faturamento — shimmer + tooltip + meta */}
       <div
         tabIndex={0}
-        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
+        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 border-primary/35 bg-primary/5 dark:bg-primary/10 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
         style={{ animationFillMode: 'both', animationDelay: '0ms' }}
       >
         <KpiTooltip lines={[
@@ -226,7 +226,7 @@ export default function KPIGrid({ data }: Props) {
         <div
           key={label}
           tabIndex={0}
-          className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none ${highlight ? 'border-primary/20 bg-primary/5 dark:bg-primary/10' : 'bg-card'}`}
+          className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none ${highlight ? 'border-primary/35 bg-primary/5 dark:bg-primary/10' : 'bg-card'}`}
           style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms` }}
         >
           <KpiTooltip lines={tooltip} />
