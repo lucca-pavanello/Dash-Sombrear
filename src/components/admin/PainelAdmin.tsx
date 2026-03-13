@@ -77,17 +77,17 @@ export default function PainelAdmin({ toast }: Props) {
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Total</p>
             <p className="font-display mt-1 text-2xl font-bold text-primary">{profiles.length}</p>
           </div>
-          <div className="rounded-xl border bg-card p-4 shadow-sm">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-sm">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Aprovados</p>
-            <p className="font-display mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{aprovados.length}</p>
+            <p className="font-display mt-1 text-2xl font-bold text-primary">{aprovados.length}</p>
           </div>
-          <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 shadow-sm">
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Pendentes</p>
-            <p className="font-display mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">{pendentes.length}</p>
+            <p className="font-display mt-1 text-2xl font-bold text-foreground">{pendentes.length}</p>
           </div>
-          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 shadow-sm">
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Revogados</p>
-            <p className="font-display mt-1 text-2xl font-bold text-destructive">{revogados.length}</p>
+            <p className="font-display mt-1 text-2xl font-bold text-muted-foreground">{revogados.length}</p>
           </div>
         </div>
         <button
@@ -101,17 +101,17 @@ export default function PainelAdmin({ toast }: Props) {
 
       {/* Pendentes */}
       {pendentes.length > 0 && (
-        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2.5 border-b border-yellow-500/20 px-5 py-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-yellow-500/15">
-              <Clock className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 border-b px-5 py-4">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <h2 className="font-display text-sm font-semibold tracking-wide">Aguardando aprovação</h2>
-            <span className="ml-auto rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-xs font-bold text-yellow-700 dark:text-yellow-400">
+            <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
               {pendentes.length}
             </span>
           </div>
-          <div className="divide-y divide-yellow-500/10">
+          <div className="divide-y">
             {pendentes.map((p) => (
               <UserRow
                 key={p.id}
@@ -143,7 +143,7 @@ export default function PainelAdmin({ toast }: Props) {
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
           </div>
           <h2 className="font-display text-sm font-semibold tracking-wide">Usuários aprovados</h2>
-          <span className="ml-auto rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-bold text-green-600 dark:text-green-400">
+          <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
             {aprovados.length}
           </span>
         </div>
@@ -178,17 +178,17 @@ export default function PainelAdmin({ toast }: Props) {
 
       {/* Revogados */}
       {revogados.length > 0 && (
-        <div className="rounded-xl border border-destructive/20 bg-destructive/5 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2.5 border-b border-destructive/15 px-5 py-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive/10">
-              <UserX className="h-3.5 w-3.5 text-destructive" />
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 border-b px-5 py-4">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
+              <UserX className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
             <h2 className="font-display text-sm font-semibold tracking-wide">Acesso revogado</h2>
-            <span className="ml-auto rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-bold text-destructive">
+            <span className="ml-auto rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
               {revogados.length}
             </span>
           </div>
-          <div className="divide-y divide-destructive/10">
+          <div className="divide-y">
             {revogados.map((p) => (
               <UserRow
                 key={p.id}
@@ -273,7 +273,7 @@ function UserRow({ p, isAdminUser, pendingId, onEdit, onApprove, onRevoke }: Use
             onClick={onApprove}
             disabled={isBusy}
             title="Aprovar"
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/25 transition-colors disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
           >
             {isBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
           </button>

@@ -162,7 +162,7 @@ export default function KPIGrid({ data }: Props) {
                 </p>
               </div>
             ) : pctChange !== null ? (
-              <p className={`mt-0.5 text-xs font-medium truncate ${pctChange >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+              <p className={`mt-0.5 text-xs font-medium truncate ${pctChange >= 0 ? 'text-primary' : 'text-destructive'}`}>
                 {pctChange >= 0 ? '↑' : '↓'} {Math.abs(pctChange).toFixed(0)}% vs mês ant.
               </p>
             ) : (
@@ -170,7 +170,7 @@ export default function KPIGrid({ data }: Props) {
             )}
 
             {meta > 0 && pctChange !== null && (
-              <p className={`mt-0.5 text-xs font-medium truncate ${pctChange >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+              <p className={`mt-0.5 text-xs font-medium truncate ${pctChange >= 0 ? 'text-primary' : 'text-destructive'}`}>
                 {pctChange >= 0 ? '↑' : '↓'} {Math.abs(pctChange).toFixed(0)}% vs mês ant.
               </p>
             )}
