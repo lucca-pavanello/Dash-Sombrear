@@ -286,6 +286,14 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
   const now = new Date()
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
+  const fechados = data.filter((o) => o.fechado === true)
+  const valorVendaTotal = fechados.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
+  const faturamentoGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const fechadosComMargem = fechados.filter((o) => o.margem != null)
+  const margemMedia = fechadosComMargem.length > 0
+    ? fechadosComMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / fechadosComMargem.length
+    : null
+
   const thisMonth = data.filter((o) => {
     const d = new Date(o.created_at)
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
@@ -336,6 +344,29 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           <FileDown className="h-3.5 w-3.5" />
           Exportar PDF
         </button>
+      </div>
+
+      {/* Destaques financeiros */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Valor de Venda</p>
+          <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(valorVendaTotal)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{fechados.length} pedido{fechados.length !== 1 ? 's' : ''} fechado{fechados.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Faturamento Total</p>
+          <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(faturamentoGeral)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">venda + instalação</p>
+        </div>
+        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Margem Média</p>
+          <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">
+            {margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—'}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {fechadosComMargem.length > 0 ? `${fechadosComMargem.length} pedidos com margem` : 'sem dados de custo'}
+          </p>
+        </div>
       </div>
 
       {/* Comparativo mês a mês */}

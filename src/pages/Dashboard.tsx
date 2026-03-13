@@ -82,7 +82,7 @@ export default function Dashboard() {
             {profile && (
               <button
                 onClick={() => setProfileModalOpen(true)}
-                className="relative rounded-full hover:ring-2 hover:ring-primary/50 hover:scale-110 transition-all duration-150 active:scale-95"
+                className="relative rounded-full hover:ring-2 hover:ring-primary/60 hover:ring-offset-2 hover:ring-offset-background transition-all duration-150 active:scale-95"
                 title="Meu perfil"
                 aria-label="Meu perfil"
               >

@@ -93,7 +93,7 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
-  const [hasDraft, setHasDraft] = useState(() => loadDraft() !== null)
+  const [, setHasDraft] = useState(() => loadDraft() !== null)
   const [form, setForm] = useState<FormState>(() => loadDraft()?.form ?? INITIAL_FORM)
   const [ambientes, setAmbientes] = useState<Ambiente[]>(() => loadDraft()?.ambientes ?? [newAmbiente()])
   const [isLoading, setIsLoading] = useState(false)
@@ -289,15 +289,9 @@ export default function TabCotacao() {
         </div>
         <div>
           <h2 className="font-gotham text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Novo Orçamento</h2>
-          <p className="mt-0.5 text-sm text-foreground/50">Preencha os dados e envie para o n8n gerar automaticamente.</p>
+          <p className="mt-0.5 text-sm text-foreground/50">Preencha os dados e envie para gerar o orçamento.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center">
-          {hasDraft && (
-            <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/8 px-3 py-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              <span className="text-xs font-medium text-primary">Rascunho restaurado</span>
-            </div>
-          )}
           {catalogoLoading && (
             <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5">
               <Loader2 className="h-3 w-3 animate-spin text-primary" />
@@ -310,13 +304,6 @@ export default function TabCotacao() {
               <AlertCircle className="h-3 w-3" />Erro no catálogo — Tentar novamente<RefreshCw className="h-3 w-3" />
             </button>
           )}
-          <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/8 px-3 py-1.5">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </span>
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">n8n online</span>
-          </div>
         </div>
       </div>
 
@@ -705,7 +692,7 @@ export default function TabCotacao() {
             <div className="xl:hidden rounded-xl border border-border bg-card p-4 shadow-sm">
               <SubmitButton isLoading={isLoading} isSuccess={isSuccess} isValid={isFormValid} />
               {resetCountdown !== null && <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />}
-              <p className="mt-2 text-center text-[11px] text-foreground/40">
+              <p className="mt-2 text-center text-xs text-foreground/60 font-medium">
                 Campos com <span className="text-destructive font-bold">*</span> são obrigatórios
               </p>
             </div>
@@ -822,7 +809,7 @@ export default function TabCotacao() {
             <div className="hidden xl:block rounded-xl border border-border bg-card p-4 shadow-sm">
               <SubmitButton isLoading={isLoading} isSuccess={isSuccess} isValid={isFormValid} />
               {resetCountdown !== null && <ResetBanner countdown={resetCountdown} onCancel={cancelReset} />}
-              <p className="mt-2 text-center text-[10px] text-foreground/40">
+              <p className="mt-2 text-center text-xs text-foreground/60 font-medium">
                 Campos com <span className="text-destructive font-bold">*</span> são obrigatórios
               </p>
             </div>

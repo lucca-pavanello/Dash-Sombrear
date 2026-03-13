@@ -180,32 +180,36 @@ export default function TabAgenteIA() {
   }, [loadingCrm, loadingOrc])
 
   // KPIs
-  const aguardando   = filtrados.filter((l) => isAguardando(l.status_lead))
-  const convertidos  = filtrados.filter((l) => isConvertido(l.status_lead))
-  const comMedicao   = filtrados.filter((l) => l.data_medicao_instalacao?.trim())
-  const foraLeads    = filtrados.filter((l) => isForaDoHorario(l.created_at))
-  const foraMsgs     = filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg))
-  const valorTotal   = orcFiltrados.reduce((s, o) =>
+  const aguardando       = filtrados.filter((l) => isAguardando(l.status_lead))
+  const convertidos      = filtrados.filter((l) => isConvertido(l.status_lead))
+  const comMedicao       = filtrados.filter((l) => l.data_medicao_instalacao?.trim())
+  const foraLeads        = filtrados.filter((l) => isForaDoHorario(l.created_at))
+  const foraMsgs         = filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg))
+  const mensagensTotais  = filtrados.filter((l) => l.timestamp_ultima_msg).length
+  const valorTotal       = orcFiltrados.reduce((s, o) =>
     s + (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0), 0)
 
-  const animLeads  = useCountUp(filtrados.length, 700, hasLoaded)
-  const animAguard = useCountUp(aguardando.length, 700, hasLoaded)
-  const animConv   = useCountUp(convertidos.length, 750, hasLoaded)
-  const animValor  = useCountUp(valorTotal, 900, hasLoaded)
-  const animMed    = useCountUp(comMedicao.length, 750, hasLoaded)
-  const foraSet = new Set([
-    ...foraLeads.map(l => l.id),
-    ...foraMsgs.map(l => l.id)
-  ])
-  const animFora   = useCountUp(foraSet.size, 700, hasLoaded)
+  const animLeads      = useCountUp(filtrados.length, 700, hasLoaded)
+  const animAguard     = useCountUp(aguardando.length, 700, hasLoaded)
+  const animConv       = useCountUp(convertidos.length, 750, hasLoaded)
+  const animValor      = useCountUp(valorTotal, 900, hasLoaded)
+  const animMed        = useCountUp(comMedicao.length, 750, hasLoaded)
+  const animForaLeads  = useCountUp(foraLeads.length, 700, hasLoaded)
+  const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded)
+  const animForaMsgs   = useCountUp(foraMsgs.length, 700, hasLoaded)
 
-  const kpis = [
-    { label: 'Leads atendidos',        value: Math.round(animLeads),  icon: Users,         highlight: true,  sub: 'no período' },
-    { label: 'Aguardando atendimento', value: Math.round(animAguard), icon: Bell,          attention: true,  sub: 'passaram orçamento + querem atendimento' },
+  const alcanceKpis = [
+    { label: 'Pessoas respondidas',      value: Math.round(animLeads),     icon: Users,         highlight: true,  sub: 'atendidas pelo agente' },
+    { label: 'Pessoas fora do horário',  value: Math.round(animForaLeads), icon: Moon,          highlight: false, sub: 'entraram fora do comercial' },
+    { label: 'Mensagens no total',       value: Math.round(animMsgs),      icon: MessageSquare, highlight: false, sub: 'conversas com troca de msgs' },
+    { label: 'Msgs fora do horário',     value: Math.round(animForaMsgs),  icon: MessageCircle, highlight: false, sub: 'última msg fora do comercial' },
+  ]
+
+  const opKpis = [
+    { label: 'Aguardando atendimento', value: Math.round(animAguard), icon: Bell,          attention: true,  sub: 'querem atendimento humano' },
     { label: 'Convertidos',            value: Math.round(animConv),   icon: CheckCircle2,  highlight: false, sub: `de ${filtrados.length} leads` },
     { label: 'Valor cotado (IA)',       value: valorTotal > 0 ? formatCurrency(animValor) : '—', icon: DollarSign, highlight: false, sub: `${orcFiltrados.length} orçamento${orcFiltrados.length !== 1 ? 's' : ''}` },
     { label: 'Medições agendadas',     value: Math.round(animMed),    icon: CalendarCheck, highlight: false, sub: 'com data marcada' },
-    { label: 'Fora do horário',        value: Math.round(animFora),   icon: Moon,          highlight: false, sub: `${foraLeads.length} pessoas · ${foraMsgs.length} mensagens` },
   ]
 
   // Sort
@@ -289,15 +293,22 @@ export default function TabAgenteIA() {
   return (
     <div className="space-y-5">
 
-      {/* ── KPIs ── */}
-      <div
-        key={periodo}
-        className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6 animate-in fade-in-0 duration-200"
-      >
-        {kpis.map(({ label, value, icon, highlight, attention, sub }, i) => (
-          <KpiCard key={label} label={label} value={value} icon={icon}
-            highlight={highlight} attention={attention} sub={sub} delay={i * 80} />
-        ))}
+      {/* ── Alcance do Agente ── */}
+      <div key={periodo} className="space-y-3 animate-in fade-in-0 duration-200">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5">Alcance do Agente</p>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {alcanceKpis.map(({ label, value, icon, highlight, sub }, i) => (
+            <KpiCard key={label} label={label} value={value} icon={icon}
+              highlight={highlight} sub={sub} delay={i * 80} />
+          ))}
+        </div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5 pt-1">Operacional</p>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {opKpis.map(({ label, value, icon, highlight, attention, sub }, i) => (
+            <KpiCard key={label} label={label} value={value} icon={icon}
+              highlight={highlight} attention={attention} sub={sub} delay={i * 80 + 320} />
+          ))}
+        </div>
       </div>
 
       {/* ── Banner: aguardando atendimento ── */}
