@@ -397,9 +397,27 @@ export default function TabAgenteIA() {
                             {lead.nome ?? '—'}
                           </td>
                           <td className="px-5 py-3.5" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                            {lead.whatsapp
-                              ? <span className="flex items-center gap-1 text-muted-foreground text-xs"><Phone className="h-3 w-3 shrink-0" />{lead.whatsapp}</span>
-                              : <span className="text-muted-foreground">—</span>}
+                            {lead.whatsapp ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground text-xs flex items-center gap-1">
+                                  <Phone className="h-3 w-3 shrink-0" />
+                                  {lead.whatsapp}
+                                </span>
+                                <a
+                                  href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Abrir no WhatsApp"
+                                  className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                >
+                                  <MessageCircle className="h-3 w-3 shrink-0" />
+                                  WA
+                                </a>
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </td>
                           <td className="px-5 py-3.5" onClick={() => setExpandedId(expanded ? null : lead.id)}>
                             <span className="block font-medium">{lead.modelo_interesse ?? '—'}</span>
@@ -508,7 +526,22 @@ export default function TabAgenteIA() {
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div>
                           <p className="font-semibold text-sm">{lead.nome ?? 'Sem nome'}</p>
-                          {lead.whatsapp && <p className="text-xs text-muted-foreground mt-0.5">{lead.whatsapp}</p>}
+                          {lead.whatsapp && (
+                            <span className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-xs text-muted-foreground">{lead.whatsapp}</span>
+                              <a
+                                href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Abrir no WhatsApp"
+                                className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                              >
+                                <MessageCircle className="h-3 w-3 shrink-0" />
+                                WA
+                              </a>
+                            </span>
+                          )}
                         </div>
                         <span
                           role="status"

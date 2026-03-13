@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Orcamento } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, calcularMargem } from '@/lib/utils'
 import { Trophy, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Props { data: Orcamento[] }
@@ -36,9 +36,7 @@ export default function OrcamentosFechadosCard({ data }: Props) {
           <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
             {fechados.map((o) => {
               const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
-              const margem = o.margem ?? (receita > 0 && o.custo_tecido
-                ? ((receita - o.custo_tecido) / receita) * 100
-                : null)
+              const margem = o.margem ?? calcularMargem(receita, o.custo_tecido ?? 0)
               return (
                 <div
                   key={o.id}

@@ -18,7 +18,10 @@ const ACABAMENTOS = [
   'Cadarço', 'Fita', 'Barra Niveladora',
 ]
 const SUGESTOES_AMBIENTE = ['Sala', 'Quarto', 'Quarto 1', 'Quarto 2', 'Escritório', 'Cozinha', 'Varanda', 'Banheiro', 'Hall', 'Suíte']
-const N8N_WEBHOOK = (import.meta.env.VITE_N8N_WEBHOOK as string) ?? 'https://n8n-n8n.yjlhot.easypanel.host/webhook/Sombrear_sheet'
+const N8N_WEBHOOK = import.meta.env.VITE_N8N_WEBHOOK as string | undefined
+if (!N8N_WEBHOOK && import.meta.env.DEV) {
+  console.warn('[TabCotacao] VITE_N8N_WEBHOOK não está definido.')
+}
 const DRAFT_KEY = 'sombrear-cotacao-draft-v2'
 
 /* ─── Style tokens ───────────────────────────────────────── */
@@ -190,7 +193,7 @@ export default function TabCotacao() {
     resetTimerRef.current = setInterval(() => {
       setResetCountdown(prev => {
         if (prev === null || prev <= 1) {
-          clearInterval(resetTimerRef.current!)
+          if (resetTimerRef.current) clearInterval(resetTimerRef.current)
           setIsSuccess(false)
           setForm(INITIAL_FORM)
           setAmbientes([newAmbiente()])
@@ -233,12 +236,14 @@ export default function TabCotacao() {
     e.preventDefault()
     const error = validate()
     if (error) { toast('error', error); return }
+    if (!N8N_WEBHOOK) { toast('error', 'Webhook não configurado. Contate o administrador.'); return }
 
     setIsLoading(true)
     const payload = {
       responsavel: form.responsavel,
       whatsapp: form.whatsapp,
       cliente: form.cliente.trim(),
+      fonte: 'planilha',
       ambientes: ambientes.map(a => ({
         ambiente: a.ambiente.trim(),
         persianas: a.persianas.map(p => ({

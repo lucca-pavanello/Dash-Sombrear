@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Check, Clock, X } from 'lucide-react'
+import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Check, Clock, X, AlertTriangle } from 'lucide-react'
 import { useMonthlyComparison } from '@/hooks/useOrcamentos'
 import { useCountUp } from '@/hooks/useCountUp'
 
@@ -36,6 +36,14 @@ export default function KPIGrid({ data }: Props) {
     ? comMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / comMargem.length
     : 0
 
+  // Em risco: abertos há mais de 7 dias
+  const agora = Date.now()
+  const emRisco = emAberto.filter((o) => {
+    const dias = Math.floor((agora - new Date(o.created_at).getTime()) / 86400000)
+    return dias > 7
+  })
+  const valorEmRisco = emRisco.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+
   const animFaturamento = useCountUp(faturamento, 950)
   const animFechados = useCountUp(fechados.length, 750)
   const animTotalOrc = useCountUp(totalOrc, 700)
@@ -43,6 +51,7 @@ export default function KPIGrid({ data }: Props) {
   const animConv = useCountUp(convRate, 800)
   const animMargem = useCountUp(margemMedia, 850)
   const animEmAberto = useCountUp(valorEmAberto, 900)
+  const animEmRisco = useCountUp(emRisco.length, 800)
 
   const [meta, setMeta] = useState(() => {
     const saved = localStorage.getItem(META_KEY)
@@ -115,16 +124,29 @@ export default function KPIGrid({ data }: Props) {
       value: valorEmAberto > 0 ? formatCurrency(animEmAberto) : '—',
       icon: Clock,
       highlight: false,
+      amber: false,
       sub: `${emAberto.length} orçamento${emAberto.length !== 1 ? 's' : ''}`,
       tooltip: [
         `${emAberto.length} orçamento${emAberto.length !== 1 ? 's' : ''} pendente${emAberto.length !== 1 ? 's' : ''}`,
         valorEmAberto > 0 ? `Pipeline: ${formatCurrency(valorEmAberto)}` : 'Sem valor informado',
       ],
     },
+    {
+      label: 'Em Risco',
+      value: String(Math.round(animEmRisco)),
+      icon: AlertTriangle,
+      highlight: false,
+      amber: emRisco.length > 0,
+      sub: 'abertos há +7 dias',
+      tooltip: [
+        `${emRisco.length} orçamento${emRisco.length !== 1 ? 's' : ''} aberto${emRisco.length !== 1 ? 's' : ''} há mais de 7 dias`,
+        valorEmRisco > 0 ? `Pipeline em risco: ${formatCurrency(valorEmRisco)}` : 'Sem valor informado',
+      ],
+    },
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-7">
       {/* Faturamento — shimmer + tooltip + meta */}
       <div
         tabIndex={0}
@@ -222,23 +244,30 @@ export default function KPIGrid({ data }: Props) {
         )}
       </div>
 
-      {kpis.map(({ label, value, icon: Icon, highlight, sub, tooltip }, i) => (
+      {kpis.map(({ label, value, icon: Icon, highlight, amber, sub, tooltip }, i) => (
         <div
           key={label}
           tabIndex={0}
-          className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none ${highlight ? 'border-primary/35 bg-primary/5 dark:bg-primary/10' : 'bg-card'}`}
+          className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none ${
+            amber ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10'
+            : highlight ? 'border-primary/35 bg-primary/5 dark:bg-primary/10'
+            : 'bg-card'
+          }`}
           style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms` }}
         >
           <KpiTooltip lines={tooltip} />
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
-              <p className={`font-display mt-1.5 text-2xl font-bold tracking-tight truncate tabular-nums ${highlight ? 'text-primary' : ''}`}>
+              <p className={`font-display mt-1.5 text-2xl font-bold tracking-tight truncate tabular-nums ${
+                amber ? 'text-amber-600 dark:text-amber-400'
+                : highlight ? 'text-primary' : ''
+              }`}>
                 {value}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground/60 truncate tabular-nums">{sub}</p>
             </div>
-            <div className="shrink-0 rounded-lg p-1.5 bg-muted/60 text-muted-foreground/50">
+            <div className={`shrink-0 rounded-lg p-1.5 ${amber ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-muted/60 text-muted-foreground/50'}`}>
               <Icon className="h-4 w-4" />
             </div>
           </div>

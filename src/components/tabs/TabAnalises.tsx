@@ -1,12 +1,13 @@
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { Bot, TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
+import { Bot, TrendingUp, TrendingDown, Minus, FileDown, AlertCircle, Users, DollarSign, CheckCircle2, FileText } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, CartesianGrid,
 } from 'recharts'
+import { useCrmLeads } from '@/hooks/useAgenteIA'
 
 interface Props { data: Orcamento[]; isLoading?: boolean; error?: boolean }
 
@@ -254,6 +255,138 @@ function exportPDF(data: Orcamento[]) {
   doc.save(`relatorio-sombrear-${now.toISOString().slice(0, 10)}.pdf`)
 }
 
+function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
+  const byModelo = Object.entries(
+    data.reduce<Record<string, { total: number; fechados: number }>>((acc, o) => {
+      if (!acc[o.modelo]) acc[o.modelo] = { total: 0, fechados: 0 }
+      acc[o.modelo].total++
+      if (o.fechado === true) acc[o.modelo].fechados++
+      return acc
+    }, {})
+  )
+    .map(([modelo, s]) => ({
+      modelo,
+      total: s.total,
+      fechados: s.fechados,
+      taxa: s.total > 0 ? (s.fechados / s.total) * 100 : 0,
+    }))
+    .sort((a, b) => b.taxa - a.taxa)
+
+  if (byModelo.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-6">Sem dados suficientes</p>
+  }
+
+  return (
+    <div className="space-y-2.5">
+      {byModelo.map(({ modelo, total, fechados, taxa }) => (
+        <div key={modelo} className="flex items-center gap-3">
+          <span className="w-28 shrink-0 text-xs font-medium truncate">{modelo}</span>
+          <div className="flex-1 relative h-5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary/70 transition-all duration-700"
+              style={{ width: `${taxa}%` }}
+            />
+          </div>
+          <span className="w-10 shrink-0 text-right text-xs font-bold tabular-nums text-primary">
+            {taxa.toFixed(0)}%
+          </span>
+          <span className="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+            {fechados}/{total}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FunilAgenteIA() {
+  const { data: leads = [], isLoading } = useCrmLeads()
+
+  if (isLoading) {
+    return <div className="animate-pulse space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-12 rounded-lg bg-muted" />)}</div>
+  }
+
+  const totalLeads = leads.length
+  const cotados = leads.filter((l) => l.ultimo_valor_cotado && l.ultimo_valor_cotado.trim()).length
+  const convertidos = leads.filter((l) => {
+    const s = l.status_lead?.toLowerCase().trim() ?? ''
+    return s === 'convertido' || s === 'fechado'
+  })
+  const convertidosCount = convertidos.length
+  const faturamentoGerado = convertidos.reduce((s, l) => {
+    const v = parseFloat(l.ultimo_valor_cotado ?? '')
+    return s + (isNaN(v) ? 0 : v)
+  }, 0)
+
+  const etapas = [
+    {
+      label: 'Total de Leads',
+      value: totalLeads,
+      display: String(totalLeads),
+      pct: 100,
+      icon: Users,
+      color: 'bg-primary',
+      textColor: 'text-primary',
+    },
+    {
+      label: 'Leads Cotados',
+      value: cotados,
+      display: String(cotados),
+      pct: totalLeads > 0 ? (cotados / totalLeads) * 100 : 0,
+      icon: FileText,
+      color: 'bg-blue-500',
+      textColor: 'text-blue-600 dark:text-blue-400',
+    },
+    {
+      label: 'Convertidos',
+      value: convertidosCount,
+      display: String(convertidosCount),
+      pct: totalLeads > 0 ? (convertidosCount / totalLeads) * 100 : 0,
+      icon: CheckCircle2,
+      color: 'bg-green-500',
+      textColor: 'text-green-600 dark:text-green-400',
+    },
+    {
+      label: 'Faturamento Gerado',
+      value: faturamentoGerado,
+      display: faturamentoGerado > 0 ? formatCurrency(faturamentoGerado) : '—',
+      pct: null,
+      icon: DollarSign,
+      color: 'bg-amber-500',
+      textColor: 'text-amber-600 dark:text-amber-400',
+    },
+  ]
+
+  return (
+    <div className="space-y-3">
+      {etapas.map(({ label, display, pct, icon: Icon, color, textColor }, i) => (
+        <div key={label} className="flex items-center gap-3">
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${color}/15`}>
+            <Icon className={`h-3.5 w-3.5 ${textColor}`} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-xs font-medium">{label}</span>
+              <span className={`text-sm font-bold tabular-nums ${textColor}`}>{display}</span>
+            </div>
+            {pct !== null && (
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+              </div>
+            )}
+          </div>
+          {pct !== null && i > 0 && (
+            <span className="w-12 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+              {pct.toFixed(0)}%
+            </span>
+          )}
+          {(pct === null || i === 0) && <span className="w-12" />}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function TabAnalises({ data, isLoading, error }: Props) {
   if (isLoading) {
     return (
@@ -434,6 +567,18 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
             </ResponsiveContainer>
           )}
         </div>
+      </div>
+
+      {/* Taxa de Conversão por Modelo */}
+      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Taxa de Conversão por Modelo</h3>
+        <ConversaoPorModelo data={data} />
+      </div>
+
+      {/* Funil Agente IA → Venda */}
+      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Funil Agente IA → Venda</h3>
+        <FunilAgenteIA />
       </div>
 
       {/* Insights IA */}

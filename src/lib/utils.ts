@@ -15,3 +15,8 @@ export function formatCurrency(value: number) {
 export function formatPercent(value: number) {
   return `${value.toFixed(1)}%`
 }
+
+export function calcularMargem(receita: number, custo: number): number | null {
+  if (!receita || receita <= 0) return null
+  return ((receita - custo) / receita) * 100
+}

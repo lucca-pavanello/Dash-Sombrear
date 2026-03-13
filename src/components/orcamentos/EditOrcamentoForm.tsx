@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHistorico } from '@/hooks/useOrcamentos'
 import type { Orcamento } from '@/lib/supabase'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency, calcularMargem } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 import { RESPONSAVEIS } from '@/lib/constants'
 
@@ -108,8 +108,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   const previewMargem = (() => {
     const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instacao) || 0)
     const custo = parseFloat(form.custo_tecido) || 0
-    if (receita > 0 && custo > 0) return ((receita - custo) / receita) * 100
-    return null
+    return calcularMargem(receita, custo)
   })()
 
   function handleCopy() {
@@ -133,15 +132,20 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
     navigator.clipboard.writeText(lines).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    }).catch(() => {})
+    }).catch(() => { toast('error', 'Falha ao copiar para a área de transferência.') })
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const qtd = Number(form.quantidade)
+    if (!Number.isInteger(qtd) || qtd < 1) {
+      toast('error', 'Quantidade deve ser um número inteiro maior que zero.')
+      return
+    }
     try {
       const receita = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instacao ? Number(form.instacao) : 0)
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
-      const margem = receita > 0 && custoTotal ? ((receita - custoTotal) / receita) * 100 : null
+      const margem = calcularMargem(receita, custoTotal ?? 0)
 
       const updated = await update({
         id: orcamento.id,

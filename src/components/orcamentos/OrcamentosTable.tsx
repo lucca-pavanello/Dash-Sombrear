@@ -5,8 +5,7 @@ import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Orcamento } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { formatCurrency, cn, calcularMargem } from '@/lib/utils'
 import EditOrcamentoForm from './EditOrcamentoForm'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 
@@ -262,8 +261,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
   function calcMargem(o: Orcamento) {
     if (o.margem != null) return o.margem
     const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
-    return o.custo_tecido && o.custo_tecido > 0 && receita > 0
-      ? ((receita - o.custo_tecido) / receita) * 100
+    return o.custo_tecido && o.custo_tecido > 0
+      ? calcularMargem(receita, o.custo_tecido)
       : null
   }
 
