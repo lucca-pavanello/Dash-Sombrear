@@ -1,52 +1,81 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useProfile, usePendingCount } from '@/hooks/useProfile'
 import { useToast } from '@/hooks/useToast'
-import TabOrcamentos from '@/components/tabs/TabOrcamentos'
-import TabPlanilha from '@/components/tabs/TabPlanilha'
-import TabAgenteIA from '@/components/tabs/TabAgenteIA'
-import TabCotacao from '@/components/tabs/TabCotacao'
-import TabCalculoCusto from '@/components/tabs/TabCalculoCusto'
-import TabPlanilhaCusto from '@/components/tabs/TabPlanilhaCusto'
-import TabAnalises from '@/components/tabs/TabAnalises'
-import PainelAdmin from '@/components/admin/PainelAdmin'
 import Toaster from '@/components/ui/Toaster'
 import EditProfileModal from '@/components/profile/EditProfileModal'
 import AvatarInitials from '@/components/shared/AvatarInitials'
+import SkeletonCard from '@/components/shared/SkeletonCard'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('calcular-orcamento')
+const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
+const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
+const TabAgenteIA     = lazy(() => import('@/components/tabs/TabAgenteIA'))
+const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
+const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
+const TabPlanilhaCusto= lazy(() => import('@/components/tabs/TabPlanilhaCusto'))
+const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
+const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
-  function handleTabChange(id: string) {
-    setActiveTab(id)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'agente-ia', 'orcamentos', 'planilha-custo', 'calculo-custo', 'admin', 'analises']
+const DEFAULT_TAB = 'calcular-orcamento'
+const TAB_LABELS: Record<string, string> = {
+  'calcular-orcamento': 'Calcular Orçamento',
+  'planilha': 'Planilha Orçamento',
+  'agente-ia': 'Agente IA',
+  'orcamentos': 'Orçamentos',
+  'planilha-custo': 'Planilha de Custo',
+  'calculo-custo': 'Custo',
+  'admin': 'Usuários',
+  'analises': 'Análises',
+}
+
+export default function Dashboard() {
+  // — state primeiro, sempre, para conformidade com Rules of Hooks —
   const [unreadCount, setUnreadCount] = useState(0)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
+
+  // — router —
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // — dados e tema —
   const { isDark, toggle } = useTheme()
   const { toasts, toast, dismiss } = useToast()
+  const { data: profile, isLoading: profileLoading } = useProfile()
+  const { data: pendingCount = 0 } = usePendingCount()
   const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
     toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel}`)
     if (!document.hasFocus()) setUnreadCount((n) => n + 1)
   })
 
+  const isAdmin = profile?.email === ADMIN_EMAIL
+  const tabFromUrl = location.pathname.replace(/^\//, '') || DEFAULT_TAB
+  // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
+  const activeTab = VALID_TABS.includes(tabFromUrl) && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
+    ? tabFromUrl
+    : DEFAULT_TAB
+
+  function handleTabChange(id: string) {
+    navigate(`/${id}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   useEffect(() => {
-    document.title = unreadCount > 0 ? `(${unreadCount}) Sombrear` : 'Sombrear'
-  }, [unreadCount])
+    const tabLabel = TAB_LABELS[activeTab] ?? 'Sombrear'
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${tabLabel} — Sombrear` : `${tabLabel} — Sombrear`
+  }, [unreadCount, activeTab])
 
   useEffect(() => {
     function handleFocus() { setUnreadCount(0) }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [])
-  const { data: profile } = useProfile()
-  const isAdmin = profile?.email === ADMIN_EMAIL
-  const [profileModalOpen, setProfileModalOpen] = useState(false)
-  const { data: pendingCount = 0 } = usePendingCount()
 
   const TABS = [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
@@ -156,16 +185,18 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div key={activeTab} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
-          {activeTab === 'planilha' && <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />}
-          {activeTab === 'planilha-custo' && <TabPlanilhaCusto data={orcamentos} loading={isLoading} />}
-          {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} toast={toast} />}
-          {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
-          {activeTab === 'agente-ia' && <TabAgenteIA />}
-          {activeTab === 'calcular-orcamento' && <TabCotacao />}
-          {activeTab === 'calculo-custo' && <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />}
-          {activeTab === 'admin' && isAdmin && <PainelAdmin toast={toast} />}
-        </div>
+        <Suspense fallback={<div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6"><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>}>
+          <div key={activeTab} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
+            {activeTab === 'planilha' && <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />}
+            {activeTab === 'planilha-custo' && <TabPlanilhaCusto data={orcamentos} loading={isLoading} />}
+            {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} toast={toast} />}
+            {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
+            {activeTab === 'agente-ia' && <TabAgenteIA />}
+            {activeTab === 'calcular-orcamento' && <TabCotacao />}
+            {activeTab === 'calculo-custo' && <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />}
+            {activeTab === 'admin' && isAdmin && <PainelAdmin toast={toast} />}
+          </div>
+        </Suspense>
       </main>
 
       {profileModalOpen && profile && (

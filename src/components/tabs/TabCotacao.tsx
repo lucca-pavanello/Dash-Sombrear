@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Send, CheckCircle2, Loader2, Plus, Trash2, Home,
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
@@ -56,18 +56,16 @@ interface FormState {
 }
 
 /* ─── Helpers ────────────────────────────────────────────── */
-let nextId = 1
-
-function newPersiana(): Persiana {
-  return { id: nextId++, modelo: '', tecido: '', largura: '', altura: '', quantidade: '1', cor_ferragem: 'Sem', acabamento: 'Sem' }
+function newPersiana(nextIdRef: React.MutableRefObject<number>): Persiana {
+  return { id: nextIdRef.current++, modelo: '', tecido: '', largura: '', altura: '', quantidade: '1', cor_ferragem: 'Sem', acabamento: 'Sem' }
 }
 
-function copyPersiana(p: Persiana): Persiana {
-  return { ...p, id: nextId++, largura: '', altura: '', quantidade: '1' }
+function copyPersiana(p: Persiana, nextIdRef: React.MutableRefObject<number>): Persiana {
+  return { ...p, id: nextIdRef.current++, largura: '', altura: '', quantidade: '1' }
 }
 
-function newAmbiente(): Ambiente {
-  return { id: nextId++, ambiente: '', persianas: [newPersiana()], collapsed: false }
+function newAmbiente(nextIdRef: React.MutableRefObject<number>): Ambiente {
+  return { id: nextIdRef.current++, ambiente: '', persianas: [newPersiana(nextIdRef)], collapsed: false }
 }
 
 function persianaFilled(p: Persiana) {
@@ -96,9 +94,10 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
+  const nextIdRef = useRef(1)
   const [, setHasDraft] = useState(() => loadDraft() !== null)
   const [form, setForm] = useState<FormState>(() => loadDraft()?.form ?? INITIAL_FORM)
-  const [ambientes, setAmbientes] = useState<Ambiente[]>(() => loadDraft()?.ambientes ?? [newAmbiente()])
+  const [ambientes, setAmbientes] = useState<Ambiente[]>(() => loadDraft()?.ambientes ?? [newAmbiente(nextIdRef)])
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [resetCountdown, setResetCountdown] = useState<number | null>(null)
@@ -152,7 +151,7 @@ export default function TabCotacao() {
   }
 
   function addAmbiente() {
-    const novo = newAmbiente()
+    const novo = newAmbiente(nextIdRef)
     setAmbientes(prev => {
       // Colapsa ambientes preenchidos ao adicionar novo
       const updated = prev.map(a => ambienteFilled(a) ? { ...a, collapsed: true } : a)
@@ -171,7 +170,7 @@ export default function TabCotacao() {
     setAmbientes(prev => prev.map(a => {
       if (a.id !== ambienteId) return a
       const lastP = a.persianas[a.persianas.length - 1]
-      const novo = lastP ? copyPersiana(lastP) : newPersiana()
+      const novo = lastP ? copyPersiana(lastP, nextIdRef) : newPersiana(nextIdRef)
       // Scroll to new persiana after render
       setTimeout(() => {
         newPersianaRefs.current[novo.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -196,7 +195,7 @@ export default function TabCotacao() {
           if (resetTimerRef.current) clearInterval(resetTimerRef.current)
           setIsSuccess(false)
           setForm(INITIAL_FORM)
-          setAmbientes([newAmbiente()])
+          setAmbientes([newAmbiente(nextIdRef)])
           localStorage.removeItem(DRAFT_KEY)
           setHasDraft(false)
           return null
@@ -218,6 +217,7 @@ export default function TabCotacao() {
     for (let i = 0; i < ambientes.length; i++) {
       const a = ambientes[i]
       const nA = ambientes.length > 1 ? ` (Amb. ${i + 1})` : ''
+      if (a.persianas.length === 0) return `Adicione ao menos uma persiana no ambiente ${a.ambiente || i + 1}.`
       for (let j = 0; j < a.persianas.length; j++) {
         const p = a.persianas[j]
         const nP = a.persianas.length > 1 ? ` — P${j + 1}` : ''

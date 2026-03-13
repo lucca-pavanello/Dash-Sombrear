@@ -37,6 +37,7 @@ export default function KPIGrid({ data }: Props) {
     : 0
 
   // Em risco: abertos há mais de 7 dias
+  // TODO: usar updated_at quando disponível (campo não existe no tipo Orcamento ainda)
   const agora = Date.now()
   const emRisco = emAberto.filter((o) => {
     const dias = Math.floor((agora - new Date(o.created_at).getTime()) / 86400000)

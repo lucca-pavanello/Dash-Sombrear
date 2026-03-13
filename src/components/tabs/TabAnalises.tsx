@@ -299,6 +299,10 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
   )
 }
 
+function parseBRL(v: string): number {
+  return parseFloat(v.replace(/[R$\s.]/g, '').replace(',', '.')) || 0
+}
+
 function FunilAgenteIA() {
   const { data: leads = [], isLoading } = useCrmLeads()
 
@@ -314,8 +318,8 @@ function FunilAgenteIA() {
   })
   const convertidosCount = convertidos.length
   const faturamentoGerado = convertidos.reduce((s, l) => {
-    const v = parseFloat(l.ultimo_valor_cotado ?? '')
-    return s + (isNaN(v) ? 0 : v)
+    const v = parseBRL(l.ultimo_valor_cotado ?? '')
+    return s + v
   }, 0)
 
   const etapas = [

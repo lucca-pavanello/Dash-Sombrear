@@ -37,7 +37,9 @@ export default function TabOrcamentos({ data, loading, toast: _toast }: Props) {
   const debouncedSearch = useDebounce(search, 220)
 
   useEffect(() => {
-    localStorage.setItem(FILTER_KEY, JSON.stringify({ responsavel, modelo, fechado: fechadoFilter, periodo, dateFrom, dateTo }))
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify({ responsavel, modelo, fechado: fechadoFilter, periodo, dateFrom, dateTo }))
+    } catch { /* quota exceeded ou localStorage desativado */ }
   }, [responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo])
 
   function clearFilters() {
@@ -56,9 +58,9 @@ export default function TabOrcamentos({ data, loading, toast: _toast }: Props) {
     const matchResp = responsavel === 'todos' || o.responsavel === responsavel
     const matchModelo = modelo === 'todos' || o.modelo === modelo
     const matchStatus = fechadoFilter === 'todos'
-      || (fechadoFilter === 'fechado' ? o.fechado === true : false)
-      || (fechadoFilter === 'aberto' ? o.fechado !== true : false)
-      || (fechadoFilter === 'sem-custo' ? o.fechado === true && (!o.custo_tecido || o.custo_tecido === 0) : false)
+      || (fechadoFilter === 'fechado' && o.fechado === true)
+      || (fechadoFilter === 'aberto' && o.fechado !== true)
+      || (fechadoFilter === 'sem-custo' && o.fechado === true && (!o.custo_tecido || o.custo_tecido === 0))
 
     let matchPeriodo = true
     if (periodo !== 'todos' && o.created_at) {

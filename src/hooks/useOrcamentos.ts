@@ -31,14 +31,28 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
   const qc = useQueryClient()
   const onInsertRef = useRef(onInsert)
   onInsertRef.current = onInsert
+  const currentUserIdRef = useRef<string | null>(null)
 
   useEffect(() => {
+    // Cache the current user id for realtime event filtering
+    supabase.auth.getUser().then(({ data }) => {
+      currentUserIdRef.current = data.user?.id ?? null
+    })
+
     const channel = supabase
       .channel('orcamentos-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orcamentos' },
         (payload) => {
+          // Only react to events belonging to the current user
+          // NOTE: server-side filter (filter: `user_id=eq.${userId}`) would be
+          // more efficient but requires the userId at channel creation time,
+          // before auth resolves. The client-side check below is a safe fallback.
+          const eventUserId = (payload.new as Record<string, unknown>)?.user_id
+            ?? (payload.old as Record<string, unknown>)?.user_id
+          if (currentUserIdRef.current && eventUserId && eventUserId !== currentUserIdRef.current) return
+
           qc.invalidateQueries({ queryKey: ['orcamentos'] })
           if (payload.eventType === 'INSERT') {
             playNotificationSound()
@@ -110,12 +124,12 @@ export function useUpdateOrcamento() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...payload }: Partial<Orcamento> & { id: string }) => {
-      const { error } = await supabase.from('orcamentos').update(payload).eq('id', id)
+      const { data, error } = await supabase.from('orcamentos').update(payload).eq('id', id).select().single()
       if (error) {
         console.error('[useUpdateOrcamento] Supabase error:', error)
         throw error
       }
-      return { id, ...payload } as Orcamento
+      return data as Orcamento
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['orcamentos'] }),
   })

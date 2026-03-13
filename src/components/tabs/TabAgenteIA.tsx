@@ -15,6 +15,11 @@ import SkeletonCard from '@/components/shared/SkeletonCard'
 const HORA_INICIO = 8
 const HORA_FIM = 18
 
+function formatWaNumber(whatsapp: string): string {
+  const digits = whatsapp.replace(/\D/g, '')
+  return digits.startsWith('55') ? digits : `55${digits}`
+}
+
 function isForaDoHorario(dateStr: string | null) {
   if (!dateStr) return false
   const d = new Date(dateStr)
@@ -404,7 +409,7 @@ export default function TabAgenteIA() {
                                   {lead.whatsapp}
                                 </span>
                                 <a
-                                  href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
+                                  href={`https://wa.me/${formatWaNumber(lead.whatsapp)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
@@ -530,7 +535,7 @@ export default function TabAgenteIA() {
                             <span className="flex items-center gap-1.5 mt-0.5">
                               <span className="text-xs text-muted-foreground">{lead.whatsapp}</span>
                               <a
-                                href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
+                                href={`https://wa.me/${formatWaNumber(lead.whatsapp)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}

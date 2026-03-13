@@ -32,7 +32,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   const [historicoOpen, setHistoricoOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  const initialForm = {
+  const initialFormRef = useRef({
     responsavel: orcamento.responsavel ?? '',
     cliente: orcamento.cliente ?? '',
     telefone: orcamento.telefone ?? '',
@@ -51,9 +51,9 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
     fechado: orcamento.fechado ?? false,
     observacoes: orcamento.observacoes ?? '',
     ambiente: orcamento.ambiente ?? '',
-  }
-  const [form, setForm] = useState(initialForm)
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm)
+  })
+  const [form, setForm] = useState(initialFormRef.current)
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialFormRef.current)
 
   function set(key: string, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }))

@@ -44,9 +44,17 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
     }
   }, [open])
 
-  // Reset step when modal is opened/closed
+  // Reset step and form when modal is opened/closed
   useEffect(() => {
-    if (open) setStep(1)
+    if (open) {
+      setStep(1)
+      setForm({
+        responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
+        modelo: MODELOS[0], tecido: '', quantidade: '1',
+        cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
+        custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
+      })
+    }
   }, [open])
 
   const [form, setForm] = useState({
@@ -89,7 +97,11 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
 
   function validateStep(s: number): string | null {
     if (s === 1 && !form.responsavel) return 'Responsável é obrigatório.'
-    if (s === 2 && !form.modelo) return 'Modelo é obrigatório.'
+    if (s === 2) {
+      if (!form.modelo) return 'Modelo é obrigatório.'
+      if (!form.tecido.trim()) return 'Tecido é obrigatório.'
+      if (!(parseInt(form.quantidade) >= 1)) return 'Quantidade deve ser ao menos 1.'
+    }
     return null
   }
 

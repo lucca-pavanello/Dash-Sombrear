@@ -36,7 +36,7 @@ export default function OrcamentosFechadosCard({ data }: Props) {
           <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
             {fechados.map((o) => {
               const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
-              const margem = o.margem ?? calcularMargem(receita, o.custo_tecido ?? 0)
+              const margem = o.margem ?? (o.custo_tecido && o.custo_tecido > 0 ? calcularMargem(receita, o.custo_tecido) : null)
               return (
                 <div
                   key={o.id}
