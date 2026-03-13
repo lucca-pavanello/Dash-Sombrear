@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Search, ChevronDown, X, Download, Receipt } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -123,8 +124,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
   ].filter(Boolean) as { label: string; onRemove: () => void }[]
 
   function exportXLSX() {
-    import('xlsx').then((XLSX) => {
-      const rows = filtered.map((o) => ({
+    const rows = filtered.map((o) => ({
         'Data': o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '',
         'Cliente': o.cliente ?? '',
         'Responsável': o.responsavel,
@@ -141,7 +141,6 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Planilha de Custo')
       XLSX.writeFile(wb, `planilha-custo-${new Date().toISOString().slice(0, 10)}.xlsx`)
-    })
   }
 
   if (loading) {

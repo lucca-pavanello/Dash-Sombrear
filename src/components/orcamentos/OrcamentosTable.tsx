@@ -12,7 +12,7 @@ import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 
 const PAGE_SIZE = 50
 
-// TAREFA B: FechadoCheckbox com botão Desfazer
+
 function FechadoCheckbox({ orcamento }: { orcamento: Orcamento }) {
   const { mutate: update, isPending } = useUpdateOrcamento()
   const [showUndo, setShowUndo] = useState(false)
@@ -224,14 +224,12 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
       .catch(() => {})
   }
   const [page, setPage] = useState(1)
-  // TAREFA E: rastrear quais rows tiveram flash
   const [flashIds, setFlashIds] = useState<Set<string>>(new Set())
   const prevFechadoMap = useRef<Map<string, boolean>>(new Map())
 
   useEffect(() => { setPage(1) }, [filterKey])
   useEffect(() => { setPage(1) }, [sort])
 
-  // TAREFA E: detectar quando o.fechado muda para true
   useEffect(() => {
     const newFlash = new Set<string>()
     data.forEach((o) => {
@@ -359,10 +357,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
           </div>
         ) : (
           <>
-            {/* Desktop — TAREFA C: overflow-auto max-h-[70vh] para scroll com header sticky */}
             <div className="hidden md:block overflow-auto max-h-[70vh]">
               <table className="w-full text-sm" style={{ minWidth: '920px' }}>
-                {/* TAREFA C: thead sticky — sticky deve estar no <th>, não no <tr> */}
                 <thead>
                   <tr>
                     {COLS.map(({ label, key }) => (
@@ -400,7 +396,6 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                     const semCusto = receita > 0 && (!o.custo_tecido || o.custo_tecido === 0)
                     const temCustoSemReceita = (!o.valor_venda) && o.custo_tecido && o.custo_tecido > 0
                     const globalIndex = (page - 1) * PAGE_SIZE + i + 1
-                    // TAREFA E: flash ao fechar
                     const hasFlash = flashIds.has(o.id)
                     return (
                       <tr
@@ -498,7 +493,6 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                     )
                   })}
                 </tbody>
-                {/* TAREFA C: tfoot sticky no bottom — sticky deve estar no <td>, não no <tfoot> */}
                 <tfoot>
                   <tr className="border-t bg-muted/60">
                     <td colSpan={8} className="px-4 py-2.5 text-xs text-muted-foreground">
@@ -595,7 +589,6 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
         )}
       </div>
 
-      {/* TAREFA F: passa responsaveis para EditOrcamentoForm */}
       {editing && (
         <EditOrcamentoForm
           orcamento={editing}

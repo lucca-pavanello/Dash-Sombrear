@@ -58,7 +58,6 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
     return null
   })()
 
-  // TAREFA A: auto-preenche custo_tecido quando as dimensões e custo_m2 são válidos
   useEffect(() => {
     const l = parseFloat(form.largura)
     const h = parseFloat(form.altura)
@@ -82,7 +81,6 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     try {
-      // TAREFA A: calcular margem no payload
       const receita = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instacao ? Number(form.instacao) : 0)
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
       const margem = receita > 0 && custoTotal ? ((receita - custoTotal) / receita) * 100 : null
@@ -150,7 +148,6 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
 
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Responsável <span className="text-destructive ml-0.5">*</span></label>
-              {/* TAREFA F: datalist para autocomplete */}
               <select
                 required
                 value={form.responsavel}
@@ -240,7 +237,6 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
               <input type="number" step="0.01" value={form.custo_acabamento} onChange={(e) => set('custo_acabamento', e.target.value)} className={inputClass} placeholder="0.00" />
             </div>
             <div className="col-span-2">
-              {/* TAREFA A: badge "calculado automaticamente" */}
               <label className={labelClass}>
                 Custo (R$)
                 <span className="ml-1.5 text-xs font-normal text-muted-foreground">para calcular margem</span>
