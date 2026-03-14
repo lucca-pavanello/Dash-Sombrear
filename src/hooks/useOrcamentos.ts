@@ -92,8 +92,9 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
 
 export function useMonthlyComparison() {
   const now = new Date()
-  const firstOfThisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
-  const firstOfLastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString()
+  // Usar horário local (não UTC) para que a virada do mês respeite o fuso do usuário
+  const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
 
   return useQuery({
     queryKey: ['orcamentos-monthly-comparison'],
