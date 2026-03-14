@@ -35,8 +35,10 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
+    let destroyed = false
 
     supabase.auth.getUser().then(({ data: authData }) => {
+      if (destroyed) return
       const userId = authData.user?.id ?? null
       currentUserIdRef.current = userId
       const filter = userId ? `user_id=eq.${userId}` : undefined
@@ -70,6 +72,7 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
     })
 
     return () => {
+      destroyed = true
       if (channel) supabase.removeChannel(channel)
     }
   }, [qc])

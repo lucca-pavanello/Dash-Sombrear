@@ -18,7 +18,7 @@ export function filterByPeriod<T>(
     if (periodo === 'hoje') return d.toDateString() === now.toDateString();
     if (periodo === 'semana') {
       const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-      return diff <= 7;
+      return diff >= 0 && diff <= 7;
     }
     if (periodo === 'mes') {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();

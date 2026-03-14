@@ -439,30 +439,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
-  if (isLoading) {
-    return (
-      <div className="space-y-5">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="animate-pulse bg-muted rounded-xl h-20" />)}
-        </div>
-        <div className="animate-pulse bg-muted rounded-xl h-48" />
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="animate-pulse bg-muted rounded-xl h-48" />
-          <div className="animate-pulse bg-muted rounded-xl h-48" />
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-8 flex items-center gap-3">
-        <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-        <p className="text-sm font-medium text-destructive">Erro ao carregar análises. Tente recarregar a página.</p>
-      </div>
-    )
-  }
-
+  // useMemo deve ficar antes dos early returns para não violar Rules of Hooks
   const { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth } = useMemo(() => {
     const now = new Date()
     const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
@@ -487,6 +464,30 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
     const volPct = lastMonth.length > 0 ? ((thisMonth.length - lastMonth.length) / lastMonth.length) * 100 : null
     return { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth }
   }, [data])
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="animate-pulse bg-muted rounded-xl h-20" />)}
+        </div>
+        <div className="animate-pulse bg-muted rounded-xl h-48" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="animate-pulse bg-muted rounded-xl h-48" />
+          <div className="animate-pulse bg-muted rounded-xl h-48" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-8 flex items-center gap-3">
+        <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+        <p className="text-sm font-medium text-destructive">Erro ao carregar análises. Tente recarregar a página.</p>
+      </div>
+    )
+  }
 
   function Delta({ pct, suffix = '%' }: { pct: number | null; suffix?: string }) {
     if (pct === null) return <span className="text-xs text-muted-foreground">—</span>
