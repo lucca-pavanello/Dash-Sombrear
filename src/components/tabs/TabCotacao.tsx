@@ -896,12 +896,18 @@ interface FieldGroupProps { icon: React.ReactNode; label: string; children: Reac
 
 function FieldGroup({ icon, label, children }: FieldGroupProps) {
   return (
-    <div className="rounded-xl bg-muted/10 border border-border/50 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40 bg-muted/30">
-        <span className="text-primary/60">{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/50">{label}</span>
+    <div className="space-y-3">
+      <div
+        className="flex items-center gap-2 select-none pointer-events-none"
+        aria-hidden="true"
+      >
+        <span className="text-primary/40 shrink-0">{icon}</span>
+        <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-foreground/35">
+          {label}
+        </span>
+        <div className="flex-1 h-px bg-border/50" />
       </div>
-      <div className="p-3.5 sm:p-4">{children}</div>
+      <div>{children}</div>
     </div>
   )
 }
