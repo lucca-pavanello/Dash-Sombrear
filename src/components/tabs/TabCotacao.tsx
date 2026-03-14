@@ -188,6 +188,7 @@ export default function TabCotacao() {
   }
 
   function startResetCountdown() {
+    if (resetTimerRef.current) clearInterval(resetTimerRef.current)
     setResetCountdown(3)
     resetTimerRef.current = setInterval(() => {
       setResetCountdown(prev => {
