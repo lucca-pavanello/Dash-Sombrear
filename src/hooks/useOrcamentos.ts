@@ -34,37 +34,44 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
   const currentUserIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    // Cache the current user id for realtime event filtering
-    supabase.auth.getUser().then(({ data }) => {
-      currentUserIdRef.current = data.user?.id ?? null
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    supabase.auth.getUser().then(({ data: authData }) => {
+      const userId = authData.user?.id ?? null
+      currentUserIdRef.current = userId
+      const filter = userId ? `user_id=eq.${userId}` : undefined
+
+      channel = supabase
+        .channel('orcamentos-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orcamentos',
+            ...(filter ? { filter } : {}),
+          },
+          (payload) => {
+            // Client-side fallback check (belt-and-suspenders)
+            const eventUserId = (payload.new as Record<string, unknown>)?.user_id
+              ?? (payload.old as Record<string, unknown>)?.user_id
+            if (currentUserIdRef.current && eventUserId && eventUserId !== currentUserIdRef.current) return
+
+            qc.invalidateQueries({ queryKey: ['orcamentos'] })
+            if (payload.eventType === 'INSERT') {
+              playNotificationSound()
+              onInsertRef.current?.(payload.new as Orcamento)
+            }
+          },
+        )
+        .subscribe((status, err) => {
+          if (status === 'CHANNEL_ERROR') console.error('[useOrcamentos] realtime error:', err)
+        })
     })
 
-    const channel = supabase
-      .channel('orcamentos-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orcamentos' },
-        (payload) => {
-          // Only react to events belonging to the current user
-          // NOTE: server-side filter (filter: `user_id=eq.${userId}`) would be
-          // more efficient but requires the userId at channel creation time,
-          // before auth resolves. The client-side check below is a safe fallback.
-          const eventUserId = (payload.new as Record<string, unknown>)?.user_id
-            ?? (payload.old as Record<string, unknown>)?.user_id
-          if (currentUserIdRef.current && eventUserId && eventUserId !== currentUserIdRef.current) return
-
-          qc.invalidateQueries({ queryKey: ['orcamentos'] })
-          if (payload.eventType === 'INSERT') {
-            playNotificationSound()
-            onInsertRef.current?.(payload.new as Orcamento)
-          }
-        },
-      )
-      .subscribe((status, err) => {
-        if (status === 'CHANNEL_ERROR') console.error('[useOrcamentos] realtime error:', err)
-      })
-
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      if (channel) supabase.removeChannel(channel)
+    }
   }, [qc])
 
   return useQuery({

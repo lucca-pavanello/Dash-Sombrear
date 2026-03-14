@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { Orcamento } from '@/lib/supabase'
 import { useDebounce } from '@/hooks/useDebounce'
+import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import KPIGrid from '@/components/orcamentos/KPIGrid'
 import OrcamentosFechadosCard from '@/components/orcamentos/OrcamentosFechadosCard'
 import FiltersBar from '@/components/orcamentos/FiltersBar'
@@ -25,22 +27,45 @@ interface Props {
 }
 
 export default function TabOrcamentos({ data, loading, toast: _toast }: Props) {
+  const [searchParams, setSearchParams] = useSearchParams()
   const saved = loadFilters()
   const [search, setSearch] = useState('')
-  const [responsavel, setResponsavel] = useState(saved.responsavel ?? 'todos')
-  const [modelo, setModelo] = useState(saved.modelo ?? 'todos')
-  const [fechadoFilter, setFechadoFilter] = useState(saved.fechado ?? 'todos')
-  const [periodo, setPeriodo] = useState(saved.periodo ?? 'todos')
-  const [dateFrom, setDateFrom] = useState(saved.dateFrom ?? '')
-  const [dateTo, setDateTo] = useState(saved.dateTo ?? '')
+  const [responsavel, setResponsavel] = useState(searchParams.get('responsavel') ?? saved.responsavel ?? 'todos')
+  const [modelo, setModelo] = useState(searchParams.get('modelo') ?? saved.modelo ?? 'todos')
+  const [fechadoFilter, setFechadoFilter] = useState(searchParams.get('fechado') ?? saved.fechado ?? 'todos')
+  const [periodo, setPeriodo] = useState(searchParams.get('periodo') ?? saved.periodo ?? 'todos')
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') ?? saved.dateFrom ?? '')
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') ?? saved.dateTo ?? '')
 
   const debouncedSearch = useDebounce(search, 220)
 
+  // Sync filters to URL query string
   useEffect(() => {
-    try {
-      localStorage.setItem(FILTER_KEY, JSON.stringify({ responsavel, modelo, fechado: fechadoFilter, periodo, dateFrom, dateTo }))
-    } catch { /* quota exceeded ou localStorage desativado */ }
-  }, [responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo])
+    const params: Record<string, string> = {}
+    if (responsavel !== 'todos') params.responsavel = responsavel
+    if (modelo !== 'todos') params.modelo = modelo
+    if (fechadoFilter !== 'todos') params.fechado = fechadoFilter
+    if (periodo !== 'todos') params.periodo = periodo
+    if (dateFrom) params.dateFrom = dateFrom
+    if (dateTo) params.dateTo = dateTo
+    setSearchParams(params, { replace: true })
+  }, [responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo, setSearchParams])
+
+  // Keyboard shortcut "/" to focus search input
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      if (e.key === '/') {
+        e.preventDefault()
+        const el = document.getElementById('filter-search-input') as HTMLInputElement | null
+        el?.focus()
+        el?.select()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   function clearFilters() {
     setSearch('')
@@ -52,33 +77,24 @@ export default function TabOrcamentos({ data, loading, toast: _toast }: Props) {
     setDateTo('')
   }
 
-  const filtered = data.filter((o) => {
-    const matchSearch = !debouncedSearch || [o.cliente, o.responsavel, o.modelo, o.tecido, o.telefone, o.ambiente]
-      .some((v) => v?.toLowerCase().includes(debouncedSearch.toLowerCase()))
-    const matchResp = responsavel === 'todos' || o.responsavel === responsavel
-    const matchModelo = modelo === 'todos' || o.modelo === modelo
-    const matchStatus = fechadoFilter === 'todos'
-      || (fechadoFilter === 'fechado' && o.fechado === true)
-      || (fechadoFilter === 'aberto' && o.fechado !== true)
-      || (fechadoFilter === 'sem-custo' && o.fechado === true && (!o.custo_tecido || o.custo_tecido === 0))
+  const filtered = useMemo(() => {
+    const searchLower = debouncedSearch.toLowerCase()
+    const byPeriod = filterByPeriod(data, periodo, (o) => o.created_at, dateFrom, dateTo)
+    return byPeriod.filter((o) => {
+      const matchSearch = !debouncedSearch || [o.cliente, o.responsavel, o.modelo, o.tecido, o.telefone, o.ambiente]
+        .some((v) => v?.toLowerCase().includes(searchLower))
+      const matchResp = responsavel === 'todos' || o.responsavel === responsavel
+      const matchModelo = modelo === 'todos' || o.modelo === modelo
+      const matchStatus = fechadoFilter === 'todos'
+        || (fechadoFilter === 'fechado' && o.fechado === true)
+        || (fechadoFilter === 'aberto' && o.fechado !== true)
+        || (fechadoFilter === 'sem-custo' && o.fechado === true && (!o.custo_tecido || o.custo_tecido === 0))
+      return matchSearch && matchResp && matchModelo && matchStatus
+    })
+  }, [data, debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo])
 
-    let matchPeriodo = true
-    if (periodo !== 'todos' && o.created_at) {
-      const created = new Date(o.created_at)
-      const now = new Date()
-      if (periodo === 'hoje') matchPeriodo = created.toDateString() === now.toDateString()
-      else if (periodo === 'semana') matchPeriodo = created >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      else if (periodo === 'mes') matchPeriodo = created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
-      else if (periodo === 'custom') {
-        if (dateFrom) matchPeriodo = created >= new Date(dateFrom)
-        if (dateTo) { const end = new Date(dateTo); end.setHours(23, 59, 59, 999); matchPeriodo = matchPeriodo && created <= end }
-      }
-    }
-    return matchSearch && matchResp && matchModelo && matchStatus && matchPeriodo
-  })
-
-  const responsaveis = [...new Set(data.map((o) => o.responsavel))].filter(Boolean)
-  const modelos = [...new Set(data.map((o) => o.modelo))].filter(Boolean)
+  const responsaveis = useMemo(() => [...new Set(data.map((o) => o.responsavel))].filter(Boolean), [data])
+  const modelos = useMemo(() => [...new Set(data.map((o) => o.modelo))].filter(Boolean), [data])
 
   if (loading) {
     return (

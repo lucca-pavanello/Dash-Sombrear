@@ -1,11 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo, memo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Check, Clock, X, AlertTriangle } from 'lucide-react'
 import { useMonthlyComparison } from '@/hooks/useOrcamentos'
 import { useCountUp } from '@/hooks/useCountUp'
-
-const META_KEY = 'sombrear-meta-mensal'
+import { META_KEY } from '@/lib/constants'
 
 interface Props { data: Orcamento[] }
 
@@ -20,30 +19,34 @@ function KpiTooltip({ lines }: { lines: string[] }) {
   )
 }
 
-export default function KPIGrid({ data }: Props) {
-  const fechados = data.filter((o) => o.fechado === true)
-  const emAberto = data.filter((o) => !o.fechado)
-  const totalVenda = fechados.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
-  const totalInst = fechados.reduce((s, o) => s + (o.instacao ?? 0), 0)
-  const faturamento = totalVenda + totalInst
-  const totalOrc = data.length
-  const ticketMedio = fechados.length > 0 ? faturamento / fechados.length : 0
-  const convRate = totalOrc > 0 ? (fechados.length / totalOrc) * 100 : 0
-  const valorEmAberto = emAberto.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
-
-  const comMargem = data.filter((o) => o.margem != null)
-  const margemMedia = comMargem.length > 0
-    ? comMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / comMargem.length
-    : 0
-
-  // Em risco: abertos há mais de 7 dias
-  // TODO: usar updated_at quando disponível (campo não existe no tipo Orcamento ainda)
-  const agora = Date.now()
-  const emRisco = emAberto.filter((o) => {
-    const dias = Math.floor((agora - new Date(o.created_at).getTime()) / 86400000)
-    return dias > 7
-  })
-  const valorEmRisco = emRisco.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+function KPIGrid({ data }: Props) {
+  const {
+    fechados, emAberto, totalVenda, totalInst, faturamento, totalOrc,
+    ticketMedio, convRate, valorEmAberto, comMargem, margemMedia, emRisco, valorEmRisco,
+  } = useMemo(() => {
+    const fechados = data.filter((o) => o.fechado === true)
+    const emAberto = data.filter((o) => !o.fechado)
+    const totalVenda = fechados.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
+    const totalInst = fechados.reduce((s, o) => s + (o.instacao ?? 0), 0)
+    const faturamento = totalVenda + totalInst
+    const totalOrc = data.length
+    const ticketMedio = fechados.length > 0 ? faturamento / fechados.length : 0
+    const convRate = totalOrc > 0 ? (fechados.length / totalOrc) * 100 : 0
+    const valorEmAberto = emAberto.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    const comMargem = data.filter((o) => o.margem != null)
+    const margemMedia = comMargem.length > 0
+      ? comMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / comMargem.length
+      : 0
+    // Em risco: abertos há mais de 7 dias
+    // TODO: usar updated_at quando disponível (campo não existe no tipo Orcamento ainda)
+    const agora = Date.now()
+    const emRisco = emAberto.filter((o) => {
+      const dias = Math.floor((agora - new Date(o.created_at).getTime()) / 86400000)
+      return dias > 7
+    })
+    const valorEmRisco = emRisco.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    return { fechados, emAberto, totalVenda, totalInst, faturamento, totalOrc, ticketMedio, convRate, valorEmAberto, comMargem, margemMedia, emRisco, valorEmRisco }
+  }, [data])
 
   const animFaturamento = useCountUp(faturamento, 950)
   const animFechados = useCountUp(fechados.length, 750)
@@ -277,3 +280,5 @@ export default function KPIGrid({ data }: Props) {
     </div>
   )
 }
+
+export default memo(KPIGrid)

@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { Bot, TrendingUp, TrendingDown, Minus, FileDown, AlertCircle, Users, DollarSign, CheckCircle2, FileText } from 'lucide-react'
@@ -8,26 +9,14 @@ import {
   AreaChart, Area, CartesianGrid,
 } from 'recharts'
 import { useCrmLeads } from '@/hooks/useAgenteIA'
+import { META_KEY } from '@/lib/constants'
+import {
+  filterOrcamentosPorMes,
+  calcFaturamentoPorMes,
+  getMonthlyDataSeries,
+} from '@/lib/analytics'
 
 interface Props { data: Orcamento[]; isLoading?: boolean; error?: boolean }
-
-function getMonthlyData(data: Orcamento[]) {
-  const now = new Date()
-  return Array.from({ length: 6 }, (_, i) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-    const m = date.getMonth()
-    const y = date.getFullYear()
-    const monthData = data.filter((o) => {
-      const d = new Date(o.created_at)
-      return d.getMonth() === m && d.getFullYear() === y
-    })
-    return {
-      mes: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
-      faturamento: monthData.filter((o) => o.fechado === true).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0),
-      total: monthData.length,
-    }
-  })
-}
 
 function getDailyTrend(data: Orcamento[]) {
   const now = new Date()
@@ -48,19 +37,13 @@ function getDailyTrend(data: Orcamento[]) {
 function generateInsights(data: Orcamento[]): string[] {
   const insights: string[] = []
   const now = new Date()
+
+  const thisMonth = filterOrcamentosPorMes(data, now.getFullYear(), now.getMonth())
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonth = filterOrcamentosPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
 
-  const thisMonth = data.filter((o) => {
-    const d = new Date(o.created_at)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  })
-  const lastMonth = data.filter((o) => {
-    const d = new Date(o.created_at)
-    return d.getMonth() === lastMonthDate.getMonth() && d.getFullYear() === lastMonthDate.getFullYear()
-  })
-
-  const thisFat = thisMonth.filter((o) => o.fechado === true).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
-  const lastFat = lastMonth.filter((o) => o.fechado === true).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const thisFat = calcFaturamentoPorMes(data, now.getFullYear(), now.getMonth())
+  const lastFat = calcFaturamentoPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
 
   if (lastFat > 0 && thisFat > 0) {
     const pct = ((thisFat - lastFat) / lastFat) * 100
@@ -141,18 +124,10 @@ function exportPDF(data: Orcamento[]) {
   doc.text('Relatório de Orçamentos', 14, 20)
   doc.text(`Gerado em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, 210 - 14, 20, { align: 'right' })
 
-  // KPIs do mês atual
+  const thisFat = calcFaturamentoPorMes(data, now.getFullYear(), now.getMonth())
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-  const thisMonth = data.filter((o) => {
-    const d = new Date(o.created_at)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  })
-  const lastMonth = data.filter((o) => {
-    const d = new Date(o.created_at)
-    return d.getMonth() === lastMonthDate.getMonth() && d.getFullYear() === lastMonthDate.getFullYear()
-  })
-  const thisFat = thisMonth.filter((o) => o.fechado === true).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
-  const lastFat = lastMonth.filter((o) => o.fechado === true).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const lastFat = calcFaturamentoPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
+  const thisMonth = filterOrcamentosPorMes(data, now.getFullYear(), now.getMonth())
   const thisConv = thisMonth.length > 0 ? (thisMonth.filter((o) => o.fechado === true).length / thisMonth.length) * 100 : 0
   const fechados = data.filter((o) => o.fechado === true)
   const faturamentoTotal = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
@@ -256,7 +231,7 @@ function exportPDF(data: Orcamento[]) {
 }
 
 function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
-  const byModelo = Object.entries(
+  const byModelo = useMemo(() => Object.entries(
     data.reduce<Record<string, { total: number; fechados: number }>>((acc, o) => {
       if (!acc[o.modelo]) acc[o.modelo] = { total: 0, fechados: 0 }
       acc[o.modelo].total++
@@ -270,7 +245,7 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
       fechados: s.fechados,
       taxa: s.total > 0 ? (s.fechados / s.total) * 100 : 0,
     }))
-    .sort((a, b) => b.taxa - a.taxa)
+    .sort((a, b) => b.taxa - a.taxa), [data])
 
   if (byModelo.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-6">Sem dados suficientes</p>
@@ -391,7 +366,79 @@ function FunilAgenteIA() {
   )
 }
 
+function PerformancePorCanal({ data }: { data: Orcamento[] }) {
+  const byCanal = useMemo(() => {
+    const map = data
+      .filter(o => o.fonte?.trim())
+      .reduce<Record<string, { total: number; fechados: number; faturamento: number }>>((acc, o) => {
+        const canal = o.fonte!.trim()
+        if (!acc[canal]) acc[canal] = { total: 0, fechados: 0, faturamento: 0 }
+        acc[canal].total++
+        if (o.fechado === true) {
+          acc[canal].fechados++
+          acc[canal].faturamento += (o.valor_venda ?? 0) + (o.instacao ?? 0)
+        }
+        return acc
+      }, {})
+    return Object.entries(map)
+      .map(([canal, s]) => ({
+        canal,
+        total: s.total,
+        fechados: s.fechados,
+        taxa: s.total > 0 ? (s.fechados / s.total) * 100 : 0,
+        faturamento: s.faturamento,
+      }))
+      .sort((a, b) => b.faturamento - a.faturamento)
+  }, [data])
+
+  if (byCanal.length === 0) return null
+
+  return (
+    <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Performance por Canal</h3>
+      {byCanal.length >= 3 ? (
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={byCanal} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
+            <XAxis dataKey="canal" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+            <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
+            <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
+            <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} />
+          </BarChart>
+        </ResponsiveContainer>
+      ) : null}
+      <div className="mt-4 space-y-2.5">
+        {byCanal.map(({ canal, total, fechados, taxa, faturamento }) => (
+          <div key={canal}>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-xs font-medium truncate">{canal}</span>
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                {fechados}/{total} · {taxa.toFixed(0)}% · <span className="font-semibold text-primary">{formatCurrency(faturamento)}</span>
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+              <div className="h-full rounded-full bg-primary/70 transition-all duration-500" style={{ width: `${taxa}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function TabAnalises({ data, isLoading, error }: Props) {
+  const [meta, setMeta] = useState(() => {
+    const s = localStorage.getItem(META_KEY)
+    return s ? Number(s) : 0
+  })
+
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === META_KEY) setMeta(e.newValue ? Number(e.newValue) : 0)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   if (isLoading) {
     return (
       <div className="space-y-5">
@@ -416,39 +463,30 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
     )
   }
 
-  const monthly = getMonthlyData(data)
-  const daily = getDailyTrend(data)
-  const insights = generateInsights(data)
-
-  const now = new Date()
-  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-
-  const fechados = data.filter((o) => o.fechado === true)
-  const valorVendaTotal = fechados.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
-  const faturamentoGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
-  const fechadosComMargem = fechados.filter((o) => o.margem != null)
-  const margemMedia = fechadosComMargem.length > 0
-    ? fechadosComMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / fechadosComMargem.length
-    : null
-
-  const thisMonth = data.filter((o) => {
-    const d = new Date(o.created_at)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  })
-  const lastMonth = data.filter((o) => {
-    const d = new Date(o.created_at)
-    return d.getMonth() === lastMonthDate.getMonth() && d.getFullYear() === lastMonthDate.getFullYear()
-  })
-
-  const thisFat = thisMonth.filter((o) => o.fechado === true).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
-  const lastFat = lastMonth.filter((o) => o.fechado === true).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
-  const fatPct = lastFat > 0 ? ((thisFat - lastFat) / lastFat) * 100 : null
-
-  const thisConv = thisMonth.length > 0 ? (thisMonth.filter((o) => o.fechado === true).length / thisMonth.length) * 100 : 0
-  const lastConv = lastMonth.length > 0 ? (lastMonth.filter((o) => o.fechado === true).length / lastMonth.length) * 100 : 0
-  const convPct = lastConv > 0 ? thisConv - lastConv : null
-
-  const volPct = lastMonth.length > 0 ? ((thisMonth.length - lastMonth.length) / lastMonth.length) * 100 : null
+  const { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth } = useMemo(() => {
+    const now = new Date()
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const monthly = getMonthlyDataSeries(data)
+    const daily = getDailyTrend(data)
+    const insights = generateInsights(data)
+    const fechados = data.filter((o) => o.fechado === true)
+    const valorVendaTotal = fechados.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
+    const faturamentoGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    const fechadosComMargem = fechados.filter((o) => o.margem != null)
+    const margemMedia = fechadosComMargem.length > 0
+      ? fechadosComMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / fechadosComMargem.length
+      : null
+    const thisMonth = filterOrcamentosPorMes(data, now.getFullYear(), now.getMonth())
+    const lastMonth = filterOrcamentosPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
+    const thisFat = calcFaturamentoPorMes(data, now.getFullYear(), now.getMonth())
+    const lastFat = calcFaturamentoPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
+    const fatPct = lastFat > 0 ? ((thisFat - lastFat) / lastFat) * 100 : null
+    const thisConv = thisMonth.length > 0 ? (thisMonth.filter((o) => o.fechado === true).length / thisMonth.length) * 100 : 0
+    const lastConv = lastMonth.length > 0 ? (lastMonth.filter((o) => o.fechado === true).length / lastMonth.length) * 100 : 0
+    const convPct = lastConv > 0 ? thisConv - lastConv : null
+    const volPct = lastMonth.length > 0 ? ((thisMonth.length - lastMonth.length) / lastMonth.length) * 100 : null
+    return { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth }
+  }, [data])
 
   function Delta({ pct, suffix = '%' }: { pct: number | null; suffix?: string }) {
     if (pct === null) return <span className="text-xs text-muted-foreground">—</span>
@@ -517,6 +555,19 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         ))}
       </div>
 
+      {/* Meta do Mês */}
+      {meta > 0 && (
+        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Meta do Mês</p>
+          <p className="font-display mt-1.5 text-2xl font-bold tracking-tight text-primary">{formatCurrency(thisFat)}</p>
+          <div className="mt-2 h-2 w-full rounded-full bg-primary/20 overflow-hidden">
+            <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${Math.min((thisFat / meta) * 100, 100)}%` }} />
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">{Math.round((thisFat / meta) * 100)}% de {formatCurrency(meta)}</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground/60">Configure a meta na aba Orçamentos</p>
+        </div>
+      )}
+
       {/* Faturamento mensal */}
       <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Faturamento mensal (últimos 6 meses)</h3>
@@ -578,6 +629,9 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Taxa de Conversão por Modelo</h3>
         <ConversaoPorModelo data={data} />
       </div>
+
+      {/* Performance por Canal */}
+      <PerformancePorCanal data={data} />
 
       {/* Funil Agente IA → Venda */}
       <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">

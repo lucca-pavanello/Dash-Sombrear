@@ -1,19 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, STATUS_AGUARDANDO, STATUS_CONVERTIDO } from '@/hooks/useAgenteIA'
-import type { CrmLead, OrcamentoIA } from '@/hooks/useAgenteIA'
 import { formatCurrency } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import {
   Bot, DollarSign, FileText, Moon, Users, CalendarCheck,
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
-  Clock, MessageCircle, XCircle, Circle,
+  Clock, MessageCircle, XCircle, Circle, ChevronLeft,
 } from 'lucide-react'
 import SkeletonCard from '@/components/shared/SkeletonCard'
+import { filterByPeriod } from '@/hooks/usePeriodFilter'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 const HORA_INICIO = 8
 const HORA_FIM = 18
+const ESPERA_HORAS = 2
+const LEADS_PAGE_SIZE = 20
+const ORCS_PAGE_SIZE = 20
 
 function formatWaNumber(whatsapp: string): string {
   const digits = whatsapp.replace(/\D/g, '')
@@ -28,6 +31,11 @@ function isForaDoHorario(dateStr: string | null) {
   return day === 0 || day === 6 || hour < HORA_INICIO || hour >= HORA_FIM
 }
 
+function horasDecorridas(ts: string | null | undefined): number {
+  if (!ts) return 0
+  return (Date.now() - new Date(ts).getTime()) / (1000 * 60 * 60)
+}
+
 // ── Formatação ───────────────────────────────────────────────────────────────
 function fmtDate(iso: string | null) {
   if (!iso) return '—'
@@ -36,30 +44,6 @@ function fmtDate(iso: string | null) {
 function fmtTime(iso: string | null) {
   if (!iso) return ''
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-}
-
-// ── Filtro de período ────────────────────────────────────────────────────────
-function filterLeads(data: CrmLead[], periodo: string) {
-  if (periodo === 'todos') return data
-  const now = new Date()
-  return data.filter((o) => {
-    const d = new Date(o.created_at)
-    if (periodo === 'hoje')  return d.toDateString() === now.toDateString()
-    if (periodo === 'semana') { const w = new Date(now); w.setDate(now.getDate() - 7); return d >= w }
-    if (periodo === 'mes')   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    return true
-  })
-}
-function filterOrcs(data: OrcamentoIA[], periodo: string) {
-  if (periodo === 'todos') return data
-  const now = new Date()
-  return data.filter((o) => {
-    const d = new Date(o.created_at)
-    if (periodo === 'hoje')  return d.toDateString() === now.toDateString()
-    if (periodo === 'semana') { const w = new Date(now); w.setDate(now.getDate() - 7); return d >= w }
-    if (periodo === 'mes')   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    return true
-  })
 }
 
 // ── Sistema de cores de status (único e consistente) ─────────────────────────
@@ -168,9 +152,13 @@ export default function TabAgenteIA() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [mobileConfirmId, setMobileConfirmId] = useState<string | null>(null)
+  const [leadsPage, setLeadsPage] = useState(1)
+  const [orcsPage, setOrcsPage] = useState(1)
 
-  const filtrados    = filterLeads(leads, periodo)
-  const orcFiltrados = filterOrcs(orcamentosIA, periodo)
+  // Reset pages when filters or sort changes
+  useEffect(() => { setLeadsPage(1) }, [periodo, leadSort])
+  useEffect(() => { setOrcsPage(1) }, [periodo, orcSort])
+  useEffect(() => { setExpandedId(null) }, [leadsPage])
 
   // Track first data load — skip count-up re-animation on period changes
   const hasLoadedRef = useRef(false)
@@ -184,6 +172,16 @@ export default function TabAgenteIA() {
     }
   }, [loadingCrm, loadingOrc])
 
+  // P3 — memoised filtered lists
+  const filtrados = useMemo(
+    () => filterByPeriod(leads, periodo, (l) => l.created_at),
+    [leads, periodo]
+  )
+  const orcFiltrados = useMemo(
+    () => filterByPeriod(orcamentosIA, periodo, (o) => o.created_at),
+    [orcamentosIA, periodo]
+  )
+
   // KPIs
   const aguardando       = filtrados.filter((l) => isAguardando(l.status_lead))
   const convertidos      = filtrados.filter((l) => isConvertido(l.status_lead))
@@ -194,6 +192,14 @@ export default function TabAgenteIA() {
   const valorTotal       = orcFiltrados.reduce((s, o) =>
     s + (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0), 0)
 
+  // F3 — leads em espera
+  const leadsEmEspera = useMemo(() =>
+    filtrados.filter(l => {
+      const status = l.status_lead?.toLowerCase().trim() ?? ''
+      const convertido = status === 'convertido' || status === 'fechado'
+      return !convertido && horasDecorridas(l.timestamp_ultima_msg) > ESPERA_HORAS
+    }), [filtrados])
+
   const animLeads      = useCountUp(filtrados.length, 700, hasLoaded)
   const animAguard     = useCountUp(aguardando.length, 700, hasLoaded)
   const animConv       = useCountUp(convertidos.length, 750, hasLoaded)
@@ -202,6 +208,7 @@ export default function TabAgenteIA() {
   const animForaLeads  = useCountUp(foraLeads.length, 700, hasLoaded)
   const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded)
   const animForaMsgs   = useCountUp(foraMsgs.length, 700, hasLoaded)
+  const animEspera     = useCountUp(leadsEmEspera.length, 700, hasLoaded)
 
   const alcanceKpis = [
     { label: 'Pessoas respondidas',      value: Math.round(animLeads),     icon: Users,         highlight: true,  sub: 'atendidas pelo agente' },
@@ -211,16 +218,16 @@ export default function TabAgenteIA() {
   ]
 
   const opKpis = [
-    { label: 'Aguardando atendimento', value: Math.round(animAguard), icon: Bell,          attention: true,  sub: 'querem atendimento humano' },
-    { label: 'Convertidos',            value: Math.round(animConv),   icon: CheckCircle2,  highlight: false, sub: `de ${filtrados.length} leads` },
+    { label: 'Aguardando atendimento', value: Math.round(animAguard),  icon: Bell,          attention: true,  sub: 'querem atendimento humano' },
+    { label: 'Convertidos',            value: Math.round(animConv),    icon: CheckCircle2,  highlight: false, sub: `de ${filtrados.length} leads` },
     { label: 'Valor cotado (IA)',       value: valorTotal > 0 ? formatCurrency(animValor) : '—', icon: DollarSign, highlight: false, sub: `${orcFiltrados.length} orçamento${orcFiltrados.length !== 1 ? 's' : ''}` },
-    { label: 'Medições agendadas',     value: Math.round(animMed),    icon: CalendarCheck, highlight: false, sub: 'com data marcada' },
+    { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck, highlight: false, sub: 'com data marcada' },
+    { label: 'Em espera',              value: String(Math.round(animEspera)), icon: Clock, attention: leadsEmEspera.length > 0, sub: `aguardando +${ESPERA_HORAS}h` },
   ]
 
-  // Sort
-  function sortedLeadsList() {
+  // P3 — memoised sorts
+  const sortedLeads = useMemo(() => {
     return [...filtrados].sort((a, b) => {
-      // Aguardando sempre primeiro
       const wa = isAguardando(a.status_lead) ? -1 : 0
       const wb = isAguardando(b.status_lead) ? -1 : 0
       if (wa !== wb) return wa - wb
@@ -232,9 +239,9 @@ export default function TabAgenteIA() {
       if (av > bv) return leadSort.dir === 'asc' ? 1 : -1
       return 0
     })
-  }
+  }, [filtrados, leadSort])
 
-  function sortedOrcsList() {
+  const sortedOrcs = useMemo(() => {
     return [...orcFiltrados].sort((a, b) => {
       let av: string | number, bv: string | number
       if (orcSort.key === 'modelo') { av = a.modelo ?? ''; bv = b.modelo ?? '' }
@@ -246,7 +253,20 @@ export default function TabAgenteIA() {
       if (av > bv) return orcSort.dir === 'asc' ? 1 : -1
       return 0
     })
-  }
+  }, [orcFiltrados, orcSort])
+
+  // U1 — pagination
+  const totalLeadPages = Math.ceil(sortedLeads.length / LEADS_PAGE_SIZE)
+  const paginatedLeads = useMemo(
+    () => sortedLeads.slice((leadsPage - 1) * LEADS_PAGE_SIZE, leadsPage * LEADS_PAGE_SIZE),
+    [sortedLeads, leadsPage]
+  )
+
+  const totalOrcPages = Math.ceil(sortedOrcs.length / ORCS_PAGE_SIZE)
+  const paginatedOrcs = useMemo(
+    () => sortedOrcs.slice((orcsPage - 1) * ORCS_PAGE_SIZE, orcsPage * ORCS_PAGE_SIZE),
+    [sortedOrcs, orcsPage]
+  )
 
   function LeadTh({ label, k }: { label: string; k?: 'created_at' | 'nome' | 'timestamp_ultima_msg' }) {
     const active = k && leadSort.key === k
@@ -292,9 +312,6 @@ export default function TabAgenteIA() {
     )
   }
 
-  const sortedLeads = sortedLeadsList()
-  const sortedOrcs  = sortedOrcsList()
-
   return (
     <div className="space-y-5">
 
@@ -308,7 +325,7 @@ export default function TabAgenteIA() {
           ))}
         </div>
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5 pt-1">Operacional</p>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {opKpis.map(({ label, value, icon, highlight, attention, sub }, i) => (
             <KpiCard key={label} label={label} value={value} icon={icon}
               highlight={highlight} attention={attention} sub={sub} delay={i * 80 + 320} />
@@ -373,13 +390,14 @@ export default function TabAgenteIA() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedLeads.map((lead, rowIdx) => {
+                  {paginatedLeads.map((lead, rowIdx) => {
                     const aguard    = isAguardando(lead.status_lead)
                     const conv      = isConvertido(lead.status_lead)
                     const foraMsg   = isForaDoHorario(lead.timestamp_ultima_msg)
                     const foraEntr  = isForaDoHorario(lead.created_at)
                     const expanded  = expandedId === lead.id
                     const status    = getStatus(lead.status_lead)
+                    const emEspera  = !conv && horasDecorridas(lead.timestamp_ultima_msg) > ESPERA_HORAS
 
                     return (
                       <React.Fragment key={lead.id}>
@@ -387,6 +405,7 @@ export default function TabAgenteIA() {
                           className={`border-b last:border-0 transition-colors cursor-pointer
                             ${aguard   ? 'border-l-2 border-l-amber-400' : ''}
                             ${conv     ? 'opacity-60' : ''}
+                            ${emEspera ? 'bg-amber-500/5' : ''}
                             ${expanded ? 'bg-muted/30' : rowIdx % 2 === 1 ? 'bg-muted/[0.15] hover:bg-muted/30' : 'hover:bg-primary/[0.04]'}`}
                           onClick={() => setExpandedId(expanded ? null : lead.id)}
                         >
@@ -434,7 +453,8 @@ export default function TabAgenteIA() {
                               : (lead.ultimo_valor_cotado ?? '—')}
                           </td>
                           <td className="px-5 py-3.5 tabular-nums whitespace-nowrap" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                            <span className={`block text-sm ${foraMsg ? 'text-blue-500 dark:text-blue-400' : 'text-muted-foreground'}`}>
+                            <span className={`flex items-center gap-1 block text-sm ${foraMsg ? 'text-blue-500 dark:text-blue-400' : emEspera ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+                              {emEspera && <Clock className="h-3 w-3 text-amber-500 shrink-0" />}
                               {fmtDate(lead.timestamp_ultima_msg)}
                             </span>
                             <span className="flex items-center gap-1 text-xs opacity-70">
@@ -520,13 +540,14 @@ export default function TabAgenteIA() {
 
             {/* Mobile */}
             <div className="md:hidden divide-y">
-              {sortedLeads.map((lead) => {
+              {paginatedLeads.map((lead) => {
                 const aguard   = isAguardando(lead.status_lead)
                 const conv     = isConvertido(lead.status_lead)
                 const expanded = expandedId === lead.id
                 const status   = getStatus(lead.status_lead)
+                const emEspera = !conv && horasDecorridas(lead.timestamp_ultima_msg) > ESPERA_HORAS
                 return (
-                  <div key={lead.id} className={`${aguard ? 'border-l-2 border-l-amber-400' : ''} ${conv ? 'opacity-60' : ''}`}>
+                  <div key={lead.id} className={`${aguard ? 'border-l-2 border-l-amber-400' : ''} ${conv ? 'opacity-60' : ''} ${emEspera ? 'bg-amber-500/5' : ''}`}>
                     <div className="px-4 py-4">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div>
@@ -558,7 +579,10 @@ export default function TabAgenteIA() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-muted-foreground">{fmtDate(lead.created_at)} {fmtTime(lead.created_at)}</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          {emEspera && <Clock className="h-3 w-3 text-amber-500 shrink-0" />}
+                          {fmtDate(lead.created_at)} {fmtTime(lead.created_at)}
+                        </span>
                         <div className="flex items-center gap-1.5">
                           {lead.ultimo_valor_cotado && !isNaN(parseFloat(lead.ultimo_valor_cotado)) && (
                             <span className="text-sm font-bold text-primary">{formatCurrency(parseFloat(lead.ultimo_valor_cotado))}</span>
@@ -627,6 +651,24 @@ export default function TabAgenteIA() {
                 )}
               </div>
             )}
+
+            {/* Leads pagination */}
+            {totalLeadPages > 1 && (
+              <div className="flex items-center justify-between border-t px-5 py-3">
+                <span className="text-xs text-muted-foreground">
+                  {(leadsPage - 1) * LEADS_PAGE_SIZE + 1}–{Math.min(leadsPage * LEADS_PAGE_SIZE, sortedLeads.length)} de {sortedLeads.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setLeadsPage(p => p - 1)} disabled={leadsPage === 1} className="rounded-lg border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="px-2 text-xs font-medium tabular-nums">{leadsPage} / {totalLeadPages}</span>
+                  <button onClick={() => setLeadsPage(p => p + 1)} disabled={leadsPage === totalLeadPages} className="rounded-lg border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -667,7 +709,7 @@ export default function TabAgenteIA() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedOrcs.map((o, rowIdx) => {
+                  {paginatedOrcs.map((o, rowIdx) => {
                     const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
                     const custoBase = o.custo_total_base != null ? formatCurrency(o.custo_total_base) : null
                     const custoAcab = o.custo_acabamento_total != null ? formatCurrency(o.custo_acabamento_total) : null
@@ -704,7 +746,7 @@ export default function TabAgenteIA() {
             </div>
 
             <div className="md:hidden divide-y">
-              {sortedOrcs.map((o) => {
+              {paginatedOrcs.map((o) => {
                 const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
                 return (
                   <div key={o.id} className="px-4 py-4">
@@ -730,6 +772,24 @@ export default function TabAgenteIA() {
                 <span>Colocação: <span className="font-semibold text-foreground">{formatCurrency(orcFiltrados.reduce((s, o) => s + (o.valor_colocacao ?? 0), 0))}</span></span>
               )}
             </div>
+
+            {/* Orcs pagination */}
+            {totalOrcPages > 1 && (
+              <div className="flex items-center justify-between border-t px-5 py-3">
+                <span className="text-xs text-muted-foreground">
+                  {(orcsPage - 1) * ORCS_PAGE_SIZE + 1}–{Math.min(orcsPage * ORCS_PAGE_SIZE, sortedOrcs.length)} de {sortedOrcs.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setOrcsPage(p => p - 1)} disabled={orcsPage === 1} className="rounded-lg border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="px-2 text-xs font-medium tabular-nums">{orcsPage} / {totalOrcPages}</span>
+                  <button onClick={() => setOrcsPage(p => p + 1)} disabled={orcsPage === totalOrcPages} className="rounded-lg border p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

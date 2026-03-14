@@ -62,6 +62,7 @@ export default function Dashboard() {
     : DEFAULT_TAB
 
   function handleTabChange(id: string) {
+    setUnreadCount(0)
     navigate(`/${id}`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }

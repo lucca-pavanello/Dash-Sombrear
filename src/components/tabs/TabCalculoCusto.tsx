@@ -39,10 +39,10 @@ export default function TabCalculoCusto({ data, isLoading, error }: Props) {
 
   const hoje = new Date()
 
-  const comCustoMes = filterByPeriod(comCusto, 'mes')
+  const comCustoMes = filterByPeriod(comCusto, 'mes', (o) => o.created_at)
   const totalMes = comCustoMes.reduce((s, o) => s + (o.custo_tecido ?? 0), 0)
 
-  const usosSemana = filterByPeriod(comCusto, 'semana').length
+  const usosSemana = filterByPeriod(comCusto, 'semana', (o) => o.created_at).length
 
   const diasDecorridos = hoje.getDate()
   const mediaDiaria = diasDecorridos > 0 ? totalMes / diasDecorridos : 0
