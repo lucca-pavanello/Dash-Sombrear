@@ -28,4 +28,5 @@ export type Orcamento = {
   observacoes?: string | null
   fonte?: string | null
   ambiente?: string | null
+  user_id?: string | null
 }

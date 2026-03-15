@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import type { Orcamento } from '@/lib/supabase'
 import { useDebounce } from '@/hooks/useDebounce'
+import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import OrcamentosTable from '@/components/orcamentos/OrcamentosTable'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
 import FiltersBar from '@/components/orcamentos/FiltersBar'
@@ -66,8 +67,9 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
   }, [])
 
   const filtered = useMemo(() => {
+    const byPeriod = filterByPeriod(data, periodo, (o) => o.created_at, dateFrom, dateTo)
     const searchLower = debouncedSearch.toLowerCase()
-    return data.filter((o) => {
+    return byPeriod.filter((o) => {
       const matchSearch = !debouncedSearch || [o.cliente, o.responsavel, o.modelo, o.tecido, o.telefone, o.ambiente]
         .some((v) => v?.toLowerCase().includes(searchLower))
       const matchResp = responsavel === 'todos' || o.responsavel === responsavel
@@ -76,20 +78,7 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
         || (fechadoFilter === 'fechado' && o.fechado === true)
         || (fechadoFilter === 'aberto' && o.fechado !== true)
         || (fechadoFilter === 'sem-custo' && o.fechado === true && (!o.custo_tecido || o.custo_tecido === 0))
-
-      let matchPeriodo = true
-      if (periodo !== 'todos' && o.created_at) {
-        const created = new Date(o.created_at)
-        const now = new Date()
-        if (periodo === 'hoje') matchPeriodo = created.toDateString() === now.toDateString()
-        else if (periodo === 'semana') { const diff = (now.getTime() - created.getTime()) / 86400000; matchPeriodo = diff >= 0 && diff <= 7 }
-        else if (periodo === 'mes') matchPeriodo = created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
-        else if (periodo === 'custom') {
-          if (dateFrom) matchPeriodo = created >= new Date(dateFrom)
-          if (dateTo) { const end = new Date(dateTo); end.setHours(23, 59, 59, 999); matchPeriodo = matchPeriodo && created <= end }
-        }
-      }
-      return matchSearch && matchResp && matchModelo && matchStatus && matchPeriodo
+      return matchSearch && matchResp && matchModelo && matchStatus
     })
   }, [data, debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo])
 

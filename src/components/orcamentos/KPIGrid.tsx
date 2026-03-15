@@ -53,7 +53,7 @@ function KPIGrid({ data }: Props) {
   const animTotalOrc = useCountUp(totalOrc, 700)
   const animTicket = useCountUp(ticketMedio, 900)
   const animConv = useCountUp(convRate, 800)
-  const animMargem = useCountUp(margemMedia ?? 0, 850)
+  const animMargem = useCountUp(margemMedia ?? 0, margemMedia != null ? 850 : 0)
   const animEmAberto = useCountUp(valorEmAberto, 900)
   const animEmRisco = useCountUp(emRisco.length, 800)
 

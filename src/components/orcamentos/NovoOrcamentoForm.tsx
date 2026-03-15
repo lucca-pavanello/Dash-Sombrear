@@ -122,11 +122,12 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
       toast('error', 'Quantidade deve ser um número inteiro maior que zero.')
       return
     }
-    if (form.largura && !Number.isFinite(parseFloat(form.largura))) {
+    const validDecimal = /^\d+(\.\d+)?$/
+    if (form.largura && !validDecimal.test(form.largura.trim())) {
       toast('error', 'Largura inválida. Use apenas números (ex: 1.50).')
       return
     }
-    if (form.altura && !Number.isFinite(parseFloat(form.altura))) {
+    if (form.altura && !validDecimal.test(form.altura.trim())) {
       toast('error', 'Altura inválida. Use apenas números (ex: 1.80).')
       return
     }

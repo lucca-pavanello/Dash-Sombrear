@@ -95,12 +95,6 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 export default function TabCotacao() {
   const nextIdRef = useRef(1)
   const draftRef = useRef(loadDraft())
-  // Sync nextIdRef to max id in loaded draft to avoid id collisions
-  useEffect(() => {
-    const allIds = ambientes.flatMap(a => [a.id, ...a.persianas.map(p => p.id)])
-    if (allIds.length > 0) nextIdRef.current = Math.max(...allIds) + 1
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
   const [form, setForm] = useState<FormState>(() => draftRef.current?.form ?? INITIAL_FORM)
   const [ambientes, setAmbientes] = useState<Ambiente[]>(() => draftRef.current?.ambientes ?? [newAmbiente(nextIdRef)])
   const [isLoading, setIsLoading] = useState(false)
@@ -109,6 +103,12 @@ export default function TabCotacao() {
   const resetTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const newAmbienteRef = useRef<HTMLDivElement>(null)
   const newPersianaRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  // Sync nextIdRef to max id in loaded draft to avoid id collisions
+  useEffect(() => {
+    const allIds = ambientes.flatMap(a => [a.id, ...a.persianas.map(p => p.id)])
+    if (allIds.length > 0) nextIdRef.current = Math.max(...allIds) + 1
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const { toasts, toast, dismiss } = useToast()
 
   const { data: catalogoData, isLoading: catalogoLoading, isError: catalogoError, refetch: catalogoRefetch } = useModelosTecidos()
@@ -194,7 +194,10 @@ export default function TabCotacao() {
   }
 
   function startResetCountdown() {
-    if (resetTimerRef.current) clearInterval(resetTimerRef.current)
+    if (resetTimerRef.current) {
+      clearInterval(resetTimerRef.current)
+      resetTimerRef.current = null
+    }
     setResetCountdown(3)
     resetTimerRef.current = setInterval(() => {
       setResetCountdown(prev => {
@@ -219,6 +222,7 @@ export default function TabCotacao() {
   }
 
   function validate(): string | null {
+    const validDecimal = /^\d+(\.\d+)?$/
     if (!form.responsavel) return 'Responsável é obrigatório.'
     if (!form.cliente.trim()) return 'Cliente é obrigatório.'
     for (let i = 0; i < ambientes.length; i++) {
@@ -229,8 +233,8 @@ export default function TabCotacao() {
         const p = a.persianas[j]
         const nP = a.persianas.length > 1 ? ` — P${j + 1}` : ''
         const n = `${nA}${nP}`
-        if (!p.largura || !Number.isFinite(parseFloat(p.largura)) || parseFloat(p.largura) <= 0) return `Largura inválida${n}.`
-        if (!p.altura || !Number.isFinite(parseFloat(p.altura)) || parseFloat(p.altura) <= 0) return `Altura inválida${n}.`
+        if (!p.largura || !validDecimal.test(p.largura.trim()) || parseFloat(p.largura) <= 0) return `Largura inválida${n}.`
+        if (!p.altura || !validDecimal.test(p.altura.trim()) || parseFloat(p.altura) <= 0) return `Altura inválida${n}.`
         if (!p.modelo) return `Modelo é obrigatório${n}.`
         if (!p.tecido.trim()) return `Tecido é obrigatório${n}.`
         if (!p.quantidade || parseInt(p.quantidade) < 1) return `Quantidade inválida${n}.`
