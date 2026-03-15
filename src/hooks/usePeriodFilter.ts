@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 export type Periodo = 'semana' | 'mes' | 'ano' | 'tudo';
 
 export function filterByPeriod<T>(
@@ -36,18 +34,3 @@ export function filterByPeriod<T>(
   });
 }
 
-export function usePeriodFilter<T>(
-  items: T[],
-  periodo: string,
-  getDate: (item: T) => string | null | undefined,
-  dateFrom?: string,
-  dateTo?: string
-): T[] {
-  // getDate é um acessor estável — não incluir nas deps evita invalidação
-  // por funções inline passadas pelos consumidores
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(
-    () => filterByPeriod(items, periodo, getDate, dateFrom, dateTo),
-    [items, periodo, dateFrom, dateTo]
-  );
-}

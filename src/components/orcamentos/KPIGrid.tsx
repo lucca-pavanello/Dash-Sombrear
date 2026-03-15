@@ -37,11 +37,10 @@ function KPIGrid({ data }: Props) {
     const margemMedia = comMargem.length > 0
       ? comMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / comMargem.length
       : null
-    // Em risco: abertos há mais de 7 dias
-    // TODO: usar updated_at quando disponível (campo não existe no tipo Orcamento ainda)
+    // Em risco: abertos sem edição há mais de 7 dias
     const agora = Date.now()
     const emRisco = emAberto.filter((o) => {
-      const dias = Math.floor((agora - new Date(o.created_at).getTime()) / 86400000)
+      const dias = Math.floor((agora - new Date(o.updated_at ?? o.created_at).getTime()) / 86400000)
       return dias > 7
     })
     const valorEmRisco = emRisco.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)

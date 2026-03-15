@@ -110,7 +110,9 @@ function exportCSV(data: Orcamento[]) {
   const a = document.createElement('a')
   a.href = url
   a.download = `orcamentos-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
 
@@ -315,31 +317,32 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
       <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-display text-sm font-medium tracking-wide">Todos os Orçamentos</h2>
-          {data.length > 0 && (
-            <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-              <button
-                onClick={() => exportCSV(sorted)}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
-              >
-                <Download className="h-3.5 w-3.5" />
-                CSV
-              </button>
-              <button
-                onClick={() => exportXLSX(sorted)}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
-              >
-                <Download className="h-3.5 w-3.5" />
-                XLSX
-              </button>
-              <button
-                onClick={() => exportPDF(sorted, !!isFiltered)}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
-              >
-                <FileDown className="h-3.5 w-3.5" />
-                PDF
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+            <button
+              onClick={() => exportCSV(sorted)}
+              disabled={data.length === 0}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </button>
+            <button
+              onClick={() => exportXLSX(sorted)}
+              disabled={data.length === 0}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              <Download className="h-3.5 w-3.5" />
+              XLSX
+            </button>
+            <button
+              onClick={() => exportPDF(sorted, !!isFiltered)}
+              disabled={data.length === 0}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              PDF
+            </button>
+          </div>
         </div>
 
         {data.length === 0 ? (

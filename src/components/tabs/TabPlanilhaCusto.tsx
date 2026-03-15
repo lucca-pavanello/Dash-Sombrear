@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Search, ChevronDown, X, Download, Receipt } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import type { Orcamento } from '@/lib/supabase'
@@ -42,14 +42,14 @@ function SelectField({ value, onChange, children }: { value: string; onChange: (
 }
 
 export default function TabPlanilhaCusto({ data, loading }: Props) {
-  const saved = loadFilters()
+  const savedRef = useRef(loadFilters())
   const [search, setSearch] = useState('')
-  const [responsavel, setResponsavel] = useState(saved.responsavel ?? 'todos')
-  const [modelo, setModelo] = useState(saved.modelo ?? 'todos')
-  const [periodo, setPeriodo] = useState(saved.periodo ?? 'mes')
-  const [dateFrom, setDateFrom] = useState(saved.dateFrom ?? '')
-  const [dateTo, setDateTo] = useState(saved.dateTo ?? '')
-  const [apenasComCusto, setApenasComCusto] = useState(saved.apenasComCusto ?? true)
+  const [responsavel, setResponsavel] = useState(() => savedRef.current.responsavel ?? 'todos')
+  const [modelo, setModelo] = useState(() => savedRef.current.modelo ?? 'todos')
+  const [periodo, setPeriodo] = useState(() => savedRef.current.periodo ?? 'mes')
+  const [dateFrom, setDateFrom] = useState(() => savedRef.current.dateFrom ?? '')
+  const [dateTo, setDateTo] = useState(() => savedRef.current.dateTo ?? '')
+  const [apenasComCusto, setApenasComCusto] = useState(() => savedRef.current.apenasComCusto ?? true)
 
   const debouncedSearch = useDebounce(search, 220)
 
@@ -129,7 +129,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
     responsavel !== 'todos' ? { label: responsavel, onRemove: () => setResponsavel('todos') } : null,
     modelo !== 'todos' ? { label: modelo, onRemove: () => setModelo('todos') } : null,
     !apenasComCusto ? { label: 'Todos (sem custo incl.)', onRemove: () => setApenasComCusto(true) } : null,
-    periodo !== 'todos' && periodo !== 'mes' ? {
+    periodo !== 'todos' ? {
       label: periodo === 'custom' ? `${dateFrom || '?'} → ${dateTo || '?'}` : PERIODOS.find((p) => p.value === periodo)?.label ?? periodo,
       onRemove: () => { setPeriodo('mes'); setDateFrom(''); setDateTo('') },
     } : null,
@@ -164,22 +164,22 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
 
   function exportXLSX() {
     const rows = filtered.map((o) => ({
-        'Data': o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '',
-        'Cliente': o.cliente ?? '',
-        'Responsável': o.responsavel,
-        'Modelo': o.modelo,
-        'Tecido': o.tecido,
-        'Medidas': o.largura && o.altura ? `${o.largura} x ${o.altura}` : '',
-        'Custo Total (R$)': o.custo_tecido ?? '',
-        'Custo Acab. (R$)': o.custo_acabamento ?? '',
-        'Custo m² (R$)': o.custo_m2 ?? '',
-        'Valor Venda (R$)': o.valor_venda ?? '',
-        'Margem (%)': o.margem != null ? o.margem.toFixed(1) : '',
-      }))
-      const ws = XLSX.utils.json_to_sheet(rows)
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Planilha de Custo')
-      XLSX.writeFile(wb, `planilha-custo-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      'Data': o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '',
+      'Cliente': o.cliente ?? '',
+      'Responsável': o.responsavel,
+      'Modelo': o.modelo,
+      'Tecido': o.tecido,
+      'Medidas': o.largura && o.altura ? `${o.largura} x ${o.altura}` : '',
+      'Custo Total (R$)': o.custo_tecido ?? '',
+      'Custo Acab. (R$)': o.custo_acabamento ?? '',
+      'Custo m² (R$)': o.custo_m2 ?? '',
+      'Valor Venda (R$)': o.valor_venda ?? '',
+      'Margem (%)': o.margem != null ? o.margem.toFixed(1) : '',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Planilha de Custo')
+    XLSX.writeFile(wb, `planilha-custo-${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   if (loading) {
