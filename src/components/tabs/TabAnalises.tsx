@@ -31,7 +31,7 @@ function getDailyTrend(data: Orcamento[]) {
       const day = new Date(o.created_at).getDate()
       counts[day] = (counts[day] ?? 0) + 1
     })
-  return Array.from({ length: today }, (_, i) => ({ dia: i + 1, orçamentos: counts[i + 1] ?? 0 }))
+  return Array.from({ length: today }, (_, i) => ({ dia: i + 1, orcamentos: counts[i + 1] ?? 0 }))
 }
 
 function generateInsights(data: Orcamento[]): string[] {

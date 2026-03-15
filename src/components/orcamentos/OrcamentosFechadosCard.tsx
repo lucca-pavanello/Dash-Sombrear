@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo, memo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, calcularMargem } from '@/lib/utils'
 import { Trophy, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Props { data: Orcamento[] }
 
-export default function OrcamentosFechadosCard({ data }: Props) {
-  const fechados = data.filter((o) => o.fechado === true)
+function OrcamentosFechadosCard({ data }: Props) {
+  const fechados = useMemo(() => data.filter((o) => o.fechado === true), [data])
   const [open, setOpen] = useState(false)
 
   return (
@@ -112,3 +112,5 @@ export default function OrcamentosFechadosCard({ data }: Props) {
     </div>
   )
 }
+
+export default memo(OrcamentosFechadosCard)

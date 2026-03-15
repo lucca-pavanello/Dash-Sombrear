@@ -43,8 +43,11 @@ export function usePeriodFilter<T>(
   dateFrom?: string,
   dateTo?: string
 ): T[] {
+  // getDate é um acessor estável — não incluir nas deps evita invalidação
+  // por funções inline passadas pelos consumidores
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(
     () => filterByPeriod(items, periodo, getDate, dateFrom, dateTo),
-    [items, periodo, getDate, dateFrom, dateTo]
+    [items, periodo, dateFrom, dateTo]
   );
 }

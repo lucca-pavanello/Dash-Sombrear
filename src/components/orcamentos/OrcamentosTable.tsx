@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import * as XLSX from 'xlsx'
@@ -248,11 +248,15 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
         flashTimers.current.set(id, timer)
       })
     }
+  }, [data])
+
+  // Limpa timers apenas na desmontagem — não a cada update de data
+  useEffect(() => {
     return () => {
       flashTimers.current.forEach((t) => clearTimeout(t))
       flashTimers.current.clear()
     }
-  }, [data])
+  }, [])
 
   function toggleSort(key: SortKey) {
     setSort((s) => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
@@ -266,7 +270,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
       : null
   }
 
-  const sorted = [...data].sort((a, b) => {
+  const sorted = useMemo(() => [...data].sort((a, b) => {
     let av: string | number, bv: string | number
     if (sort.key === 'created_at') { av = a.created_at; bv = b.created_at }
     else if (sort.key === 'cliente') { av = a.cliente ?? ''; bv = b.cliente ?? '' }
@@ -282,7 +286,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     if (av < bv) return sort.dir === 'asc' ? -1 : 1
     if (av > bv) return sort.dir === 'asc' ? 1 : -1
     return 0
-  })
+  }), [data, sort])
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)

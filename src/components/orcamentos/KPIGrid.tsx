@@ -36,7 +36,7 @@ function KPIGrid({ data }: Props) {
     const comMargem = data.filter((o) => o.margem != null)
     const margemMedia = comMargem.length > 0
       ? comMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / comMargem.length
-      : 0
+      : null
     // Em risco: abertos há mais de 7 dias
     // TODO: usar updated_at quando disponível (campo não existe no tipo Orcamento ainda)
     const agora = Date.now()
@@ -53,7 +53,7 @@ function KPIGrid({ data }: Props) {
   const animTotalOrc = useCountUp(totalOrc, 700)
   const animTicket = useCountUp(ticketMedio, 900)
   const animConv = useCountUp(convRate, 800)
-  const animMargem = useCountUp(margemMedia, 850)
+  const animMargem = useCountUp(margemMedia ?? 0, 850)
   const animEmAberto = useCountUp(valorEmAberto, 900)
   const animEmRisco = useCountUp(emRisco.length, 800)
 

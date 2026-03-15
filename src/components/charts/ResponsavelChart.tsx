@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
@@ -5,15 +6,16 @@ const CHART_COLORS = ['#E8701A', '#F59E0B', '#D97706', '#B45309', '#92400E', '#F
 
 interface Props { data: Orcamento[] }
 
-export default function ResponsavelChart({ data }: Props) {
-  const grouped = data.reduce<Record<string, number>>((acc, o) => {
-    acc[o.responsavel] = (acc[o.responsavel] ?? 0) + 1
-    return acc
-  }, {})
-
-  const chartData = Object.entries(grouped)
-    .map(([name, total]) => ({ name, total }))
-    .sort((a, b) => b.total - a.total)
+function ResponsavelChart({ data }: Props) {
+  const chartData = useMemo(() => {
+    const grouped = data.reduce<Record<string, number>>((acc, o) => {
+      acc[o.responsavel] = (acc[o.responsavel] ?? 0) + 1
+      return acc
+    }, {})
+    return Object.entries(grouped)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+  }, [data])
 
   return (
     <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
@@ -40,3 +42,5 @@ export default function ResponsavelChart({ data }: Props) {
     </div>
   )
 }
+
+export default memo(ResponsavelChart)

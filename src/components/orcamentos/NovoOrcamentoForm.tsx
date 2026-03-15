@@ -125,7 +125,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
     try {
       const receitaFinal = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instacao ? Number(form.instacao) : 0)
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
-      const margem = calcularMargem(receitaFinal, custoTotal ?? 0)
+      const margem = custoTotal != null ? calcularMargem(receitaFinal, custoTotal) : null
 
       await mutateAsync({
         responsavel: form.responsavel,

@@ -145,7 +145,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
     try {
       const receita = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instacao ? Number(form.instacao) : 0)
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
-      const margem = calcularMargem(receita, custoTotal ?? 0)
+      const margem = custoTotal != null ? calcularMargem(receita, custoTotal) : null
 
       const updated = await update({
         id: orcamento.id,

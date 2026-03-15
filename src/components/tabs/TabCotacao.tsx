@@ -95,7 +95,6 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
   const nextIdRef = useRef(1)
-  const [, setHasDraft] = useState(() => loadDraft() !== null)
   const [form, setForm] = useState<FormState>(() => loadDraft()?.form ?? INITIAL_FORM)
   const [ambientes, setAmbientes] = useState<Ambiente[]>(() => loadDraft()?.ambientes ?? [newAmbiente(nextIdRef)])
   const [isLoading, setIsLoading] = useState(false)
@@ -198,7 +197,7 @@ export default function TabCotacao() {
           setForm(INITIAL_FORM)
           setAmbientes([newAmbiente(nextIdRef)])
           localStorage.removeItem(DRAFT_KEY)
-          setHasDraft(false)
+
           return null
         }
         return prev - 1

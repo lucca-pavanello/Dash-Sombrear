@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import type { Orcamento } from '@/lib/supabase'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -65,33 +65,36 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [])
 
-  const filtered = data.filter((o) => {
-    const matchSearch = !debouncedSearch || [o.cliente, o.responsavel, o.modelo, o.tecido, o.telefone, o.ambiente]
-      .some((v) => v?.toLowerCase().includes(debouncedSearch.toLowerCase()))
-    const matchResp = responsavel === 'todos' || o.responsavel === responsavel
-    const matchModelo = modelo === 'todos' || o.modelo === modelo
-    const matchStatus = fechadoFilter === 'todos'
-      || (fechadoFilter === 'fechado' && o.fechado === true)
-      || (fechadoFilter === 'aberto' && o.fechado !== true)
-      || (fechadoFilter === 'sem-custo' && o.fechado === true && (!o.custo_tecido || o.custo_tecido === 0))
+  const filtered = useMemo(() => {
+    const searchLower = debouncedSearch.toLowerCase()
+    return data.filter((o) => {
+      const matchSearch = !debouncedSearch || [o.cliente, o.responsavel, o.modelo, o.tecido, o.telefone, o.ambiente]
+        .some((v) => v?.toLowerCase().includes(searchLower))
+      const matchResp = responsavel === 'todos' || o.responsavel === responsavel
+      const matchModelo = modelo === 'todos' || o.modelo === modelo
+      const matchStatus = fechadoFilter === 'todos'
+        || (fechadoFilter === 'fechado' && o.fechado === true)
+        || (fechadoFilter === 'aberto' && o.fechado !== true)
+        || (fechadoFilter === 'sem-custo' && o.fechado === true && (!o.custo_tecido || o.custo_tecido === 0))
 
-    let matchPeriodo = true
-    if (periodo !== 'todos' && o.created_at) {
-      const created = new Date(o.created_at)
-      const now = new Date()
-      if (periodo === 'hoje') matchPeriodo = created.toDateString() === now.toDateString()
-      else if (periodo === 'semana') matchPeriodo = created >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      else if (periodo === 'mes') matchPeriodo = created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
-      else if (periodo === 'custom') {
-        if (dateFrom) matchPeriodo = created >= new Date(dateFrom)
-        if (dateTo) { const end = new Date(dateTo); end.setHours(23, 59, 59, 999); matchPeriodo = matchPeriodo && created <= end }
+      let matchPeriodo = true
+      if (periodo !== 'todos' && o.created_at) {
+        const created = new Date(o.created_at)
+        const now = new Date()
+        if (periodo === 'hoje') matchPeriodo = created.toDateString() === now.toDateString()
+        else if (periodo === 'semana') { const diff = (now.getTime() - created.getTime()) / 86400000; matchPeriodo = diff >= 0 && diff <= 7 }
+        else if (periodo === 'mes') matchPeriodo = created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
+        else if (periodo === 'custom') {
+          if (dateFrom) matchPeriodo = created >= new Date(dateFrom)
+          if (dateTo) { const end = new Date(dateTo); end.setHours(23, 59, 59, 999); matchPeriodo = matchPeriodo && created <= end }
+        }
       }
-    }
-    return matchSearch && matchResp && matchModelo && matchStatus && matchPeriodo
-  })
+      return matchSearch && matchResp && matchModelo && matchStatus && matchPeriodo
+    })
+  }, [data, debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo])
 
-  const responsaveis = [...new Set(data.map((o) => o.responsavel))].filter(Boolean)
-  const modelos = [...new Set(data.map((o) => o.modelo))].filter(Boolean)
+  const responsaveis = useMemo(() => [...new Set(data.map((o) => o.responsavel))].filter(Boolean), [data])
+  const modelos = useMemo(() => [...new Set(data.map((o) => o.modelo))].filter(Boolean), [data])
   const isFiltered = !!search || responsavel !== 'todos' || modelo !== 'todos' || fechadoFilter !== 'todos' || periodo !== 'todos' || !!dateFrom || !!dateTo
 
   if (loading) {

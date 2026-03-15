@@ -1,3 +1,4 @@
+import { useMemo, memo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import AvatarInitials from '@/components/shared/AvatarInitials'
@@ -12,8 +13,8 @@ const MEDAL_BG = [
   'bg-orange-600/10 border-orange-600/20',
 ]
 
-export default function RankingResponsavel({ data }: Props) {
-  const ranked = Object.entries(
+function RankingResponsavel({ data }: Props) {
+  const ranked = useMemo(() => Object.entries(
     data
       .filter((o) => o.fechado === true)
       .reduce<Record<string, { count: number; value: number }>>((acc, o) => {
@@ -24,7 +25,7 @@ export default function RankingResponsavel({ data }: Props) {
       }, {})
   )
     .map(([name, stats]) => ({ name, ...stats }))
-    .sort((a, b) => b.value - a.value)
+    .sort((a, b) => b.value - a.value), [data])
 
   return (
     <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
@@ -76,3 +77,5 @@ export default function RankingResponsavel({ data }: Props) {
     </div>
   )
 }
+
+export default memo(RankingResponsavel)

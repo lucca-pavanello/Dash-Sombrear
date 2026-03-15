@@ -230,7 +230,7 @@ export default function TabAgenteIA() {
     return [...filtrados].sort((a, b) => {
       const wa = isAguardando(a.status_lead) ? -1 : 0
       const wb = isAguardando(b.status_lead) ? -1 : 0
-      if (wa !== wb) return leadSort.dir === 'asc' ? wa - wb : wb - wa
+      if (wa !== wb) return wa - wb  // aguardando sempre no topo, independente da direção
       let av: string, bv: string
       if (leadSort.key === 'nome') { av = a.nome ?? ''; bv = b.nome ?? '' }
       else if (leadSort.key === 'timestamp_ultima_msg') { av = a.timestamp_ultima_msg ?? ''; bv = b.timestamp_ultima_msg ?? '' }
