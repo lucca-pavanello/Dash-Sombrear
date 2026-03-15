@@ -138,7 +138,6 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
           isFiltered={isFiltered}
           search={debouncedSearch}
           onClearFilters={clearFilters}
-          responsaveis={responsaveis}
           filterKey={[debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo].join('|')}
         />
       </div>
@@ -152,7 +151,7 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
         <Plus className="h-6 w-6" />
       </button>
 
-      <NovoOrcamentoForm toast={toast} open={formOpen} onClose={() => setFormOpen(false)} responsaveis={responsaveis} />
+      <NovoOrcamentoForm toast={toast} open={formOpen} onClose={() => setFormOpen(false)} />
     </>
   )
 }

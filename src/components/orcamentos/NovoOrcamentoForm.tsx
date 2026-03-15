@@ -3,9 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAddOrcamento } from '@/hooks/useOrcamentos'
 import { cn, formatCurrency, calcularMargem } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
-import { RESPONSAVEIS } from '@/lib/constants'
-
-const MODELOS = ['Rolo', 'Romeu e Julieta', 'Vertical', 'Horizontal', 'Painel', 'Cortina']
+import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -13,7 +11,6 @@ interface Props {
   toast: (type: 'success' | 'error', message: string) => void
   open: boolean
   onClose: () => void
-  responsaveis?: string[]
 }
 
 const STEPS = [
@@ -160,12 +157,6 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
       })
       toast('success', 'Orçamento salvo com sucesso!')
       onClose()
-      setForm({
-        responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
-        modelo: MODELOS[0], tecido: '', quantidade: '1',
-        cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
-        custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
-      })
     } catch (err) {
       console.error('[NovoOrcamentoForm] handleSubmit error:', err)
       toast('error', 'Erro ao salvar orçamento.')
@@ -268,7 +259,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
                   list="ambientes-list-novo"
                 />
                 <datalist id="ambientes-list-novo">
-                  {['Sala', 'Quarto', 'Quarto 1', 'Quarto 2', 'Escritório', 'Cozinha', 'Varanda', 'Banheiro', 'Hall', 'Suíte'].map(a => <option key={a} value={a} />)}
+                  {SUGESTOES_AMBIENTE.map(a => <option key={a} value={a} />)}
                 </datalist>
               </div>
             </div>

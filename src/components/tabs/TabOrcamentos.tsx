@@ -23,10 +23,9 @@ function loadFilters() {
 interface Props {
   data: Orcamento[]
   loading: boolean
-  toast: (type: 'success' | 'error', message: string) => void
 }
 
-export default function TabOrcamentos({ data, loading, toast: _toast }: Props) {
+export default function TabOrcamentos({ data, loading }: Props) {
   const [searchParams, setSearchParams] = useSearchParams()
   const saved = loadFilters()
   const [search, setSearch] = useState('')

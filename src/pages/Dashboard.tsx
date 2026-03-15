@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -78,7 +78,7 @@ export default function Dashboard() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
-  const TABS = [
+  const TABS = useMemo(() => [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'planilha', label: 'Planilha Orçamento', icon: Table2, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
@@ -87,7 +87,7 @@ export default function Dashboard() {
     { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
-  ]
+  ], [isAdmin, pendingCount])
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,8 +175,8 @@ export default function Dashboard() {
               <Icon className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">{label}</span>
               {badge > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
-                  {badge}
+                <span className="flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
+                  {badge > 9 ? '9+' : badge}
                 </span>
               )}
               {activeTab === id && (
@@ -190,7 +190,7 @@ export default function Dashboard() {
           <div key={activeTab} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
             {activeTab === 'planilha' && <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />}
             {activeTab === 'planilha-custo' && <TabPlanilhaCusto data={orcamentos} loading={isLoading} />}
-            {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} toast={toast} />}
+            {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} />}
             {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
             {activeTab === 'agente-ia' && <TabAgenteIA />}
             {activeTab === 'calcular-orcamento' && <TabCotacao />}

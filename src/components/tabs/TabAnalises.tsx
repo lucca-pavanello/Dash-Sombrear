@@ -102,6 +102,18 @@ function generateInsights(data: Orcamento[]): string[] {
   return insights
 }
 
+function Delta({ pct, suffix = '%' }: { pct: number | null; suffix?: string }) {
+  if (pct === null) return <span className="text-xs text-muted-foreground">—</span>
+  const Icon = pct > 0 ? TrendingUp : pct < 0 ? TrendingDown : Minus
+  const color = pct > 0 ? 'text-primary' : pct < 0 ? 'text-destructive' : 'text-muted-foreground'
+  return (
+    <span className={`flex items-center gap-0.5 text-xs font-medium ${color}`}>
+      <Icon className="h-3 w-3" />
+      {Math.abs(pct).toFixed(0)}{suffix} vs mês ant.
+    </span>
+  )
+}
+
 const tooltipStyle = {
   contentStyle: { borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' },
   labelStyle: { fontWeight: 600, color: 'hsl(var(--foreground))' },
@@ -168,8 +180,9 @@ function exportPDF(data: Orcamento[]) {
       return acc
     }, {})
   )
-    .map(([name, s]) => [name, String(s.total), String(s.feitos), `${s.total > 0 ? ((s.feitos / s.total) * 100).toFixed(0) : 0}%`, formatCurrency(s.fat)])
-    .sort((a, b) => Number(b[4].replace(/\D/g, '')) - Number(a[4].replace(/\D/g, '')))
+    .map(([name, s]) => ({ name, ...s }))
+    .sort((a, b) => b.fat - a.fat)
+    .map(({ name, total, feitos, fat }) => [name, String(total), String(feitos), `${total > 0 ? ((feitos / total) * 100).toFixed(0) : 0}%`, formatCurrency(fat)])
 
   const afterKpi = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
 
@@ -493,18 +506,6 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
         <p className="text-sm font-medium text-destructive">Erro ao carregar análises. Tente recarregar a página.</p>
       </div>
-    )
-  }
-
-  function Delta({ pct, suffix = '%' }: { pct: number | null; suffix?: string }) {
-    if (pct === null) return <span className="text-xs text-muted-foreground">—</span>
-    const Icon = pct > 0 ? TrendingUp : pct < 0 ? TrendingDown : Minus
-    const color = pct > 0 ? 'text-primary' : pct < 0 ? 'text-destructive' : 'text-muted-foreground'
-    return (
-      <span className={`flex items-center gap-0.5 text-xs font-medium ${color}`}>
-        <Icon className="h-3 w-3" />
-        {Math.abs(pct).toFixed(0)}{suffix} vs mês ant.
-      </span>
     )
   }
 

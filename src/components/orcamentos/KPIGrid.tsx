@@ -208,6 +208,7 @@ function KPIGrid({ data }: Props) {
               onClick={() => { setMetaInput(meta > 0 ? String(meta) : ''); setEditingMeta(true) }}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
               title="Definir meta"
+              aria-label="Definir meta mensal"
             >
               <Pencil className="h-3 w-3" />
             </button>

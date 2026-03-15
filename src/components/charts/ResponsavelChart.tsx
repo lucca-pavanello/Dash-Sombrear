@@ -32,8 +32,8 @@ function ResponsavelChart({ data }: Props) {
               labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
             />
             <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer">
-              {chartData.map((_, i) => (
-                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              {chartData.map((entry, i) => (
+                <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Bar>
           </BarChart>

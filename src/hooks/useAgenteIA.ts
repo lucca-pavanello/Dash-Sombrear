@@ -60,7 +60,6 @@ export function useCrmLeads() {
         .select('*')
         .order('created_at', { ascending: false })
       if (error) {
-        console.error('[useCrmLeads]', error)
         throw error
       }
       return data as CrmLead[]
@@ -79,7 +78,6 @@ export function useMarcarConvertido() {
         .update({ status_lead: STATUS_CONVERTIDO })
         .eq('id', id)
       if (error) {
-        console.error('[useMarcarConvertido]', error)
         throw error
       }
     },
@@ -96,7 +94,6 @@ export function useOrcamentosIA() {
         .select('*')
         .order('created_at', { ascending: false })
       if (error) {
-        console.error('[useOrcamentosIA]', error)
         throw error
       }
       return data as OrcamentoIA[]

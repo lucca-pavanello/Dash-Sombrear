@@ -198,6 +198,14 @@ function exportPDF(data: Orcamento[], isFiltered: boolean) {
   doc.save(`orcamentos-${now.toISOString().slice(0, 10)}.pdf`)
 }
 
+function calcMargem(o: Orcamento) {
+  if (o.margem != null) return o.margem
+  const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+  return o.custo_tecido && o.custo_tecido > 0
+    ? calcularMargem(receita, o.custo_tecido)
+    : null
+}
+
 type SortKey = 'created_at' | 'cliente' | 'responsavel' | 'valor_venda' | 'margem'
 
 interface Props {
@@ -206,11 +214,10 @@ interface Props {
   isFiltered?: boolean
   search?: string
   onClearFilters?: () => void
-  responsaveis?: string[]
   filterKey?: string
 }
 
-export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, responsaveis, filterKey }: Props) {
+export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, filterKey }: Props) {
   const [editing, setEditing] = useState<Orcamento | null>(null)
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' })
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
@@ -264,14 +271,6 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     setSort((s) => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
   }
 
-  function calcMargem(o: Orcamento) {
-    if (o.margem != null) return o.margem
-    const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
-    return o.custo_tecido && o.custo_tecido > 0
-      ? calcularMargem(receita, o.custo_tecido)
-      : null
-  }
-
   const sorted = useMemo(() => [...data].sort((a, b) => {
     let av: string | number, bv: string | number
     if (sort.key === 'created_at') { av = a.created_at; bv = b.created_at }
@@ -312,6 +311,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     { label: 'Status' },
   ]
 
+  const now = Date.now()
+
   return (
     <>
       <div className="rounded-xl border-2 bg-card shadow-sm">
@@ -321,6 +322,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
             <button
               onClick={() => exportCSV(sorted)}
               disabled={data.length === 0}
+              title={`Exportar ${sorted.length} registros como CSV`}
               className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <Download className="h-3.5 w-3.5" />
@@ -329,6 +331,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
             <button
               onClick={() => exportXLSX(sorted)}
               disabled={data.length === 0}
+              title={`Exportar ${sorted.length} registros como XLSX`}
               className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <Download className="h-3.5 w-3.5" />
@@ -337,6 +340,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
             <button
               onClick={() => exportPDF(sorted, !!isFiltered)}
               disabled={data.length === 0}
+              title={`Exportar ${sorted.length} registros como PDF`}
               className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <FileDown className="h-3.5 w-3.5" />
@@ -400,7 +404,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 </thead>
                 <tbody>
                   {paginated.map((o, i) => {
-                    const diasAberto = !o.fechado ? Math.floor((Date.now() - new Date(o.created_at).getTime()) / 86400000) : 0
+                    const diasAberto = !o.fechado ? Math.floor((now - new Date(o.created_at).getTime()) / 86400000) : 0
                     const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
                     const margem = calcMargem(o)
                     const semCusto = receita > 0 && (!o.custo_tecido || o.custo_tecido === 0)
@@ -520,7 +524,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
             {/* Mobile */}
             <div className="md:hidden divide-y">
               {paginated.map((o, i) => {
-                const diasAberto = !o.fechado ? Math.floor((Date.now() - new Date(o.created_at).getTime()) / 86400000) : 0
+                const diasAberto = !o.fechado ? Math.floor((now - new Date(o.created_at).getTime()) / 86400000) : 0
                 const globalIndex = (page - 1) * PAGE_SIZE + i + 1
                 const hasFlash = flashIds.has(o.id)
                 return (
@@ -604,7 +608,6 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
           orcamento={editing}
           onClose={() => setEditing(null)}
           toast={toast}
-          responsaveis={responsaveis}
         />
       )}
     </>

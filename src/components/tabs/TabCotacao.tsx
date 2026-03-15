@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { useModelosTecidos } from '@/hooks/useModelosTecidos'
-import { RESPONSAVEIS } from '@/lib/constants'
+import { RESPONSAVEIS, SUGESTOES_AMBIENTE, DEFAULT_RESPONSAVEL } from '@/lib/constants'
 
 /* ─── Constants ─────────────────────────────────────────── */
 const CORES_FERRAGEM = ['Sem', 'Branca', 'Preta']
@@ -17,7 +17,6 @@ const ACABAMENTOS = [
   'Sem', 'Bando Branco', 'Bando Preto', 'Kit Box',
   'Cadarço', 'Fita', 'Barra Niveladora',
 ]
-const SUGESTOES_AMBIENTE = ['Sala', 'Quarto', 'Quarto 1', 'Quarto 2', 'Escritório', 'Cozinha', 'Varanda', 'Banheiro', 'Hall', 'Suíte']
 const N8N_WEBHOOK = import.meta.env.VITE_N8N_WEBHOOK as string | undefined
 if (!N8N_WEBHOOK && import.meta.env.DEV) {
   console.warn('[TabCotacao] VITE_N8N_WEBHOOK não está definido.')
@@ -75,7 +74,7 @@ function ambienteFilled(a: Ambiente) {
   return a.persianas.length > 0 && a.persianas.every(persianaFilled)
 }
 
-const INITIAL_FORM: FormState = { responsavel: RESPONSAVEIS[0], whatsapp: false, cliente: '' }
+const INITIAL_FORM: FormState = { responsavel: DEFAULT_RESPONSAVEL, whatsapp: false, cliente: '' }
 
 function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
   try {
@@ -86,6 +85,9 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
     // Force expand all ambientes on draft load
     if (draft?.ambientes) {
       draft.ambientes = draft.ambientes.map((a: Ambiente) => ({ ...a, collapsed: false }))
+    }
+    if (!RESPONSAVEIS.includes(draft.form.responsavel)) {
+      draft.form.responsavel = DEFAULT_RESPONSAVEL
     }
     return draft
   } catch { return null }

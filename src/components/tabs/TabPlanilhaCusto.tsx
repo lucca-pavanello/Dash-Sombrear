@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
+import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 
 interface Props {
@@ -46,7 +47,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
   const [search, setSearch] = useState('')
   const [responsavel, setResponsavel] = useState(() => savedRef.current.responsavel ?? 'todos')
   const [modelo, setModelo] = useState(() => savedRef.current.modelo ?? 'todos')
-  const [periodo, setPeriodo] = useState(() => savedRef.current.periodo ?? 'mes')
+  const [periodo, setPeriodo] = useState(() => savedRef.current.periodo ?? 'todos')
   const [dateFrom, setDateFrom] = useState(() => savedRef.current.dateFrom ?? '')
   const [dateTo, setDateTo] = useState(() => savedRef.current.dateTo ?? '')
   const [apenasComCusto, setApenasComCusto] = useState(() => savedRef.current.apenasComCusto ?? true)
@@ -74,7 +75,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
     setSearch('')
     setResponsavel('todos')
     setModelo('todos')
-    setPeriodo('mes')
+    setPeriodo('todos')
     setDateFrom('')
     setDateTo('')
     setApenasComCusto(true)
@@ -84,30 +85,17 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
   const modelos = useMemo(() => [...new Set(data.map((o) => o.modelo))].filter(Boolean).sort(), [data])
 
   const filtered = useMemo(() => {
-    let result = data.filter((o) => {
-      // período
-      if (periodo !== 'todos' && o.created_at) {
-        const d = new Date(o.created_at)
-        const now = new Date()
-        if (periodo === 'hoje' && d.toDateString() !== now.toDateString()) return false
-        if (periodo === 'semana' && (now.getTime() - d.getTime()) / 86400000 > 7) return false
-        if (periodo === 'mes' && (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear())) return false
-        if (periodo === 'custom') {
-          if (dateFrom && d < new Date(dateFrom)) return false
-          if (dateTo) { const end = new Date(dateTo); end.setHours(23, 59, 59, 999); if (d > end) return false }
-        }
-      }
+    const byPeriod = filterByPeriod(data, periodo, (o) => o.created_at, dateFrom, dateTo)
+    return byPeriod.filter((o) => {
       if (apenasComCusto && !(o.custo_tecido != null && o.custo_tecido > 0)) return false
       if (responsavel !== 'todos' && o.responsavel !== responsavel) return false
       if (modelo !== 'todos' && o.modelo !== modelo) return false
       if (debouncedSearch) {
         const q = debouncedSearch.toLowerCase()
-        const match = [o.cliente, o.responsavel, o.modelo, o.tecido].some((v) => v?.toLowerCase().includes(q))
-        if (!match) return false
+        return [o.cliente, o.responsavel, o.modelo, o.tecido].some((v) => v?.toLowerCase().includes(q))
       }
       return true
-    })
-    return result.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    }).slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   }, [data, periodo, dateFrom, dateTo, apenasComCusto, responsavel, modelo, debouncedSearch])
 
   const totais = useMemo(() => {
@@ -122,7 +110,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
     }
   }, [filtered])
 
-  const isFiltered = !!search || responsavel !== 'todos' || modelo !== 'todos' || periodo !== 'mes' || !!dateFrom || !!dateTo || !apenasComCusto
+  const isFiltered = !!search || responsavel !== 'todos' || modelo !== 'todos' || periodo !== 'todos' || !!dateFrom || !!dateTo || !apenasComCusto
 
   const chips = [
     search ? { label: search.length > 18 ? `"${search.slice(0, 18)}…"` : `"${search}"`, onRemove: () => setSearch('') } : null,
@@ -131,7 +119,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
     !apenasComCusto ? { label: 'Todos (sem custo incl.)', onRemove: () => setApenasComCusto(true) } : null,
     periodo !== 'todos' ? {
       label: periodo === 'custom' ? `${dateFrom || '?'} → ${dateTo || '?'}` : PERIODOS.find((p) => p.value === periodo)?.label ?? periodo,
-      onRemove: () => { setPeriodo('mes'); setDateFrom(''); setDateTo('') },
+      onRemove: () => { setPeriodo('todos'); setDateFrom(''); setDateTo('') },
     } : null,
   ].filter(Boolean) as { label: string; onRemove: () => void }[]
 

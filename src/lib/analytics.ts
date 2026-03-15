@@ -2,6 +2,7 @@ import type { Orcamento } from './supabase'
 
 export function filterOrcamentosPorMes(data: Orcamento[], year: number, month: number): Orcamento[] {
   return data.filter(o => {
+    if (!o.created_at) return false
     const d = new Date(o.created_at)
     return d.getMonth() === month && d.getFullYear() === year
   })

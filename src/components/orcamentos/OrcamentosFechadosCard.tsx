@@ -17,7 +17,7 @@ function OrcamentosFechadosCard({ data }: Props) {
         className="flex w-full items-center gap-2 border-b px-5 py-4 hover:bg-muted/30 transition-colors rounded-t-xl"
       >
         <Trophy className="h-4 w-4 text-primary shrink-0" />
-        <h2 className="font-display text-sm font-medium tracking-wide">Orçamentos Fechados</h2>
+        <span className="font-display text-sm font-medium tracking-wide">Orçamentos Fechados</span>
         <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
           {fechados.length}
         </span>
@@ -70,11 +70,11 @@ function OrcamentosFechadosCard({ data }: Props) {
                     )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Modelo</span>
-                      <span className="font-medium">{o.modelo}</span>
+                      <span className="font-medium truncate" title={o.modelo}>{o.modelo}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Tecido</span>
-                      <span className="font-medium">{o.tecido}</span>
+                      <span className="font-medium truncate" title={o.tecido}>{o.tecido}</span>
                     </div>
                     {o.custo_tecido && (
                       <div className="flex justify-between">

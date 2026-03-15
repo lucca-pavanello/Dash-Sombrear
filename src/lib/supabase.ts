@@ -27,6 +27,7 @@ export type Orcamento = {
   margem?: number | null
   observacoes?: string | null
   fonte?: string | null
+  status?: string | null
   ambiente?: string | null
   user_id?: string | null
   updated_at?: string | null

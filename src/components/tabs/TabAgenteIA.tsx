@@ -29,11 +29,17 @@ function formatWaNumber(whatsapp: string): string {
 function isForaDoHorario(dateStr: string | null) {
   if (!dateStr) return false
   const d = new Date(dateStr)
-  const utcMinus3Hours = (d.getUTCHours() - 3 + 24) % 24
-  const utcMinus3Day = d.getUTCHours() < 3
-    ? (d.getUTCDay() - 1 + 7) % 7
-    : d.getUTCDay()
-  return utcMinus3Day === 0 || utcMinus3Day === 6 || utcMinus3Hours < HORA_INICIO || utcMinus3Hours >= HORA_FIM
+  if (isNaN(d.getTime())) return false
+  const parts = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    hour: 'numeric',
+    weekday: 'short',
+    hour12: false,
+  }).formatToParts(d)
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10)
+  const weekday = parts.find(p => p.type === 'weekday')?.value?.toLowerCase() ?? ''
+  const isWeekend = weekday.startsWith('sáb') || weekday.startsWith('dom')
+  return isWeekend || hour < HORA_INICIO || hour >= HORA_FIM
 }
 
 function horasDecorridas(ts: string | null | undefined): number {
@@ -516,6 +522,7 @@ export default function TabAgenteIA() {
                                 ) : (
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setConfirmId(lead.id) }}
+                                    title="Marca este lead como convertido no CRM. Para registrar o faturamento, feche o orçamento correspondente na aba Planilha."
                                     className="flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:border-green-500/50 hover:text-green-600 hover:bg-green-500/5 transition-colors"
                                   >
                                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -633,6 +640,7 @@ export default function TabAgenteIA() {
                             ) : (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setMobileConfirmId(lead.id) }}
+                                title="Marca este lead como convertido no CRM. Para registrar o faturamento, feche o orçamento correspondente na aba Planilha."
                                 className="rounded-lg border px-2 py-0.5 text-xs font-medium text-muted-foreground hover:border-green-500/50 hover:text-green-600 transition-colors"
                               >
                                 <CheckCircle2 className="inline h-3 w-3 mr-0.5" />Converteu
