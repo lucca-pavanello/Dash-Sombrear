@@ -110,7 +110,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
     }
   }, [filtered])
 
-  const isFiltered = !!search || responsavel !== 'todos' || modelo !== 'todos' || periodo !== 'todos' || !!dateFrom || !!dateTo || !apenasComCusto
+  const isFiltered = !!search || responsavel !== 'todos' || modelo !== 'todos' || periodo !== 'todos' || !!dateFrom || !!dateTo || apenasComCusto
 
   const chips = [
     search ? { label: search.length > 18 ? `"${search.slice(0, 18)}…"` : `"${search}"`, onRemove: () => setSearch('') } : null,

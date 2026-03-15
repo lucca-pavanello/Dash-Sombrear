@@ -647,7 +647,11 @@ export default function TabAgenteIA() {
                               </button>
                             )
                           )}
-                          <button onClick={() => setExpandedId(expanded ? null : lead.id)}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setExpandedId(expanded ? null : lead.id) }}
+                            aria-label={expanded ? 'Recolher detalhes' : 'Expandir detalhes'}
+                            title={expanded ? 'Recolher' : 'Expandir'}
+                          >
                             <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`} />
                           </button>
                         </div>

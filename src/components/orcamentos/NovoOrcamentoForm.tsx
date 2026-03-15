@@ -90,7 +90,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
 
   const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instacao) || 0)
   const custoPreview = parseFloat(form.custo_tecido) || 0
-  const previewMargem = calcularMargem(receita, custoPreview)
+  const previewMargem = receita > 0 && custoPreview > 0 ? calcularMargem(receita, custoPreview) : null
 
   function validateStep(s: number): string | null {
     if (s === 1 && !form.responsavel) return 'Responsável é obrigatório.'
