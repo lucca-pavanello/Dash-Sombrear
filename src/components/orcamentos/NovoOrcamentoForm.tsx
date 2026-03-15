@@ -281,11 +281,11 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
               </div>
               <div>
                 <label className={labelClass}>Largura (m)</label>
-                <input type="number" step="0.01" value={form.largura} onChange={(e) => set('largura', e.target.value)} className={inputClass} placeholder="0.00" />
+                <input type="text" inputMode="decimal" value={form.largura} onChange={(e) => set('largura', e.target.value.replace(',', '.'))} className={inputClass} placeholder="0.00" />
               </div>
               <div>
                 <label className={labelClass}>Altura (m)</label>
-                <input type="number" step="0.01" value={form.altura} onChange={(e) => set('altura', e.target.value)} className={inputClass} placeholder="0.00" />
+                <input type="text" inputMode="decimal" value={form.altura} onChange={(e) => set('altura', e.target.value.replace(',', '.'))} className={inputClass} placeholder="0.00" />
               </div>
               <div className="col-span-2">
                 <label className={labelClass}>Tecido <span className="text-destructive ml-0.5">*</span></label>

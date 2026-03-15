@@ -607,8 +607,8 @@ export default function TabCotacao() {
                                             <span className="hidden sm:inline">Largura (m)</span>
                                             {' '}<Req />
                                           </label>
-                                          <input type="number" step="0.01" min="0" required inputMode="decimal"
-                                            value={p.largura} onChange={e => setPersianaField(a.id, p.id, 'largura', e.target.value)}
+                                          <input type="text" inputMode="decimal"
+                                            value={p.largura} onChange={e => setPersianaField(a.id, p.id, 'largura', e.target.value.replace(',', '.'))}
                                             onKeyDown={e => ['e','E','+','-'].includes(e.key) && e.preventDefault()}
                                             className={inputCls} placeholder="2.50" />
                                         </div>
@@ -618,8 +618,8 @@ export default function TabCotacao() {
                                             <span className="hidden sm:inline">Altura (m)</span>
                                             {' '}<Req />
                                           </label>
-                                          <input type="number" step="0.01" min="0" required inputMode="decimal"
-                                            value={p.altura} onChange={e => setPersianaField(a.id, p.id, 'altura', e.target.value)}
+                                          <input type="text" inputMode="decimal"
+                                            value={p.altura} onChange={e => setPersianaField(a.id, p.id, 'altura', e.target.value.replace(',', '.'))}
                                             onKeyDown={e => ['e','E','+','-'].includes(e.key) && e.preventDefault()}
                                             className={inputCls} placeholder="1.80" />
                                         </div>

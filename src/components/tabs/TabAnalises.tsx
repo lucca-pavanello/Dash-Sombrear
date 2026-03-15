@@ -618,7 +618,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
                 <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
-                <Area type="monotone" dataKey="orçamentos" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#areaGrad)" />
+                <Area type="monotone" dataKey="orcamentos" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#areaGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           )}
