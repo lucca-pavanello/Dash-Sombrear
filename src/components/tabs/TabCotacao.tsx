@@ -68,9 +68,8 @@ function newAmbiente(nextIdRef: React.MutableRefObject<number>): Ambiente {
   return { id: nextIdRef.current++, ambiente: '', persianas: [newPersiana(nextIdRef)], collapsed: false }
 }
 
-function persianaFilled(p: Persiana) {
-  return !!(p.modelo && p.tecido && p.largura && p.altura)
-}
+const persianaFilled = (p: Persiana) =>
+  !!(p.modelo && p.tecido && parseFloat(p.largura) > 0 && parseFloat(p.altura) > 0)
 
 function ambienteFilled(a: Ambiente) {
   return a.persianas.length > 0 && a.persianas.every(persianaFilled)
@@ -95,6 +94,12 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
   const nextIdRef = useRef(1)
+  // Sync nextIdRef to max id in loaded draft to avoid id collisions
+  useEffect(() => {
+    const allIds = ambientes.flatMap(a => [a.id, ...a.persianas.map(p => p.id)])
+    if (allIds.length > 0) nextIdRef.current = Math.max(...allIds) + 1
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [form, setForm] = useState<FormState>(() => loadDraft()?.form ?? INITIAL_FORM)
   const [ambientes, setAmbientes] = useState<Ambiente[]>(() => loadDraft()?.ambientes ?? [newAmbiente(nextIdRef)])
   const [isLoading, setIsLoading] = useState(false)
@@ -222,8 +227,8 @@ export default function TabCotacao() {
         const p = a.persianas[j]
         const nP = a.persianas.length > 1 ? ` — P${j + 1}` : ''
         const n = `${nA}${nP}`
-        if (!p.largura || parseFloat(p.largura) <= 0) return `Largura é obrigatória${n}.`
-        if (!p.altura || parseFloat(p.altura) <= 0) return `Altura é obrigatória${n}.`
+        if (!p.largura || !Number.isFinite(parseFloat(p.largura)) || parseFloat(p.largura) <= 0) return `Largura inválida${n}.`
+        if (!p.altura || !Number.isFinite(parseFloat(p.altura)) || parseFloat(p.altura) <= 0) return `Altura inválida${n}.`
         if (!p.modelo) return `Modelo é obrigatório${n}.`
         if (!p.tecido.trim()) return `Tecido é obrigatório${n}.`
         if (!p.quantidade || parseInt(p.quantidade) < 1) return `Quantidade inválida${n}.`

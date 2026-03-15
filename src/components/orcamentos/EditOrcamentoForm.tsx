@@ -142,6 +142,14 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       toast('error', 'Quantidade deve ser um número inteiro maior que zero.')
       return
     }
+    if (form.largura && !Number.isFinite(parseFloat(form.largura))) {
+      toast('error', 'Largura inválida. Use apenas números (ex: 1.50).')
+      return
+    }
+    if (form.altura && !Number.isFinite(parseFloat(form.altura))) {
+      toast('error', 'Altura inválida. Use apenas números (ex: 1.80).')
+      return
+    }
     try {
       const receita = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instacao ? Number(form.instacao) : 0)
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)

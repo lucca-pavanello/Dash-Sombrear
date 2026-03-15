@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
   Clock, MessageCircle, XCircle, Circle, ChevronLeft,
+  RefreshCw, AlertCircle,
 } from 'lucide-react'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
@@ -26,9 +27,11 @@ function formatWaNumber(whatsapp: string): string {
 function isForaDoHorario(dateStr: string | null) {
   if (!dateStr) return false
   const d = new Date(dateStr)
-  const day = d.getDay()
-  const hour = d.getHours()
-  return day === 0 || day === 6 || hour < HORA_INICIO || hour >= HORA_FIM
+  const utcMinus3Hours = (d.getUTCHours() - 3 + 24) % 24
+  const utcMinus3Day = d.getUTCHours() < 3
+    ? (d.getUTCDay() - 1 + 7) % 7
+    : d.getUTCDay()
+  return utcMinus3Day === 0 || utcMinus3Day === 6 || utcMinus3Hours < HORA_INICIO || utcMinus3Hours >= HORA_FIM
 }
 
 function horasDecorridas(ts: string | null | undefined): number {
@@ -142,8 +145,8 @@ type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
 // ── Componente principal ─────────────────────────────────────────────────────
 export default function TabAgenteIA() {
-  const { data: leads = [], isLoading: loadingCrm } = useCrmLeads()
-  const { data: orcamentosIA = [], isLoading: loadingOrc } = useOrcamentosIA()
+  const { data: leads = [], isLoading: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
+  const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
   const { mutate: marcarConvertido, isPending: marcando } = useMarcarConvertido()
 
   const [periodo, setPeriodo] = useState('mes')
@@ -183,14 +186,16 @@ export default function TabAgenteIA() {
   )
 
   // KPIs
-  const aguardando       = filtrados.filter((l) => isAguardando(l.status_lead))
-  const convertidos      = filtrados.filter((l) => isConvertido(l.status_lead))
-  const comMedicao       = filtrados.filter((l) => l.data_medicao_instalacao?.trim())
-  const foraLeads        = filtrados.filter((l) => isForaDoHorario(l.created_at))
-  const foraMsgs         = filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg))
-  const mensagensTotais  = filtrados.filter((l) => l.timestamp_ultima_msg).length
-  const valorTotal       = orcFiltrados.reduce((s, o) =>
-    s + (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0), 0)
+  const { aguardando, convertidos, comMedicao, foraLeads, foraMsgs, mensagensTotais, valorTotal } = useMemo(() => ({
+    aguardando:      filtrados.filter((l) => isAguardando(l.status_lead)),
+    convertidos:     filtrados.filter((l) => isConvertido(l.status_lead)),
+    comMedicao:      filtrados.filter((l) => !!l.data_medicao_instalacao?.trim()),
+    foraLeads:       filtrados.filter((l) => isForaDoHorario(l.created_at)),
+    foraMsgs:        filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg)),
+    mensagensTotais: filtrados.filter((l) => !!l.timestamp_ultima_msg).length,
+    valorTotal:      orcFiltrados.reduce((s, o) =>
+      s + (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0), 0),
+  }), [filtrados, orcFiltrados])
 
   // F3 — leads em espera
   const leadsEmEspera = useMemo(() =>
@@ -308,6 +313,24 @@ export default function TabAgenteIA() {
           <div className="border-b px-5 py-4"><div className="h-5 w-48 rounded bg-muted" /></div>
           <div className="p-5 space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-10 rounded bg-muted" />)}</div>
         </div>
+      </div>
+    )
+  }
+
+  if (errorCrm || errorOrc) {
+    return (
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-8 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+          <p className="text-sm font-medium text-destructive">Erro ao carregar dados do Agente IA.</p>
+        </div>
+        <button
+          onClick={() => { refetchCrm(); refetchOrc() }}
+          className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Tentar novamente
+        </button>
       </div>
     )
   }

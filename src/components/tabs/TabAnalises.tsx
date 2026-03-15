@@ -275,7 +275,12 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
 }
 
 function parseBRL(v: string): number {
-  return parseFloat(v.replace(/[R$\s.]/g, '').replace(',', '.')) || 0
+  const s = v.trim()
+  if (!s) return 0
+  if (s.includes('R$') || s.includes(',')) {
+    return parseFloat(s.replace(/[R$\s.]/g, '').replace(',', '.')) || 0
+  }
+  return parseFloat(s) || 0
 }
 
 function FunilAgenteIA() {

@@ -50,7 +50,7 @@ export default function Dashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
   const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
-    toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel}`)
+    toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel ?? 'sem identificação'}`)
     if (!document.hasFocus()) setUnreadCount((n) => n + 1)
   })
 
