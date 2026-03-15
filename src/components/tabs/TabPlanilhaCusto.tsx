@@ -21,8 +21,7 @@ const PERIODOS = [
   { value: 'custom', label: 'Período' },
 ]
 
-const selectClass = 'w-full rounded-lg border bg-card pl-3 pr-8 py-2.5 text-sm outline-none ring-ring focus:ring-2 cursor-pointer appearance-none'
-const dateClass = 'flex-1 min-w-[130px] rounded-lg border bg-card px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2'
+const selectClass = 'w-full rounded-lg border border-border bg-background pl-3.5 pr-8 py-2.5 text-sm font-medium text-foreground outline-none appearance-none cursor-pointer hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
 
 function loadFilters() {
   try {
@@ -57,6 +56,19 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
   useEffect(() => {
     localStorage.setItem(FILTER_KEY, JSON.stringify({ responsavel, modelo, periodo, dateFrom, dateTo, apenasComCusto }))
   }, [responsavel, modelo, periodo, dateFrom, dateTo, apenasComCusto])
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const active = document.activeElement
+      const inField = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')
+      if (e.key === '/' && !inField) {
+        e.preventDefault()
+        document.getElementById('planilha-custo-search')?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
 
   function clearFilters() {
     setSearch('')
@@ -123,6 +135,33 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
     } : null,
   ].filter(Boolean) as { label: string; onRemove: () => void }[]
 
+  function exportCSV() {
+    const headers = ['Data','Cliente','Responsável','Modelo','Tecido','Medidas','Custo Total (R$)','Custo Acab. (R$)','Custo m² (R$)','Valor Venda (R$)','Margem (%)']
+    const rows = filtered.map((o) => [
+      o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '',
+      o.cliente ?? '',
+      o.responsavel,
+      o.modelo,
+      o.tecido ?? '',
+      o.largura && o.altura ? `${o.largura} x ${o.altura}` : '',
+      o.custo_tecido ?? '',
+      o.custo_acabamento ?? '',
+      o.custo_m2 ?? '',
+      o.valor_venda ?? '',
+      o.margem != null ? o.margem.toFixed(1) : '',
+    ])
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    document.body.appendChild(a)
+    a.href = url
+    a.download = `planilha-custo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   function exportXLSX() {
     const rows = filtered.map((o) => ({
         'Data': o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '',
@@ -167,25 +206,35 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
             {filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}
           </p>
         </div>
-        <button
-          onClick={exportXLSX}
-          className="hidden md:flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-150"
-        >
-          <Download className="h-4 w-4" />
-          Exportar XLSX
-        </button>
+        <div className="hidden md:flex items-center gap-2">
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-semibold hover:bg-muted/50 hover:border-muted-foreground/40 active:scale-95 transition-all duration-150"
+          >
+            <Download className="h-4 w-4" />
+            CSV
+          </button>
+          <button
+            onClick={exportXLSX}
+            className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-150"
+          >
+            <Download className="h-4 w-4" />
+            Exportar XLSX
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col gap-3">
+      <div className="rounded-xl border bg-card shadow-sm p-4 flex flex-col gap-3">
         {/* Busca */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
+            id="planilha-custo-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar cliente, responsável, modelo..."
-            className={`w-full rounded-lg border bg-card py-2.5 pl-9 text-sm outline-none ring-ring focus:ring-2 ${search ? 'pr-8' : 'pr-10'}`}
+            className={`w-full rounded-lg border border-border bg-background py-2.5 pl-9 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${search ? 'pr-8' : 'pr-10'}`}
           />
           {search ? (
             <button
@@ -202,7 +251,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
         </div>
 
         {/* Selects + período */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2.5">
           {/* Período pills */}
           <div className="flex gap-1 rounded-lg bg-muted/60 p-1">
             {PERIODOS.map(({ value, label }) => (
@@ -230,11 +279,11 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
             {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
           </SelectField>
 
-          <div className="relative flex-1 min-w-[140px]">
+          <div className="relative flex-1 min-w-[160px]">
             <select
               value={apenasComCusto ? 'com' : 'todos'}
               onChange={(e) => setApenasComCusto(e.target.value === 'com')}
-              className={selectClass}
+              className="w-full rounded-lg border border-border bg-background pl-3.5 pr-8 py-2.5 text-sm font-medium text-foreground outline-none appearance-none cursor-pointer hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150"
             >
               <option value="com">Apenas com custo</option>
               <option value="todos">Todos os orçamentos</option>
@@ -248,9 +297,11 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
           <div className="flex flex-col gap-1.5">
             <div className="flex gap-2 items-center">
               <span className="text-xs text-muted-foreground shrink-0">De</span>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={dateClass} />
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+                className="flex-1 min-w-[130px] rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150" />
               <span className="text-xs text-muted-foreground shrink-0">até</span>
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={dateClass} />
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                className="flex-1 min-w-[130px] rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150" />
             </div>
             {dateFrom && dateTo && dateTo < dateFrom && (
               <p className="text-xs font-medium text-destructive flex items-center gap-1">

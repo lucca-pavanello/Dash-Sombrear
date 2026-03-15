@@ -13,8 +13,8 @@ interface Props {
   onClearFilters: () => void
 }
 
-const selectClass = 'w-full rounded-lg border bg-card pl-3 pr-8 py-2.5 text-sm outline-none ring-ring focus:ring-2 cursor-pointer appearance-none'
-const dateClass = 'flex-1 min-w-[130px] rounded-lg border bg-card px-3 py-2.5 text-sm outline-none ring-ring focus:ring-2'
+const selectClass = 'w-full rounded-lg border border-border bg-background pl-3.5 pr-8 py-2.5 text-sm font-medium text-foreground outline-none appearance-none cursor-pointer hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
+const dateClass = 'flex-1 min-w-[130px] rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
 
 const PERIODOS = [
   { value: 'todos', label: 'Tudo' },
@@ -78,7 +78,7 @@ export default function FiltersBar({
   ].filter(Boolean) as { label: string; onRemove: () => void }[]
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="rounded-xl border bg-card shadow-sm p-4 flex flex-col gap-3">
       {/* id para foco via atalho "/" + hint de teclado */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -87,7 +87,7 @@ export default function FiltersBar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar cliente, responsável, modelo, tecido, ambiente..."
-          className={`w-full rounded-lg border bg-card py-2.5 pl-9 text-sm outline-none ring-ring focus:ring-2 ${search ? 'pr-8' : 'pr-10'}`}
+          className={`w-full rounded-lg border border-border bg-background py-2.5 pl-9 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${search ? 'pr-8' : 'pr-10'}`}
         />
         {search ? (
           <button
@@ -103,7 +103,7 @@ export default function FiltersBar({
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2.5">
         <div className="flex gap-1 rounded-lg bg-muted/60 p-1">
           {PERIODOS.map(({ value, label }) => (
             <button
