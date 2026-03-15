@@ -69,7 +69,7 @@ function newAmbiente(nextIdRef: React.MutableRefObject<number>): Ambiente {
 }
 
 const persianaFilled = (p: Persiana) =>
-  !!(p.modelo && p.tecido && parseFloat(p.largura) > 0 && parseFloat(p.altura) > 0)
+  !!(p.modelo && p.tecido && parseFloat(p.largura) > 0 && parseFloat(p.altura) > 0 && parseInt(p.quantidade) >= 1)
 
 function ambienteFilled(a: Ambiente) {
   return a.persianas.length > 0 && a.persianas.every(persianaFilled)
@@ -94,14 +94,15 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
   const nextIdRef = useRef(1)
+  const draftRef = useRef(loadDraft())
   // Sync nextIdRef to max id in loaded draft to avoid id collisions
   useEffect(() => {
     const allIds = ambientes.flatMap(a => [a.id, ...a.persianas.map(p => p.id)])
     if (allIds.length > 0) nextIdRef.current = Math.max(...allIds) + 1
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const [form, setForm] = useState<FormState>(() => loadDraft()?.form ?? INITIAL_FORM)
-  const [ambientes, setAmbientes] = useState<Ambiente[]>(() => loadDraft()?.ambientes ?? [newAmbiente(nextIdRef)])
+  const [form, setForm] = useState<FormState>(() => draftRef.current?.form ?? INITIAL_FORM)
+  const [ambientes, setAmbientes] = useState<Ambiente[]>(() => draftRef.current?.ambientes ?? [newAmbiente(nextIdRef)])
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [resetCountdown, setResetCountdown] = useState<number | null>(null)
@@ -176,14 +177,15 @@ export default function TabCotacao() {
       const lastP = a.persianas[a.persianas.length - 1]
       const novo = lastP ? copyPersiana(lastP, nextIdRef) : newPersiana(nextIdRef)
       // Scroll to new persiana after render
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         newPersianaRefs.current[novo.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      }, 50)
+      })
       return { ...a, persianas: [...a.persianas, novo] }
     }))
   }
 
   function removePersiana(ambienteId: number, persianaId: number) {
+    delete newPersianaRefs.current[persianaId]
     setAmbientes(prev => prev.map(a =>
       a.id === ambienteId
         ? { ...a, persianas: a.persianas.filter(p => p.id !== persianaId) }

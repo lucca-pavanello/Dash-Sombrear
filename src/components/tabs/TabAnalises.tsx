@@ -277,7 +277,9 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
 function parseBRL(v: string): number {
   const s = v.trim()
   if (!s) return 0
-  if (s.includes('R$') || s.includes(',')) {
+  // BRL format: has R$ symbol, or ends with comma followed by 1-2 digits (decimal separator)
+  const isBRL = s.includes('R$') || /,\d{1,2}$/.test(s.replace(/[R$\s]/g, ''))
+  if (isBRL) {
     return parseFloat(s.replace(/[R$\s.]/g, '').replace(',', '.')) || 0
   }
   return parseFloat(s) || 0

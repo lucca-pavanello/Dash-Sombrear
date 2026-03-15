@@ -7,10 +7,12 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
   Clock, MessageCircle, XCircle, Circle, ChevronLeft,
-  RefreshCw, AlertCircle,
+  AlertCircle,
 } from 'lucide-react'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
+import { useToast } from '@/hooks/useToast'
+import Toaster from '@/components/ui/Toaster'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 const HORA_INICIO = 8
@@ -148,6 +150,7 @@ export default function TabAgenteIA() {
   const { data: leads = [], isLoading: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
   const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
   const { mutate: marcarConvertido, isPending: marcando } = useMarcarConvertido()
+  const { toasts, toast, dismiss } = useToast()
 
   const [periodo, setPeriodo] = useState('mes')
   const [leadSort, setLeadSort] = useState<LeadSort>({ key: 'created_at', dir: 'desc' })
@@ -317,23 +320,6 @@ export default function TabAgenteIA() {
     )
   }
 
-  if (errorCrm || errorOrc) {
-    return (
-      <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-8 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-          <p className="text-sm font-medium text-destructive">Erro ao carregar dados do Agente IA.</p>
-        </div>
-        <button
-          onClick={() => { refetchCrm(); refetchOrc() }}
-          className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Tentar novamente
-        </button>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-5">
@@ -378,6 +364,15 @@ export default function TabAgenteIA() {
       </div>
 
       {/* ── Tabela de Leads ── */}
+      {errorCrm && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 mb-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-sm text-destructive">Erro ao carregar leads do CRM.</p>
+          </div>
+          <button onClick={() => refetchCrm()} className="text-xs text-destructive underline hover:no-underline">Tentar novamente</button>
+        </div>
+      )}
       <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
@@ -501,7 +496,11 @@ export default function TabAgenteIA() {
                                 confirmId === lead.id ? (
                                   <div className="flex items-center gap-1">
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); marcarConvertido(lead.id); setConfirmId(null) }}
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        marcarConvertido(lead.id, { onError: () => toast('error', 'Erro ao marcar como convertido.') })
+                                        setConfirmId(null)
+                                      }}
                                       disabled={marcando}
                                       className="rounded-lg bg-green-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-60 transition-colors"
                                     >
@@ -614,7 +613,11 @@ export default function TabAgenteIA() {
                             mobileConfirmId === lead.id ? (
                               <div className="flex items-center gap-1">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); marcarConvertido(lead.id); setMobileConfirmId(null) }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    marcarConvertido(lead.id, { onError: () => toast('error', 'Erro ao marcar como convertido.') })
+                                    setMobileConfirmId(null)
+                                  }}
                                   disabled={marcando}
                                   className="rounded-lg bg-green-500 px-2 py-0.5 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-60 transition-colors"
                                 >
@@ -697,6 +700,15 @@ export default function TabAgenteIA() {
       </div>
 
       {/* ── Tabela de Orçamentos IA ── */}
+      {errorOrc && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 mb-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-sm text-destructive">Erro ao carregar orçamentos do Agente IA.</p>
+          </div>
+          <button onClick={() => refetchOrc()} className="text-xs text-destructive underline hover:no-underline">Tentar novamente</button>
+        </div>
+      )}
       <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-2">
@@ -816,6 +828,7 @@ export default function TabAgenteIA() {
           </>
         )}
       </div>
+      <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }

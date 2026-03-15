@@ -66,7 +66,7 @@ function KPIGrid({ data }: Props) {
 
   function saveMeta() {
     const val = Number(metaInput.replace(/\D/g, ''))
-    if (!metaInput.trim() || isNaN(val)) { setEditingMeta(false); return }
+    if (!metaInput.trim() || isNaN(val) || val === 0) { setEditingMeta(false); return }
     setMeta(val)
     localStorage.setItem(META_KEY, String(val))
     setEditingMeta(false)
