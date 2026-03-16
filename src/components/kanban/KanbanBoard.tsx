@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   DndContext,
   DragOverlay,
+  DragOverEvent,
   PointerSensor,
   TouchSensor,
   useSensor,
@@ -11,62 +12,88 @@ import {
 } from '@dnd-kit/core'
 import { useDroppable } from '@dnd-kit/core'
 import type { Orcamento } from '@/lib/supabase'
-import { KANBAN_COLUMNS, getKanbanStatus, type KanbanStatus } from '@/lib/kanban'
+import { KANBAN_COLUMNS, getKanbanStatus, type KanbanStatus, type KanbanColumn } from '@/lib/kanban'
 import { useUpdateKanbanStatus } from '@/hooks/useKanban'
 import KanbanCard, { KanbanCardContent } from './KanbanCard'
 import EditOrcamentoForm from '@/components/orcamentos/EditOrcamentoForm'
-import { cn } from '@/lib/utils'
-import { formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
+
+// ── Coluna ───────────────────────────────────────────────────────────────────
 
 function KanbanColumn({
   col,
   items,
-  onCardClick,
+  onEdit,
+  showGhost,
 }: {
-  col: typeof KANBAN_COLUMNS[number]
+  col: KanbanColumn
   items: Orcamento[]
-  onCardClick: (o: Orcamento) => void
+  onEdit: (o: Orcamento) => void
+  showGhost: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id })
 
   const total = items.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
 
   return (
-    <div className="flex flex-col min-w-[260px] w-full">
-      {/* Column header */}
-      <div className={cn('mb-2 flex items-center justify-between rounded-lg px-3 py-2', col.headerClass)}>
+    <div className="flex min-w-[230px] flex-1 flex-col">
+      {/* Cabeçalho da coluna */}
+      <div className="mb-2 flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider">{col.label}</span>
-          <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white/30 dark:bg-black/20 px-1.5 text-[10px] font-bold">
+          {/* Dot colorido */}
+          <span className={cn('h-2 w-2 rounded-full', col.accent)} />
+          <span className={cn('text-sm font-bold', col.textColor)}>{col.label}</span>
+          <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums', col.countBg)}>
             {items.length}
           </span>
         </div>
-        {total > 0 && (
-          <span className="text-[10px] font-semibold opacity-80">{formatCurrency(total)}</span>
-        )}
+        {/* Total sempre visível */}
+        <span className="text-[11px] font-semibold text-muted-foreground tabular-nums">
+          {total > 0 ? formatCurrency(total) : '—'}
+        </span>
       </div>
 
-      {/* Drop zone */}
+      {/* Corpo da coluna (Trello-style: fundo sólido suave) */}
       <div
         ref={setNodeRef}
         className={cn(
-          'flex flex-col gap-2 rounded-xl border-2 border-dashed p-2 min-h-[120px] transition-colors duration-150',
-          col.colorClass,
-          isOver && 'bg-primary/5 border-primary/40',
+          'flex flex-1 flex-col gap-2 rounded-2xl p-2 transition-colors duration-150',
+          'bg-slate-100 dark:bg-slate-800/50',
+          'min-h-[160px]',
+          isOver && 'bg-primary/8 dark:bg-primary/10',
         )}
       >
         {items.map(o => (
-          <KanbanCard key={o.id} orcamento={o} onClick={onCardClick} />
+          <KanbanCard
+            key={o.id}
+            orcamento={o}
+            colIsAtRisk={col.isAtRisk}
+            onEdit={onEdit}
+          />
         ))}
-        {items.length === 0 && (
-          <div className="flex flex-1 items-center justify-center py-6">
-            <p className="text-xs text-muted-foreground/40 italic">Arraste um card aqui</p>
+
+        {/* Ghost placeholder — indica onde o card vai cair */}
+        {showGhost && (
+          <div className={cn(
+            'h-[108px] rounded-2xl border-2 border-dashed transition-all duration-150',
+            col.isAtRisk
+              ? 'border-primary/40 bg-primary/5'
+              : 'border-muted-foreground/30 bg-muted/20',
+          )} />
+        )}
+
+        {/* Estado vazio (sem ghost) */}
+        {items.length === 0 && !showGhost && (
+          <div className="flex flex-1 items-center justify-center py-8">
+            <p className="text-xs text-muted-foreground/35 italic select-none">Vazio</p>
           </div>
         )}
       </div>
     </div>
   )
 }
+
+// ── Board ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   data: Orcamento[]
@@ -75,13 +102,13 @@ interface Props {
 
 export default function KanbanBoard({ data, toast }: Props) {
   const [activeOrcamento, setActiveOrcamento] = useState<Orcamento | null>(null)
+  const [overColumnId, setOverColumnId] = useState<KanbanStatus | null>(null)
   const [editing, setEditing] = useState<Orcamento | null>(null)
   const { mutate: updateKanban } = useUpdateKanbanStatus()
 
-  // Sensors: pointer (desktop) + touch (mobile), com delay para não conflitar com scroll
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   )
 
   const columns = KANBAN_COLUMNS.map(col => ({
@@ -94,9 +121,15 @@ export default function KanbanBoard({ data, toast }: Props) {
     if (o) setActiveOrcamento(o)
   }
 
+  function handleDragOver(event: DragOverEvent) {
+    const colId = event.over?.id as KanbanStatus | null
+    setOverColumnId(colId ?? null)
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     setActiveOrcamento(null)
+    setOverColumnId(null)
     if (!over) return
 
     const newStatus = over.id as KanbanStatus
@@ -112,23 +145,43 @@ export default function KanbanBoard({ data, toast }: Props) {
 
   return (
     <>
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {/* Horizontal scroll on mobile, grid on desktop */}
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none md:grid md:grid-cols-4">
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Grid igual nas 4 colunas — scroll horizontal no mobile */}
+        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-none md:grid md:grid-cols-4 md:gap-4">
           {columns.map(col => (
             <KanbanColumn
               key={col.id}
               col={col}
               items={col.items}
-              onCardClick={setEditing}
+              onEdit={setEditing}
+              showGhost={
+                overColumnId === col.id &&
+                !!activeOrcamento &&
+                getKanbanStatus(activeOrcamento) !== col.id
+              }
             />
           ))}
         </div>
 
-        <DragOverlay dropAnimation={null}>
+        {/* Card flutuante durante o drag */}
+        <DragOverlay
+          dropAnimation={{
+            duration: 180,
+            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          }}
+        >
           {activeOrcamento && (
-            <div className="w-[260px]">
-              <KanbanCardContent orcamento={activeOrcamento} overlay />
+            <div className="w-[230px] md:w-full">
+              <KanbanCardContent
+                orcamento={activeOrcamento}
+                colIsAtRisk={false}
+                overlay
+              />
             </div>
           )}
         </DragOverlay>

@@ -19,3 +19,6 @@ export const ORCS_PAGE_SIZE = 20;
 export const HORA_INICIO = 8;
 export const HORA_FIM = 18;
 export const ESPERA_HORAS = 2;
+
+// Kanban — dias sem movimentação para acionar alerta de follow-up
+export const FOLLOWUP_DIAS = 7;
