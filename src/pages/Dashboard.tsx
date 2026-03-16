@@ -40,6 +40,11 @@ export default function Dashboard() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [profileModalOpen, setProfileModalOpen] = useState(false)
 
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => {
+    const initial = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
+    return new Set([VALID_TABS.includes(initial) ? initial : DEFAULT_TAB])
+  })
+
   // — router —
   const navigate = useNavigate()
   const location = useLocation()
@@ -106,6 +111,35 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [activeTab])
 
+  useEffect(() => {
+    setMountedTabs(prev => {
+      if (prev.has(activeTab)) return prev
+      return new Set([...prev, activeTab])
+    })
+  }, [activeTab])
+
+  useEffect(() => {
+    const preload = () => {
+      // Força o download dos chunks lazy das abas mais usadas
+      import('@/components/tabs/TabOrcamentos')
+      import('@/components/tabs/TabPlanilha')
+      import('@/components/tabs/TabCotacao')
+      import('@/components/tabs/TabAgenteIA')
+      import('@/components/tabs/TabAnalises')
+      import('@/components/tabs/TabCalculoCusto')
+      import('@/components/tabs/TabPlanilhaCusto')
+      import('@/components/admin/PainelAdmin')
+    }
+    if ('requestIdleCallback' in window) {
+      const id = (window as Window & { requestIdleCallback: (cb: () => void, opts?: object) => number })
+        .requestIdleCallback(preload, { timeout: 3000 })
+      return () => (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id)
+    } else {
+      const t = setTimeout(preload, 2000)
+      return () => clearTimeout(t)
+    }
+  }, [])
+
   const TABS = useMemo(() => [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'planilha', label: 'Planilha Orçamento', icon: Table2, badge: 0 },
@@ -116,6 +150,15 @@ export default function Dashboard() {
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
   ], [isAdmin, pendingCount])
+
+  function TabSkeleton() {
+    return (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        <SkeletonCard /><SkeletonCard /><SkeletonCard />
+        <SkeletonCard /><SkeletonCard /><SkeletonCard />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -194,7 +237,7 @@ export default function Dashboard() {
               onClick={() => handleTabChange(id)}
               title={label}
               className={cn(
-                'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 whitespace-nowrap active:scale-95',
+                'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95',
                 activeTab === id
                   ? 'bg-card text-primary shadow-elevated'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
@@ -214,18 +257,64 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <Suspense fallback={<div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6"><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>}>
-          <div key={activeTab} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
-            {activeTab === 'planilha' && <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />}
-            {activeTab === 'planilha-custo' && <TabPlanilhaCusto data={orcamentos} loading={isLoading} />}
-            {activeTab === 'orcamentos' && <TabOrcamentos data={orcamentos} loading={isLoading} />}
-            {activeTab === 'analises' && <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />}
-            {activeTab === 'agente-ia' && <TabAgenteIA />}
-            {activeTab === 'calcular-orcamento' && <TabCotacao />}
-            {activeTab === 'calculo-custo' && <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />}
-            {activeTab === 'admin' && isAdmin && <PainelAdmin toast={toast} />}
-          </div>
-        </Suspense>
+        <div>
+          {mountedTabs.has('calcular-orcamento') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'calcular-orcamento' ? 'tab-active' : 'tab-hidden'}>
+                <TabCotacao />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('planilha') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'planilha' ? 'tab-active' : 'tab-hidden'}>
+                <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('agente-ia') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'agente-ia' ? 'tab-active' : 'tab-hidden'}>
+                <TabAgenteIA />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('orcamentos') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'orcamentos' ? 'tab-active' : 'tab-hidden'}>
+                <TabOrcamentos data={orcamentos} loading={isLoading} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('planilha-custo') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'planilha-custo' ? 'tab-active' : 'tab-hidden'}>
+                <TabPlanilhaCusto data={orcamentos} loading={isLoading} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('calculo-custo') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'calculo-custo' ? 'tab-active' : 'tab-hidden'}>
+                <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('analises') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'analises' ? 'tab-active' : 'tab-hidden'}>
+                <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('admin') && isAdmin && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'admin' ? 'tab-active' : 'tab-hidden'}>
+                <PainelAdmin toast={toast} />
+              </div>
+            </Suspense>
+          )}
+        </div>
       </main>
 
       {profileModalOpen && profile && (

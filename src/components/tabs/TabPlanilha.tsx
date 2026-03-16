@@ -117,6 +117,7 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
           responsaveis={responsaveis}
           modelos={modelos}
           onClearFilters={clearFilters}
+          storageKey="sombrear-filters-open-planilha"
         />
 
         <OrcamentosTable

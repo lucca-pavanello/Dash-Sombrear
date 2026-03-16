@@ -47,14 +47,14 @@ function KPIGrid({ data }: Props) {
     return { fechados, emAberto, totalVenda, totalInst, faturamento, totalOrc, ticketMedio, convRate, valorEmAberto, comMargem, margemMedia, emRisco, valorEmRisco }
   }, [data])
 
-  const animFaturamento = useCountUp(faturamento, 950)
-  const animFechados = useCountUp(fechados.length, 750)
-  const animTotalOrc = useCountUp(totalOrc, 700)
-  const animTicket = useCountUp(ticketMedio, 900)
-  const animConv = useCountUp(convRate, 800)
-  const animMargem = useCountUp(margemMedia ?? 0, margemMedia != null ? 850 : 0)
-  const animEmAberto = useCountUp(valorEmAberto, 900)
-  const animEmRisco = useCountUp(emRisco.length, 800)
+  const animFaturamento = useCountUp(faturamento, 600)
+  const animFechados = useCountUp(fechados.length, 480)
+  const animTotalOrc = useCountUp(totalOrc, 450)
+  const animTicket = useCountUp(ticketMedio, 580)
+  const animConv = useCountUp(convRate, 500)
+  const animMargem = useCountUp(margemMedia ?? 0, margemMedia != null ? 540 : 0)
+  const animEmAberto = useCountUp(valorEmAberto, 580)
+  const animEmRisco = useCountUp(emRisco.length, 500)
 
   const [meta, setMeta] = useState(() => {
     const saved = localStorage.getItem(META_KEY)
@@ -78,7 +78,7 @@ function KPIGrid({ data }: Props) {
   }
 
   const metaPct = meta > 0 ? Math.min((faturamento / meta) * 100, 100) : 0
-  const animMetaPct = useCountUp(metaPct, 1100)
+  const animMetaPct = useCountUp(metaPct, 700)
 
   const { data: monthly } = useMonthlyComparison()
   const pctChange = monthly && monthly.previousMonth > 0

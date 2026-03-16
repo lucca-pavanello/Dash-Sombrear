@@ -114,4 +114,18 @@
   .no-transition * {
     transition: none !important;
   }
+
+  /* ── Tab panel visibility — mount-once, CSS-hide ── */
+  .tab-hidden {
+    display: none;
+  }
+
+  .tab-active {
+    animation: tab-fade 120ms ease-out;
+  }
+
+  @keyframes tab-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
 }
