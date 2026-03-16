@@ -1,4 +1,4 @@
-export type Periodo = 'semana' | 'mes' | 'ano' | 'tudo' | 'todos';
+export type Periodo = 'semana' | 'mes' | 'ano' | 'tudo' | 'todos' | 'hoje' | 'custom';
 
 export function filterByPeriod<T>(
   items: T[],

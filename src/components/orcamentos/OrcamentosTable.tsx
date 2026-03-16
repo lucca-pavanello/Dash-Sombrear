@@ -89,21 +89,26 @@ function formatDate(iso: string) {
 }
 
 function exportCSV(data: Orcamento[]) {
-  const headers = ['#', 'Data', 'Cliente', 'Telefone', 'Responsável', 'Ambiente', 'Modelo', 'Tecido', 'Qtd', 'Valor', 'Instalação', 'Fechado']
-  const rows = data.map((o, i) => [
-    i + 1,
-    formatDate(o.created_at),
-    o.cliente ?? '',
-    o.telefone ?? '',
-    o.responsavel,
-    o.ambiente ?? '',
-    o.modelo,
-    o.tecido,
-    o.quantidade,
-    o.valor_venda ?? '',
-    o.instacao ?? '',
-    o.fechado ? 'Sim' : 'Não',
-  ])
+  const headers = ['#', 'Data', 'Cliente', 'Telefone', 'Responsável', 'Ambiente', 'Modelo', 'Tecido', 'Qtd', 'Valor', 'Instalação', 'Custo (R$)', 'Margem (%)', 'Fechado']
+  const rows = data.map((o, i) => {
+    const m = calcMargem(o)
+    return [
+      i + 1,
+      formatDate(o.created_at),
+      o.cliente ?? '',
+      o.telefone ?? '',
+      o.responsavel,
+      o.ambiente ?? '',
+      o.modelo,
+      o.tecido,
+      o.quantidade,
+      o.valor_venda ?? '',
+      o.instacao ?? '',
+      o.custo_tecido ?? '',
+      m != null ? m.toFixed(1) : '',
+      o.fechado ? 'Sim' : 'Não',
+    ]
+  })
   const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(',')).join('\n')
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -129,6 +134,8 @@ function exportXLSX(data: Orcamento[]) {
     Quantidade: o.quantidade,
     'Valor Venda': o.valor_venda ?? '',
     'Valor Instalação': o.instacao ?? '',
+    'Custo (R$)': o.custo_tecido ?? '',
+    'Margem (%)': calcMargem(o) != null ? (calcMargem(o) as number).toFixed(1) : '',
     Fechado: o.fechado ? 'Sim' : 'Não',
     Observações: o.observacoes ?? '',
   }))
@@ -564,10 +571,24 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         {o.ambiente && <span className="mr-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{o.ambiente}</span>}
                         {o.modelo} · {o.tecido}
                       </span>
-                      {o.valor_venda
-                        ? <span className="text-sm font-bold text-primary">{formatCurrency(o.valor_venda)}</span>
-                        : <span className="text-xs text-muted-foreground">Sem valor</span>
-                      }
+                      <div className="flex flex-col items-end">
+                        {o.valor_venda
+                          ? <span className="text-sm font-bold text-primary">{formatCurrency(o.valor_venda)}</span>
+                          : <span className="text-xs text-muted-foreground">Sem valor</span>
+                        }
+                        {(() => {
+                          const m = calcMargem(o)
+                          if (m == null) return null
+                          return (
+                            <span className={cn(
+                              'text-[10px] font-semibold',
+                              m >= 30 ? 'text-primary' : m >= 15 ? 'text-muted-foreground' : 'text-destructive'
+                            )}>
+                              {m.toFixed(1)}%
+                            </span>
+                          )
+                        })()}
+                      </div>
                     </div>
                   </div>
                 )

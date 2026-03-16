@@ -27,7 +27,7 @@ const TRACKED_FIELDS: Array<{ key: string; label: string; currency?: boolean }> 
 ]
 
 function formatHistoricoDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) {
