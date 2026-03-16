@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
+import EmptyState from '@/components/shared/EmptyState'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -9,39 +10,31 @@ import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
 import EditOrcamentoForm from './EditOrcamentoForm'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
+import type { ToastType } from '@/hooks/useToast'
+
+type ToastFn = (type: ToastType, message: string, opts?: { duration?: number; undoAction?: () => void }) => void
 
 
-function FechadoCheckbox({ orcamento }: { orcamento: Orcamento }) {
+function FechadoCheckbox({ orcamento, toast }: { orcamento: Orcamento; toast: ToastFn }) {
   const { mutate: update, isPending } = useUpdateOrcamento()
-  const [showUndo, setShowUndo] = useState(false)
-  const prevFechadoRef = useRef(orcamento.fechado)
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function handleClick() {
-    const wasFechado = orcamento.fechado
-    update({ id: orcamento.id, fechado: !orcamento.fechado }, {
+    const wasFechado = !!orcamento.fechado
+    const novoEstado = !wasFechado
+    update({ id: orcamento.id, fechado: novoEstado }, {
       onSuccess: () => {
-        prevFechadoRef.current = !!wasFechado
-        setShowUndo(true)
-        if (undoTimer.current) clearTimeout(undoTimer.current)
-        undoTimer.current = setTimeout(() => setShowUndo(false), 5000)
+        if (novoEstado) {
+          toast('success', `${orcamento.cliente ?? orcamento.responsavel} — marcado como fechado`, {
+            duration: 5000,
+            undoAction: () => update({ id: orcamento.id, fechado: false }),
+          })
+        }
       },
     })
   }
 
-  function handleUndo(e: React.MouseEvent) {
-    e.stopPropagation()
-    update({ id: orcamento.id, fechado: prevFechadoRef.current })
-    setShowUndo(false)
-    if (undoTimer.current) clearTimeout(undoTimer.current)
-  }
-
-  useEffect(() => {
-    return () => { if (undoTimer.current) clearTimeout(undoTimer.current) }
-  }, [])
-
   return (
-    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+    <div onClick={(e) => e.stopPropagation()}>
       <button
         onClick={handleClick}
         disabled={isPending}
@@ -56,14 +49,6 @@ function FechadoCheckbox({ orcamento }: { orcamento: Orcamento }) {
         {orcamento.fechado ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
         {orcamento.fechado ? 'Fechado' : 'Em aberto'}
       </button>
-      {showUndo && (
-        <button
-          onClick={handleUndo}
-          className="ml-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-        >
-          ↩ Desfazer
-        </button>
-      )}
     </div>
   )
 }
@@ -217,7 +202,7 @@ type SortKey = 'created_at' | 'cliente' | 'responsavel' | 'valor_venda' | 'marge
 
 interface Props {
   data: Orcamento[]
-  toast: (type: 'success' | 'error', message: string) => void
+  toast: ToastFn
   isFiltered?: boolean
   search?: string
   onClearFilters?: () => void
@@ -357,25 +342,12 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
         </div>
 
         {data.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/60">
-              <FileX className="h-7 w-7 text-muted-foreground/50" />
-            </div>
-            <p className="text-sm font-semibold text-foreground">
-              {isFiltered ? 'Nenhum resultado encontrado' : 'Nenhum orçamento ainda'}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {isFiltered ? 'Tente ajustar ou limpar os filtros' : 'Clique em "+ Novo Orçamento" para começar'}
-            </p>
-            {isFiltered && onClearFilters && (
-              <button
-                onClick={onClearFilters}
-                className="mt-4 rounded-lg bg-muted px-4 py-2 text-xs font-medium hover:bg-muted/80 transition-colors"
-              >
-                Limpar todos os filtros
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={FileX}
+            title={isFiltered ? 'Nenhum resultado encontrado' : 'Nenhum orçamento ainda'}
+            description={isFiltered ? 'Tente ajustar ou limpar os filtros' : 'Clique em "+ Novo Orçamento" para começar'}
+            action={isFiltered && onClearFilters ? { label: 'Limpar todos os filtros', onClick: onClearFilters } : undefined}
+          />
         ) : (
           <>
             <div className="hidden md:block overflow-auto max-h-[70vh]">
@@ -509,7 +481,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                           )}
                         </td>
                         {/* sticky right */}
-                        <td className="px-4 py-3" style={{ position: 'sticky', right: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '-4px 0 6px -2px rgba(0,0,0,0.12)' }}><FechadoCheckbox orcamento={o} /></td>
+                        <td className="px-4 py-3" style={{ position: 'sticky', right: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '-4px 0 6px -2px rgba(0,0,0,0.12)' }}><FechadoCheckbox orcamento={o} toast={toast} /></td>
                       </tr>
                     )
                   })}
@@ -563,7 +535,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         </p>
                       </div>
                       <div className="ml-2 shrink-0">
-                                        <FechadoCheckbox orcamento={o} />
+                                        <FechadoCheckbox orcamento={o} toast={toast} />
                       </div>
                     </div>
                     <div className="flex items-center justify-between pl-8">

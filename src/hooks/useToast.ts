@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react'
 
-type ToastType = 'success' | 'error'
+export type ToastType = 'success' | 'error' | 'info'
 
-interface Toast {
+export interface Toast {
   id: number
   type: ToastType
   message: string
+  duration: number
+  undoAction?: () => void
 }
 
 let idCounter = 0
@@ -13,12 +15,17 @@ let idCounter = 0
 export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const toast = useCallback((type: ToastType, message: string) => {
+  const toast = useCallback((
+    type: ToastType,
+    message: string,
+    opts?: { duration?: number; undoAction?: () => void },
+  ) => {
     const id = ++idCounter
-    setToasts((prev) => [...prev, { id, type, message }])
+    const duration = opts?.duration ?? 3500
+    setToasts((prev) => [...prev, { id, type, message, duration, undoAction: opts?.undoAction }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 3500)
+    }, duration)
   }, [])
 
   const dismiss = useCallback((id: number) => {

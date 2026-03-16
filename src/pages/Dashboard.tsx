@@ -1,12 +1,15 @@
 import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt, Kanban } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useProfile, usePendingCount } from '@/hooks/useProfile'
 import { useToast } from '@/hooks/useToast'
+import { useCommandPalette } from '@/hooks/useCommandPalette'
 import Toaster from '@/components/ui/Toaster'
+import GlobalStatusBar from '@/components/shared/GlobalStatusBar'
+import CommandPalette from '@/components/shared/CommandPalette'
 import EditProfileModal from '@/components/profile/EditProfileModal'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import SkeletonCard from '@/components/shared/SkeletonCard'
@@ -14,7 +17,6 @@ import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
 const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
-const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
 const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
 const TabAgenteIA     = lazy(() => import('@/components/tabs/TabAgenteIA'))
 const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
@@ -23,14 +25,13 @@ const TabPlanilhaCusto= lazy(() => import('@/components/tabs/TabPlanilhaCusto'))
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'agente-ia', 'orcamentos', 'kanban', 'planilha-custo', 'calculo-custo', 'admin', 'analises']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'agente-ia', 'orcamentos', 'planilha-custo', 'calculo-custo', 'admin', 'analises']
 const DEFAULT_TAB = 'calcular-orcamento'
 const TAB_LABELS: Record<string, string> = {
   'calcular-orcamento': 'Calcular Orçamento',
   'planilha': 'Planilha Orçamento',
   'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
-  'kanban': 'Kanban',
   'planilha-custo': 'Planilha de Custo',
   'calculo-custo': 'Custo',
   'admin': 'Usuários',
@@ -54,6 +55,7 @@ export default function Dashboard() {
   // — dados e tema —
   const { isDark, toggle } = useTheme()
   const { toasts, toast, dismiss } = useToast()
+  const { open: paletteOpen, setOpen: setPaletteOpen, close: closePalette } = useCommandPalette()
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
   const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
@@ -126,7 +128,6 @@ export default function Dashboard() {
     const preload = () => {
       // Força o download dos chunks lazy das abas mais usadas
       import('@/components/tabs/TabOrcamentos')
-      import('@/components/tabs/TabKanban')
       import('@/components/tabs/TabPlanilha')
       import('@/components/tabs/TabCotacao')
       import('@/components/tabs/TabAgenteIA')
@@ -150,7 +151,6 @@ export default function Dashboard() {
     { id: 'planilha', label: 'Planilha Orçamento', icon: Table2, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
-    { id: 'kanban', label: 'Kanban', icon: Kanban, badge: 0 },
     { id: 'planilha-custo', label: 'Planilha de Custo', icon: Receipt, badge: 0 },
     { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
@@ -181,6 +181,16 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Busca global Cmd+K */}
+            <button
+              onClick={() => setPaletteOpen(true)}
+              className="hidden sm:flex items-center gap-2 rounded-lg border border-border/60 bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-150 mr-1"
+              title="Busca global (Ctrl+K)"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span>Buscar...</span>
+              <kbd className="hidden md:flex h-4 items-center rounded border border-border bg-background px-1 text-[9px] font-mono">⌘K</kbd>
+            </button>
             <span className="hidden sm:block mr-1 text-xs text-muted-foreground tabular-nums">
               {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
             </span>
@@ -233,6 +243,8 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      <GlobalStatusBar orcamentos={orcamentos} />
 
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
@@ -292,13 +304,6 @@ export default function Dashboard() {
               </div>
             </Suspense>
           )}
-          {mountedTabs.has('kanban') && (
-            <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'kanban' ? 'tab-active' : 'tab-hidden'}>
-                <TabKanban data={orcamentos} loading={isLoading} toast={toast} />
-              </div>
-            </Suspense>
-          )}
           {mountedTabs.has('planilha-custo') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'planilha-custo' ? 'tab-active' : 'tab-hidden'}>
@@ -338,6 +343,8 @@ export default function Dashboard() {
           toast={toast}
         />
       )}
+
+      <CommandPalette open={paletteOpen} onClose={closePalette} orcamentos={orcamentos} />
 
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>

@@ -7,6 +7,7 @@ import OrcamentosTable from '@/components/orcamentos/OrcamentosTable'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
 import FiltersBar from '@/components/orcamentos/FiltersBar'
 import SkeletonCard from '@/components/shared/SkeletonCard'
+import type { ToastType } from '@/hooks/useToast'
 
 const FILTER_KEY = 'sombrear-planilha-filters'
 
@@ -20,7 +21,7 @@ function loadFilters() {
 interface Props {
   data: Orcamento[]
   loading: boolean
-  toast: (type: 'success' | 'error', message: string) => void
+  toast: (type: ToastType, message: string, opts?: { duration?: number; undoAction?: () => void }) => void
 }
 
 export default function TabPlanilha({ data, loading, toast }: Props) {

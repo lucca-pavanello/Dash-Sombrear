@@ -85,6 +85,11 @@
     100% { background-color: transparent; }
   }
 
+  @keyframes toast-shrink {
+    from { width: 100%; }
+    to   { width: 0%; }
+  }
+
   @keyframes fab-pulse {
     0%   { box-shadow: 0 4px 24px -4px rgba(232,112,26,0.35), 0 0 0 0 rgba(232,112,26,0.4); }
     60%  { box-shadow: 0 4px 24px -4px rgba(232,112,26,0.35), 0 0 0 14px rgba(232,112,26,0); }
