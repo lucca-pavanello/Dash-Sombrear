@@ -13,7 +13,11 @@ export function filterByPeriod<T>(
     const raw = getDate(item);
     if (!raw) return false;
     const d = new Date(raw);
-    if (periodo === 'hoje') return d.toDateString() === now.toDateString();
+    if (periodo === 'hoje') return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth()    === now.getMonth()    &&
+      d.getDate()     === now.getDate()
+    );
     if (periodo === 'semana') {
       const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
       return diff >= 0 && diff <= 7;

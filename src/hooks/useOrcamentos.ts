@@ -41,7 +41,11 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
       if (destroyed) return
       const userId = authData.user?.id ?? null
       currentUserIdRef.current = userId
-      const filter = userId ? `user_id=eq.${userId}` : undefined
+
+      // Não abre subscription sem userId — evita escutar dados de todos os usuários
+      if (!userId) return
+
+      const filter = `user_id=eq.${userId}`
 
       channel = supabase
         .channel('orcamentos-realtime')
@@ -51,7 +55,7 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
             event: '*',
             schema: 'public',
             table: 'orcamentos',
-            ...(filter ? { filter } : {}),
+            filter,
           },
           (payload) => {
             // Client-side fallback check (belt-and-suspenders)

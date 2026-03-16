@@ -51,6 +51,9 @@ async function fetchModelosTecidos(): Promise<ModelosTecidos> {
 
   // Linha 0 = nomes dos modelos (cabeçalho)
   const headers = rows[0]
+  if (headers.every(h => h === '')) {
+    throw new Error('Planilha sem cabeçalhos — verifique se a estrutura da aba está correta (linha 1 = nomes dos modelos)')
+  }
   const dataRows = rows.slice(1)
 
   const modelos = headers.filter((h) => h.length > 0)

@@ -13,13 +13,9 @@ import SkeletonCard from '@/components/shared/SkeletonCard'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
+import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE } from '@/lib/constants'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
-const HORA_INICIO = 8
-const HORA_FIM = 18
-const ESPERA_HORAS = 2
-const LEADS_PAGE_SIZE = 20
-const ORCS_PAGE_SIZE = 20
 
 function formatWaNumber(whatsapp: string): string {
   const digits = whatsapp.replace(/\D/g, '')

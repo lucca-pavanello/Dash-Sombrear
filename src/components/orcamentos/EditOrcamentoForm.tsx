@@ -33,7 +33,7 @@ function formatHistoricoDate(iso: string) {
 export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) {
   const { mutateAsync: update, isPending: isUpdating } = useUpdateOrcamento()
   const { mutateAsync: remove, isPending: isDeleting } = useDeleteOrcamento()
-  const { mutate: addHistorico } = useAddHistorico()
+  const { mutateAsync: addHistorico } = useAddHistorico()
   const { data: historico } = useOrcamentoHistorico(orcamento.id)
   const userEditedDimensions = useRef(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -191,12 +191,18 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
         ambiente: form.ambiente || null,
         margem,
       })
-      addHistorico({ orcamento_id: orcamento.id, snapshot: updated as object })
+      try {
+        await addHistorico({ orcamento_id: orcamento.id, snapshot: updated as object })
+      } catch {
+        // Falha no histórico não bloqueia o save — apenas loga silenciosamente
+        console.warn('[EditOrcamentoForm] falha ao salvar histórico')
+      }
       toast('success', 'Orçamento atualizado!')
       onClose()
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
       console.error('[EditOrcamentoForm] handleSubmit error:', err)
-      toast('error', 'Erro ao atualizar orçamento.')
+      toast('error', `Erro ao atualizar orçamento: ${msg}`)
     }
   }
 

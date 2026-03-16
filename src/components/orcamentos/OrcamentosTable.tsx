@@ -8,8 +8,7 @@ import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
 import EditOrcamentoForm from './EditOrcamentoForm'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
-
-const PAGE_SIZE = 50
+import { PAGE_SIZE } from '@/lib/constants'
 
 
 function FechadoCheckbox({ orcamento }: { orcamento: Orcamento }) {

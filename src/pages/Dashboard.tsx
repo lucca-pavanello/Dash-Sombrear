@@ -114,9 +114,11 @@ export default function Dashboard() {
   useEffect(() => {
     setMountedTabs(prev => {
       if (prev.has(activeTab)) return prev
+      // Não monta a aba admin enquanto o perfil está carregando ou se não for admin
+      if (activeTab === 'admin' && (profileLoading || !isAdmin)) return prev
       return new Set([...prev, activeTab])
     })
-  }, [activeTab])
+  }, [activeTab, isAdmin, profileLoading])
 
   useEffect(() => {
     const preload = () => {
