@@ -31,4 +31,6 @@ export type Orcamento = {
   ambiente?: string | null
   user_id?: string | null
   updated_at?: string | null
+  kanban_status?: 'em_aberto' | 'negociando' | 'fechado' | 'perdido' | null
+  share_enabled?: boolean | null
 }

@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js'
 import Dashboard from '@/pages/Dashboard'
 import Login from '@/pages/Login'
 import ResetPassword from '@/pages/ResetPassword'
+import OrcamentoPublico from '@/pages/OrcamentoPublico'
 import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
 function AppRoutes({ session }: { session: Session }) {
@@ -63,6 +64,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Rota pública — não requer autenticação */}
+        <Route path="/orcamento/:id" element={<OrcamentoPublico />} />
         <Route path="/login" element={session ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/*" element={session ? <AppRoutes session={session} /> : <Navigate to="/login" replace />} />

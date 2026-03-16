@@ -1,6 +1,6 @@
 import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt, Kanban } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 
 const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
+const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
 const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
 const TabAgenteIA     = lazy(() => import('@/components/tabs/TabAgenteIA'))
 const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
@@ -22,13 +23,14 @@ const TabPlanilhaCusto= lazy(() => import('@/components/tabs/TabPlanilhaCusto'))
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'agente-ia', 'orcamentos', 'planilha-custo', 'calculo-custo', 'admin', 'analises']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'agente-ia', 'orcamentos', 'kanban', 'planilha-custo', 'calculo-custo', 'admin', 'analises']
 const DEFAULT_TAB = 'calcular-orcamento'
 const TAB_LABELS: Record<string, string> = {
   'calcular-orcamento': 'Calcular Orçamento',
   'planilha': 'Planilha Orçamento',
   'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
+  'kanban': 'Kanban',
   'planilha-custo': 'Planilha de Custo',
   'calculo-custo': 'Custo',
   'admin': 'Usuários',
@@ -124,6 +126,7 @@ export default function Dashboard() {
     const preload = () => {
       // Força o download dos chunks lazy das abas mais usadas
       import('@/components/tabs/TabOrcamentos')
+      import('@/components/tabs/TabKanban')
       import('@/components/tabs/TabPlanilha')
       import('@/components/tabs/TabCotacao')
       import('@/components/tabs/TabAgenteIA')
@@ -147,6 +150,7 @@ export default function Dashboard() {
     { id: 'planilha', label: 'Planilha Orçamento', icon: Table2, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
+    { id: 'kanban', label: 'Kanban', icon: Kanban, badge: 0 },
     { id: 'planilha-custo', label: 'Planilha de Custo', icon: Receipt, badge: 0 },
     { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
@@ -285,6 +289,13 @@ export default function Dashboard() {
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'orcamentos' ? 'tab-active' : 'tab-hidden'}>
                 <TabOrcamentos data={orcamentos} loading={isLoading} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('kanban') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'kanban' ? 'tab-active' : 'tab-hidden'}>
+                <TabKanban data={orcamentos} loading={isLoading} toast={toast} />
               </div>
             </Suspense>
           )}

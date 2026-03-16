@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link } from 'lucide-react'
 import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHistorico } from '@/hooks/useOrcamentos'
+import { useToggleShare } from '@/hooks/useKanban'
 import type { Orcamento } from '@/lib/supabase'
 import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
+import { resolveKanbanOnSave } from '@/lib/kanban'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -34,11 +36,13 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   const { mutateAsync: update, isPending: isUpdating } = useUpdateOrcamento()
   const { mutateAsync: remove, isPending: isDeleting } = useDeleteOrcamento()
   const { mutateAsync: addHistorico } = useAddHistorico()
+  const { mutateAsync: toggleShare, isPending: isTogglingShare } = useToggleShare()
   const { data: historico } = useOrcamentoHistorico(orcamento.id)
   const userEditedDimensions = useRef(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
   const [historicoOpen, setHistoricoOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -124,6 +128,22 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
     return receita > 0 && custo > 0 ? calcularMargem(receita, custo) : null
   })()
 
+  async function handleShare() {
+    const shareUrl = `${window.location.origin}/orcamento/${orcamento.id}`
+    if (!orcamento.share_enabled) {
+      try {
+        await toggleShare({ id: orcamento.id, enabled: true })
+      } catch {
+        toast('error', 'Erro ao ativar compartilhamento.')
+        return
+      }
+    }
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    }).catch(() => toast('error', 'Falha ao copiar link.'))
+  }
+
   function handleCopy() {
     const lines = [
       `*Orçamento Sombrear*`,
@@ -169,6 +189,8 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
       const margem = custoTotal != null ? calcularMargem(receita, custoTotal) : null
 
+      const kanban_status = resolveKanbanOnSave(form.fechado, orcamento.kanban_status)
+
       const updated = await update({
         id: orcamento.id,
         responsavel: form.responsavel,
@@ -190,6 +212,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
         observacoes: form.observacoes || null,
         ambiente: form.ambiente || null,
         margem,
+        kanban_status,
       })
       try {
         await addHistorico({ orcamento_id: orcamento.id, snapshot: updated as object })
@@ -243,6 +266,27 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             </p>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={isTogglingShare}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
+                orcamento.share_enabled
+                  ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                'disabled:opacity-60',
+              )}
+              title={orcamento.share_enabled ? 'Link ativo — clique para copiar' : 'Gerar link público'}
+            >
+              {copiedLink ? (
+                <><CheckIcon className="h-3.5 w-3.5 text-green-500" /><span className="text-green-600">Copiado!</span></>
+              ) : orcamento.share_enabled ? (
+                <><Link className="h-3.5 w-3.5" />Link</>
+              ) : (
+                <><Share2 className="h-3.5 w-3.5" />Compartilhar</>
+              )}
+            </button>
             <button
               type="button"
               onClick={handleCopy}
