@@ -50,22 +50,6 @@ export default function TabOrcamentos({ data, loading }: Props) {
     setSearchParams(params, { replace: true })
   }, [responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo, setSearchParams])
 
-  // Keyboard shortcut "/" to focus search input
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement).tagName.toLowerCase()
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
-      if (e.key === '/') {
-        e.preventDefault()
-        const el = document.getElementById('filter-search-input') as HTMLInputElement | null
-        el?.focus()
-        el?.select()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
   function clearFilters() {
     setSearch('')
     setResponsavel('todos')

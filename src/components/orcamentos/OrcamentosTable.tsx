@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Orcamento } from '@/lib/supabase'
-import { formatCurrency, cn, calcularMargem } from '@/lib/utils'
+import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
 import EditOrcamentoForm from './EditOrcamentoForm'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 
@@ -82,10 +82,6 @@ function Highlight({ text, query }: { text: string | null | undefined; query: st
       {safe.slice(idx + query.length)}
     </>
   )
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 function exportCSV(data: Orcamento[]) {
@@ -170,27 +166,32 @@ function exportPDF(data: Orcamento[], isFiltered: boolean) {
 
   autoTable(doc, {
     startY: 26,
-    head: [['#', 'Data', 'Cliente', 'Responsável', 'Ambiente', 'Modelo', 'Tecido', 'Qtd', 'Valor Venda', 'Instalação', 'Total', 'Fechado']],
-    body: data.map((o, i) => [
-      `#${i + 1}`,
-      formatDate(o.created_at),
-      o.cliente ?? '—',
-      o.responsavel,
-      o.ambiente ?? '—',
-      o.modelo,
-      o.tecido,
-      String(o.quantidade),
-      o.valor_venda ? formatCurrency(o.valor_venda) : '—',
-      o.instacao ? formatCurrency(o.instacao) : '—',
-      formatCurrency((o.valor_venda ?? 0) + (o.instacao ?? 0)),
-      o.fechado ? 'Sim' : 'Não',
-    ]),
-    foot: [['', '', '', '', '', '', `${fechados} fechados`, '', formatCurrency(totalVenda), formatCurrency(totalInst), formatCurrency(totalGeral), '']],
+    head: [['#', 'Data', 'Cliente', 'Responsável', 'Ambiente', 'Modelo', 'Tecido', 'Qtd', 'Valor Venda', 'Instalação', 'Total', 'Custo', 'Margem', 'Fechado']],
+    body: data.map((o, i) => {
+      const m = calcMargem(o)
+      return [
+        `#${i + 1}`,
+        formatDate(o.created_at),
+        o.cliente ?? '—',
+        o.responsavel,
+        o.ambiente ?? '—',
+        o.modelo,
+        o.tecido,
+        String(o.quantidade),
+        o.valor_venda ? formatCurrency(o.valor_venda) : '—',
+        o.instacao ? formatCurrency(o.instacao) : '—',
+        formatCurrency((o.valor_venda ?? 0) + (o.instacao ?? 0)),
+        o.custo_tecido ? formatCurrency(o.custo_tecido) : '—',
+        m != null ? m.toFixed(1) + '%' : '—',
+        o.fechado ? 'Sim' : 'Não',
+      ]
+    }),
+    foot: [['', '', '', '', '', '', `${fechados} fechados`, '', formatCurrency(totalVenda), formatCurrency(totalInst), formatCurrency(totalGeral), '', '', '']],
     theme: 'striped',
     headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 8 },
     bodyStyles: { fontSize: 7.5 },
     footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245] as [number, number, number], textColor: [40, 40, 40] as [number, number, number], fontSize: 8 },
-    columnStyles: { 8: { halign: 'right' }, 9: { halign: 'right' }, 10: { halign: 'right', fontStyle: 'bold' } },
+    columnStyles: { 8: { halign: 'right' }, 9: { halign: 'right' }, 10: { halign: 'right', fontStyle: 'bold' }, 11: { halign: 'right' }, 12: { halign: 'right' } },
     margin: { left: 8, right: 8 },
   })
 
@@ -522,7 +523,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                     <td className="px-4 py-2.5 text-sm font-bold text-primary">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}
                     </td>
-                    <td colSpan={2} />
+                    <td colSpan={4} />
                   </tr>
                 </tfoot>
               </table>

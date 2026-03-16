@@ -78,6 +78,34 @@ export default function Dashboard() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
+  // Atalhos de teclado globais
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const active = document.activeElement
+      const inField = active && (
+        active.tagName === 'INPUT' ||
+        active.tagName === 'TEXTAREA' ||
+        active.tagName === 'SELECT' ||
+        (active as HTMLElement).isContentEditable
+      )
+      if (inField) return
+      // '/' → foca o campo de busca
+      if (e.key === '/') {
+        e.preventDefault()
+        const el = document.getElementById('filter-search-input') as HTMLInputElement | null
+        el?.focus()
+        el?.select()
+      }
+      // 'n' → abre novo orçamento (apenas nas tabs planilha e orcamentos)
+      if ((e.key === 'n' || e.key === 'N') && (activeTab === 'planilha' || activeTab === 'orcamentos')) {
+        const btn = document.getElementById('novo-orcamento-btn') as HTMLButtonElement | null
+        btn?.click()
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [activeTab])
+
   const TABS = useMemo(() => [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'planilha', label: 'Planilha Orçamento', icon: Table2, badge: 0 },

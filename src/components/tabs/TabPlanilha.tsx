@@ -52,20 +52,6 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
     setDateTo('')
   }
 
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      const active = document.activeElement
-      const inField = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')
-      if ((e.key === 'n' || e.key === 'N') && !inField) { setFormOpen(true); return }
-      if (e.key === '/' && !inField) {
-        e.preventDefault()
-        document.getElementById('filter-search-input')?.focus()
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [])
-
   const filtered = useMemo(() => {
     const byPeriod = filterByPeriod(data, periodo, (o) => o.created_at, dateFrom, dateTo)
     const searchLower = debouncedSearch.toLowerCase()
@@ -110,6 +96,7 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
             <p className="text-xs text-muted-foreground">{filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}</p>
           </div>
           <button
+            id="novo-orcamento-btn"
             onClick={() => setFormOpen(true)}
             className="hidden md:flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-150"
           >

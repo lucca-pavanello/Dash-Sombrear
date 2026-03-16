@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHistorico } from '@/hooks/useOrcamentos'
 import type { Orcamento } from '@/lib/supabase'
-import { cn, formatCurrency, calcularMargem } from '@/lib/utils'
+import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
@@ -27,7 +27,7 @@ const TRACKED_FIELDS: Array<{ key: string; label: string; currency?: boolean }> 
 ]
 
 function formatHistoricoDate(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return formatDateTime(iso)
 }
 
 export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) {
@@ -37,6 +37,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   const { data: historico } = useOrcamentoHistorico(orcamento.id)
   const userEditedDimensions = useRef(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [copied, setCopied] = useState(false)
   const [historicoOpen, setHistoricoOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -69,18 +70,21 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   }
 
   function handleClose() {
-    if (isDirty && !window.confirm('Há alterações não salvas. Deseja descartar as mudanças?')) return
+    if (isDirty) { setConfirmDiscard(true); return }
     onClose()
   }
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') handleClose()
+      if (e.key === 'Escape') {
+        if (confirmDiscard) { setConfirmDiscard(false); return }
+        handleClose()
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDirty])
+  }, [isDirty, confirmDiscard])
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null
@@ -216,7 +220,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
+        className="relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
       >
         <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
           <div>
@@ -503,6 +507,31 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             </div>
           )}
         </form>
+
+        {confirmDiscard && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-t-2xl sm:rounded-2xl bg-black/40 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-xs rounded-xl bg-card p-5 shadow-elevated">
+              <p className="text-sm font-semibold text-foreground">Descartar alterações?</p>
+              <p className="mt-1 text-xs text-muted-foreground">As mudanças não salvas serão perdidas.</p>
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDiscard(false)}
+                  className="flex-1 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  Continuar editando
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 rounded-lg bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground hover:opacity-90 transition-opacity"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

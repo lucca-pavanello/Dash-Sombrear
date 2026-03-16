@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js'
 import Dashboard from '@/pages/Dashboard'
 import Login from '@/pages/Login'
 import ResetPassword from '@/pages/ResetPassword'
+import ErrorBoundary from '@/components/shared/ErrorBoundary'
 
 function AppRoutes({ session }: { session: Session }) {
   const { data: profile, isLoading } = useProfile()
@@ -39,7 +40,7 @@ function AppRoutes({ session }: { session: Session }) {
     )
   }
 
-  return <Dashboard />
+  return <ErrorBoundary><Dashboard /></ErrorBoundary>
 }
 
 export default function App() {
