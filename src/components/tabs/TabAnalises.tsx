@@ -7,9 +7,10 @@ import autoTable from 'jspdf-autotable'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, CartesianGrid,
+  PieChart, Pie, Cell,
 } from 'recharts'
-import { useCrmLeads } from '@/hooks/useAgenteIA'
-import { META_KEY } from '@/lib/constants'
+import { useCrmLeads, type CrmLead } from '@/hooks/useAgenteIA'
+import { META_KEY, HORA_INICIO, HORA_FIM } from '@/lib/constants'
 import {
   filterOrcamentosPorMes,
   calcFaturamentoPorMes,
@@ -298,9 +299,7 @@ function parseBRL(v: string): number {
   return parseFloat(s) || 0
 }
 
-function FunilAgenteIA() {
-  const { data: leads = [], isLoading } = useCrmLeads()
-
+function FunilAgenteIA({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
   if (isLoading) {
     return <div className="animate-pulse space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-12 rounded-lg bg-muted" />)}</div>
   }
@@ -414,7 +413,7 @@ function PerformancePorCanal({ data }: { data: Orcamento[] }) {
   if (byCanal.length === 0) return null
 
   return (
-    <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
       <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Performance por Canal</h3>
       {byCanal.length >= 3 ? (
         <ResponsiveContainer width="100%" height={200}>
@@ -445,6 +444,372 @@ function PerformancePorCanal({ data }: { data: Orcamento[] }) {
   )
 }
 
+// ─── Desempenho do Agente IA — novos componentes ───────────────────────────
+
+const STATUS_LABEL_MAP: Record<string, { label: string; color: string }> = {
+  novo: { label: 'Novo', color: '#94a3b8' },
+  em_atendimento: { label: 'Em atendimento', color: '#3b82f6' },
+  aguardando_atendimento: { label: 'Aguardando', color: '#f97316' },
+  convertido: { label: 'Convertido', color: '#22c55e' },
+  fechado: { label: 'Fechado', color: '#16a34a' },
+  perdido: { label: 'Perdido', color: '#ef4444' },
+}
+
+function StatusLeadDonut({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-2">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
+      </div>
+    )
+  }
+
+  const grouped = leads.reduce<Record<string, number>>((acc, l) => {
+    const key = l.status_lead?.trim() ?? 'desconhecido'
+    acc[key] = (acc[key] ?? 0) + 1
+    return acc
+  }, {})
+
+  const pieData = Object.entries(grouped).map(([key, count]) => {
+    const meta = STATUS_LABEL_MAP[key]
+    return {
+      key,
+      name: meta?.label ?? key,
+      value: count,
+      color: meta?.color ?? '#cbd5e1',
+    }
+  })
+
+  if (pieData.length === 0) {
+    return (
+      <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">
+        Sem dados de status
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart>
+          <Pie
+            data={pieData}
+            cx="50%"
+            cy="50%"
+            innerRadius={50}
+            outerRadius={80}
+            dataKey="value"
+            paddingAngle={2}
+          >
+            {pieData.map((entry) => (
+              <Cell key={entry.key} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            {...tooltipStyle}
+            formatter={(v: number, name: string) => [v, name]}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+        {pieData.map((entry) => (
+          <div key={entry.key} className="flex items-center gap-1.5 min-w-0">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="truncate text-xs text-muted-foreground">{entry.name}</span>
+            <span className="ml-auto shrink-0 text-xs font-semibold tabular-nums">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
+function VolumeLeadsIA({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-2">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
+      </div>
+    )
+  }
+
+  const now = new Date()
+  const last6: { mes: string; leads: number; year: number; month: number }[] = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    last6.push({ mes: MESES_PT[d.getMonth()], leads: 0, year: d.getFullYear(), month: d.getMonth() })
+  }
+
+  leads.forEach((l) => {
+    const d = new Date(l.created_at)
+    const entry = last6.find((e) => e.year === d.getFullYear() && e.month === d.getMonth())
+    if (entry) entry.leads++
+  })
+
+  const total = leads.length
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-muted-foreground">{total} lead{total !== 1 ? 's' : ''} no total</p>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={last6} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+          <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+          <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+          <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Leads']} />
+          <Bar dataKey="leads" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+const QUALIDADE_FIELDS: { key: keyof CrmLead; label: string }[] = [
+  { key: 'medidas_coletadas', label: 'Medidas coletadas' },
+  { key: 'quantidade', label: 'Quantidade' },
+  { key: 'tecido_cor', label: 'Tecido / Cor' },
+  { key: 'acabamento_desejado', label: 'Acabamento' },
+  { key: 'precisa_instalacao', label: 'Precisa instalação' },
+  { key: 'modelo_interesse', label: 'Modelo de interesse' },
+]
+
+function QualidadeLeads({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-2">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
+      </div>
+    )
+  }
+
+  const total = leads.length
+
+  const fields = QUALIDADE_FIELDS.map(({ key, label }) => {
+    const filled = total > 0
+      ? leads.filter((l) => {
+          const v = l[key]
+          return v !== null && v !== undefined && String(v).trim() !== ''
+        }).length
+      : 0
+    const pct = total > 0 ? Math.round((filled / total) * 100) : 0
+    return { label, pct }
+  })
+
+  const score = fields.length > 0
+    ? Math.round(fields.reduce((s, f) => s + f.pct, 0) / fields.length)
+    : 0
+
+  if (total === 0) {
+    return (
+      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+        Sem leads para analisar
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-bold text-primary tabular-nums">{score}%</span>
+        <span className="text-xs text-muted-foreground">score médio de qualificação</span>
+      </div>
+      <div className="space-y-2">
+        {fields.map(({ label, pct }) => (
+          <div key={label} className="flex items-center gap-2">
+            <span className="w-36 shrink-0 text-xs text-muted-foreground truncate">{label}</span>
+            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary/70 transition-all duration-700"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="w-9 shrink-0 text-right text-xs font-semibold tabular-nums text-primary">
+              {pct}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const PERIODOS = [
+  { label: 'Madrugada', range: [0, 5], outOfHours: true },
+  { label: 'Manhã', range: [6, 11], outOfHours: false },
+  { label: 'Tarde', range: [12, 17], outOfHours: false },
+  { label: 'Noite', range: [18, 23], outOfHours: true },
+]
+
+function HorarioPico({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-2">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
+      </div>
+    )
+  }
+
+  const counts = PERIODOS.map((p) => ({ ...p, count: 0 }))
+
+  leads.forEach((l) => {
+    const raw = l.inicio_atendimento ?? l.created_at
+    if (!raw) return
+    const h = new Date(raw).getHours()
+    const p = counts.find((c) => h >= c.range[0] && h <= c.range[1])
+    if (p) p.count++
+  })
+
+  const maxCount = Math.max(...counts.map((c) => c.count), 1)
+  const total = leads.length
+
+  const foraHorario = leads.filter((l) => {
+    const raw = l.inicio_atendimento ?? l.created_at
+    if (!raw) return false
+    const h = new Date(raw).getHours()
+    return h < HORA_INICIO || h >= HORA_FIM
+  }).length
+
+  const foraPct = total > 0 ? Math.round((foraHorario / total) * 100) : 0
+
+  return (
+    <div className="space-y-3">
+      {counts.map(({ label, count, outOfHours }) => (
+        <div key={label} className="flex items-center gap-3">
+          <span className={`w-20 shrink-0 text-xs font-medium ${outOfHours ? 'text-primary' : 'text-foreground'}`}>
+            {label}
+          </span>
+          <div className="flex-1 h-5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${outOfHours ? 'bg-primary' : 'bg-primary/40'}`}
+              style={{ width: `${(count / maxCount) * 100}%` }}
+            />
+          </div>
+          <span className={`w-8 shrink-0 text-right text-xs font-bold tabular-nums ${outOfHours ? 'text-primary' : 'text-muted-foreground'}`}>
+            {count}
+          </span>
+        </div>
+      ))}
+      {total > 0 && (
+        <p className="pt-1 text-xs text-muted-foreground">
+          <span className="font-semibold text-primary">{foraHorario}</span> lead{foraHorario !== 1 ? 's' : ''} fora do horário comercial
+          {' '}(<span className="font-semibold">{foraPct}%</span>)
+        </p>
+      )}
+    </div>
+  )
+}
+
+function InsightsAgenteIA({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
+  const insights = useMemo(() => {
+    if (leads.length === 0) return []
+    const total = leads.length
+    const result: string[] = []
+
+    // 1. After-hours leads
+    const foraHorario = leads.filter((l) => {
+      const raw = l.inicio_atendimento ?? l.created_at
+      if (!raw) return false
+      const h = new Date(raw).getHours()
+      return h < HORA_INICIO || h >= HORA_FIM
+    }).length
+    if (foraHorario > 0) {
+      const pct = Math.round((foraHorario / total) * 100)
+      result.push(`O agente atendeu ${foraHorario} lead${foraHorario !== 1 ? 's' : ''} fora do horário comercial — ${pct}% do total, receita que a equipe não capturaria manualmente.`)
+    }
+
+    // 2. Leads with measurement scheduled
+    const comMedicao = leads.filter((l) => l.data_medicao_instalacao && l.data_medicao_instalacao.trim()).length
+    if (comMedicao > 0) {
+      result.push(`${comMedicao} lead${comMedicao !== 1 ? 's' : ''} tem medição agendada — pipeline de conversão aquecido.`)
+    }
+
+    // 3. Most requested model
+    const byModelo = leads
+      .filter((l) => l.modelo_interesse?.trim())
+      .reduce<Record<string, number>>((acc, l) => {
+        const m = l.modelo_interesse!.trim()
+        acc[m] = (acc[m] ?? 0) + 1
+        return acc
+      }, {})
+    const topModelo = Object.entries(byModelo).sort((a, b) => b[1] - a[1])[0]
+    if (topModelo) {
+      result.push(`Modelo mais solicitado via IA: ${topModelo[0]} (${topModelo[1]} pedido${topModelo[1] !== 1 ? 's' : ''}).`)
+    }
+
+    // 4. Auto-quoted leads
+    const cotados = leads.filter((l) => l.ultimo_valor_cotado && l.ultimo_valor_cotado.trim()).length
+    if (cotados > 0) {
+      result.push(`${cotados} lead${cotados !== 1 ? 's' : ''} recebeu orçamento automaticamente — sem esforço da equipe.`)
+    }
+
+    // 5. Average quality score
+    const qualFields: (keyof CrmLead)[] = ['medidas_coletadas', 'quantidade', 'tecido_cor', 'acabamento_desejado', 'precisa_instalacao', 'modelo_interesse']
+    const avgScore = total > 0
+      ? Math.round(
+          qualFields.reduce((sum, key) => {
+            const filled = leads.filter((l) => {
+              const v = l[key]
+              return v !== null && v !== undefined && String(v).trim() !== ''
+            }).length
+            return sum + (filled / total) * 100
+          }, 0) / qualFields.length
+        )
+      : 0
+    if (avgScore > 0) {
+      result.push(`Taxa de coleta de informações: ${avgScore}% — leads bem qualificados para a equipe comercial.`)
+    }
+
+    // 6. Converted/closed leads
+    const convertidos = leads.filter((l) => {
+      const s = l.status_lead?.toLowerCase().trim() ?? ''
+      return s === 'convertido' || s === 'fechado'
+    }).length
+    if (convertidos > 0) {
+      result.push(`${convertidos} lead${convertidos !== 1 ? 's' : ''} convertido${convertidos !== 1 ? 's' : ''} pelo agente IA até o momento.`)
+    }
+
+    return result
+  }, [leads])
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm animate-pulse space-y-2">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
+      </div>
+    )
+  }
+
+  if (insights.length === 0) return null
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="rounded-lg bg-primary/10 p-1.5">
+          <Bot className="h-4 w-4 text-primary" />
+        </div>
+        <h3 className="font-display text-sm font-medium tracking-wide">Insights do Agente IA</h3>
+        <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+          foco em performance
+        </span>
+      </div>
+      <ul className="space-y-2.5">
+        {insights.map((insight, i) => (
+          <li key={i} className="flex items-start gap-2.5 text-sm">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+            {insight}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// ─── TabAnalises ────────────────────────────────────────────────────────────
+
 export default function TabAnalises({ data, isLoading, error }: Props) {
   const [meta, setMeta] = useState(() => {
     const s = localStorage.getItem(META_KEY)
@@ -458,6 +823,9 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
+
+  // Fetch CRM leads at the top level (before any early returns)
+  const { data: leads = [], isLoading: leadsLoading } = useCrmLeads()
 
   // useMemo deve ficar antes dos early returns para não violar Rules of Hooks
   const { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth } = useMemo(() => {
@@ -532,18 +900,18 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
       {/* Destaques financeiros */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Valor de Venda</p>
+        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Valor de Venda</p>
           <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(valorVendaTotal)}</p>
           <p className="mt-1 text-xs text-muted-foreground">{fechados.length} pedido{fechados.length !== 1 ? 's' : ''} fechado{fechados.length !== 1 ? 's' : ''}</p>
         </div>
-        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Faturamento Total</p>
+        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Faturamento Total</p>
           <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(faturamentoGeral)}</p>
           <p className="mt-1 text-xs text-muted-foreground">venda + instalação</p>
         </div>
-        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Margem Média</p>
+        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Margem Média</p>
           <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">
             {margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—'}
           </p>
@@ -556,8 +924,8 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       {/* Comparativo mês a mês */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {comparisons.map(({ label, value, delta }) => (
-          <div key={label} className="rounded-xl border-2 bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
+          <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">{label}</p>
             <p className="font-display mt-1.5 text-2xl font-bold tracking-tight truncate">{value}</p>
             <div className="mt-0.5">{delta ?? <span className="text-xs text-muted-foreground/60">base de comparação</span>}</div>
           </div>
@@ -566,19 +934,19 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
       {/* Meta do Mês */}
       {meta > 0 && (
-        <div className="rounded-xl border-2 border-primary/40 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-primary/60">Meta do Mês</p>
+        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Meta do Mês</p>
           <p className="font-display mt-1.5 text-2xl font-bold tracking-tight text-primary">{formatCurrency(thisFat)}</p>
           <div className="mt-2 h-2 w-full rounded-full bg-primary/20 overflow-hidden">
             <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${Math.min((thisFat / meta) * 100, 100)}%` }} />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{Math.round((thisFat / meta) * 100)}% de {formatCurrency(meta)}</p>
-          <p className="mt-0.5 text-[10px] text-muted-foreground/60">Configure a meta na aba Orçamentos</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground/60">Configure a meta na aba Orçamentos</p>
         </div>
       )}
 
       {/* Faturamento mensal */}
-      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Faturamento mensal (últimos 6 meses)</h3>
         {monthly.every((m) => m.faturamento === 0) ? (
           <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados de faturamento</div>
@@ -596,7 +964,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Volume mensal */}
-        <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Volume de orçamentos (últimos 6 meses)</h3>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
@@ -609,7 +977,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         </div>
 
         {/* Tendência diária */}
-        <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Tendência diária — {now.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
           {daily.length === 0 ? (
             <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">Sem dados este mês</div>
@@ -634,7 +1002,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       </div>
 
       {/* Taxa de Conversão por Modelo */}
-      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Taxa de Conversão por Modelo</h3>
         <ConversaoPorModelo data={data} />
       </div>
@@ -642,14 +1010,52 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       {/* Performance por Canal */}
       <PerformancePorCanal data={data} />
 
-      {/* Funil Agente IA → Venda */}
-      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Funil Agente IA → Venda</h3>
-        <FunilAgenteIA />
+      {/* ─── Desempenho do Agente IA ─── */}
+      <div className="flex items-center gap-3">
+        <div className="rounded-lg bg-primary/10 p-1.5">
+          <Bot className="h-4 w-4 text-primary" />
+        </div>
+        <h2 className="font-display text-base font-semibold tracking-wide">Desempenho do Agente IA</h2>
+        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary tabular-nums">
+          {leadsLoading ? '…' : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
+        </span>
       </div>
 
-      {/* Insights IA */}
-      <div className="rounded-xl border-2 bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      {/* Row 1: Funil + Status Donut */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Funil IA → Venda</h3>
+          <FunilAgenteIA leads={leads} isLoading={leadsLoading} />
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Status dos Leads</h3>
+          <StatusLeadDonut leads={leads} isLoading={leadsLoading} />
+        </div>
+      </div>
+
+      {/* Row 2: Volume de Leads por Mês */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Volume de Leads por Mês</h3>
+        <VolumeLeadsIA leads={leads} isLoading={leadsLoading} />
+      </div>
+
+      {/* Row 3: Qualidade + Horário de Pico */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Qualidade dos Leads</h3>
+          <QualidadeLeads leads={leads} isLoading={leadsLoading} />
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Horário de Pico</h3>
+          <HorarioPico leads={leads} isLoading={leadsLoading} />
+        </div>
+      </div>
+
+      {/* Row 4: Insights do Agente IA */}
+      <InsightsAgenteIA leads={leads} isLoading={leadsLoading} />
+
+      {/* Insights IA (análise de orçamentos) */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <div className="flex items-center gap-2 mb-4">
           <div className="rounded-lg bg-primary/10 p-1.5">
             <Bot className="h-4 w-4 text-primary" />

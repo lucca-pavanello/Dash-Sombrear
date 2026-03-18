@@ -153,7 +153,7 @@ function KPIGrid({ data }: Props) {
       {/* Faturamento — shimmer + tooltip + meta */}
       <div
         tabIndex={0}
-        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 border-primary/35 bg-primary/5 dark:bg-primary/10 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
+        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
         style={{ animationFillMode: 'both', animationDelay: '0ms' }}
       >
         <KpiTooltip lines={[
@@ -170,42 +170,13 @@ function KPIGrid({ data }: Props) {
           <div className="shimmer-sweep h-full w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         </div>
 
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">Faturamento</p>
-            <p className="font-display mt-1.5 text-2xl font-bold tracking-tight truncate text-primary tabular-nums">
-              {formatCurrency(Math.round(animFaturamento))}
-            </p>
-
-            {meta > 0 ? (
-              <div className="mt-1.5">
-                <div className="h-1.5 w-full rounded-full bg-primary/20 overflow-hidden">
-                  <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${animMetaPct}%` }} />
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground truncate tabular-nums">
-                  {Math.round(animMetaPct)}% de {formatCurrency(meta)}
-                </p>
-              </div>
-            ) : pctChange !== null ? (
-              <p className={`mt-0.5 text-xs font-medium truncate ${pctChange >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                {pctChange >= 0 ? '↑' : '↓'} {Math.abs(pctChange).toFixed(0)}% vs mês ant.
-              </p>
-            ) : (
-              <p className="mt-0.5 text-xs text-muted-foreground">fechados</p>
-            )}
-
-            {meta > 0 && pctChange !== null && (
-              <p className={`mt-0.5 text-xs font-medium truncate ${pctChange >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                {pctChange >= 0 ? '↑' : '↓'} {Math.abs(pctChange).toFixed(0)}% vs mês ant.
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col items-center gap-1 shrink-0">
-            <div className="rounded-lg p-1.5 bg-muted/60 text-muted-foreground/50">
+        <div className="flex flex-col items-center text-center gap-0.5">
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <div className="rounded-lg p-1.5 bg-primary/15 text-primary">
               <DollarSign className="h-4 w-4" />
             </div>
             <button
-              onClick={() => { setMetaInput(meta > 0 ? String(meta) : ''); setEditingMeta(true) }}
+              onClick={(e) => { e.stopPropagation(); setMetaInput(meta > 0 ? String(meta) : ''); setEditingMeta(true) }}
               className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
               title="Definir meta"
               aria-label="Definir meta mensal"
@@ -213,6 +184,33 @@ function KPIGrid({ data }: Props) {
               <Pencil className="h-3 w-3" />
             </button>
           </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate w-full">Faturamento</p>
+          <p className="font-display mt-1 text-2xl font-bold tracking-tight text-primary tabular-nums">
+            {formatCurrency(Math.round(animFaturamento))}
+          </p>
+
+          {meta > 0 ? (
+            <div className="mt-1.5 w-full">
+              <div className="h-1.5 w-full rounded-full bg-primary/20 overflow-hidden">
+                <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${animMetaPct}%` }} />
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                {Math.round(animMetaPct)}% de {formatCurrency(meta)}
+              </p>
+            </div>
+          ) : pctChange !== null ? (
+            <p className={`mt-0.5 text-xs font-medium ${pctChange >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {pctChange >= 0 ? '↑' : '↓'} {Math.abs(pctChange).toFixed(0)}% vs mês ant.
+            </p>
+          ) : (
+            <p className="mt-0.5 text-xs text-muted-foreground">fechados</p>
+          )}
+
+          {meta > 0 && pctChange !== null && (
+            <p className={`mt-0.5 text-xs font-medium ${pctChange >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {pctChange >= 0 ? '↑' : '↓'} {Math.abs(pctChange).toFixed(0)}% vs mês ant.
+            </p>
+          )}
         </div>
 
         {editingMeta && (
@@ -248,32 +246,28 @@ function KPIGrid({ data }: Props) {
         )}
       </div>
 
-      {kpis.map(({ label, value, icon: Icon, highlight, amber, sub, tooltip }, i) => (
+      {kpis.map(({ label, value, icon: Icon, amber, sub, tooltip }, i) => (
         <div
           key={label}
           tabIndex={0}
           className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none ${
-            amber ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10'
-            : highlight ? 'border-primary/35 bg-primary/5 dark:bg-primary/10'
-            : 'bg-card'
+            amber ? 'border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10'
+            : 'border-border bg-primary/5 dark:bg-primary/10'
           }`}
           style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms` }}
         >
           <KpiTooltip lines={tooltip} />
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
-              <p className={`font-display mt-1.5 text-2xl font-bold tracking-tight truncate tabular-nums ${
-                amber ? 'text-amber-600 dark:text-amber-400'
-                : highlight ? 'text-primary' : ''
-              }`}>
-                {value}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground/60 truncate tabular-nums">{sub}</p>
-            </div>
-            <div className={`shrink-0 rounded-lg p-1.5 ${amber ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-muted/60 text-muted-foreground/50'}`}>
+          <div className="flex flex-col items-center text-center gap-0.5">
+            <div className={`mb-1.5 rounded-lg p-1.5 ${amber ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-primary/15 text-primary'}`}>
               <Icon className="h-4 w-4" />
             </div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate w-full">{label}</p>
+            <p className={`font-display mt-1 text-2xl font-bold tracking-tight tabular-nums ${
+              amber ? 'text-amber-600 dark:text-amber-400' : 'text-primary'
+            }`}>
+              {value}
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground truncate tabular-nums w-full">{sub}</p>
           </div>
         </div>
       ))}

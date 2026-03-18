@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Search, ChevronDown, X, SlidersHorizontal } from 'lucide-react'
 
+import DatePicker from '@/components/ui/DatePicker'
+import { CustomSelect } from '@/components/ui/CustomSelect'
+
 interface Props {
   search: string; onSearchChange: (v: string) => void
   responsavel: string; onResponsavelChange: (v: string) => void
@@ -15,8 +18,12 @@ interface Props {
   storageKey?: string
 }
 
-const selectClass = 'w-full rounded-lg border border-border bg-background pl-3.5 pr-8 py-2.5 text-sm font-medium text-foreground outline-none appearance-none cursor-pointer hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
-const dateClass = 'flex-1 min-w-[130px] rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
+const FECHADO_OPTIONS = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'fechado', label: 'Fechados' },
+  { value: 'aberto', label: 'Em aberto' },
+  { value: 'sem-custo', label: '⚠️ Fechados sem custo' },
+]
 
 const PERIODOS = [
   { value: 'todos', label: 'Tudo' },
@@ -32,16 +39,6 @@ const FECHADO_LABELS: Record<string, string> = {
   'sem-custo': 'Sem custo',
 }
 
-function Select({ value, onChange, children, title }: { value: string; onChange: (v: string) => void; children: React.ReactNode; title?: string }) {
-  return (
-    <div className="relative flex-1 min-w-[140px]">
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClass} title={title}>
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-    </div>
-  )
-}
 
 export default function FiltersBar({
   search, onSearchChange,
@@ -93,17 +90,17 @@ export default function FiltersBar({
   const activeCount = chips.length
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm">
+    <div className="rounded-xl border-2 border-border bg-card shadow-sm">
       {/* Header sempre visível */}
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-center gap-2.5 px-4 py-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
           <input
             id="filter-search-input"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Buscar cliente, responsável, modelo, tecido, ambiente..."
-            className={`w-full rounded-lg border border-border bg-background py-2.5 pl-9 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${search ? 'pr-8' : 'pr-10'}`}
+            className={`w-full rounded-lg border border-border bg-background py-2 pl-9 text-sm text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${search ? 'pr-8' : 'pr-10'}`}
           />
           {search ? (
             <button
@@ -121,12 +118,10 @@ export default function FiltersBar({
 
         <button
           onClick={() => setOpen(v => !v)}
-          className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-semibold transition-all duration-150 active:scale-95 ${
-            open
-              ? 'border-primary/30 bg-primary/5 text-primary'
-              : activeCount > 0
-              ? 'border-primary/30 bg-primary/5 text-primary'
-              : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+          className={`flex shrink-0 items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-xs font-semibold transition-all duration-150 active:scale-95 ${
+            open || activeCount > 0
+              ? 'border-primary/40 bg-primary/5 text-primary'
+              : 'border-border text-muted-foreground hover:border-primary/30 hover:text-foreground hover:bg-muted/40'
           }`}
           title={open ? 'Recolher filtros' : 'Expandir filtros'}
         >
@@ -143,46 +138,67 @@ export default function FiltersBar({
 
       {/* Painel expansível */}
       {open && (
-        <div className="border-t px-4 pb-4 pt-3 space-y-3">
-          <div className="flex flex-wrap gap-2.5">
-            <div className="flex gap-1 rounded-lg bg-muted/60 p-1">
-              {PERIODOS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => onPeriodoChange(value)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 ${
-                    periodo === value
-                      ? 'bg-card text-primary shadow-sm scale-[1.04]'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <Select value={responsavel} onChange={onResponsavelChange}>
-              <option value="todos">Todos responsáveis</option>
-              {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
-            </Select>
-            <Select value={modelo} onChange={onModeloChange}>
-              <option value="todos">Todos modelos</option>
-              {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
-            </Select>
-            <Select value={fechado} onChange={onFechadoChange} title="Inclui filtro de qualidade de dados">
-              <option value="todos">Todos</option>
-              <option value="fechado">Fechados</option>
-              <option value="aberto">Em aberto</option>
-              <option value="sem-custo">⚠️ Fechados sem custo</option>
-            </Select>
+        <div className="border-t border-border/50 bg-muted/20 px-4 pb-4 pt-3 flex flex-col gap-3 rounded-b-xl">
+          {/* Linha 1: Período */}
+          <div className="flex gap-0.5 rounded-lg bg-card border border-border p-1 shadow-sm w-fit">
+            {PERIODOS.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => onPeriodoChange(value)}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 whitespace-nowrap ${
+                  periodo === value
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
+          {/* Linha 2: Selects */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex-1 min-w-[160px]">
+              <CustomSelect
+                value={responsavel}
+                onChange={onResponsavelChange}
+                options={[{ value: 'todos', label: 'Todos responsáveis' }, ...responsaveis.map(r => ({ value: r, label: r }))]}
+              />
+            </div>
+            <div className="flex-1 min-w-[150px]">
+              <CustomSelect
+                value={modelo}
+                onChange={onModeloChange}
+                options={[{ value: 'todos', label: 'Todos modelos' }, ...modelos.map(m => ({ value: m, label: m }))]}
+              />
+            </div>
+            <div className="flex-1 min-w-[150px]">
+              <CustomSelect
+                value={fechado}
+                onChange={onFechadoChange}
+                options={FECHADO_OPTIONS}
+              />
+            </div>
+          </div>
+
+          {/* Data personalizada */}
           {periodo === 'custom' && (
             <div className="flex flex-col gap-1.5">
-              <div className="flex gap-2 items-center">
-                <span className="text-xs text-muted-foreground shrink-0">De</span>
-                <input type="date" value={dateFrom} onChange={(e) => onDateFromChange(e.target.value)} className={dateClass} />
-                <span className="text-xs text-muted-foreground shrink-0">até</span>
-                <input type="date" value={dateTo} onChange={(e) => onDateToChange(e.target.value)} className={dateClass} />
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-medium text-muted-foreground shrink-0">De</span>
+                <DatePicker
+                  value={dateFrom}
+                  onChange={onDateFromChange}
+                  placeholder="Data inicial"
+                  max={dateTo || undefined}
+                />
+                <span className="text-xs font-medium text-muted-foreground shrink-0">até</span>
+                <DatePicker
+                  value={dateTo}
+                  onChange={onDateToChange}
+                  placeholder="Data final"
+                  min={dateFrom || undefined}
+                />
               </div>
               {dateFrom && dateTo && dateTo < dateFrom && (
                 <p className="text-xs font-medium text-destructive flex items-center gap-1">
@@ -192,13 +208,14 @@ export default function FiltersBar({
             </div>
           )}
 
+          {/* Chips de filtros ativos */}
           {chips.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-muted-foreground shrink-0">Filtros ativos:</span>
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-xs text-muted-foreground shrink-0">Ativos:</span>
               {chips.map((chip, i) => (
                 <span
                   key={`${chip.label}-${i}`}
-                  className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                  className="flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary"
                 >
                   {chip.label}
                   <button

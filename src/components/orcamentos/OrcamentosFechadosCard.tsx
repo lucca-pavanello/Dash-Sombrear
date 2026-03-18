@@ -10,21 +10,20 @@ function OrcamentosFechadosCard({ data }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="rounded-xl border-2 bg-card shadow-sm">
+    <div className="rounded-xl border-2 border-border bg-card shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 border-b px-5 py-4 hover:bg-muted/30 transition-colors rounded-t-xl"
+        className="relative flex w-full items-center justify-center gap-2 border-b px-5 py-4 hover:bg-muted/30 transition-colors rounded-t-xl"
       >
         <Trophy className="h-4 w-4 text-primary shrink-0" />
-        <span className="font-display text-sm font-medium tracking-wide">Orçamentos Fechados</span>
-        <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+        <span className="font-display text-sm font-semibold tracking-wide">Orçamentos Fechados</span>
+        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
           {fechados.length}
         </span>
-        {open
-          ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-          : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-        }
+        <span className="absolute right-4 text-muted-foreground">
+          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </span>
       </button>
 
       {open && (
@@ -40,7 +39,7 @@ function OrcamentosFechadosCard({ data }: Props) {
               return (
                 <div
                   key={o.id}
-                  className="rounded-xl border-2 bg-background p-4 transition-shadow hover:shadow-md"
+                  className="rounded-xl border border-border bg-background p-4 transition-shadow hover:shadow-md"
                 >
                   <div className="mb-3 flex items-start justify-between">
                     <div>

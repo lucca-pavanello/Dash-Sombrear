@@ -6,7 +6,6 @@ import type { Orcamento } from '@/lib/supabase'
 import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
-import { resolveKanbanOnSave } from '@/lib/kanban'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -189,8 +188,6 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
       const margem = custoTotal != null ? calcularMargem(receita, custoTotal) : null
 
-      const kanban_status = resolveKanbanOnSave(form.fechado, orcamento.kanban_status)
-
       const updated = await update({
         id: orcamento.id,
         responsavel: form.responsavel,
@@ -212,7 +209,6 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
         observacoes: form.observacoes || null,
         ambiente: form.ambiente || null,
         margem,
-        kanban_status,
       })
       try {
         await addHistorico({ orcamento_id: orcamento.id, snapshot: updated as object })
@@ -548,11 +544,19 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
               <button type="button" onClick={() => setConfirmDelete(true)} className="rounded-lg border border-destructive/40 px-3 py-3 text-destructive hover:bg-destructive/10 transition-colors">
                 <Trash2 className="h-4 w-4" />
               </button>
-              <button type="button" onClick={handleClose} className="flex-1 rounded-lg border px-4 py-3 text-sm font-medium hover:bg-muted transition-colors">
+              <button type="button" onClick={handleClose} disabled={isUpdating} className="flex-1 rounded-lg border px-4 py-3 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                 Cancelar
               </button>
               <button type="submit" disabled={isUpdating} className="flex-1 rounded-lg bg-brand-gradient px-4 py-3 text-sm font-semibold text-white shadow-brand hover:opacity-90 disabled:opacity-60 transition-opacity">
-                {isUpdating ? 'Salvando...' : 'Salvar'}
+                {isUpdating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Salvando...
+                  </span>
+                ) : 'Salvar'}
               </button>
             </div>
           )}

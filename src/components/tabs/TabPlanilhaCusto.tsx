@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Search, ChevronDown, X, Download, Receipt } from 'lucide-react'
+import { Search, X, Download, Receipt } from 'lucide-react'
+import { CustomSelect } from '@/components/ui/CustomSelect'
+import DatePicker from '@/components/ui/DatePicker'
 import * as XLSX from 'xlsx'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, formatPercent } from '@/lib/utils'
@@ -22,7 +24,10 @@ const PERIODOS = [
   { value: 'custom', label: 'Período' },
 ]
 
-const selectClass = 'w-full rounded-lg border border-border bg-background pl-3.5 pr-8 py-2.5 text-sm font-medium text-foreground outline-none appearance-none cursor-pointer hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
+const CUSTO_OPTIONS = [
+  { value: 'com', label: 'Apenas com custo' },
+  { value: 'todos', label: 'Todos os orçamentos' },
+]
 
 function loadFilters() {
   try {
@@ -31,16 +36,6 @@ function loadFilters() {
   } catch { return {} }
 }
 
-function SelectField({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
-  return (
-    <div className="relative flex-1 min-w-[140px]">
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClass}>
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-    </div>
-  )
-}
 
 export default function TabPlanilhaCusto({ data, loading }: Props) {
   const savedRef = useRef(loadFilters())
@@ -213,7 +208,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
       </div>
 
       {/* Filtros */}
-      <div className="rounded-xl border bg-card shadow-sm p-4 flex flex-col gap-3">
+      <div className="rounded-xl border-2 border-border bg-card shadow-sm p-4 flex flex-col gap-3">
         {/* Busca */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -241,15 +236,15 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
         {/* Selects + período */}
         <div className="flex flex-wrap gap-2.5">
           {/* Período pills */}
-          <div className="flex gap-1 rounded-lg bg-muted/60 p-1">
+          <div className="flex gap-0.5 rounded-lg bg-card border border-border p-1 shadow-sm">
             {PERIODOS.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => setPeriodo(value)}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 ${
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 whitespace-nowrap ${
                   periodo === value
-                    ? 'bg-card text-primary shadow-sm scale-[1.04]'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                 }`}
               >
                 {label}
@@ -257,39 +252,39 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
             ))}
           </div>
 
-          <SelectField value={responsavel} onChange={setResponsavel}>
-            <option value="todos">Todos responsáveis</option>
-            {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
-          </SelectField>
+          <div className="flex-1 min-w-[160px]">
+            <CustomSelect
+              value={responsavel}
+              onChange={setResponsavel}
+              options={[{ value: 'todos', label: 'Todos responsáveis' }, ...responsaveis.map(r => ({ value: r, label: r }))]}
+            />
+          </div>
 
-          <SelectField value={modelo} onChange={setModelo}>
-            <option value="todos">Todos modelos</option>
-            {modelos.map((m) => <option key={m} value={m}>{m}</option>)}
-          </SelectField>
+          <div className="flex-1 min-w-[150px]">
+            <CustomSelect
+              value={modelo}
+              onChange={setModelo}
+              options={[{ value: 'todos', label: 'Todos modelos' }, ...modelos.map(m => ({ value: m, label: m }))]}
+            />
+          </div>
 
-          <div className="relative flex-1 min-w-[160px]">
-            <select
+          <div className="flex-1 min-w-[160px]">
+            <CustomSelect
               value={apenasComCusto ? 'com' : 'todos'}
-              onChange={(e) => setApenasComCusto(e.target.value === 'com')}
-              className="w-full rounded-lg border border-border bg-background pl-3.5 pr-8 py-2.5 text-sm font-medium text-foreground outline-none appearance-none cursor-pointer hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150"
-            >
-              <option value="com">Apenas com custo</option>
-              <option value="todos">Todos os orçamentos</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              onChange={(v) => setApenasComCusto(v === 'com')}
+              options={CUSTO_OPTIONS}
+            />
           </div>
         </div>
 
         {/* Data customizada */}
         {periodo === 'custom' && (
           <div className="flex flex-col gap-1.5">
-            <div className="flex gap-2 items-center">
-              <span className="text-xs text-muted-foreground shrink-0">De</span>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="flex-1 min-w-[130px] rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150" />
-              <span className="text-xs text-muted-foreground shrink-0">até</span>
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="flex-1 min-w-[130px] rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150" />
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs font-medium text-muted-foreground shrink-0">De</span>
+              <DatePicker value={dateFrom} onChange={setDateFrom} placeholder="Data inicial" max={dateTo || undefined} />
+              <span className="text-xs font-medium text-muted-foreground shrink-0">até</span>
+              <DatePicker value={dateTo} onChange={setDateTo} placeholder="Data final" min={dateFrom || undefined} />
             </div>
             {dateFrom && dateTo && dateTo < dateFrom && (
               <p className="text-xs font-medium text-destructive flex items-center gap-1">
@@ -336,7 +331,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Modelo</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tecido</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo Total</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo Acab.</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap hidden xl:table-cell">Custo Acab.</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo m²</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Valor Venda</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Margem</th>
@@ -366,7 +361,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         {o.custo_tecido ? formatCurrency(o.custo_tecido) : <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-right whitespace-nowrap hidden xl:table-cell">
                         {o.custo_acabamento ? formatCurrency(o.custo_acabamento) : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -390,7 +385,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                       TOTAL — {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
                     </td>
                     <td className="px-4 py-3 text-right">{formatCurrency(totais.custoTotal)}</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(totais.custoAcabamento)}</td>
+                    <td className="px-4 py-3 text-right hidden xl:table-cell">{formatCurrency(totais.custoAcabamento)}</td>
                     <td className="px-4 py-3 text-right text-muted-foreground">—</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(totais.valorVenda)}</td>
                     <td className="px-4 py-3 text-right">

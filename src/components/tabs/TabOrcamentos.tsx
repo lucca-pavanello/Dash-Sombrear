@@ -116,6 +116,19 @@ export default function TabOrcamentos({ data, loading }: Props) {
         storageKey="sombrear-filters-open-orcamentos"
       />
 
+      {filtered.length === 0 && data.length > 0 && (
+        <div className="rounded-xl border-2 border-border bg-card p-8 text-center space-y-3">
+          <p className="text-sm font-medium text-foreground">Nenhum orçamento encontrado</p>
+          <p className="text-xs text-muted-foreground">Os filtros ativos não retornaram resultados.</p>
+          <button
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+          >
+            Limpar filtros
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <RankingResponsavel data={filtered} />
         <ResponsavelChart data={filtered} />
