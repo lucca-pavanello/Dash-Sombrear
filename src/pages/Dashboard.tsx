@@ -1,6 +1,6 @@
 import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Table2, Receipt, Search } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -21,19 +21,18 @@ const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
 const TabAgenteIA     = lazy(() => import('@/components/tabs/TabAgenteIA'))
 const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
 const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
-const TabPlanilhaCusto= lazy(() => import('@/components/tabs/TabPlanilhaCusto'))
+
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'agente-ia', 'orcamentos', 'planilha-custo', 'calculo-custo', 'admin', 'analises']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises']
 const DEFAULT_TAB = 'calcular-orcamento'
 const TAB_LABELS: Record<string, string> = {
   'calcular-orcamento': 'Calcular Orçamento',
   'planilha': 'Planilha Orçamento',
+  'calculo-custo': 'Planilha Custos',
   'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
-  'planilha-custo': 'Planilha de Custo',
-  'calculo-custo': 'Custo',
   'admin': 'Usuários',
   'analises': 'Análises',
 }
@@ -63,7 +62,7 @@ export default function Dashboard() {
     if (!document.hasFocus()) setUnreadCount((n) => n + 1)
   })
 
-  const isAdmin = profile?.email === ADMIN_EMAIL
+  const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
   const tabFromUrl = location.pathname.replace(/^\//, '') || DEFAULT_TAB
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl) && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
@@ -133,7 +132,7 @@ export default function Dashboard() {
       import('@/components/tabs/TabAgenteIA')
       import('@/components/tabs/TabAnalises')
       import('@/components/tabs/TabCalculoCusto')
-      import('@/components/tabs/TabPlanilhaCusto')
+
       import('@/components/admin/PainelAdmin')
     }
     if ('requestIdleCallback' in window) {
@@ -147,12 +146,11 @@ export default function Dashboard() {
   }, [])
 
   const TABS = useMemo(() => [
-    { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: ClipboardList, badge: 0 },
-    { id: 'planilha', label: 'Planilha Orçamento', icon: Table2, badge: 0 },
+    { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: Calculator, badge: 0 },
+    { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
+    { id: 'calculo-custo', label: 'Planilha Custos', icon: ClipboardList, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
-    { id: 'planilha-custo', label: 'Planilha de Custo', icon: Receipt, badge: 0 },
-    { id: 'calculo-custo', label: 'Custo', icon: Calculator, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
   ], [isAdmin, pendingCount])
@@ -304,14 +302,7 @@ export default function Dashboard() {
               </div>
             </Suspense>
           )}
-          {mountedTabs.has('planilha-custo') && (
-            <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'planilha-custo' ? 'tab-active' : 'tab-hidden'}>
-                <TabPlanilhaCusto data={orcamentos} loading={isLoading} />
-              </div>
-            </Suspense>
-          )}
-          {mountedTabs.has('calculo-custo') && (
+{mountedTabs.has('calculo-custo') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'calculo-custo' ? 'tab-active' : 'tab-hidden'}>
                 <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />

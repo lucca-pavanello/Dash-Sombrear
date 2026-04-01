@@ -31,6 +31,25 @@ export type Orcamento = {
   ambiente?: string | null
   user_id?: string | null
   updated_at?: string | null
-  kanban_status?: 'em_aberto' | 'negociando' | 'fechado' | 'perdido' | null
   share_enabled?: boolean | null
+}
+
+export type CustoInterno = {
+  id: string
+  created_at: string
+  responsavel: string | null
+  cliente: string | null
+  modelo: string
+  tecido: string | null
+  largura: number | null
+  altura: number | null
+  quantidade: number | null
+  cor_ferragem_motor: string | null
+  acabamentos: string | null
+  custo_material: number | null
+  custo_m2: number | null
+  custo_acabamento: number | null
+  custo_instalacao: number | null
+  ambiente: string | null
+  fonte: string | null
 }

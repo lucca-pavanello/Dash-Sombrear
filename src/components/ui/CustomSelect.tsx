@@ -2,10 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, Check, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+type SelectOption = string | { value: string; label: string }
+
+function getVal(o: SelectOption) { return typeof o === 'string' ? o : o.value }
+function getLbl(o: SelectOption) { return typeof o === 'string' ? o : o.label }
+
 interface Props {
   value: string
   onChange: (value: string) => void
-  options: string[]
+  options: SelectOption[]
   placeholder?: string
   disabled?: boolean
 }
@@ -24,7 +29,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
 
   const showSearch = options.length > 7
   const filtered = search
-    ? options.filter(o => o.toLowerCase().includes(search.toLowerCase()))
+    ? options.filter(o => getLbl(o).toLowerCase().includes(search.toLowerCase()))
     : options
 
   /* ── Posicionamento fixed ── */
@@ -53,7 +58,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
     if (!open) {
       updatePosition()
       setSearch('')
-      const idx = options.indexOf(value)
+      const idx = options.findIndex(o => getVal(o) === value)
       setFocusedIdx(idx >= 0 ? idx : 0)
     }
     setOpen(v => !v)
@@ -66,7 +71,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
       requestAnimationFrame(() => searchRef.current?.focus())
     }
     // Scroll para item selecionado
-    const idx = filtered.indexOf(value)
+    const idx = filtered.findIndex(o => getVal(o) === value)
     if (idx >= 0) {
       requestAnimationFrame(() => {
         itemRefs.current[idx]?.scrollIntoView({ block: 'nearest' })
@@ -102,7 +107,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
       }
       if (e.key === 'Enter' && focusedIdx >= 0 && filtered[focusedIdx]) {
         e.preventDefault()
-        onChange(filtered[focusedIdx])
+        onChange(getVal(filtered[focusedIdx]))
         setOpen(false)
         setSearch('')
         buttonRef.current?.focus()
@@ -144,7 +149,9 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
           !value ? 'text-muted-foreground/50' : 'text-foreground'
         )}
       >
-        <span className="flex-1 text-center truncate">{value || placeholder}</span>
+        <span className="flex-1 text-center truncate">
+          {value ? (getLbl(options.find(o => getVal(o) === value) ?? value)) : placeholder}
+        </span>
         <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform duration-200', open && 'rotate-180')} />
       </button>
 
@@ -184,16 +191,18 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
               <p className="px-4 py-6 text-center text-xs text-muted-foreground">Nenhuma opção encontrada</p>
             ) : (
               filtered.map((opt, idx) => {
-                const selected = opt === value
+                const v = getVal(opt)
+                const l = getLbl(opt)
+                const selected = v === value
                 const focused = idx === focusedIdx
                 return (
                   <button
-                    key={opt}
+                    key={v}
                     ref={el => { itemRefs.current[idx] = el }}
                     type="button"
                     role="option"
                     aria-selected={selected}
-                    onClick={() => { onChange(opt); setOpen(false); setSearch('') }}
+                    onClick={() => { onChange(v); setOpen(false); setSearch('') }}
                     onMouseEnter={() => setFocusedIdx(idx)}
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition-colors duration-75',
@@ -208,7 +217,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
                     )}>
                       {selected && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
                     </span>
-                    <span className="flex-1 truncate font-medium">{opt}</span>
+                    <span className="flex-1 truncate font-medium">{l}</span>
                   </button>
                 )
               })
