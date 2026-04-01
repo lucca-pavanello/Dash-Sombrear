@@ -313,9 +313,9 @@ export default function TabCotacao() {
       whatsapp: form.whatsapp,
       cliente: form.cliente.trim(),
       fonte: 'planilha',
-      ambientes: ambientes.map(a => ({
+      ambientes: ambientes.map((a, aIdx) => ({
         ambiente: a.ambiente.trim(),
-        persianas: a.persianas.flatMap(p =>
+        persianas: a.persianas.flatMap((p, pIdx) =>
           p.medidas.map(m => ({
             modelo: p.modelo,
             tecido: p.tecido.trim(),
@@ -324,6 +324,7 @@ export default function TabCotacao() {
             quantidade: parseInt(m.quantidade) || 1,
             cor_ferragem: p.cor_ferragem.trim(),
             acabamento: p.acabamento.trim(),
+            persiana_grupo: `a${aIdx}p${pIdx}`,
           }))
         ),
       })),
