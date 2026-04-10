@@ -1,6 +1,6 @@
 import { Package, AlertTriangle, DollarSign, ArrowLeftRight } from 'lucide-react'
 import KpiCard, { type KpiVariant } from '@/components/shared/KpiCard'
-import { formatCurrency } from '@/lib/utils'
+import { formatCompact } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import type { EstoqueProduto, EstoqueProdutoAlerta, EstoqueMovimentacao } from '@/lib/supabase'
 
@@ -40,7 +40,7 @@ export default function EstoqueKPIGrid({ produtos, alertas, movimentacoesHoje }:
     },
     {
       title: 'Valor em Estoque',
-      value: formatCurrency(animValor),
+      value: formatCompact(animValor),
       icon: <DollarSign className="h-4 w-4" />,
       subtitle: 'custo estimado',
       variant: 'blue' as const,

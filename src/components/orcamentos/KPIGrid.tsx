@@ -1,6 +1,6 @@
 import { useState, useMemo, memo, useEffect, useRef } from 'react'
 import type { Orcamento } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatCompact } from '@/lib/utils'
 import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Check, Clock, X, AlertTriangle } from 'lucide-react'
 import { useMonthlyComparison } from '@/hooks/useOrcamentos'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -166,7 +166,7 @@ function KPIGrid({ data }: Props) {
     },
     {
       label: 'Ticket Médio',
-      value: ticketMedio > 0 ? formatCurrency(animTicket) : '—',
+      value: ticketMedio > 0 ? formatCompact(animTicket) : '—',
       icon: ReceiptText,
       highlight: false,
       sub: 'por fechamento',
@@ -186,7 +186,7 @@ function KPIGrid({ data }: Props) {
     },
     {
       label: 'Em aberto',
-      value: valorEmAberto > 0 ? formatCurrency(animEmAberto) : '—',
+      value: valorEmAberto > 0 ? formatCompact(animEmAberto) : '—',
       icon: Clock,
       highlight: false,
       amber: false,

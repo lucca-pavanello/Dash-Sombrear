@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [splashFading, setSplashFading] = useState(false)
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 })
   const [orcPulse, setOrcPulse] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
   const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
 
@@ -206,6 +207,55 @@ export default function Dashboard() {
     prevUnreadRef.current = unreadCount
   }, [unreadCount])
 
+  // ── Parallax background orbs ──
+  useEffect(() => {
+    function onScroll() { setScrollY(window.scrollY) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // ── Favicon badge ──
+  useEffect(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 64; canvas.height = 64
+    const ctx = canvas.getContext('2d')!
+    // Draw orange rounded square
+    const r = 12
+    const [x, y, w, h] = [2, 2, 60, 60]
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r)
+    ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+    ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r)
+    ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r)
+    ctx.closePath()
+    ctx.fillStyle = '#E8701A'
+    ctx.fill()
+    ctx.fillStyle = 'white'
+    ctx.font = 'bold 40px system-ui'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('S', 32, 35)
+    if (unreadCount > 0) {
+      ctx.beginPath()
+      ctx.arc(51, 13, 13, 0, Math.PI * 2)
+      ctx.fillStyle = '#EF4444'
+      ctx.fill()
+      ctx.fillStyle = 'white'
+      ctx.font = 'bold 13px system-ui'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(unreadCount > 9 ? '9+' : String(unreadCount), 51, 13)
+    }
+    let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]')
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.href = canvas.toDataURL()
+  }, [unreadCount])
+
   // ── Sliding tab indicator ──
   useEffect(() => {
     const bar = tabBarRef.current
@@ -232,6 +282,26 @@ export default function Dashboard() {
     { id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
   ], [isAdmin, pendingCount, estoqueAlertas.length])
+
+  function MagneticBtn({ children, style, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+    const [off, setOff] = useState({ x: 0, y: 0 })
+    function onMove(e: React.MouseEvent<HTMLButtonElement>) {
+      const r = e.currentTarget.getBoundingClientRect()
+      setOff({ x: (e.clientX - (r.left + r.width / 2)) * 0.38, y: (e.clientY - (r.top + r.height / 2)) * 0.38 })
+    }
+    function onLeave() { setOff({ x: 0, y: 0 }) }
+    const isResting = off.x === 0 && off.y === 0
+    return (
+      <button
+        {...props}
+        onMouseMove={onMove}
+        onMouseLeave={onLeave}
+        style={{ transform: `translate(${off.x}px,${off.y}px)`, transition: isResting ? 'transform 300ms ease' : 'transform 80ms ease', ...style }}
+      >
+        {children}
+      </button>
+    )
+  }
 
   function TabSkeleton() {
     return (
@@ -266,8 +336,14 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Background: dot grid + orbs de glassmorphism */}
       <div className="dot-grid fixed inset-0 -z-10 pointer-events-none" />
-      <div className="fixed -z-10 pointer-events-none -top-40 -right-40 h-[550px] w-[550px] rounded-full bg-primary/[0.06] dark:bg-primary/[0.10] blur-3xl" />
-      <div className="fixed -z-10 pointer-events-none -bottom-40 -left-40 h-[650px] w-[650px] rounded-full bg-amber-400/[0.05] dark:bg-amber-400/[0.08] blur-3xl" />
+      <div
+        className="fixed -z-10 pointer-events-none -top-40 -right-40 h-[550px] w-[550px] rounded-full bg-primary/[0.06] dark:bg-primary/[0.10] blur-3xl"
+        style={{ transform: `translateY(${scrollY * 0.15}px)` }}
+      />
+      <div
+        className="fixed -z-10 pointer-events-none -bottom-40 -left-40 h-[650px] w-[650px] rounded-full bg-amber-400/[0.05] dark:bg-amber-400/[0.08] blur-3xl"
+        style={{ transform: `translateY(${-scrollY * 0.10}px)` }}
+      />
 
       {/* Header */}
       <header className="header-aurora sticky top-0 z-50 overflow-hidden border-b border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] backdrop-blur-md shadow-sm">
@@ -327,29 +403,29 @@ export default function Dashboard() {
                 </span>
               </button>
             )}
-            <button
+            <MagneticBtn
               onClick={uiSound.toggle}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
               aria-label={uiSound.enabled ? 'Desativar sons' : 'Ativar sons'}
               title={uiSound.enabled ? 'Sons ativos' : 'Sons desativados'}
             >
               {uiSound.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </button>
-            <button
+            </MagneticBtn>
+            <MagneticBtn
               onClick={handleThemeToggle}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
               aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-            <button
+            </MagneticBtn>
+            <MagneticBtn
               onClick={() => supabase.auth.signOut()}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
               title="Sair"
               aria-label="Sair"
             >
               <LogOut className="h-4 w-4" />
-            </button>
+            </MagneticBtn>
           </div>
         </div>
       </header>

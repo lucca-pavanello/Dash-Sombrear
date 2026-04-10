@@ -28,3 +28,9 @@ export function formatDate(iso: string): string {
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
+
+export function formatCompact(value: number): string {
+  if (value >= 1_000_000) return `R$\u00A0${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `R$\u00A0${(value / 1_000).toFixed(1)}k`
+  return formatCurrency(value)
+}

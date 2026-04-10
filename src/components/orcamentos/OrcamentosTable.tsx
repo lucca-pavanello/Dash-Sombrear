@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check, Columns3 } from 'lucide-react'
+import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check, Columns3, Maximize2, Minimize2 } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import EmptyState from '@/components/shared/EmptyState'
 import * as XLSX from 'xlsx'
@@ -14,13 +14,59 @@ import type { ToastType } from '@/hooks/useToast'
 
 type ToastFn = (type: ToastType, message: string, opts?: { duration?: number; undoAction?: () => void }) => void
 
+function fireConfetti(originX: number, originY: number) {
+  const canvas = document.createElement('canvas')
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9998;'
+  document.body.appendChild(canvas)
+  const ctx = canvas.getContext('2d')!
+  const colors = ['#E8701A', '#F59E0B', '#FDBA74', '#34D399', '#60A5FA', '#A78BFA', '#F472B6']
+  const particles = Array.from({ length: 55 }, () => ({
+    x: originX, y: originY,
+    vx: (Math.random() - 0.5) * 13,
+    vy: -Math.random() * 13 - 3,
+    size: Math.random() * 6 + 3,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    rotation: Math.random() * Math.PI * 2,
+    rotV: (Math.random() - 0.5) * 0.28,
+    life: 1,
+  }))
+  let frame = 0
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    let alive = false
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy
+      p.vy += 0.48; p.vx *= 0.99
+      p.rotation += p.rotV; p.life -= 0.017
+      if (p.life <= 0) continue
+      alive = true
+      ctx.save()
+      ctx.translate(p.x, p.y)
+      ctx.rotate(p.rotation)
+      ctx.globalAlpha = p.life
+      ctx.fillStyle = p.color
+      ctx.fillRect(-p.size / 2, -p.size * 0.3, p.size, p.size * 0.55)
+      ctx.restore()
+    }
+    frame++
+    if (alive && frame < 130) requestAnimationFrame(animate)
+    else if (document.body.contains(canvas)) document.body.removeChild(canvas)
+  }
+  requestAnimationFrame(animate)
+}
 
 function FechadoCheckbox({ orcamento, toast }: { orcamento: Orcamento; toast: ToastFn }) {
   const { mutate: update, isPending } = useUpdateOrcamento()
 
-  function handleClick() {
+  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     const wasFechado = !!orcamento.fechado
     const novoEstado = !wasFechado
+    if (novoEstado) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      fireConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    }
     update({ id: orcamento.id, fechado: novoEstado }, {
       onSuccess: () => {
         if (novoEstado) {
@@ -247,6 +293,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
   const [colVis, setColVis] = useState<Record<ColId, boolean>>(loadColVis)
   const [colsOpen, setColsOpen] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
+  const [glowPos, setGlowPos] = useState<{ x: number; y: number } | null>(null)
   const colsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -281,6 +329,18 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
 
   useEffect(() => { setPage(1) }, [filterKey])
   useEffect(() => { setPage(1) }, [sort])
+
+  useEffect(() => {
+    if (!isFocused) return
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') setIsFocused(false) }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [isFocused])
+
+  function handleTableMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    setGlowPos({ x: e.clientX - rect.left, y: e.clientY - rect.top + e.currentTarget.scrollTop })
+  }
 
   useEffect(() => {
     const newFlash = new Set<string>()
@@ -344,7 +404,17 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
 
   return (
     <>
-      <div className="rounded-xl border-2 bg-card shadow-sm">
+      {isFocused && (
+        <div
+          className="fixed inset-0 z-[499] bg-background/80 backdrop-blur-sm"
+          onClick={() => setIsFocused(false)}
+        />
+      )}
+      <div className={cn(
+        isFocused
+          ? 'fixed inset-4 z-[500] flex flex-col overflow-hidden rounded-2xl border-2 bg-card shadow-2xl'
+          : 'rounded-xl border-2 bg-card shadow-sm'
+      )}>
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-display text-sm font-medium tracking-wide">Todos os Orçamentos</h2>
           <div className="flex items-center gap-2">
@@ -377,6 +447,15 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 </div>
               )}
             </div>
+            {/* Focus mode toggle */}
+            <button
+              onClick={() => setIsFocused(v => !v)}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 active:scale-95"
+              title={isFocused ? 'Sair do modo foco (Esc)' : 'Modo foco'}
+            >
+              {isFocused ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{isFocused ? 'Sair' : 'Foco'}</span>
+            </button>
             {/* Exports */}
             <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
               <button onClick={() => exportCSV(sorted)} disabled={data.length === 0} title={`Exportar ${sorted.length} registros como CSV`} className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
@@ -395,13 +474,24 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
         {data.length === 0 ? (
           <EmptyState
             icon={FileX}
+            animated
             title={isFiltered ? 'Nenhum resultado encontrado' : 'Nenhum orçamento ainda'}
             description={isFiltered ? 'Tente ajustar ou limpar os filtros' : 'Clique em "+ Novo Orçamento" para começar'}
             action={isFiltered && onClearFilters ? { label: 'Limpar todos os filtros', onClick: onClearFilters } : undefined}
           />
         ) : (
           <>
-            <div className="hidden md:block overflow-auto max-h-[70vh]">
+            <div
+              className={cn('hidden md:block overflow-auto relative', isFocused ? 'flex-1' : 'max-h-[70vh]')}
+              onMouseMove={handleTableMouseMove}
+              onMouseLeave={() => setGlowPos(null)}
+            >
+              {glowPos && (
+                <div
+                  className="pointer-events-none absolute inset-0 z-10"
+                  style={{ background: `radial-gradient(circle 200px at ${glowPos.x}px ${glowPos.y}px, hsl(var(--primary)/0.055) 0%, transparent 70%)` }}
+                />
+              )}
               <table className="w-full text-sm" style={{ minWidth: '920px' }}>
                 <thead>
                   <tr>
