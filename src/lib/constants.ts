@@ -8,6 +8,59 @@ export const MODELOS = ['Rolo', 'Romeu e Julieta', 'Vertical', 'Horizontal', 'Pa
 
 export const SUGESTOES_AMBIENTE = ['Sala', 'Quarto', 'Quarto 1', 'Quarto 2', 'Escritório', 'Cozinha', 'Varanda', 'Banheiro', 'Hall', 'Suíte'];
 
+export type ModeloFieldRule = {
+  obrigatorio: string[]
+  opcional: string[]
+  naplicavel: string[]
+  avisos?: string[]
+}
+
+export const MODELO_RULES: Record<string, ModeloFieldRule> = {
+  'Rolo': {
+    obrigatorio: ['Tecido', 'Medidas (L × A)', 'Quantidade'],
+    opcional:    ['Acabamento', 'Cor Ferragem'],
+    naplicavel:  [],
+  },
+  'Rolo Motorizado': {
+    obrigatorio: ['Tecido', 'Medidas (L × A)', 'Quantidade', 'Cor/Motor'],
+    opcional:    ['Acabamento'],
+    naplicavel:  [],
+    avisos:      ['Motor obrigatório — informe o modelo no campo Cor/Motor'],
+  },
+  'Romeu e Julieta': {
+    obrigatorio: ['Tecido', 'Medidas (L × A)', 'Quantidade'],
+    opcional:    ['Acabamento', 'Cor/Motor'],
+    naplicavel:  [],
+  },
+  'Romana': {
+    obrigatorio: ['Tecido', 'Medidas (L × A)', 'Quantidade'],
+    opcional:    ['Acabamento'],
+    naplicavel:  ['Cor Ferragem'],
+  },
+  'Vertical': {
+    obrigatorio: ['Artigo/Tecido', 'Medidas (L × A)', 'Quantidade'],
+    opcional:    [],
+    naplicavel:  ['Acabamento', 'Cor Ferragem'],
+    avisos:      ['Altura mínima técnica: 1,50m', 'Área cobrada mínima: 1,50m²'],
+  },
+  'Horizontal': {
+    obrigatorio: ['Artigo/Tecido', 'Medidas (L × A)', 'Quantidade'],
+    opcional:    ['Acabamento (bandô)'],
+    naplicavel:  ['Cor Ferragem'],
+    avisos:      ['Área cobrada mínima: 1,50m²'],
+  },
+  'Painel': {
+    obrigatorio: ['Tecido', 'Medidas (L × A)', 'Quantidade'],
+    opcional:    ['Acabamento'],
+    naplicavel:  ['Cor Ferragem'],
+  },
+  'Cortina': {
+    obrigatorio: ['Tecido', 'Medidas (L × A)', 'Quantidade'],
+    opcional:    ['Acabamento', 'Cor Ferragem'],
+    naplicavel:  [],
+  },
+}
+
 export const DEFAULT_RESPONSAVEL = 'Sombrear';
 
 // Paginação

@@ -3,7 +3,40 @@ import { useState, useEffect, useRef } from 'react'
 import { useAddOrcamento } from '@/hooks/useOrcamentos'
 import { cn, formatCurrency, calcularMargem } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
-import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
+import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
+
+function ModeloHint({ modelo }: { modelo: string }) {
+  const rule = MODELO_RULES[modelo]
+  if (!rule) return null
+  return (
+    <div className="col-span-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs space-y-1.5">
+      {rule.avisos?.map((a, i) => (
+        <p key={i} className="font-medium text-amber-600 dark:text-amber-400 flex gap-1.5">
+          <span>⚠</span><span>{a}</span>
+        </p>
+      ))}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {rule.obrigatorio.length > 0 && (
+          <span className="text-muted-foreground">
+            <span className="font-semibold text-foreground">Obrigatório:</span>{' '}
+            {rule.obrigatorio.join(' · ')}
+          </span>
+        )}
+        {rule.opcional.length > 0 && (
+          <span className="text-muted-foreground">
+            <span className="font-semibold">Opcional:</span>{' '}
+            {rule.opcional.join(' · ')}
+          </span>
+        )}
+        {rule.naplicavel.length > 0 && (
+          <span className="text-muted-foreground/50 line-through">
+            {rule.naplicavel.join(' · ')}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -275,6 +308,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
                   {MODELOS.map((m) => <option key={m}>{m}</option>)}
                 </select>
               </div>
+              <ModeloHint modelo={form.modelo} />
               <div>
                 <label className={labelClass}>Quantidade <span className="text-destructive ml-0.5">*</span></label>
                 <input required type="number" min="1" value={form.quantidade} onChange={(e) => set('quantidade', e.target.value)} className={inputClass} />
