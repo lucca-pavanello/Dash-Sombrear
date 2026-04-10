@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, memo } from 'react'
-import { X, Send, Sparkles, RotateCcw, ExternalLink } from 'lucide-react'
+import { useState, useRef, useEffect, memo, useCallback } from 'react'
+import { X, Send, Sparkles, RotateCcw, ExternalLink, Mic, MicOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useGemini, buildGeminiContext } from '@/hooks/useGemini'
 import type { Orcamento } from '@/lib/supabase'
@@ -31,11 +31,35 @@ function TypingIndicator() {
   )
 }
 
+// ── Web Speech API types ──────────────────────────────────────────
+type SpeechRecognitionAny = {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: (e: { results: { [key: number]: { [key: number]: { transcript: string } }; length: number } }) => void
+  onerror: () => void
+  onend: () => void
+  start: () => void
+  stop: () => void
+  abort: () => void
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognitionAny
+    webkitSpeechRecognition?: new () => SpeechRecognitionAny
+  }
+}
+
+const hasSpeech = typeof window !== 'undefined' && (!!window.SpeechRecognition || !!window.webkitSpeechRecognition)
+
 function AICopilot({ open, onClose, data }: Props) {
   const { messages, isLoading, sendMessage, clearChat, hasKey } = useGemini()
   const [input, setInput] = useState('')
+  const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<SpeechRecognitionAny | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -74,6 +98,38 @@ function AICopilot({ open, onClose, data }: Props) {
     const ctx = buildGeminiContext(data)
     sendMessage(s, ctx)
   }
+
+  const toggleVoice = useCallback(() => {
+    if (!hasSpeech) return
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition
+    if (!SR) return
+    const rec = new SR()
+    rec.lang = 'pt-BR'
+    rec.continuous = false
+    rec.interimResults = false
+    rec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript
+      setInput(prev => prev ? prev + ' ' + transcript : transcript)
+    }
+    rec.onerror = () => { setIsListening(false) }
+    rec.onend = () => { setIsListening(false) }
+    recognitionRef.current = rec
+    rec.start()
+    setIsListening(true)
+  }, [isListening])
+
+  // Stop recognition when panel closes
+  useEffect(() => {
+    if (!open && isListening) {
+      recognitionRef.current?.abort()
+      setIsListening(false)
+    }
+  }, [open, isListening])
 
   if (!open) return null
 
@@ -196,6 +252,21 @@ function AICopilot({ open, onClose, data }: Props) {
                   className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 max-h-24"
                   style={{ fieldSizing: 'content' } as React.CSSProperties}
                 />
+                {hasSpeech && (
+                  <button
+                    onClick={toggleVoice}
+                    className={cn(
+                      'shrink-0 rounded-lg p-1.5 transition-all active:scale-95',
+                      isListening
+                        ? 'bg-rose-500/15 text-rose-500 animate-pulse'
+                        : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted'
+                    )}
+                    title={isListening ? 'Parar gravação' : 'Ditado por voz (pt-BR)'}
+                    aria-label={isListening ? 'Parar gravação' : 'Falar'}
+                  >
+                    {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                  </button>
+                )}
                 <button
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}

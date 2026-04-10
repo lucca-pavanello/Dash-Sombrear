@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link } from 'lucide-react'
-import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHistorico } from '@/hooks/useOrcamentos'
+import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHistorico, type HistoricoEntry } from '@/hooks/useOrcamentos'
 import { useToggleShare } from '@/hooks/useKanban'
 import type { Orcamento } from '@/lib/supabase'
 import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
@@ -31,6 +31,139 @@ function formatHistoricoDate(iso: string) {
   return formatDateTime(iso)
 }
 
+// ── Time Machine component ─────────────────────────────────────────
+function TimeMachine({ historico }: { historico: HistoricoEntry[] }) {
+  const [open, setOpen] = useState(false)
+  const [idx, setIdx] = useState(0) // 0 = most recent
+
+  const total = historico.length
+  const entry = historico[idx]
+  const snap = entry.snapshot as Record<string, unknown>
+  const prevSnap = idx < total - 1 ? historico[idx + 1].snapshot as Record<string, unknown> : null
+  const changes = prevSnap
+    ? TRACKED_FIELDS.filter(({ key }) => String(snap[key] ?? '') !== String(prevSnap[key] ?? ''))
+    : []
+
+  function fmt(v: unknown, currency?: boolean) {
+    if (v == null || v === '') return '—'
+    if (currency) return formatCurrency(Number(v))
+    if (v === true) return 'Sim'
+    if (v === false) return 'Não'
+    return String(v)
+  }
+
+  return (
+    <div className="mt-5 rounded-xl border bg-muted/20 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/30 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+          <span>Time Machine</span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{total} versões</span>
+        </div>
+        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="border-t">
+          {/* Navigation */}
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/30 border-b">
+            <button
+              type="button"
+              onClick={() => setIdx(i => Math.min(i + 1, total - 1))}
+              disabled={idx >= total - 1}
+              className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+              title="Versão anterior"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Slider */}
+            <div className="flex-1 relative">
+              <input
+                type="range"
+                min={0}
+                max={total - 1}
+                value={idx}
+                onChange={e => setIdx(Number(e.target.value))}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-primary bg-muted"
+                style={{ direction: 'rtl' }}
+              />
+              {/* Tick marks */}
+              <div className="flex justify-between mt-1">
+                {historico.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setIdx(i)}
+                    className={cn(
+                      'h-1.5 w-1.5 rounded-full transition-colors',
+                      i === idx ? 'bg-primary' : 'bg-muted-foreground/30'
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIdx(i => Math.max(i - 1, 0))}
+              disabled={idx <= 0}
+              className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+              title="Versão mais recente"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Snapshot info */}
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs font-semibold text-foreground">{entry.changed_by}</p>
+                <p className="text-[11px] text-muted-foreground">{formatHistoricoDate(entry.changed_at)}</p>
+              </div>
+              <span className="text-[10px] bg-muted/60 rounded-full px-2 py-0.5 text-muted-foreground tabular-nums">
+                v{total - idx} de {total}
+              </span>
+            </div>
+
+            {/* Field values at this snapshot */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {TRACKED_FIELDS.map(({ key, label, currency }) => {
+                const val = snap[key]
+                const prevVal = prevSnap?.[key]
+                const changed = prevSnap && String(val ?? '') !== String(prevVal ?? '')
+                return (
+                  <div key={key} className={cn('text-xs', changed && 'rounded-md bg-primary/8 px-2 py-1 -mx-2')}>
+                    <span className="text-muted-foreground">{label}: </span>
+                    {changed && prevSnap && (
+                      <span className="line-through opacity-50 mr-1">{fmt(prevVal, currency)}</span>
+                    )}
+                    <span className={cn('font-medium', changed ? 'text-primary' : 'text-foreground')}>
+                      {fmt(val, currency)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {changes.length === 0 && !prevSnap && (
+              <p className="text-xs text-muted-foreground italic">Registro criado</p>
+            )}
+            {changes.length === 0 && prevSnap && (
+              <p className="text-xs text-muted-foreground italic">Sem alterações detectadas nesta versão</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) {
   const { mutateAsync: update, isPending: isUpdating } = useUpdateOrcamento()
   const { mutateAsync: remove, isPending: isDeleting } = useDeleteOrcamento()
@@ -42,7 +175,6 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
-  const [historicoOpen, setHistoricoOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   const initialFormRef = useRef({
@@ -465,66 +597,9 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             </div>
           </div>
 
-          {/* Histórico */}
+          {/* Time Machine */}
           {historico && historico.length > 0 && (
-            <div className="mt-5 rounded-lg border bg-muted/30">
-              <button
-                type="button"
-                onClick={() => setHistoricoOpen((v) => !v)}
-                className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium"
-              >
-                <span>Histórico de alterações</span>
-                {historicoOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-              </button>
-              {historicoOpen && (
-                <div className="border-t divide-y">
-                  {historico.map((h, idx) => {
-                    const snap = h.snapshot as Record<string, unknown>
-
-                    const prevSnap = idx < historico.length - 1
-                      ? historico[idx + 1].snapshot as Record<string, unknown>
-                      : null
-
-                    const changes = prevSnap
-                      ? TRACKED_FIELDS.filter(({ key }) => String(snap[key] ?? '') !== String(prevSnap[key] ?? ''))
-                      : null
-
-                    return (
-                      <div key={h.id} className="px-4 py-3 text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">{h.changed_by}</span>
-                        {' · '}
-                        {formatHistoricoDate(h.changed_at)}
-                        {changes === null ? (
-                          <p className="mt-1 text-foreground/70 italic">Registro criado</p>
-                        ) : changes.length === 0 ? (
-                          <p className="mt-1 italic">Sem alterações detectadas</p>
-                        ) : (
-                          <ul className="mt-1 space-y-0.5">
-                            {changes.map(({ key, label, currency }) => {
-                              const oldVal = prevSnap![key]
-                              const newVal = snap[key]
-                              const fmt = (v: unknown) => {
-                                if (v == null || v === '') return '—'
-                                if (currency) return formatCurrency(Number(v))
-                                return String(v)
-                              }
-                              return (
-                                <li key={key}>
-                                  <span className="font-medium text-foreground">{label}:</span>{' '}
-                                  <span className="line-through opacity-60">{fmt(oldVal)}</span>
-                                  {' → '}
-                                  <span className="text-foreground">{fmt(newVal)}</span>
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+            <TimeMachine historico={historico} />
           )}
 
           {confirmDelete ? (

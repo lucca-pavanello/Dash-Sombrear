@@ -179,7 +179,7 @@ export function useOrcamentoHistorico(orcamentoId: string | null) {
         .select('*')
         .eq('orcamento_id', orcamentoId)
         .order('changed_at', { ascending: false })
-        .limit(5)
+        .limit(20)
       if (error) throw error
       return (data ?? []) as HistoricoEntry[]
     },

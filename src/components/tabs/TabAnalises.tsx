@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import type { Orcamento } from '@/lib/supabase'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -392,6 +392,144 @@ const HEAT_LEVELS = [
   'bg-primary/65',
   'bg-primary',
 ]
+
+// ── Predictive Chart ───────────────────────────────────────────────
+type HistPt = { mes: string; faturamento: number; x: number; projetado: false }
+type ProjPt = { mes: string; faturamento: number; x: number; projetado: true; baixo: number; alto: number }
+
+function FaturamentoPreditivo({ data }: { data: Orcamento[] }) {
+  const { historico, projecoes } = useMemo(() => {
+    const now = new Date()
+    const months = 6
+
+    // Build historical monthly series
+    const historico: HistPt[] = Array.from({ length: months }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1)
+      const fat = filterOrcamentosPorMes(data, d.getFullYear(), d.getMonth())
+        .filter(o => o.fechado === true)
+        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+      return {
+        mes: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+        faturamento: fat,
+        x: i,
+        projetado: false as const,
+      }
+    })
+
+    // Linear regression on historical points (only non-zero months)
+    const pts = historico.filter(p => p.faturamento > 0)
+    let slope = 0, intercept = 0
+    if (pts.length >= 2) {
+      const n = pts.length
+      const sumX = pts.reduce((s, p) => s + p.x, 0)
+      const sumY = pts.reduce((s, p) => s + p.faturamento, 0)
+      const sumXY = pts.reduce((s, p) => s + p.x * p.faturamento, 0)
+      const sumX2 = pts.reduce((s, p) => s + p.x * p.x, 0)
+      slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+      intercept = (sumY - slope * sumX) / n
+    }
+
+    // Project next 3 months
+    const projecoes: ProjPt[] = Array.from({ length: 3 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() + i + 1, 1)
+      const x = months + i
+      const predicted = Math.max(0, Math.round(slope * x + intercept))
+      // Stddev for confidence band (simple: use residuals from regression)
+      const residuals = pts.map(p => p.faturamento - (slope * p.x + intercept))
+      const stddev = pts.length > 1
+        ? Math.sqrt(residuals.reduce((s, r) => s + r * r, 0) / residuals.length)
+        : predicted * 0.2
+      return {
+        mes: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+        faturamento: predicted,
+        baixo: Math.max(0, Math.round(predicted - stddev * 0.8)),
+        alto: Math.round(predicted + stddev * 0.8),
+        x,
+        projetado: true as const,
+      }
+    })
+
+    return { historico, projecoes }
+  }, [data])
+
+  const allPoints: (HistPt | ProjPt)[] = [...historico, ...projecoes]
+  const maxVal = Math.max(...allPoints.map(p => (p.projetado ? (p as ProjPt).alto : p.faturamento)), 1)
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm hover:shadow-elevated transition-all duration-200 col-span-1 lg:col-span-2">
+      <div className="flex items-baseline justify-between mb-0.5">
+        <h3 className="font-display text-sm font-medium tracking-wide">Previsão de Faturamento</h3>
+        <span className="text-xs text-muted-foreground">Regressão linear sobre últimos 6 meses</span>
+      </div>
+      <p className="mb-5 text-xs text-muted-foreground">Histórico (sólido) + projeção para os próximos 3 meses (tracejado)</p>
+
+      <div className="flex items-end gap-1.5 h-44 w-full">
+        {allPoints.map((p, i) => {
+          const isProj = p.projetado
+          const height = p.faturamento > 0 ? (p.faturamento / maxVal) * 100 : 2
+          const proj = isProj ? (p as ProjPt) : null
+          const bandH = proj ? ((proj.alto - proj.baixo) / maxVal) * 100 : 0
+          const bandBottom = proj ? (proj.baixo / maxVal) * 100 : 0
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 min-w-0 group">
+              <div className="relative w-full flex flex-col items-center justify-end" style={{ height: '148px' }}>
+                {/* Confidence band */}
+                {isProj && bandH > 0 && (
+                  <div
+                    className="absolute w-3/4 rounded bg-primary/10"
+                    style={{
+                      bottom: `${bandBottom}%`,
+                      height: `${bandH}%`,
+                    }}
+                  />
+                )}
+                {/* Bar */}
+                <div
+                  className={cn(
+                    'w-full rounded-t transition-all duration-500 relative',
+                    isProj
+                      ? 'border-2 border-dashed border-primary/50 bg-primary/10'
+                      : 'bg-primary/80 hover:bg-primary'
+                  )}
+                  style={{ height: `${height}%`, minHeight: '3px' }}
+                  title={p.faturamento > 0 ? formatCurrency(p.faturamento) : 'Sem dados'}
+                >
+                  {p.faturamento > 0 && (
+                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-semibold tabular-nums whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity text-foreground">
+                      {formatCurrency(p.faturamento)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className={cn(
+                'text-[10px] tabular-nums truncate w-full text-center',
+                isProj ? 'text-primary/60 font-semibold' : 'text-muted-foreground'
+              )}>
+                {p.mes}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 mt-3 justify-end">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-5 rounded-sm bg-primary/80" />
+          <span className="text-[11px] text-muted-foreground">Realizado</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-5 rounded-sm border-2 border-dashed border-primary/50 bg-primary/10" />
+          <span className="text-[11px] text-muted-foreground">Projetado</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2.5 w-5 rounded-sm bg-primary/10" />
+          <span className="text-[11px] text-muted-foreground">Intervalo</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 type HeatCell = { date: Date; count: number; iso: string }
 
@@ -968,10 +1106,15 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         )}
       </div>
 
-      {/* 8 — Heatmap de atividade */}
+      {/* 8 — Previsão de Faturamento */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <FaturamentoPreditivo data={data} />
+      </div>
+
+      {/* 9 — Heatmap de atividade */}
       <ActivityHeatmap data={data} />
 
-      {/* 9 — Peak Hour Clock */}
+      {/* 10 — Peak Hour Clock */}
       <PeakHourClock data={data} />
 
     </div>

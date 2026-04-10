@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Kanban } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -27,9 +27,10 @@ const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
 
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
 const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
+const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban']
 const DEFAULT_TAB = 'calcular-orcamento'
 const TAB_LABELS: Record<string, string> = {
   'calcular-orcamento': 'Calcular Orçamento',
@@ -37,6 +38,7 @@ const TAB_LABELS: Record<string, string> = {
   'calculo-custo': 'Planilha Custos',
   'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
+  'kanban': 'Funil',
   'admin': 'Usuários',
   'analises': 'Análises',
   'estoque': 'Estoque',
@@ -184,6 +186,7 @@ export default function Dashboard() {
 
       import('@/components/admin/PainelAdmin')
       import('@/components/tabs/TabEstoque')
+      import('@/components/tabs/TabKanban')
     }
     if ('requestIdleCallback' in window) {
       const id = (window as Window & { requestIdleCallback: (cb: () => void, opts?: object) => number })
@@ -319,6 +322,7 @@ export default function Dashboard() {
     { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'calculo-custo', label: 'Planilha Custos', icon: ClipboardList, badge: 0 },
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
+    { id: 'kanban', label: 'Funil', icon: Kanban, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
     { id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length },
@@ -591,6 +595,13 @@ export default function Dashboard() {
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'analises' ? 'tab-active' : 'tab-hidden'}>
                 <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('kanban') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'kanban' ? 'tab-active' : 'tab-hidden'}>
+                <TabKanban data={orcamentos} />
               </div>
             </Suspense>
           )}
