@@ -498,9 +498,9 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t bg-muted/60">
-                    <td colSpan={8} className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}
+                  <tr className="border-t border-border" style={{ backgroundColor: 'hsl(var(--muted))' }}>
+                    <td colSpan={8} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Total — {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}
                     </td>
                     <td className="px-4 py-2.5 text-sm font-bold text-primary">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}

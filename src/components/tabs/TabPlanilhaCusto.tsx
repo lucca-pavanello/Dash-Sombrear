@@ -380,15 +380,15 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                     </tr>
                   ))}
                   {/* Linha de totais */}
-                  <tr className="border-t-2 bg-muted/30 font-semibold">
-                    <td colSpan={5} className="px-4 py-3 text-muted-foreground text-xs">
-                      TOTAL — {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
+                  <tr className="border-t border-border bg-muted/40">
+                    <td colSpan={5} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Total — {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
                     </td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(totais.custoTotal)}</td>
-                    <td className="px-4 py-3 text-right hidden xl:table-cell">{formatCurrency(totais.custoAcabamento)}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{formatCurrency(totais.custoTotal)}</td>
+                    <td className="px-4 py-3 text-right font-semibold hidden xl:table-cell">{formatCurrency(totais.custoAcabamento)}</td>
                     <td className="px-4 py-3 text-right text-muted-foreground">—</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(totais.valorVenda)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right font-semibold">{formatCurrency(totais.valorVenda)}</td>
+                    <td className="px-4 py-3 text-right font-semibold">
                       {totais.margemMedia != null ? (
                         <span className={totais.margemMedia >= 30 ? 'text-primary' : totais.margemMedia >= 15 ? 'text-foreground' : 'text-destructive'}>
                           {formatPercent(totais.margemMedia)}

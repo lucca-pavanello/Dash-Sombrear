@@ -8,7 +8,6 @@ import { useProfile, usePendingCount } from '@/hooks/useProfile'
 import { useToast } from '@/hooks/useToast'
 import { useCommandPalette } from '@/hooks/useCommandPalette'
 import Toaster from '@/components/ui/Toaster'
-import GlobalStatusBar from '@/components/shared/GlobalStatusBar'
 import CommandPalette from '@/components/shared/CommandPalette'
 import EditProfileModal from '@/components/profile/EditProfileModal'
 import AvatarInitials from '@/components/shared/AvatarInitials'
@@ -241,8 +240,6 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
-
-      <GlobalStatusBar orcamentos={orcamentos} />
 
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
