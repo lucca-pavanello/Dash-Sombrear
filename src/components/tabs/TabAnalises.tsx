@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
+import { useScrollReveal } from '@/hooks/useScrollReveal'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
@@ -866,8 +867,10 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
   const ticketMedio = fechados.length > 0 ? faturamentoGeral / fechados.length : 0
   const custoTotal = rentabilidadePorModelo.reduce((s, r) => s + r.custo, 0)
 
+  const containerRef = useScrollReveal([data])
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={containerRef}>
 
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -937,7 +940,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       )}
 
       {/* 4 — Gráficos lado a lado */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="reveal grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="font-display text-sm font-medium tracking-wide">Faturamento mensal</h3>
           <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Últimos 6 meses — pedidos fechados</p>
@@ -969,7 +972,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       </div>
 
       {/* 4 — Rentabilidade por Modelo */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="reveal rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="border-b px-5 py-4">
           <h3 className="font-display text-sm font-medium tracking-wide">Rentabilidade por Modelo</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Faturamento, custo, margem e top tecido por tipo de produto</p>
@@ -1048,7 +1051,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       </div>
 
       {/* 5 — Custos do mês */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="reveal grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           { label: 'Custo Total no Mês', value: formatCurrency(totalMesCusto), sub: `${comCustoMes.length} orçamento${comCustoMes.length !== 1 ? 's' : ''} com custo calculado` },
           { label: 'Usos na Semana', value: String(usosSemana), sub: 'cálculos realizados esta semana' },
@@ -1063,7 +1066,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       </div>
 
       {/* 6 — Performance por Vendedor + Conversão por Modelo */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="reveal grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="font-display text-sm font-medium tracking-wide">Performance por Vendedor</h3>
           <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Conversão e faturamento por responsável</p>
@@ -1077,7 +1080,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       </div>
 
       {/* 7 — Tendência diária */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+      <div className="reveal rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <div className="flex items-baseline justify-between mb-0.5">
           <h3 className="font-display text-sm font-medium tracking-wide">Tendência diária</h3>
           <span className="text-xs text-muted-foreground capitalize">

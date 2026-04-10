@@ -377,7 +377,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
+        className="modal-enter relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
       >
         <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
           <div>

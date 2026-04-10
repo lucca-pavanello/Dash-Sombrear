@@ -56,6 +56,7 @@ export default function Dashboard() {
   const [scrollY, setScrollY] = useState(0)
   const [copilotOpen, setCopilotOpen] = useState(false)
   const [presentationOpen, setPresentationOpen] = useState(false)
+  const [tabVersions, setTabVersions] = useState<Record<string, number>>({})
   const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
 
@@ -93,6 +94,7 @@ export default function Dashboard() {
   function handleTabChange(id: string) {
     uiSound.play('tab')
     setUnreadCount(0)
+    setTabVersions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
     navigate(`/${id}`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -538,56 +540,72 @@ export default function Dashboard() {
           {mountedTabs.has('planilha') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'planilha' ? 'tab-active' : 'tab-hidden'}>
-                <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />
+                <div key={tabVersions['planilha'] ?? 0}>
+                  <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />
+                </div>
               </div>
             </Suspense>
           )}
           {mountedTabs.has('agente-ia') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'agente-ia' ? 'tab-active' : 'tab-hidden'}>
-                <TabAgenteIA />
+                <div key={tabVersions['agente-ia'] ?? 0}>
+                  <TabAgenteIA />
+                </div>
               </div>
             </Suspense>
           )}
           {mountedTabs.has('orcamentos') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'orcamentos' ? 'tab-active' : 'tab-hidden'}>
-                <TabOrcamentos data={orcamentos} loading={isLoading} />
+                <div key={tabVersions['orcamentos'] ?? 0}>
+                  <TabOrcamentos data={orcamentos} loading={isLoading} />
+                </div>
               </div>
             </Suspense>
           )}
-{mountedTabs.has('calculo-custo') && (
+          {mountedTabs.has('calculo-custo') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'calculo-custo' ? 'tab-active' : 'tab-hidden'}>
-                <TabCalculoCusto isLoading={isLoading} error={isError} toast={toast} />
+                <div key={tabVersions['calculo-custo'] ?? 0}>
+                  <TabCalculoCusto isLoading={isLoading} error={isError} toast={toast} />
+                </div>
               </div>
             </Suspense>
           )}
           {mountedTabs.has('analises') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'analises' ? 'tab-active' : 'tab-hidden'}>
-                <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />
+                <div key={tabVersions['analises'] ?? 0}>
+                  <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />
+                </div>
               </div>
             </Suspense>
           )}
           {mountedTabs.has('kanban') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'kanban' ? 'tab-active' : 'tab-hidden'}>
-                <TabKanban data={orcamentos} />
+                <div key={tabVersions['kanban'] ?? 0}>
+                  <TabKanban data={orcamentos} />
+                </div>
               </div>
             </Suspense>
           )}
           {mountedTabs.has('estoque') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'estoque' ? 'tab-active' : 'tab-hidden'}>
-                <TabEstoque toast={toast} />
+                <div key={tabVersions['estoque'] ?? 0}>
+                  <TabEstoque toast={toast} />
+                </div>
               </div>
             </Suspense>
           )}
           {mountedTabs.has('admin') && isAdmin && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'admin' ? 'tab-active' : 'tab-hidden'}>
-                <PainelAdmin toast={toast} />
+                <div key={tabVersions['admin'] ?? 0}>
+                  <PainelAdmin toast={toast} />
+                </div>
               </div>
             </Suspense>
           )}

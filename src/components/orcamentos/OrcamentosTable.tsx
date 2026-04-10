@@ -542,10 +542,11 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         key={o.id}
                         onClick={() => setEditing(o)}
                         className={cn(
-                          'border-b last:border-0 transition-colors duration-150 cursor-pointer group',
+                          'border-b last:border-0 transition-colors duration-150 cursor-pointer group row-animate-in',
                           o.fechado && !hasFlash && 'row-fechado',
                           hasFlash && 'animate-row-close'
                         )}
+                        style={{ animationDelay: `${i * 25}ms` }}
                       >
                         {/* sticky left */}
                         <td className="px-2 py-3 text-center w-10" style={{ position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.12)' }}>
