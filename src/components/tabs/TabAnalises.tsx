@@ -383,6 +383,112 @@ function ConversaoPorResponsavel({ data }: { data: Orcamento[] }) {
   )
 }
 
+// ─── Activity Heatmap ───────────────────────────────────────────────────────
+
+const HEAT_LEVELS = [
+  'bg-muted/50',
+  'bg-primary/20',
+  'bg-primary/40',
+  'bg-primary/65',
+  'bg-primary',
+]
+
+type HeatCell = { date: Date; count: number; iso: string }
+
+function ActivityHeatmap({ data }: { data: Orcamento[] }) {
+  const { weeks, totalOrcs, activeDays, months } = useMemo(() => {
+    const now = new Date()
+    const days: HeatCell[] = []
+    for (let i = 364; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+      days.push({ date: d, count: 0, iso: d.toISOString().slice(0, 10) })
+    }
+    data.forEach((o) => {
+      const iso = o.created_at.slice(0, 10)
+      const cell = days.find((d) => d.iso === iso)
+      if (cell) cell.count++
+    })
+    const firstDow = (days[0].date.getDay() + 6) % 7
+    const padded: HeatCell[] = Array.from({ length: firstDow }, (_, i) => ({ date: new Date(0), count: -1, iso: `pad-${i}` }))
+    const all: HeatCell[] = [...padded, ...days]
+    const ws: HeatCell[][] = []
+    for (let i = 0; i < all.length; i += 7) ws.push(all.slice(i, i + 7))
+    const monthLabels: { week: number; label: string }[] = []
+    let lastMonth = -1
+    ws.forEach((week, wi) => {
+      const real = week.find(d => d.count >= 0)
+      if (real) {
+        const m = real.date.getMonth()
+        if (m !== lastMonth) { monthLabels.push({ week: wi, label: real.date.toLocaleDateString('pt-BR', { month: 'short' }) }); lastMonth = m }
+      }
+    })
+    return {
+      weeks: ws,
+      totalOrcs: days.reduce((s, d) => s + Math.max(d.count, 0), 0),
+      activeDays: days.filter(d => d.count > 0).length,
+      months: monthLabels,
+    }
+  }, [data])
+
+  function level(count: number) {
+    if (count < 0) return 'bg-transparent'
+    if (count === 0) return HEAT_LEVELS[0]
+    if (count === 1) return HEAT_LEVELS[1]
+    if (count <= 3) return HEAT_LEVELS[2]
+    if (count <= 6) return HEAT_LEVELS[3]
+    return HEAT_LEVELS[4]
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="font-display text-sm font-medium tracking-wide">Atividade — últimos 12 meses</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{totalOrcs} orçamentos em {activeDays} dia{activeDays !== 1 ? 's' : ''} ativo{activeDays !== 1 ? 's' : ''}</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span>menos</span>
+          {HEAT_LEVELS.map((c, i) => <div key={i} className={`h-3 w-3 rounded-sm ${c}`} />)}
+          <span>mais</span>
+        </div>
+      </div>
+      {/* Month labels */}
+      <div className="relative mb-0.5">
+        <div className="flex gap-[3px]">
+          {weeks.map((_, wi) => {
+            const ml = months.find(m => m.week === wi)
+            return (
+              <div key={wi} className="w-3 shrink-0 text-[9px] text-muted-foreground/60 truncate">
+                {ml ? ml.label : ''}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      {/* Grid */}
+      <div className="flex gap-[3px] overflow-x-auto pb-1">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="flex flex-col gap-[3px]">
+            {week.map((cell) => (
+              <div
+                key={cell.iso}
+                title={cell.count >= 0 ? `${cell.date.toLocaleDateString('pt-BR')}: ${cell.count} orçamento${cell.count !== 1 ? 's' : ''}` : ''}
+                className={`h-3 w-3 rounded-sm transition-transform duration-100 ${level(cell.count)} ${cell.count > 0 ? 'hover:scale-125 hover:ring-1 hover:ring-primary/50 cursor-default' : ''}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      {/* Day labels */}
+      <div className="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground/50">
+        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(d => (
+          <span key={d} className="w-3 text-center shrink-0 mr-[3px]">{d.slice(0,1)}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── TabAnalises ────────────────────────────────────────────────────────────
 
 export default function TabAnalises({ data, isLoading, error }: Props) {
@@ -710,6 +816,9 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* 8 — Heatmap de atividade */}
+      <ActivityHeatmap data={data} />
 
     </div>
   )

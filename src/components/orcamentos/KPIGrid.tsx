@@ -118,6 +118,8 @@ function KPIGrid({ data }: Props) {
   const animEmAberto = useCountUp(valorEmAberto, 580)
   const animEmRisco = useCountUp(emRisco.length, 500)
 
+  const [flippedCard, setFlippedCard] = useState<string | null>(null)
+
   const [meta, setMeta] = useState(() => {
     const saved = localStorage.getItem(META_KEY)
     return saved ? Number(saved) : 0
@@ -155,6 +157,11 @@ function KPIGrid({ data }: Props) {
       highlight: true,
       sub: `${Math.round(animConv)}% conversão`,
       tooltip: [`${fechados.length} de ${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''}`, `Taxa de conversão: ${convRate.toFixed(1)}%`],
+      back: [
+        `${fechados.length} fechado${fechados.length !== 1 ? 's' : ''} de ${totalOrc} total`,
+        `Conversão: ${convRate.toFixed(1)}%`,
+        totalOrc - fechados.length > 0 ? `${totalOrc - fechados.length} ainda em aberto` : 'Nenhum em aberto',
+      ],
     },
     {
       label: 'Orçamentos',
@@ -163,6 +170,10 @@ function KPIGrid({ data }: Props) {
       highlight: false,
       sub: 'no período',
       tooltip: [`${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''} no período`, `${totalOrc - fechados.length} em aberto`],
+      back: [
+        `${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''} no período`,
+        `${fechados.length} fechados · ${totalOrc - fechados.length} abertos`,
+      ],
     },
     {
       label: 'Ticket Médio',
@@ -172,6 +183,9 @@ function KPIGrid({ data }: Props) {
       sub: 'por fechamento',
       tooltip: ticketMedio > 0
         ? [`${formatCurrency(faturamento)} ÷ ${fechados.length} fechamentos`]
+        : ['Nenhum fechamento ainda'],
+      back: ticketMedio > 0
+        ? [`${formatCurrency(faturamento)} total`, `÷ ${fechados.length} fechamento${fechados.length !== 1 ? 's' : ''}`, `= ${formatCurrency(ticketMedio)} / venda`]
         : ['Nenhum fechamento ainda'],
     },
     {
@@ -183,6 +197,9 @@ function KPIGrid({ data }: Props) {
       tooltip: comMargem.length > 0
         ? [`Baseado em ${comMargem.length} orçamento${comMargem.length !== 1 ? 's' : ''} com margem calculada`, `(venda + instalação − custo) / receita`]
         : ['Margem calculada automaticamente', 'pelo n8n ao registrar o orçamento'],
+      back: comMargem.length > 0
+        ? [`${comMargem.length} orçamentos com custo`, `(receita − custo) ÷ receita`, `Média: ${(margemMedia ?? 0).toFixed(1)}%`]
+        : ['Sem custo registrado', 'Informe o custo para', 'calcular a margem automaticamente'],
     },
     {
       label: 'Em aberto',
@@ -193,6 +210,10 @@ function KPIGrid({ data }: Props) {
       sub: `${emAberto.length} orçamento${emAberto.length !== 1 ? 's' : ''}`,
       tooltip: [
         `${emAberto.length} orçamento${emAberto.length !== 1 ? 's' : ''} pendente${emAberto.length !== 1 ? 's' : ''}`,
+        valorEmAberto > 0 ? `Pipeline: ${formatCurrency(valorEmAberto)}` : 'Sem valor informado',
+      ],
+      back: [
+        `${emAberto.length} pendente${emAberto.length !== 1 ? 's' : ''}`,
         valorEmAberto > 0 ? `Pipeline: ${formatCurrency(valorEmAberto)}` : 'Sem valor informado',
       ],
     },
@@ -207,6 +228,9 @@ function KPIGrid({ data }: Props) {
         `${emRisco.length} orçamento${emRisco.length !== 1 ? 's' : ''} aberto${emRisco.length !== 1 ? 's' : ''} há mais de 7 dias`,
         valorEmRisco > 0 ? `Pipeline em risco: ${formatCurrency(valorEmRisco)}` : 'Sem valor informado',
       ],
+      back: emRisco.length > 0
+        ? [`${emRisco.length} aberto${emRisco.length !== 1 ? 's' : ''} há +7 dias`, valorEmRisco > 0 ? `Em risco: ${formatCurrency(valorEmRisco)}` : 'Sem valor informado', 'Retome o contato agora']
+        : ['Nenhum orçamento em risco', 'Todos os abertos foram', 'atualizados nos últimos 7 dias'],
     },
   ]
 
@@ -306,31 +330,47 @@ function KPIGrid({ data }: Props) {
         )}
       </div>
 
-      {kpis.map(({ label, value, icon: Icon, amber, sub, tooltip }, i) => (
-        <div
-          key={label}
-          tabIndex={0}
-          className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none ${
-            amber ? 'border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10'
-            : 'border-border bg-primary/5 dark:bg-primary/10'
-          }`}
-          style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms` }}
-        >
-          <KpiTooltip lines={tooltip} />
-          <div className="flex flex-col items-center text-center gap-0.5">
-            <div className={`mb-1.5 rounded-lg p-1.5 ${amber ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-primary/15 text-primary'}`}>
-              <Icon className="h-4 w-4" />
+      {kpis.map(({ label, value, icon: Icon, amber, sub, tooltip, back }, i) => {
+        const isFlipped = flippedCard === label
+        return (
+          <div
+            key={label}
+            tabIndex={0}
+            onClick={() => setFlippedCard(isFlipped ? null : label)}
+            className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 shadow-sm transition-shadow duration-200 hover:shadow-md cursor-pointer outline-none ${
+              amber ? 'border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10'
+              : 'border-border bg-primary/5 dark:bg-primary/10'
+            }`}
+            style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms`, perspective: '800px' }}
+          >
+            <div className={`kpi-flip-inner${isFlipped ? ' is-flipped' : ''}`}>
+              {/* Front */}
+              <div className="kpi-flip-front p-4">
+                <KpiTooltip lines={tooltip} />
+                <div className="flex flex-col items-center text-center gap-0.5">
+                  <div className={`mb-1.5 rounded-lg p-1.5 ${amber ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-primary/15 text-primary'}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate w-full">{label}</p>
+                  <p className={`font-display mt-1 text-2xl font-bold tracking-tight tabular-nums ${amber ? 'text-amber-600 dark:text-amber-400' : 'text-primary'}`}>
+                    {value}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground truncate tabular-nums w-full">{sub}</p>
+                </div>
+                <p className="mt-1.5 text-[9px] text-muted-foreground/30 text-center select-none">clique ›</p>
+              </div>
+              {/* Back */}
+              <div className="kpi-flip-back rounded-xl p-4 flex flex-col justify-center gap-1.5 bg-card border border-border">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">{label}</p>
+                {back.map((line, j) => (
+                  <p key={j} className="text-xs text-foreground/80 leading-snug">{line}</p>
+                ))}
+                <p className="mt-1 text-[9px] text-muted-foreground/30 text-right select-none">‹ voltar</p>
+              </div>
             </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate w-full">{label}</p>
-            <p className={`font-display mt-1 text-2xl font-bold tracking-tight tabular-nums ${
-              amber ? 'text-amber-600 dark:text-amber-400' : 'text-primary'
-            }`}>
-              {value}
-            </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground truncate tabular-nums w-full">{sub}</p>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

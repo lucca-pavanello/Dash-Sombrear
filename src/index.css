@@ -267,4 +267,25 @@
     from { stroke-dashoffset: 176; opacity: 0.2; }
     to   { stroke-dashoffset: 0;   opacity: 1;   }
   }
+
+  /* ── KPI flip card ── */
+  .kpi-flip-inner {
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 520ms cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  .kpi-flip-inner.is-flipped {
+    transform: rotateY(180deg);
+  }
+  .kpi-flip-front,
+  .kpi-flip-back {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .kpi-flip-back {
+    position: absolute;
+    inset: 0;
+    transform: rotateY(180deg);
+  }
 }

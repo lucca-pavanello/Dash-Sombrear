@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export type KpiVariant = 'default' | 'emerald' | 'blue' | 'orange' | 'purple' | 'amber'
 
@@ -12,6 +13,7 @@ interface KpiCardProps {
   className?: string
   variant?: KpiVariant
   trend?: { pct: number; label?: string }
+  backContent?: ReactNode
 }
 
 const VARIANTS: Record<KpiVariant, { icon: string; border: string }> = {
@@ -46,8 +48,10 @@ export default function KpiCard({
   className = '',
   variant = 'default',
   trend,
+  backContent,
 }: KpiCardProps) {
   const styles = VARIANTS[variant]
+  const [isFlipped, setIsFlipped] = useState(false)
 
   // ── 3D tilt on hover ──
   const [tiltStyle, setTiltStyle] = useState<CSSProperties>({
@@ -55,6 +59,7 @@ export default function KpiCard({
   })
 
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (isFlipped) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     const y = (e.clientY - rect.top) / rect.height
@@ -97,40 +102,74 @@ export default function KpiCard({
     }
   }, [value])
 
+  const cardBase = `rounded-xl border bg-card shadow-sm will-change-transform dark:bg-card/75 dark:backdrop-blur-sm dark:border-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${styles.border} ${className}`
+
+  if (!backContent) {
+    return (
+      <div
+        className={cardBase + ' p-4'}
+        style={{ ...tiltStyle, transformStyle: 'preserve-3d' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p ref={valueElRef} className="font-display mt-1 text-xl font-bold truncate">{value}</p>
+            {subtitle && <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>}
+            {trend != null && (
+              <p className={`mt-1 flex items-center gap-0.5 text-xs font-semibold ${
+                trend.pct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+              }`}>
+                {trend.pct >= 0 ? <TrendingUp className="h-3 w-3 shrink-0" /> : <TrendingDown className="h-3 w-3 shrink-0" />}
+                {trend.pct >= 0 ? '+' : ''}{trend.pct.toFixed(0)}%{' '}
+                <span className="font-normal text-muted-foreground">{trend.label ?? 'vs mês anterior'}</span>
+              </p>
+            )}
+          </div>
+          <div className={`shrink-0 rounded-lg p-1.5 ${styles.icon}`}>{icon}</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
-      className={`rounded-xl border bg-card p-4 shadow-sm will-change-transform dark:bg-card/75 dark:backdrop-blur-sm dark:border-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${styles.border} ${className}`}
-      style={{ ...tiltStyle, transformStyle: 'preserve-3d' }}
+      className={cardBase}
+      style={{ perspective: '800px' }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onClick={() => setIsFlipped(v => !v)}
+      title={isFlipped ? 'Clique para voltar' : 'Clique para detalhes'}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground">{title}</p>
-          <p ref={valueElRef} className="font-display mt-1 text-xl font-bold truncate">{value}</p>
-          {subtitle && <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>}
-          {trend != null && (
-            <p
-              className={`mt-1 flex items-center gap-0.5 text-xs font-semibold ${
-                trend.pct >= 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-destructive'
-              }`}
-            >
-              {trend.pct >= 0 ? (
-                <TrendingUp className="h-3 w-3 shrink-0" />
-              ) : (
-                <TrendingDown className="h-3 w-3 shrink-0" />
+      <div className={cn('kpi-flip-inner', isFlipped && 'is-flipped')}>
+        {/* Front */}
+        <div className="kpi-flip-front p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">{title}</p>
+              <p ref={valueElRef} className="font-display mt-1 text-xl font-bold truncate">{value}</p>
+              {subtitle && <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>}
+              {trend != null && (
+                <p className={`mt-1 flex items-center gap-0.5 text-xs font-semibold ${
+                  trend.pct >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+                }`}>
+                  {trend.pct >= 0 ? <TrendingUp className="h-3 w-3 shrink-0" /> : <TrendingDown className="h-3 w-3 shrink-0" />}
+                  {trend.pct >= 0 ? '+' : ''}{trend.pct.toFixed(0)}%{' '}
+                  <span className="font-normal text-muted-foreground">{trend.label ?? 'vs mês anterior'}</span>
+                </p>
               )}
-              {trend.pct >= 0 ? '+' : ''}
-              {trend.pct.toFixed(0)}%{' '}
-              <span className="font-normal text-muted-foreground">
-                {trend.label ?? 'vs mês anterior'}
-              </span>
-            </p>
-          )}
+            </div>
+            <div className={`shrink-0 rounded-lg p-1.5 ${styles.icon}`}>{icon}</div>
+          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground/40 text-right select-none">clique para detalhes ›</p>
         </div>
-        <div className={`shrink-0 rounded-lg p-1.5 ${styles.icon}`}>{icon}</div>
+
+        {/* Back */}
+        <div className="kpi-flip-back p-4 flex flex-col justify-center rounded-xl bg-card border border-border">
+          {backContent}
+          <p className="mt-2 text-[10px] text-muted-foreground/40 text-right select-none">‹ voltar</p>
+        </div>
       </div>
     </div>
   )
