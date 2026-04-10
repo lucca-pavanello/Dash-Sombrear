@@ -149,10 +149,10 @@ export default function Dashboard() {
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: Calculator, badge: 0 },
     { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'calculo-custo', label: 'Planilha Custos', icon: ClipboardList, badge: 0 },
+    { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
-    { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
   ], [isAdmin, pendingCount])
 
   function TabSkeleton() {
