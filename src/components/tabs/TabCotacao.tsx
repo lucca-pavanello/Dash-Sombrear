@@ -4,7 +4,6 @@ import {
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
   ChevronRight, ChevronDown, Package, PenLine, Copy,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
@@ -112,8 +111,17 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
-  const navigate = useNavigate()
   const nextIdRef = useRef(1)
+  const notifyChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const notifyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Limpa canal de notificação ao desmontar
+  useEffect(() => {
+    return () => {
+      if (notifyChannelRef.current) supabase.removeChannel(notifyChannelRef.current)
+      if (notifyTimeoutRef.current) clearTimeout(notifyTimeoutRef.current)
+    }
+  }, [])
   const draftRef = useRef(loadDraft())
   const [form, setForm] = useState<FormState>(() => draftRef.current?.form ?? INITIAL_FORM)
   const [ambientes, setAmbientes] = useState<Ambiente[]>(() => draftRef.current?.ambientes ?? [newAmbiente(nextIdRef)])
@@ -354,9 +362,43 @@ export default function TabCotacao() {
       clearTimeout(timeoutId)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setIsSuccess(true)
-      toast('success', 'Orçamento enviado com sucesso!')
+      toast('success', 'Orçamento enviado! Aguarde o resultado...')
       startResetCountdown()
-      setTimeout(() => navigate('/planilha'), 2500)
+
+      // Escuta o Supabase para notificar quando o n8n terminar de processar
+      if (userId) {
+        const clienteNome = form.cliente.trim()
+        const isWhatsapp = form.whatsapp
+        if (notifyChannelRef.current) supabase.removeChannel(notifyChannelRef.current)
+        if (notifyTimeoutRef.current) clearTimeout(notifyTimeoutRef.current)
+
+        const ch = supabase
+          .channel('cotacao-notify-' + Date.now())
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'orcamentos',
+            filter: `user_id=eq.${userId}`,
+          }, (evt) => {
+            const row = evt.new as Record<string, unknown>
+            if (String(row.cliente ?? '').toLowerCase() === clienteNome.toLowerCase()) {
+              const msg = isWhatsapp
+                ? `Orçamento de ${clienteNome} enviado via WhatsApp ✓`
+                : `Orçamento de ${clienteNome} calculado ✓`
+              toast('success', msg, { duration: 8000 })
+              supabase.removeChannel(ch)
+              notifyChannelRef.current = null
+            }
+          })
+          .subscribe()
+
+        notifyChannelRef.current = ch
+        // Auto-cleanup após 10 minutos se o n8n demorar demais
+        notifyTimeoutRef.current = setTimeout(() => {
+          supabase.removeChannel(ch)
+          notifyChannelRef.current = null
+        }, 600000)
+      }
     } catch (err) {
       clearTimeout(timeoutId)
       console.error('[TabCotacao] submit error:', err)
