@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { Bot, TrendingUp, TrendingDown, Minus, FileDown, AlertCircle, Users, DollarSign, CheckCircle2, FileText } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, CartesianGrid,
-  PieChart, Pie, Cell,
 } from 'recharts'
-import { useCrmLeads, type CrmLead } from '@/hooks/useAgenteIA'
-import { META_KEY, HORA_INICIO, HORA_FIM } from '@/lib/constants'
+import { META_KEY } from '@/lib/constants'
+import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import {
   filterOrcamentosPorMes,
   calcFaturamentoPorMes,
@@ -288,103 +287,6 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
   )
 }
 
-function parseBRL(v: string): number {
-  const s = v.trim()
-  if (!s) return 0
-  // BRL format: has R$ symbol, or ends with comma followed by 1-2 digits (decimal separator)
-  const isBRL = s.includes('R$') || /,\d{1,2}$/.test(s.replace(/[R$\s]/g, ''))
-  if (isBRL) {
-    return parseFloat(s.replace(/[R$\s.]/g, '').replace(',', '.')) || 0
-  }
-  return parseFloat(s) || 0
-}
-
-function FunilAgenteIA({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
-  if (isLoading) {
-    return <div className="animate-pulse space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-12 rounded-lg bg-muted" />)}</div>
-  }
-
-  const totalLeads = leads.length
-  const cotados = leads.filter((l) => l.ultimo_valor_cotado && l.ultimo_valor_cotado.trim()).length
-  const convertidos = leads.filter((l) => {
-    const s = l.status_lead?.toLowerCase().trim() ?? ''
-    return s === 'convertido' || s === 'fechado'
-  })
-  const convertidosCount = convertidos.length
-  const faturamentoGerado = convertidos.reduce((s, l) => {
-    const v = parseBRL(l.ultimo_valor_cotado ?? '')
-    return s + v
-  }, 0)
-
-  const etapas = [
-    {
-      label: 'Total de Leads',
-      value: totalLeads,
-      display: String(totalLeads),
-      pct: 100,
-      icon: Users,
-      color: 'bg-primary',
-      textColor: 'text-primary',
-    },
-    {
-      label: 'Leads Cotados',
-      value: cotados,
-      display: String(cotados),
-      pct: totalLeads > 0 ? (cotados / totalLeads) * 100 : 0,
-      icon: FileText,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600 dark:text-blue-400',
-    },
-    {
-      label: 'Convertidos',
-      value: convertidosCount,
-      display: String(convertidosCount),
-      pct: totalLeads > 0 ? (convertidosCount / totalLeads) * 100 : 0,
-      icon: CheckCircle2,
-      color: 'bg-green-500',
-      textColor: 'text-green-600 dark:text-green-400',
-    },
-    {
-      label: 'Faturamento Gerado',
-      value: faturamentoGerado,
-      display: faturamentoGerado > 0 ? formatCurrency(faturamentoGerado) : '—',
-      pct: null,
-      icon: DollarSign,
-      color: 'bg-amber-500',
-      textColor: 'text-amber-600 dark:text-amber-400',
-    },
-  ]
-
-  return (
-    <div className="space-y-3">
-      {etapas.map(({ label, display, pct, icon: Icon, color, textColor }, i) => (
-        <div key={label} className="flex items-center gap-3">
-          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${color}/15`}>
-            <Icon className={`h-3.5 w-3.5 ${textColor}`} />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-0.5">
-              <span className="text-xs font-medium">{label}</span>
-              <span className={`text-sm font-bold tabular-nums ${textColor}`}>{display}</span>
-            </div>
-            {pct !== null && (
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
-              </div>
-            )}
-          </div>
-          {pct !== null && i > 0 && (
-            <span className="w-12 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-              {pct.toFixed(0)}%
-            </span>
-          )}
-          {(pct === null || i === 0) && <span className="w-12" />}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function PerformancePorCanal({ data }: { data: Orcamento[] }) {
   const byCanal = useMemo(() => {
     const map = data
@@ -444,370 +346,6 @@ function PerformancePorCanal({ data }: { data: Orcamento[] }) {
   )
 }
 
-// ─── Desempenho do Agente IA — novos componentes ───────────────────────────
-
-const STATUS_LABEL_MAP: Record<string, { label: string; color: string }> = {
-  novo: { label: 'Novo', color: '#94a3b8' },
-  em_atendimento: { label: 'Em atendimento', color: '#3b82f6' },
-  aguardando_atendimento: { label: 'Aguardando', color: '#f97316' },
-  convertido: { label: 'Convertido', color: '#22c55e' },
-  fechado: { label: 'Fechado', color: '#16a34a' },
-  perdido: { label: 'Perdido', color: '#ef4444' },
-}
-
-function StatusLeadDonut({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="animate-pulse space-y-2">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
-      </div>
-    )
-  }
-
-  const grouped = leads.reduce<Record<string, number>>((acc, l) => {
-    const key = l.status_lead?.trim() ?? 'desconhecido'
-    acc[key] = (acc[key] ?? 0) + 1
-    return acc
-  }, {})
-
-  const pieData = Object.entries(grouped).map(([key, count]) => {
-    const meta = STATUS_LABEL_MAP[key]
-    return {
-      key,
-      name: meta?.label ?? key,
-      value: count,
-      color: meta?.color ?? '#cbd5e1',
-    }
-  })
-
-  if (pieData.length === 0) {
-    return (
-      <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">
-        Sem dados de status
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <ResponsiveContainer width="100%" height={180}>
-        <PieChart>
-          <Pie
-            data={pieData}
-            cx="50%"
-            cy="50%"
-            innerRadius={50}
-            outerRadius={80}
-            dataKey="value"
-            paddingAngle={2}
-          >
-            {pieData.map((entry) => (
-              <Cell key={entry.key} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip
-            {...tooltipStyle}
-            formatter={(v: number, name: string) => [v, name]}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
-        {pieData.map((entry) => (
-          <div key={entry.key} className="flex items-center gap-1.5 min-w-0">
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="truncate text-xs text-muted-foreground">{entry.name}</span>
-            <span className="ml-auto shrink-0 text-xs font-semibold tabular-nums">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-
-function VolumeLeadsIA({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="animate-pulse space-y-2">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
-      </div>
-    )
-  }
-
-  const now = new Date()
-  const last6: { mes: string; leads: number; year: number; month: number }[] = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    last6.push({ mes: MESES_PT[d.getMonth()], leads: 0, year: d.getFullYear(), month: d.getMonth() })
-  }
-
-  leads.forEach((l) => {
-    const d = new Date(l.created_at)
-    const entry = last6.find((e) => e.year === d.getFullYear() && e.month === d.getMonth())
-    if (entry) entry.leads++
-  })
-
-  const total = leads.length
-
-  return (
-    <div>
-      <p className="mb-3 text-xs text-muted-foreground">{total} lead{total !== 1 ? 's' : ''} no total</p>
-      <ResponsiveContainer width="100%" height={180}>
-        <BarChart data={last6} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-          <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-          <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-          <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Leads']} />
-          <Bar dataKey="leads" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  )
-}
-
-const QUALIDADE_FIELDS: { key: keyof CrmLead; label: string }[] = [
-  { key: 'medidas_coletadas', label: 'Medidas coletadas' },
-  { key: 'quantidade', label: 'Quantidade' },
-  { key: 'tecido_cor', label: 'Tecido / Cor' },
-  { key: 'acabamento_desejado', label: 'Acabamento' },
-  { key: 'precisa_instalacao', label: 'Precisa instalação' },
-  { key: 'modelo_interesse', label: 'Modelo de interesse' },
-]
-
-function QualidadeLeads({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="animate-pulse space-y-2">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
-      </div>
-    )
-  }
-
-  const total = leads.length
-
-  const fields = QUALIDADE_FIELDS.map(({ key, label }) => {
-    const filled = total > 0
-      ? leads.filter((l) => {
-          const v = l[key]
-          return v !== null && v !== undefined && String(v).trim() !== ''
-        }).length
-      : 0
-    const pct = total > 0 ? Math.round((filled / total) * 100) : 0
-    return { label, pct }
-  })
-
-  const score = fields.length > 0
-    ? Math.round(fields.reduce((s, f) => s + f.pct, 0) / fields.length)
-    : 0
-
-  if (total === 0) {
-    return (
-      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-        Sem leads para analisar
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold text-primary tabular-nums">{score}%</span>
-        <span className="text-xs text-muted-foreground">score médio de qualificação</span>
-      </div>
-      <div className="space-y-2">
-        {fields.map(({ label, pct }) => (
-          <div key={label} className="flex items-center gap-2">
-            <span className="w-36 shrink-0 text-xs text-muted-foreground truncate">{label}</span>
-            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary/70 transition-all duration-700"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <span className="w-9 shrink-0 text-right text-xs font-semibold tabular-nums text-primary">
-              {pct}%
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-const PERIODOS = [
-  { label: 'Madrugada', range: [0, 5], outOfHours: true },
-  { label: 'Manhã', range: [6, 11], outOfHours: false },
-  { label: 'Tarde', range: [12, 17], outOfHours: false },
-  { label: 'Noite', range: [18, 23], outOfHours: true },
-]
-
-function HorarioPico({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="animate-pulse space-y-2">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
-      </div>
-    )
-  }
-
-  const counts = PERIODOS.map((p) => ({ ...p, count: 0 }))
-
-  leads.forEach((l) => {
-    const raw = l.inicio_atendimento ?? l.created_at
-    if (!raw) return
-    const h = new Date(raw).getHours()
-    const p = counts.find((c) => h >= c.range[0] && h <= c.range[1])
-    if (p) p.count++
-  })
-
-  const maxCount = Math.max(...counts.map((c) => c.count), 1)
-  const total = leads.length
-
-  const foraHorario = leads.filter((l) => {
-    const raw = l.inicio_atendimento ?? l.created_at
-    if (!raw) return false
-    const h = new Date(raw).getHours()
-    return h < HORA_INICIO || h >= HORA_FIM
-  }).length
-
-  const foraPct = total > 0 ? Math.round((foraHorario / total) * 100) : 0
-
-  return (
-    <div className="space-y-3">
-      {counts.map(({ label, count, outOfHours }) => (
-        <div key={label} className="flex items-center gap-3">
-          <span className={`w-20 shrink-0 text-xs font-medium ${outOfHours ? 'text-primary' : 'text-foreground'}`}>
-            {label}
-          </span>
-          <div className="flex-1 h-5 rounded-full bg-muted overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ${outOfHours ? 'bg-primary' : 'bg-primary/40'}`}
-              style={{ width: `${(count / maxCount) * 100}%` }}
-            />
-          </div>
-          <span className={`w-8 shrink-0 text-right text-xs font-bold tabular-nums ${outOfHours ? 'text-primary' : 'text-muted-foreground'}`}>
-            {count}
-          </span>
-        </div>
-      ))}
-      {total > 0 && (
-        <p className="pt-1 text-xs text-muted-foreground">
-          <span className="font-semibold text-primary">{foraHorario}</span> lead{foraHorario !== 1 ? 's' : ''} fora do horário comercial
-          {' '}(<span className="font-semibold">{foraPct}%</span>)
-        </p>
-      )}
-    </div>
-  )
-}
-
-function InsightsAgenteIA({ leads, isLoading }: { leads: CrmLead[]; isLoading: boolean }) {
-  const insights = useMemo(() => {
-    if (leads.length === 0) return []
-    const total = leads.length
-    const result: string[] = []
-
-    // 1. After-hours leads
-    const foraHorario = leads.filter((l) => {
-      const raw = l.inicio_atendimento ?? l.created_at
-      if (!raw) return false
-      const h = new Date(raw).getHours()
-      return h < HORA_INICIO || h >= HORA_FIM
-    }).length
-    if (foraHorario > 0) {
-      const pct = Math.round((foraHorario / total) * 100)
-      result.push(`O agente atendeu ${foraHorario} lead${foraHorario !== 1 ? 's' : ''} fora do horário comercial — ${pct}% do total, receita que a equipe não capturaria manualmente.`)
-    }
-
-    // 2. Leads with measurement scheduled
-    const comMedicao = leads.filter((l) => l.data_medicao_instalacao && l.data_medicao_instalacao.trim()).length
-    if (comMedicao > 0) {
-      result.push(`${comMedicao} lead${comMedicao !== 1 ? 's' : ''} tem medição agendada — pipeline de conversão aquecido.`)
-    }
-
-    // 3. Most requested model
-    const byModelo = leads
-      .filter((l) => l.modelo_interesse?.trim())
-      .reduce<Record<string, number>>((acc, l) => {
-        const m = l.modelo_interesse!.trim()
-        acc[m] = (acc[m] ?? 0) + 1
-        return acc
-      }, {})
-    const topModelo = Object.entries(byModelo).sort((a, b) => b[1] - a[1])[0]
-    if (topModelo) {
-      result.push(`Modelo mais solicitado via IA: ${topModelo[0]} (${topModelo[1]} pedido${topModelo[1] !== 1 ? 's' : ''}).`)
-    }
-
-    // 4. Auto-quoted leads
-    const cotados = leads.filter((l) => l.ultimo_valor_cotado && l.ultimo_valor_cotado.trim()).length
-    if (cotados > 0) {
-      result.push(`${cotados} lead${cotados !== 1 ? 's' : ''} recebeu orçamento automaticamente — sem esforço da equipe.`)
-    }
-
-    // 5. Average quality score
-    const qualFields: (keyof CrmLead)[] = ['medidas_coletadas', 'quantidade', 'tecido_cor', 'acabamento_desejado', 'precisa_instalacao', 'modelo_interesse']
-    const avgScore = total > 0
-      ? Math.round(
-          qualFields.reduce((sum, key) => {
-            const filled = leads.filter((l) => {
-              const v = l[key]
-              return v !== null && v !== undefined && String(v).trim() !== ''
-            }).length
-            return sum + (filled / total) * 100
-          }, 0) / qualFields.length
-        )
-      : 0
-    if (avgScore > 0) {
-      result.push(`Taxa de coleta de informações: ${avgScore}% — leads bem qualificados para a equipe comercial.`)
-    }
-
-    // 6. Converted/closed leads
-    const convertidos = leads.filter((l) => {
-      const s = l.status_lead?.toLowerCase().trim() ?? ''
-      return s === 'convertido' || s === 'fechado'
-    }).length
-    if (convertidos > 0) {
-      result.push(`${convertidos} lead${convertidos !== 1 ? 's' : ''} convertido${convertidos !== 1 ? 's' : ''} pelo agente IA até o momento.`)
-    }
-
-    return result
-  }, [leads])
-
-  if (isLoading) {
-    return (
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm animate-pulse space-y-2">
-        {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted" />)}
-      </div>
-    )
-  }
-
-  if (insights.length === 0) return null
-
-  return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="rounded-lg bg-primary/10 p-1.5">
-          <Bot className="h-4 w-4 text-primary" />
-        </div>
-        <h3 className="font-display text-sm font-medium tracking-wide">Insights do Agente IA</h3>
-        <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-          foco em performance
-        </span>
-      </div>
-      <ul className="space-y-2.5">
-        {insights.map((insight, i) => (
-          <li key={i} className="flex items-start gap-2.5 text-sm">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-            {insight}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
 // ─── TabAnalises ────────────────────────────────────────────────────────────
 
 export default function TabAnalises({ data, isLoading, error }: Props) {
@@ -823,9 +361,6 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
-
-  // Fetch CRM leads at the top level (before any early returns)
-  const { data: leads = [], isLoading: leadsLoading } = useCrmLeads()
 
   // useMemo deve ficar antes dos early returns para não violar Rules of Hooks
   const { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth } = useMemo(() => {
@@ -852,6 +387,30 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
     const volPct = lastMonth.length > 0 ? ((thisMonth.length - lastMonth.length) / lastMonth.length) * 100 : null
     return { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth }
   }, [data])
+
+  // ── Memos Planilha Custos ──
+  const comCusto = useMemo(() => data.filter((o) => o.custo_tecido != null && o.custo_tecido > 0), [data])
+  const comCustoMes = useMemo(() => filterByPeriod(comCusto, 'mes', (o) => o.created_at), [comCusto])
+  const totalMesCusto = useMemo(() => comCustoMes.reduce((s, o) => s + (o.custo_tecido ?? 0), 0), [comCustoMes])
+  const usosSemana = useMemo(() => filterByPeriod(comCusto, 'semana', (o) => o.created_at).length, [comCusto])
+  const diasDecorridos = now.getDate()
+  const mediaDiaria = diasDecorridos > 0 ? totalMesCusto / diasDecorridos : 0
+
+  const custoPorModelo = useMemo(() =>
+    comCusto.reduce<Record<string, { total: number; count: number }>>((acc, o) => {
+      if (!acc[o.modelo]) acc[o.modelo] = { total: 0, count: 0 }
+      acc[o.modelo].total += o.custo_tecido ?? 0
+      acc[o.modelo].count += 1
+      return acc
+    }, {}), [comCusto])
+
+  const tecidosPorModelo = useMemo(() =>
+    comCusto.reduce<Record<string, Record<string, number>>>((acc, o) => {
+      if (!o.tecido) return acc
+      if (!acc[o.modelo]) acc[o.modelo] = {}
+      acc[o.modelo][o.tecido] = (acc[o.modelo][o.tecido] ?? 0) + 1
+      return acc
+    }, {}), [comCusto])
 
   if (isLoading) {
     return (
@@ -886,9 +445,9 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Header com botão PDF */}
+      {/* ─── Seção: Análise – Planilha Orçamentos ─── */}
       <div className="flex items-center justify-between">
-        <div />
+        <h2 className="font-display text-base font-semibold tracking-wide">Análise – Planilha Orçamentos</h2>
         <button
           onClick={() => exportPDF(data)}
           className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
@@ -1010,55 +569,11 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
       {/* Performance por Canal */}
       <PerformancePorCanal data={data} />
 
-      {/* ─── Desempenho do Agente IA ─── */}
-      <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-primary/10 p-1.5">
-          <Bot className="h-4 w-4 text-primary" />
-        </div>
-        <h2 className="font-display text-base font-semibold tracking-wide">Desempenho do Agente IA</h2>
-        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary tabular-nums">
-          {leadsLoading ? '…' : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
-        </span>
-      </div>
-
-      {/* Row 1: Funil + Status Donut */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Funil IA → Venda</h3>
-          <FunilAgenteIA leads={leads} isLoading={leadsLoading} />
-        </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Status dos Leads</h3>
-          <StatusLeadDonut leads={leads} isLoading={leadsLoading} />
-        </div>
-      </div>
-
-      {/* Row 2: Volume de Leads por Mês */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Volume de Leads por Mês</h3>
-        <VolumeLeadsIA leads={leads} isLoading={leadsLoading} />
-      </div>
-
-      {/* Row 3: Qualidade + Horário de Pico */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Qualidade dos Leads</h3>
-          <QualidadeLeads leads={leads} isLoading={leadsLoading} />
-        </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Horário de Pico</h3>
-          <HorarioPico leads={leads} isLoading={leadsLoading} />
-        </div>
-      </div>
-
-      {/* Row 4: Insights do Agente IA */}
-      <InsightsAgenteIA leads={leads} isLoading={leadsLoading} />
-
-      {/* Insights IA (análise de orçamentos) */}
+      {/* Análise Automática — orçamentos */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
         <div className="flex items-center gap-2 mb-4">
           <div className="rounded-lg bg-primary/10 p-1.5">
-            <Bot className="h-4 w-4 text-primary" />
+            <TrendingUp className="h-4 w-4 text-primary" />
           </div>
           <h3 className="font-display text-sm font-medium tracking-wide">Análise Automática</h3>
           <span className="ml-auto text-xs text-muted-foreground">baseado nos dados atuais</span>
@@ -1071,6 +586,87 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* ─── Seção: Análise – Planilha Custos ─── */}
+      <div className="border-t border-border pt-6">
+        <h2 className="font-display text-base font-semibold tracking-wide mb-5">Análise – Planilha Custos</h2>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-5">
+          {[
+            { label: 'Total no Mês', value: formatCurrency(totalMesCusto) },
+            { label: 'Usos na Semana', value: String(usosSemana) },
+            { label: `Média Diária (${diasDecorridos}d)`, value: formatCurrency(mediaDiaria) },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-xl border-2 border-primary/40 bg-primary/5 p-5 shadow-sm">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="font-display text-2xl font-bold">{value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Custo por Modelo */}
+        {Object.keys(custoPorModelo).length === 0 ? (
+          <div className="rounded-xl border border-border bg-card px-5 py-10 text-center text-sm text-muted-foreground">
+            Nenhum custo registrado ainda.
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="border-b px-5 py-4">
+              <h3 className="font-display text-sm font-medium tracking-wide">Custo por Modelo</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{comCusto.length} orçamento{comCusto.length !== 1 ? 's' : ''} com custo registrado</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/40">
+                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Modelo</th>
+                    <th className="px-5 py-3 text-center font-medium text-muted-foreground">Qtd.</th>
+                    <th className="px-5 py-3 text-right font-medium text-muted-foreground">Custo Total</th>
+                    <th className="px-5 py-3 text-right font-medium text-muted-foreground">Custo Médio</th>
+                    <th className="px-5 py-3 text-left font-medium text-muted-foreground">Top Tecido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(custoPorModelo)
+                    .sort(([, a], [, b]) => b.total - a.total)
+                    .map(([modelo, { total, count }]) => {
+                      const tecidos = tecidosPorModelo[modelo] ?? {}
+                      const topTecido = Object.entries(tecidos).sort(([, a], [, b]) => b - a)[0]
+                      return (
+                        <tr key={modelo} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="px-5 py-3.5 font-medium">{modelo}</td>
+                          <td className="px-5 py-3.5 text-center">{count}</td>
+                          <td className="px-5 py-3.5 text-right">{formatCurrency(total)}</td>
+                          <td className="px-5 py-3.5 text-right">{formatCurrency(count > 0 ? total / count : 0)}</td>
+                          <td className="px-5 py-3.5 text-muted-foreground">
+                            {topTecido ? (
+                              <span className="inline-flex items-center gap-1">
+                                <span>{topTecido[0]}</span>
+                                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">{topTecido[1]}x</span>
+                              </span>
+                            ) : '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 bg-muted/30 font-semibold">
+                    <td className="px-5 py-3 text-xs text-muted-foreground uppercase tracking-wide">Total</td>
+                    <td className="px-5 py-3 text-center">{comCusto.length}</td>
+                    <td className="px-5 py-3 text-right text-primary">{formatCurrency(comCusto.reduce((s, o) => s + (o.custo_tecido ?? 0), 0))}</td>
+                    <td className="px-5 py-3 text-right">{formatCurrency(comCusto.length > 0 ? comCusto.reduce((s, o) => s + (o.custo_tecido ?? 0), 0) / comCusto.length : 0)}</td>
+                    <td className="px-5 py-3" />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

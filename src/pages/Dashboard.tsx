@@ -305,7 +305,7 @@ export default function Dashboard() {
 {mountedTabs.has('calculo-custo') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'calculo-custo' ? 'tab-active' : 'tab-hidden'}>
-                <TabCalculoCusto data={orcamentos} isLoading={isLoading} error={isError} />
+                <TabCalculoCusto isLoading={isLoading} error={isError} />
               </div>
             </Suspense>
           )}
