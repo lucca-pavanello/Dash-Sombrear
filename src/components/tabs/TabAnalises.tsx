@@ -286,65 +286,6 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
   )
 }
 
-function PerformancePorCanal({ data }: { data: Orcamento[] }) {
-  const byCanal = useMemo(() => {
-    const map = data
-      .filter(o => o.fonte?.trim())
-      .reduce<Record<string, { total: number; fechados: number; faturamento: number }>>((acc, o) => {
-        const canal = o.fonte!.trim()
-        if (!acc[canal]) acc[canal] = { total: 0, fechados: 0, faturamento: 0 }
-        acc[canal].total++
-        if (o.fechado === true) {
-          acc[canal].fechados++
-          acc[canal].faturamento += (o.valor_venda ?? 0) + (o.instacao ?? 0)
-        }
-        return acc
-      }, {})
-    return Object.entries(map)
-      .map(([canal, s]) => ({
-        canal,
-        total: s.total,
-        fechados: s.fechados,
-        taxa: s.total > 0 ? (s.fechados / s.total) * 100 : 0,
-        faturamento: s.faturamento,
-      }))
-      .sort((a, b) => b.faturamento - a.faturamento)
-  }, [data])
-
-  if (byCanal.length === 0) return null
-
-  return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-      <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Performance por Canal</h3>
-      {byCanal.length >= 3 ? (
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={byCanal} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
-            <XAxis dataKey="canal" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-            <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
-            <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
-            <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} />
-          </BarChart>
-        </ResponsiveContainer>
-      ) : null}
-      <div className="mt-4 space-y-2.5">
-        {byCanal.map(({ canal, total, fechados, taxa, faturamento }) => (
-          <div key={canal}>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-xs font-medium truncate">{canal}</span>
-              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                {fechados}/{total} · {taxa.toFixed(0)}% · <span className="font-semibold text-primary">{formatCurrency(faturamento)}</span>
-              </span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
-              <div className="h-full rounded-full bg-primary/70 transition-all duration-500" style={{ width: `${taxa}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ─── TabAnalises ────────────────────────────────────────────────────────────
 
 export default function TabAnalises({ data, isLoading, error }: Props) {
@@ -450,7 +391,22 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           </button>
         </div>
 
-        {/* 1 — Análise Automática no topo (executive summary) */}
+        {/* 1 — Totais gerais (hero metrics) */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            { label: 'Valor de Venda', value: formatCurrency(valorVendaTotal), sub: `${fechados.length} pedido${fechados.length !== 1 ? 's' : ''} fechado${fechados.length !== 1 ? 's' : ''}` },
+            { label: 'Faturamento Total', value: formatCurrency(faturamentoGeral), sub: 'venda + instalação' },
+            { label: 'Margem Média', value: margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—', sub: fechadosComMargem.length > 0 ? `${fechadosComMargem.length} pedidos com margem calculada` : 'sem dados de custo' },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="rounded-xl border-2 border-primary/20 bg-primary/[0.04] p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/60">{label}</p>
+              <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* 2 — Análise Automática (contextualiza os totais) */}
         {insights.length > 0 && (
           <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
@@ -473,7 +429,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           </div>
         )}
 
-        {/* 2 — KPIs do mês atual */}
+        {/* 3 — KPIs do mês atual */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {comparisons.map(({ label, value, delta }) => (
             <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
@@ -547,29 +503,11 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           )}
         </div>
 
-        {/* 5 — Conversão por Modelo | Performance por Canal */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-            <h3 className="font-display text-sm font-medium tracking-wide">Taxa de Conversão por Modelo</h3>
-            <p className="mt-0.5 mb-4 text-xs text-muted-foreground">% de orçamentos fechados por modelo</p>
-            <ConversaoPorModelo data={data} />
-          </div>
-          <PerformancePorCanal data={data} />
-        </div>
-
-        {/* 6 — Totais gerais (resumo acumulado) */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[
-            { label: 'Valor de Venda', value: formatCurrency(valorVendaTotal), sub: `${fechados.length} pedido${fechados.length !== 1 ? 's' : ''} fechado${fechados.length !== 1 ? 's' : ''}` },
-            { label: 'Faturamento Total', value: formatCurrency(faturamentoGeral), sub: 'venda + instalação' },
-            { label: 'Margem Média', value: margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—', sub: fechadosComMargem.length > 0 ? `${fechadosComMargem.length} pedidos com margem calculada` : 'sem dados de custo' },
-          ].map(({ label, value, sub }) => (
-            <div key={label} className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-              <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
-            </div>
-          ))}
+        {/* 5 — Conversão por Modelo (full width) */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+          <h3 className="font-display text-sm font-medium tracking-wide">Taxa de Conversão por Modelo</h3>
+          <p className="mt-0.5 mb-4 text-xs text-muted-foreground">% de orçamentos fechados por modelo</p>
+          <ConversaoPorModelo data={data} />
         </div>
 
       </section>
