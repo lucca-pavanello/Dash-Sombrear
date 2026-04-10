@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Orcamento } from '@/lib/supabase'
 import { useDebounce } from '@/hooks/useDebounce'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
@@ -27,6 +27,10 @@ interface Props {
 export default function TabPlanilha({ data, loading, toast }: Props) {
   const saved = loadFilters()
   const [formOpen, setFormOpen] = useState(false)
+  const [tableOpen, setTableOpen] = useState(() => {
+    try { return localStorage.getItem('sombrear-table-open-planilha') !== 'false' }
+    catch { return true }
+  })
   const [search, setSearch] = useState('')
   const [responsavel, setResponsavel] = useState(saved.responsavel ?? 'todos')
   const [modelo, setModelo] = useState(saved.modelo ?? 'todos')
@@ -42,6 +46,11 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
       localStorage.setItem(FILTER_KEY, JSON.stringify({ responsavel, modelo, fechado: fechadoFilter, periodo, dateFrom, dateTo }))
     } catch { /* quota exceeded ou localStorage desativado */ }
   }, [responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo])
+
+  useEffect(() => {
+    try { localStorage.setItem('sombrear-table-open-planilha', String(tableOpen)) }
+    catch { /* noop */ }
+  }, [tableOpen])
 
   function clearFilters() {
     setSearch('')
@@ -92,9 +101,18 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
       <div className="space-y-4">
         {/* Header com botão novo */}
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-display text-base font-semibold">Todos os Orçamentos</h2>
-            <p className="text-xs text-muted-foreground">{filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}</p>
+          <div className="flex items-center gap-2">
+            <div>
+              <h2 className="font-display text-base font-semibold">Todos os Orçamentos</h2>
+              <p className="text-xs text-muted-foreground">{filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}</p>
+            </div>
+            <button
+              onClick={() => setTableOpen(v => !v)}
+              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              title={tableOpen ? 'Minimizar tabela' : 'Expandir tabela'}
+            >
+              {tableOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
           </div>
           <button
             id="novo-orcamento-btn"
@@ -121,14 +139,16 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
           storageKey="sombrear-filters-open-planilha"
         />
 
-        <OrcamentosTable
-          data={filtered}
-          toast={toast}
-          isFiltered={isFiltered}
-          search={debouncedSearch}
-          onClearFilters={clearFilters}
-          filterKey={[debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo].join('|')}
-        />
+        {tableOpen && (
+          <OrcamentosTable
+            data={filtered}
+            toast={toast}
+            isFiltered={isFiltered}
+            search={debouncedSearch}
+            onClearFilters={clearFilters}
+            filterKey={[debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo].join('|')}
+          />
+        )}
       </div>
 
       {/* Mobile FAB */}
