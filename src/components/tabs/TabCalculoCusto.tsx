@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatCurrency } from '@/lib/utils'
-import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown, Columns3 } from 'lucide-react'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useCustosInternos } from '@/hooks/useCustosInternos'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -28,6 +28,38 @@ const PERIODOS = [
 
 const FILTERS_OPEN_KEY = 'sombrear-custos-filters-open'
 const TABLE_OPEN_KEY = 'sombrear-custos-table-open'
+const COLS_KEY = 'sombrear-custos-cols'
+
+type CustoColId = 'data' | 'cliente' | 'responsavel' | 'modelo' | 'ambiente' | 'tecido' | 'lxa' | 'qtd' | 'custo_mat' | 'custo_m2' | 'custo_acab' | 'custo_inst' | 'total'
+
+const CUSTO_COL_DEFS: { id: CustoColId; label: string; optional: boolean; align: 'left' | 'center' | 'right' }[] = [
+  { id: 'data',       label: 'Data',        optional: false, align: 'left' },
+  { id: 'cliente',    label: 'Cliente',     optional: false, align: 'left' },
+  { id: 'responsavel',label: 'Responsável', optional: false, align: 'left' },
+  { id: 'modelo',     label: 'Modelo',      optional: false, align: 'left' },
+  { id: 'ambiente',   label: 'Ambiente',    optional: true,  align: 'left' },
+  { id: 'tecido',     label: 'Tecido',      optional: true,  align: 'left' },
+  { id: 'lxa',        label: 'L × A',       optional: true,  align: 'center' },
+  { id: 'qtd',        label: 'Qtd',         optional: true,  align: 'center' },
+  { id: 'custo_mat',  label: 'Custo Mat.',  optional: false, align: 'right' },
+  { id: 'custo_m2',   label: 'Custo M²',   optional: true,  align: 'right' },
+  { id: 'custo_acab', label: 'Custo Acab.', optional: true,  align: 'right' },
+  { id: 'custo_inst', label: 'Custo Inst.', optional: true,  align: 'right' },
+  { id: 'total',      label: 'Total',       optional: false, align: 'right' },
+]
+
+const CUSTO_COL_DEFAULTS: Record<CustoColId, boolean> = {
+  data: true, cliente: true, responsavel: true, modelo: true,
+  ambiente: false, tecido: true, lxa: true, qtd: false,
+  custo_mat: true, custo_m2: false, custo_acab: true, custo_inst: true, total: true,
+}
+
+function loadCustoColVis(): Record<CustoColId, boolean> {
+  try {
+    const s = localStorage.getItem(COLS_KEY)
+    return s ? { ...CUSTO_COL_DEFAULTS, ...JSON.parse(s) } : { ...CUSTO_COL_DEFAULTS }
+  } catch { return { ...CUSTO_COL_DEFAULTS } }
+}
 
 export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
   const [custosOpen, setCustosOpen] = useState(() => {
@@ -39,6 +71,25 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
     catch { return true }
   })
   const [formOpen, setFormOpen] = useState(false)
+  const [colVis, setColVis] = useState<Record<CustoColId, boolean>>(loadCustoColVis)
+  const [colsOpen, setColsOpen] = useState(false)
+  const colsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    try { localStorage.setItem(COLS_KEY, JSON.stringify(colVis)) }
+    catch { /* noop */ }
+  }, [colVis])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (colsRef.current && !colsRef.current.contains(e.target as Node)) setColsOpen(false)
+    }
+    if (colsOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [colsOpen])
+
+  const vis = (id: CustoColId) => colVis[id] !== false
+  const visibleCustoCols = CUSTO_COL_DEFS.filter(c => vis(c.id))
 
   const [searchCI, setSearchCI] = useState('')
   const [responsavelCI, setResponsavelCI] = useState('todos')
@@ -387,31 +438,45 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
       {custosOpen && <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-display text-sm font-medium tracking-wide">Planilha de Custos Internos</h2>
-          <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-            <button
-              onClick={exportCsvCI}
-              disabled={filteredCI.length === 0}
-              title={`Exportar ${filteredCI.length} registros como CSV`}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <Download className="h-3.5 w-3.5" />CSV
-            </button>
-            <button
-              onClick={exportXlsxCI}
-              disabled={filteredCI.length === 0}
-              title={`Exportar ${filteredCI.length} registros como XLSX`}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <Download className="h-3.5 w-3.5" />XLSX
-            </button>
-            <button
-              onClick={exportPdfCI}
-              disabled={filteredCI.length === 0}
-              title={`Exportar ${filteredCI.length} registros como PDF`}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <FileDown className="h-3.5 w-3.5" />PDF
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Seletor de colunas */}
+            <div ref={colsRef} className="relative">
+              <button
+                onClick={() => setColsOpen(v => !v)}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150 active:scale-95 ${colsOpen ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                title="Mostrar/ocultar colunas"
+              >
+                <Columns3 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Colunas</span>
+              </button>
+              {colsOpen && (
+                <div className="absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl border border-border bg-card shadow-elevated p-2 flex flex-col gap-0.5">
+                  {CUSTO_COL_DEFS.filter(c => c.optional).map(c => (
+                    <label key={c.id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer hover:bg-muted/60 transition-colors select-none">
+                      <input
+                        type="checkbox"
+                        checked={vis(c.id)}
+                        onChange={() => setColVis(v => ({ ...v, [c.id]: !v[c.id] }))}
+                        className="accent-primary h-3.5 w-3.5"
+                      />
+                      {c.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Exports */}
+            <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+              <button onClick={exportCsvCI} disabled={filteredCI.length === 0} title={`Exportar ${filteredCI.length} registros como CSV`} className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <Download className="h-3.5 w-3.5" />CSV
+              </button>
+              <button onClick={exportXlsxCI} disabled={filteredCI.length === 0} title={`Exportar ${filteredCI.length} registros como XLSX`} className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <Download className="h-3.5 w-3.5" />XLSX
+              </button>
+              <button onClick={exportPdfCI} disabled={filteredCI.length === 0} title={`Exportar ${filteredCI.length} registros como PDF`} className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <FileDown className="h-3.5 w-3.5" />PDF
+              </button>
+            </div>
           </div>
         </div>
 
@@ -435,54 +500,49 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Data</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Cliente</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Responsável</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Modelo</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Ambiente</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tecido</th>
-                      <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">L × A</th>
-                      <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Qtd</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo Mat.</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo M²</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo Acab.</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo Inst.</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Total</th>
+                      {visibleCustoCols.map(c => (
+                        <th key={c.id} className={`px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 whitespace-nowrap ${c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'}`}>
+                          {c.label}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCI.map((c) => {
+                    {filteredCI.map((c, i) => {
                       const total = (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0)
                       const lxa = c.largura != null && c.altura != null
                         ? `${c.largura.toFixed(2).replace('.', ',')} × ${c.altura.toFixed(2).replace('.', ',')}`
-                        : '—'
+                        : null
+                      const stripe = i % 2 === 1 ? 'bg-muted/[0.15]' : ''
                       return (
-                        <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-3 whitespace-nowrap">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
-                          <td className="px-4 py-3">{c.cliente ?? '—'}</td>
-                          <td className="px-4 py-3">{c.responsavel ?? '—'}</td>
-                          <td className="px-4 py-3 font-medium">{c.modelo}</td>
-                          <td className="px-4 py-3">{c.ambiente ?? '—'}</td>
-                          <td className="px-4 py-3">{c.tecido ?? '—'}</td>
-                          <td className="px-4 py-3 text-center whitespace-nowrap">{lxa}</td>
-                          <td className="px-4 py-3 text-center">{c.quantidade ?? '—'}</td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_material != null ? formatCurrency(c.custo_material) : '—'}</td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_m2 != null ? formatCurrency(c.custo_m2) : '—'}</td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_acabamento != null ? formatCurrency(c.custo_acabamento) : '—'}</td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_instalacao != null ? formatCurrency(c.custo_instalacao) : '—'}</td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap font-bold text-primary">{formatCurrency(total)}</td>
+                        <tr key={c.id} className={`border-b last:border-0 hover:bg-primary/[0.04] transition-colors ${stripe}`}>
+                          {vis('data')        && <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>}
+                          {vis('cliente')     && <td className="px-4 py-3 font-medium">{c.cliente ?? <span className="text-muted-foreground/30">—</span>}</td>}
+                          {vis('responsavel') && <td className="px-4 py-3">{c.responsavel ?? <span className="text-muted-foreground/30">—</span>}</td>}
+                          {vis('modelo')      && <td className="px-4 py-3 font-medium">{c.modelo}</td>}
+                          {vis('ambiente')    && <td className="px-4 py-3">{c.ambiente ? <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{c.ambiente}</span> : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('tecido')      && <td className="px-4 py-3 text-muted-foreground">{c.tecido ?? <span className="opacity-30">—</span>}</td>}
+                          {vis('lxa')         && <td className="px-4 py-3 text-center whitespace-nowrap">{lxa ?? <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('qtd')         && <td className="px-4 py-3 text-center">{c.quantidade ?? <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('custo_mat')   && <td className="px-4 py-3 text-right whitespace-nowrap font-medium">{c.custo_material != null ? formatCurrency(c.custo_material) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('custo_m2')    && <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_m2 != null ? formatCurrency(c.custo_m2) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('custo_acab')  && <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_acabamento != null ? formatCurrency(c.custo_acabamento) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('custo_inst')  && <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_instalacao != null ? formatCurrency(c.custo_instalacao) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('total')       && <td className="px-4 py-3 text-right whitespace-nowrap font-bold text-primary">{formatCurrency(total)}</td>}
                         </tr>
                       )
                     })}
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 bg-muted/30">
-                      <td colSpan={8} className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Totais</td>
-                      <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0), 0))}</td>
-                      <td className="px-4 py-3" />
-                      <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_acabamento ?? 0), 0))}</td>
-                      <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_instalacao ?? 0), 0))}</td>
-                      <td className="px-4 py-3 text-right font-bold text-primary whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0))}</td>
+                      <td colSpan={visibleCustoCols.findIndex(c => c.id === 'custo_mat')} className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                        Totais — {filteredCI.length} registro{filteredCI.length !== 1 ? 's' : ''}
+                      </td>
+                      {vis('custo_mat')  && <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0), 0))}</td>}
+                      {vis('custo_m2')   && <td className="px-4 py-2.5" />}
+                      {vis('custo_acab') && <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_acabamento ?? 0), 0))}</td>}
+                      {vis('custo_inst') && <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_instalacao ?? 0), 0))}</td>}
+                      {vis('total')      && <td className="px-4 py-2.5 text-right font-bold text-primary whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0))}</td>}
                     </tr>
                   </tfoot>
                 </table>

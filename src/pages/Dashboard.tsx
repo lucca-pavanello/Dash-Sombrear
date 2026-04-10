@@ -1,10 +1,11 @@
 import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useProfile, usePendingCount } from '@/hooks/useProfile'
+import { useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
 import { useToast } from '@/hooks/useToast'
 import { useCommandPalette } from '@/hooks/useCommandPalette'
 import Toaster from '@/components/ui/Toaster'
@@ -22,9 +23,10 @@ const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
 const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
 
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
+const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque']
 const DEFAULT_TAB = 'calcular-orcamento'
 const TAB_LABELS: Record<string, string> = {
   'calcular-orcamento': 'Calcular Orçamento',
@@ -34,6 +36,7 @@ const TAB_LABELS: Record<string, string> = {
   'orcamentos': 'Orçamentos',
   'admin': 'Usuários',
   'analises': 'Análises',
+  'estoque': 'Estoque',
 }
 
 export default function Dashboard() {
@@ -56,6 +59,7 @@ export default function Dashboard() {
   const { open: paletteOpen, setOpen: setPaletteOpen, close: closePalette } = useCommandPalette()
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
+  const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta()
   const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
     toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel ?? 'sem identificação'}`)
     if (!document.hasFocus()) setUnreadCount((n) => n + 1)
@@ -133,6 +137,7 @@ export default function Dashboard() {
       import('@/components/tabs/TabCalculoCusto')
 
       import('@/components/admin/PainelAdmin')
+      import('@/components/tabs/TabEstoque')
     }
     if ('requestIdleCallback' in window) {
       const id = (window as Window & { requestIdleCallback: (cb: () => void, opts?: object) => number })
@@ -151,8 +156,9 @@ export default function Dashboard() {
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
+    { id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length },
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
-  ], [isAdmin, pendingCount])
+  ], [isAdmin, pendingCount, estoqueAlertas.length])
 
   function TabSkeleton() {
     return (
@@ -310,6 +316,13 @@ export default function Dashboard() {
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'analises' ? 'tab-active' : 'tab-hidden'}>
                 <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('estoque') && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'estoque' ? 'tab-active' : 'tab-hidden'}>
+                <TabEstoque toast={toast} />
               </div>
             </Suspense>
           )}

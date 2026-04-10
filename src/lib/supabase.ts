@@ -53,3 +53,53 @@ export type CustoInterno = {
   ambiente: string | null
   fonte: string | null
 }
+
+// ── Estoque ──────────────────────────────────────────────────
+
+export type EstoqueCategoria = {
+  id: string
+  created_at: string
+  nome: string
+  tipo: 'tecido' | 'acessorio' | 'ferragem' | 'outro'
+}
+
+export type EstoqueProduto = {
+  id: string
+  created_at: string
+  updated_at: string
+  nome: string
+  codigo: string | null
+  categoria_id: string
+  unidade: 'm' | 'm2' | 'un' | 'kg'
+  largura_padrao_cm: number | null
+  quantidade_atual: number
+  quantidade_minima: number
+  custo_unitario: number | null
+  fornecedor: string | null
+  ativo: boolean
+  observacoes: string | null
+  // embed de JOIN (select com nested)
+  estoque_categorias?: { nome: string; tipo: string } | null
+}
+
+export type EstoqueProdutoAlerta = EstoqueProduto & {
+  categoria_nome: string
+  categoria_tipo: string
+}
+
+export type EstoqueMovimentacao = {
+  id: string
+  created_at: string
+  produto_id: string
+  tipo: 'entrada' | 'saida' | 'ajuste' | 'perda'
+  quantidade: number
+  quantidade_anterior: number
+  orcamento_id: string | null
+  motivo: string | null
+  nota_fiscal: string | null
+  custo_unitario: number | null
+  user_id: string | null
+  responsavel: string
+  // embed de JOIN
+  estoque_produtos?: { nome: string; unidade: string } | null
+}

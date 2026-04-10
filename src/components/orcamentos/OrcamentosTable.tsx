@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check } from 'lucide-react'
+import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check, Columns3 } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import EmptyState from '@/components/shared/EmptyState'
 import * as XLSX from 'xlsx'
@@ -209,10 +209,61 @@ interface Props {
   filterKey?: string
 }
 
+const ORC_COLS_KEY = 'sombrear-orcamentos-cols'
+
+type ColId = 'num' | 'data' | 'cliente' | 'responsavel' | 'ambiente' | 'modelo' | 'tecido' | 'qtd' | 'valor' | 'margem' | 'status' | 'fechado'
+
+const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; align: 'left' | 'center' | 'right' }[] = [
+  { id: 'num',         label: '#',          optional: false, align: 'center' },
+  { id: 'data',        label: 'Data',       key: 'created_at', optional: false, align: 'left' },
+  { id: 'cliente',     label: 'Cliente',    key: 'cliente',    optional: false, align: 'left' },
+  { id: 'responsavel', label: 'Responsável',key: 'responsavel',optional: false, align: 'left' },
+  { id: 'ambiente',    label: 'Ambiente',   optional: true,  align: 'left' },
+  { id: 'modelo',      label: 'Modelo',     optional: false, align: 'left' },
+  { id: 'tecido',      label: 'Tecido',     optional: true,  align: 'left' },
+  { id: 'qtd',         label: 'Qtd',        optional: true,  align: 'center' },
+  { id: 'valor',       label: 'Valor',      key: 'valor_venda', optional: false, align: 'right' },
+  { id: 'margem',      label: 'Margem',     key: 'margem',     optional: false, align: 'right' },
+  { id: 'status',      label: 'Status n8n', optional: true,  align: 'left' },
+  { id: 'fechado',     label: 'Fechado',    optional: false, align: 'left' },
+]
+
+const COL_DEFAULTS: Record<ColId, boolean> = {
+  num: true, data: true, cliente: true, responsavel: true,
+  ambiente: true, modelo: true, tecido: true, qtd: true,
+  valor: true, margem: true, status: false, fechado: true,
+}
+
+function loadColVis(): Record<ColId, boolean> {
+  try {
+    const s = localStorage.getItem(ORC_COLS_KEY)
+    return s ? { ...COL_DEFAULTS, ...JSON.parse(s) } : { ...COL_DEFAULTS }
+  } catch { return { ...COL_DEFAULTS } }
+}
+
 export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, filterKey }: Props) {
   const [editing, setEditing] = useState<Orcamento | null>(null)
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' })
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
+  const [colVis, setColVis] = useState<Record<ColId, boolean>>(loadColVis)
+  const [colsOpen, setColsOpen] = useState(false)
+  const colsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    try { localStorage.setItem(ORC_COLS_KEY, JSON.stringify(colVis)) }
+    catch { /* noop */ }
+  }, [colVis])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (colsRef.current && !colsRef.current.contains(e.target as Node)) setColsOpen(false)
+    }
+    if (colsOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [colsOpen])
+
+  const vis = (id: ColId) => colVis[id] !== false
+  const visibleCols = COL_DEFS.filter(c => vis(c.id))
 
   function copyPhone(e: React.MouseEvent, phone: string) {
     e.stopPropagation()
@@ -289,21 +340,6 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     return sort.dir === 'asc' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
   }
 
-  const COLS: { label: string; key?: SortKey }[] = [
-    { label: '#' },
-    { label: 'Data', key: 'created_at' },
-    { label: 'Cliente', key: 'cliente' },
-    { label: 'Responsável', key: 'responsavel' },
-    { label: 'Ambiente' },
-    { label: 'Modelo' },
-    { label: 'Tecido' },
-    { label: 'Qtd' },
-    { label: 'Valor', key: 'valor_venda' },
-    { label: 'Margem', key: 'margem' },
-    { label: 'Status n8n' },
-    { label: 'Fechado' },
-  ]
-
   const now = Date.now()
 
   return (
@@ -311,34 +347,48 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
       <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-display text-sm font-medium tracking-wide">Todos os Orçamentos</h2>
-          <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-            <button
-              onClick={() => exportCSV(sorted)}
-              disabled={data.length === 0}
-              title={`Exportar ${sorted.length} registros como CSV`}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <Download className="h-3.5 w-3.5" />
-              CSV
-            </button>
-            <button
-              onClick={() => exportXLSX(sorted)}
-              disabled={data.length === 0}
-              title={`Exportar ${sorted.length} registros como XLSX`}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <Download className="h-3.5 w-3.5" />
-              XLSX
-            </button>
-            <button
-              onClick={() => exportPDF(sorted, !!isFiltered)}
-              disabled={data.length === 0}
-              title={`Exportar ${sorted.length} registros como PDF`}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              PDF
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Seletor de colunas */}
+            <div ref={colsRef} className="relative">
+              <button
+                onClick={() => setColsOpen(v => !v)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all duration-150 active:scale-95',
+                  colsOpen ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+                title="Mostrar/ocultar colunas"
+              >
+                <Columns3 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Colunas</span>
+              </button>
+              {colsOpen && (
+                <div className="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-xl border border-border bg-card shadow-elevated p-2 flex flex-col gap-0.5">
+                  {COL_DEFS.filter(c => c.optional).map(c => (
+                    <label key={c.id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer hover:bg-muted/60 transition-colors select-none">
+                      <input
+                        type="checkbox"
+                        checked={vis(c.id)}
+                        onChange={() => setColVis(v => ({ ...v, [c.id]: !v[c.id] }))}
+                        className="accent-primary h-3.5 w-3.5"
+                      />
+                      {c.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Exports */}
+            <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+              <button onClick={() => exportCSV(sorted)} disabled={data.length === 0} title={`Exportar ${sorted.length} registros como CSV`} className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <Download className="h-3.5 w-3.5" />CSV
+              </button>
+              <button onClick={() => exportXLSX(sorted)} disabled={data.length === 0} title={`Exportar ${sorted.length} registros como XLSX`} className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <Download className="h-3.5 w-3.5" />XLSX
+              </button>
+              <button onClick={() => exportPDF(sorted, !!isFiltered)} disabled={data.length === 0} title={`Exportar ${sorted.length} registros como PDF`} className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <FileDown className="h-3.5 w-3.5" />PDF
+              </button>
+            </div>
           </div>
         </div>
 
@@ -355,26 +405,27 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
               <table className="w-full text-sm" style={{ minWidth: '920px' }}>
                 <thead>
                   <tr>
-                    {COLS.map(({ label, key }) => (
+                    {visibleCols.map(({ id, label, key, align }) => (
                       <th
-                        key={label}
+                        key={id}
                         onClick={() => key && toggleSort(key)}
                         aria-label={key ? `Ordenar por ${label}` : undefined}
                         className={cn(
-                          'px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 select-none border-y border-border/80',
-                          label === '#' ? 'w-10 text-center' : '',
+                          'px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 select-none border-y border-border/80',
+                          align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left',
+                          id === 'num' ? 'w-10' : '',
                           key && 'cursor-pointer hover:text-foreground transition-colors'
                         )}
                         style={{
                           position: 'sticky',
                           top: 0,
                           backgroundColor: 'hsl(var(--muted))',
-                          zIndex: label === '#' ? 30 : label === 'Fechado' ? 30 : 10,
-                          ...(label === '#' ? { left: 0, boxShadow: '4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
-                          ...(label === 'Fechado' ? { right: 0, boxShadow: '-4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
+                          zIndex: id === 'num' ? 30 : id === 'fechado' ? 30 : 10,
+                          ...(id === 'num' ? { left: 0, boxShadow: '4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
+                          ...(id === 'fechado' ? { right: 0, boxShadow: '-4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
                         }}
                       >
-                        <span className="flex items-center gap-1">
+                        <span className={cn('flex items-center gap-1', align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : '')}>
                           {label}
                           {key && <SortIcon k={key} />}
                         </span>
@@ -444,24 +495,24 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             <Highlight text={o.responsavel} query={search} />
                           </span>
                         </td>
-                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                        {vis('ambiente') && <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           {o.ambiente
                             ? <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{o.ambiente}</span>
-                            : <span className="text-muted-foreground/30 text-xs">—</span>
+                            : <span className="text-muted-foreground/20 text-xs">—</span>
                           }
-                        </td>
+                        </td>}
                         <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.modelo}</td>
-                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.tecido}</td>
-                        <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.quantidade}</td>
-                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
-                          <span className="flex flex-col leading-tight">
-                            <span>{o.valor_venda ? formatCurrency(o.valor_venda) : '—'}</span>
+                        {vis('tecido') && <td className={cn('px-4 py-3 text-muted-foreground', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.tecido || <span className="opacity-30">—</span>}</td>}
+                        {vis('qtd') && <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.quantidade}</td>}
+                        <td className={cn('px-4 py-3 text-right', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                          <span className="flex flex-col items-end leading-tight">
+                            <span>{o.valor_venda ? formatCurrency(o.valor_venda) : <span className="text-muted-foreground/30">—</span>}</span>
                             {o.instacao ? (
                               <span className="text-xs text-primary/70">+{formatCurrency(o.instacao)} inst.</span>
                             ) : null}
                           </span>
                         </td>
-                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                        <td className={cn('px-4 py-3 text-right', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           {margem !== null ? (
                             <span className={cn(
                               'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
@@ -472,25 +523,25 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                               {margem.toFixed(1)}%
                             </span>
                           ) : semCusto ? (
-                            <span className="text-xs text-muted-foreground/50 italic">sem custo</span>
+                            <span className="text-xs text-muted-foreground/40 italic">sem custo</span>
                           ) : temCustoSemReceita ? (
-                            <span className="text-xs text-muted-foreground/60 italic" title="Informe o valor de venda para calcular a margem">
+                            <span className="text-xs text-muted-foreground/50 italic" title="Informe o valor de venda para calcular a margem">
                               custo {formatCurrency(o.custo_tecido || 0)}
                             </span>
                           ) : (
-                            <span className="text-xs text-muted-foreground/30">—</span>
+                            <span className="text-xs text-muted-foreground/20">—</span>
                           )}
                         </td>
                         {/* status n8n */}
-                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                        {vis('status') && <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           {o.status === 'ENVIADO' ? (
                             <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400">Enviado</span>
                           ) : o.status === 'CALCULADO' ? (
                             <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">Calculado</span>
                           ) : (
-                            <span className="text-xs text-muted-foreground/30">—</span>
+                            <span className="text-xs text-muted-foreground/20">—</span>
                           )}
-                        </td>
+                        </td>}
                         {/* sticky right */}
                         <td className="px-4 py-3" style={{ position: 'sticky', right: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '-4px 0 6px -2px rgba(0,0,0,0.12)' }}><FechadoCheckbox orcamento={o} toast={toast} /></td>
                       </tr>
@@ -499,13 +550,13 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border" style={{ backgroundColor: 'hsl(var(--muted))' }}>
-                    <td colSpan={8} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <td colSpan={visibleCols.findIndex(c => c.id === 'valor')} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Total — {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}
                     </td>
-                    <td className="px-4 py-2.5 text-sm font-bold text-primary">
+                    <td className="px-4 py-2.5 text-sm font-bold text-primary text-right">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}
                     </td>
-                    <td colSpan={3} />
+                    <td colSpan={visibleCols.length - visibleCols.findIndex(c => c.id === 'valor') - 1} />
                   </tr>
                 </tfoot>
               </table>
