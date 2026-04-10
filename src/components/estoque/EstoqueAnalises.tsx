@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from 'recharts'
+import ChartTooltip from '@/components/shared/ChartTooltip'
 import { useTopProdutosMovimentados, useConsumoMensal } from '@/hooks/useEstoqueAnalytics'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueMovimentacoes } from '@/hooks/useEstoqueMovimentacoes'
@@ -141,10 +142,7 @@ export default function EstoqueAnalises() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={45} />
-              <Tooltip
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
-                formatter={(v: number) => [v.toLocaleString('pt-BR', { maximumFractionDigits: 1 }), '']}
-              />
+              <Tooltip content={<ChartTooltip />} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out" />
               <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={350} animationDuration={1100} animationEasing="ease-out" />
@@ -175,10 +173,7 @@ export default function EstoqueAnalises() {
                 tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                 width={130}
               />
-              <Tooltip
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
-                formatter={(v: number) => [v.toLocaleString('pt-BR', { maximumFractionDigits: 1 }), '']}
-              />
+              <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="total_saidas" name="Saídas" fill="hsl(var(--primary))" radius={[0, 3, 3, 0]} isAnimationActive animationBegin={200} animationDuration={1200} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>

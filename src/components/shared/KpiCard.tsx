@@ -99,7 +99,7 @@ export default function KpiCard({
 
   return (
     <div
-      className={`rounded-xl border bg-card p-4 shadow-sm will-change-transform ${styles.border} ${className}`}
+      className={`rounded-xl border bg-card p-4 shadow-sm will-change-transform dark:bg-card/75 dark:backdrop-blur-sm dark:border-white/[0.06] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ${styles.border} ${className}`}
       style={{ ...tiltStyle, transformStyle: 'preserve-3d' }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

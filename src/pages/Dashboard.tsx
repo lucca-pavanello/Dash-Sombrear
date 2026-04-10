@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -15,6 +15,7 @@ import AvatarInitials from '@/components/shared/AvatarInitials'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
+import { useUiSound } from '@/hooks/useUiSound'
 
 const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
 const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
@@ -47,7 +48,11 @@ export default function Dashboard() {
   const [splashFading, setSplashFading] = useState(false)
   const [secsSinceUpdate, setSecsSinceUpdate] = useState(0)
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 })
+  const [orcPulse, setOrcPulse] = useState(false)
+  const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
+
+  const uiSound = useUiSound()
 
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => {
     const initial = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
@@ -78,9 +83,37 @@ export default function Dashboard() {
     : DEFAULT_TAB
 
   function handleTabChange(id: string) {
+    uiSound.play('tab')
     setUnreadCount(0)
     navigate(`/${id}`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function handleThemeToggle(e: React.MouseEvent) {
+    const x = e.clientX
+    const y = e.clientY
+    type DocVT = Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void> } }
+    const doc = document as DocVT
+    if (!doc.startViewTransition) { toggle(); return }
+    const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
+    const vt = doc.startViewTransition(() => { toggle() })
+    vt.ready.then(() => {
+      document.documentElement.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+        { duration: 400, easing: 'ease-in-out', pseudoElement: '::view-transition-new(root)' },
+      )
+    })
+  }
+
+  function handleTabRipple(e: React.MouseEvent<HTMLButtonElement>) {
+    const btn = e.currentTarget
+    const rect = btn.getBoundingClientRect()
+    const ripple = document.createElement('span')
+    ripple.className = 'tab-ripple'
+    ripple.style.left = `${e.clientX - rect.left}px`
+    ripple.style.top  = `${e.clientY - rect.top}px`
+    btn.appendChild(ripple)
+    ripple.addEventListener('animationend', () => ripple.remove(), { once: true })
   }
 
   useEffect(() => {
@@ -170,6 +203,16 @@ export default function Dashboard() {
     return () => clearInterval(t)
   }, [])
 
+  // ── Badge pulse no tab Orçamentos quando novo orçamento chega ──
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current) {
+      setOrcPulse(true)
+      const t = setTimeout(() => setOrcPulse(false), 600)
+      return () => clearTimeout(t)
+    }
+    prevUnreadRef.current = unreadCount
+  }, [unreadCount])
+
   // ── Sliding tab indicator ──
   useEffect(() => {
     const bar = tabBarRef.current
@@ -228,6 +271,11 @@ export default function Dashboard() {
     )}
 
     <div className="min-h-screen bg-background">
+      {/* Background: dot grid + orbs de glassmorphism */}
+      <div className="dot-grid fixed inset-0 -z-10 pointer-events-none" />
+      <div className="fixed -z-10 pointer-events-none -top-40 -right-40 h-[550px] w-[550px] rounded-full bg-primary/[0.06] dark:bg-primary/[0.10] blur-3xl" />
+      <div className="fixed -z-10 pointer-events-none -bottom-40 -left-40 h-[650px] w-[650px] rounded-full bg-amber-400/[0.05] dark:bg-amber-400/[0.08] blur-3xl" />
+
       {/* Header */}
       <header className="header-aurora sticky top-0 z-50 overflow-hidden border-b border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] backdrop-blur-md shadow-sm">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6">
@@ -300,7 +348,15 @@ export default function Dashboard() {
               </button>
             )}
             <button
-              onClick={toggle}
+              onClick={uiSound.toggle}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+              aria-label={uiSound.enabled ? 'Desativar sons' : 'Ativar sons'}
+              title={uiSound.enabled ? 'Sons ativos' : 'Sons desativados'}
+            >
+              {uiSound.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={handleThemeToggle}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
               aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
             >
@@ -333,6 +389,7 @@ export default function Dashboard() {
               key={id}
               data-tab={id}
               onClick={() => handleTabChange(id)}
+              onMouseDown={handleTabRipple}
               title={label}
               className={cn(
                 'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95',
@@ -347,6 +404,10 @@ export default function Dashboard() {
                 <span className="flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
                   {badge > 9 ? '9+' : badge}
                 </span>
+              )}
+              {/* Pulse ring quando novo orçamento chega */}
+              {id === 'orcamentos' && orcPulse && activeTab !== 'orcamentos' && (
+                <span className="badge-ping-once absolute inset-0 rounded-lg border-2 border-primary/60 pointer-events-none" />
               )}
               {activeTab === id && (
                 <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-primary sm:hidden" />

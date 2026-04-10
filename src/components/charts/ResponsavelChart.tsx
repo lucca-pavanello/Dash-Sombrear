@@ -1,6 +1,7 @@
 import { useMemo, memo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import ChartTooltip from '@/components/shared/ChartTooltip'
 
 const CHART_COLORS = ['#E8701A', '#F59E0B', '#D97706', '#B45309', '#92400E', '#F97316', '#FB923C', '#FDBA74']
 
@@ -27,10 +28,7 @@ function ResponsavelChart({ data }: Props) {
           <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }} barSize={28}>
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
             <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-            <Tooltip
-              contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
-              labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
-            />
+            <Tooltip content={<ChartTooltip />} />
             <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer" isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out">
               {chartData.map((entry, i) => (
                 <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />

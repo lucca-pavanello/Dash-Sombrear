@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
@@ -8,6 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, CartesianGrid,
 } from 'recharts'
+import ChartTooltip from '@/components/shared/ChartTooltip'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import {
   filterOrcamentosPorMes,
@@ -16,6 +17,36 @@ import {
 } from '@/lib/analytics'
 
 interface Props { data: Orcamento[]; isLoading?: boolean; error?: boolean }
+
+function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
+  const [displayed, setDisplayed] = useState('')
+  const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    setDisplayed('')
+    setDone(false)
+    const start = setTimeout(() => {
+      let i = 0
+      const tick = setInterval(() => {
+        i++
+        setDisplayed(text.slice(0, i))
+        if (i >= text.length) {
+          clearInterval(tick)
+          setDone(true)
+        }
+      }, 16)
+      return () => clearInterval(tick)
+    }, delay)
+    return () => clearTimeout(start)
+  }, [text, delay])
+
+  return (
+    <p className="text-sm leading-relaxed text-foreground/85">
+      {displayed}
+      {!done && <span className="typewriter-cursor">|</span>}
+    </p>
+  )
+}
 
 function getDailyTrend(data: Orcamento[]) {
   const now = new Date()
@@ -149,10 +180,6 @@ function Delta({ pct, suffix = '%' }: { pct: number | null; suffix?: string }) {
   )
 }
 
-const tooltipStyle = {
-  contentStyle: { borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' },
-  labelStyle: { fontWeight: 600, color: 'hsl(var(--foreground))' },
-}
 
 function exportPDF(data: Orcamento[]) {
   const doc = new jsPDF()
@@ -507,7 +534,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
             {insights.map((insight, i) => (
               <div key={i} className="flex items-start gap-4 rounded-lg bg-muted/40 px-4 py-3.5 hover:bg-muted/60 transition-colors">
                 <span className="font-display text-2xl font-bold text-primary/25 leading-none tabular-nums select-none shrink-0 w-7 mt-0.5">{i + 1}</span>
-                <p className="text-sm leading-relaxed text-foreground/85">{insight}</p>
+                <TypewriterText text={insight} delay={i * 400} />
               </div>
             ))}
           </div>
@@ -526,7 +553,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
                 <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
+                <Tooltip content={<ChartTooltip formatter={formatCurrency} />} />
                 <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
@@ -539,7 +566,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
             <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-              <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
+              <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.5} cursor="pointer" isAnimationActive animationBegin={300} animationDuration={1100} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>
@@ -677,7 +704,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-              <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
+              <Tooltip content={<ChartTooltip />} />
               <Area type="monotone" dataKey="orcamentos" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#areaGrad)" isAnimationActive animationBegin={200} animationDuration={1300} animationEasing="ease-out" />
             </AreaChart>
           </ResponsiveContainer>

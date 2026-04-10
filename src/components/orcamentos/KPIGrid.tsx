@@ -1,10 +1,73 @@
-import { useState, useMemo, memo } from 'react'
+import { useState, useMemo, memo, useEffect, useRef } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Check, Clock, X, AlertTriangle } from 'lucide-react'
 import { useMonthlyComparison } from '@/hooks/useOrcamentos'
 import { useCountUp } from '@/hooks/useCountUp'
 import { META_KEY } from '@/lib/constants'
+
+// ── Odômetro de dígitos para o card de Faturamento ──
+function OdometerValue({ value }: { value: number }) {
+  const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+  const chars = Array.from(formatted)
+  const [ready, setReady] = useState(false)
+  const prevValueRef = useRef(value)
+  const [animKey, setAnimKey] = useState(0)
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  useEffect(() => {
+    if (prevValueRef.current !== value) {
+      prevValueRef.current = value
+      setAnimKey((k) => k + 1)
+    }
+  }, [value])
+
+  return (
+    <span className="font-display mt-1 inline-flex items-baseline text-2xl font-bold tracking-tight text-primary tabular-nums">
+      {chars.map((char, i) => {
+        if (!/\d/.test(char)) {
+          return (
+            <span key={`${animKey}-s-${i}`} className="inline-block">
+              {char}
+            </span>
+          )
+        }
+        const digit = parseInt(char)
+        const delay = (chars.length - i) * 30
+        return (
+          <span
+            key={`${animKey}-d-${i}`}
+            className="inline-block overflow-hidden"
+            style={{ height: '1.25em', verticalAlign: 'bottom' }}
+          >
+            <span
+              className="flex flex-col"
+              style={{
+                transform: ready ? `translateY(-${digit * 10}%)` : 'translateY(0%)',
+                transition: ready
+                  ? `transform 550ms cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`
+                  : 'none',
+              }}
+            >
+              {Array.from({ length: 10 }, (_, n) => (
+                <span
+                  key={n}
+                  style={{ height: '1.25em', lineHeight: '1.25em', display: 'block' }}
+                >
+                  {n}
+                </span>
+              ))}
+            </span>
+          </span>
+        )
+      })}
+    </span>
+  )
+}
 
 interface Props { data: Orcamento[] }
 
@@ -47,7 +110,6 @@ function KPIGrid({ data }: Props) {
     return { fechados, emAberto, totalVenda, totalInst, faturamento, totalOrc, ticketMedio, convRate, valorEmAberto, comMargem, margemMedia, emRisco, valorEmRisco }
   }, [data])
 
-  const animFaturamento = useCountUp(faturamento, 600)
   const animFechados = useCountUp(fechados.length, 480)
   const animTotalOrc = useCountUp(totalOrc, 450)
   const animTicket = useCountUp(ticketMedio, 580)
@@ -185,9 +247,7 @@ function KPIGrid({ data }: Props) {
             </button>
           </div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate w-full">Faturamento</p>
-          <p className="font-display mt-1 text-2xl font-bold tracking-tight text-primary tabular-nums">
-            {formatCurrency(Math.round(animFaturamento))}
-          </p>
+          <OdometerValue value={faturamento} />
 
           {meta > 0 ? (
             <div className="mt-1.5 w-full">
