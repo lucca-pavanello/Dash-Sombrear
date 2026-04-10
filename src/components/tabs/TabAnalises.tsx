@@ -558,54 +558,66 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" style={{ minWidth: 700 }}>
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="px-5 py-3 text-left font-medium text-muted-foreground">Modelo</th>
-                  <th className="px-5 py-3 text-center font-medium text-muted-foreground">Orç.</th>
-                  <th className="px-5 py-3 text-center font-medium text-muted-foreground">Conv.</th>
-                  <th className="px-5 py-3 text-right font-medium text-muted-foreground">Faturamento</th>
-                  <th className="px-5 py-3 text-right font-medium text-muted-foreground">Custo</th>
-                  <th className="px-5 py-3 text-right font-medium text-muted-foreground">Margem</th>
-                  <th className="px-5 py-3 text-left font-medium text-muted-foreground">Top Tecido</th>
+                  <th className="px-6 py-3.5 text-left font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[22%]">Modelo</th>
+                  <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[8%]">Orç.</th>
+                  <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Conversão</th>
+                  <th className="px-6 py-3.5 text-right font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Faturamento</th>
+                  <th className="px-6 py-3.5 text-right font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Custo</th>
+                  <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Margem</th>
+                  <th className="px-6 py-3.5 text-left font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Top Tecido</th>
                 </tr>
               </thead>
               <tbody>
                 {rentabilidadePorModelo.map(({ modelo, count, fat, custo, margem, conv, topTecido }) => (
-                  <tr key={modelo} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="px-5 py-3.5 font-medium">{modelo}</td>
-                    <td className="px-5 py-3.5 text-center tabular-nums">{count}</td>
-                    <td className="px-5 py-3.5 text-center">
-                      <span className={`text-xs font-semibold tabular-nums ${conv >= 50 ? 'text-primary' : conv >= 25 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <tr key={modelo} className="border-b last:border-0 hover:bg-muted/20 transition-colors group">
+                    <td className="px-6 py-4 font-semibold whitespace-nowrap">{modelo}</td>
+                    <td className="px-4 py-4 text-center tabular-nums text-muted-foreground">{count}</td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
+                        conv >= 50 ? 'bg-primary/10 text-primary' : conv >= 25 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground'
+                      }`}>
                         {conv.toFixed(0)}%
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-right tabular-nums">{fat > 0 ? formatCurrency(fat) : <span className="text-muted-foreground/40">—</span>}</td>
-                    <td className="px-5 py-3.5 text-right tabular-nums">{custo > 0 ? formatCurrency(custo) : <span className="text-muted-foreground/40">—</span>}</td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="px-6 py-4 text-right tabular-nums font-medium whitespace-nowrap">{fat > 0 ? formatCurrency(fat) : <span className="text-muted-foreground/30">—</span>}</td>
+                    <td className="px-6 py-4 text-right tabular-nums text-muted-foreground whitespace-nowrap">{custo > 0 ? formatCurrency(custo) : <span className="text-muted-foreground/30">—</span>}</td>
+                    <td className="px-6 py-4 text-center">
                       {margem !== null
-                        ? <span className={`text-xs font-semibold tabular-nums ${margem >= 40 ? 'text-primary' : margem >= 20 ? 'text-foreground' : 'text-destructive'}`}>{margem.toFixed(1)}%</span>
-                        : <span className="text-muted-foreground/40">—</span>}
+                        ? <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
+                            margem >= 40 ? 'bg-primary/10 text-primary' : margem >= 20 ? 'bg-muted text-foreground' : 'bg-destructive/10 text-destructive'
+                          }`}>{margem.toFixed(1)}%</span>
+                        : <span className="text-muted-foreground/30">—</span>}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-6 py-4">
                       {topTecido
-                        ? <span className="inline-flex items-center gap-1.5 text-xs"><span>{topTecido[0]}</span><span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary leading-none">{topTecido[1]}×</span></span>
-                        : <span className="text-muted-foreground/40">—</span>}
+                        ? <span className="inline-flex items-center gap-1.5"><span className="text-xs whitespace-nowrap">{topTecido[0]}</span><span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground leading-none">{topTecido[1]}×</span></span>
+                        : <span className="text-muted-foreground/30">—</span>}
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 bg-muted/30 font-semibold">
-                  <td className="px-5 py-3 text-xs text-muted-foreground uppercase tracking-wide">Total</td>
-                  <td className="px-5 py-3 text-center tabular-nums">{data.length}</td>
-                  <td className="px-5 py-3 text-center text-xs font-semibold text-primary tabular-nums">
-                    {data.length > 0 ? ((fechados.length / data.length) * 100).toFixed(0) : 0}%
+                <tr className="border-t-2 bg-muted/30">
+                  <td className="px-6 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-widest">Total</td>
+                  <td className="px-4 py-3.5 text-center tabular-nums font-semibold">{data.length}</td>
+                  <td className="px-4 py-3.5 text-center">
+                    <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary tabular-nums">
+                      {data.length > 0 ? ((fechados.length / data.length) * 100).toFixed(0) : 0}%
+                    </span>
                   </td>
-                  <td className="px-5 py-3 text-right tabular-nums text-primary">{formatCurrency(faturamentoGeral)}</td>
-                  <td className="px-5 py-3 text-right tabular-nums">{custoTotal > 0 ? formatCurrency(custoTotal) : '—'}</td>
-                  <td className="px-5 py-3 text-right text-xs font-semibold tabular-nums">{margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—'}</td>
-                  <td className="px-5 py-3" />
+                  <td className="px-6 py-3.5 text-right tabular-nums font-bold text-primary whitespace-nowrap">{formatCurrency(faturamentoGeral)}</td>
+                  <td className="px-6 py-3.5 text-right tabular-nums font-semibold text-muted-foreground whitespace-nowrap">{custoTotal > 0 ? formatCurrency(custoTotal) : '—'}</td>
+                  <td className="px-6 py-3.5 text-center">
+                    {margemMedia !== null
+                      ? <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
+                          margemMedia >= 40 ? 'bg-primary/10 text-primary' : margemMedia >= 20 ? 'bg-muted text-foreground' : 'bg-destructive/10 text-destructive'
+                        }`}>{margemMedia.toFixed(1)}%</span>
+                      : <span className="text-muted-foreground/30">—</span>}
+                  </td>
+                  <td className="px-6 py-3.5" />
                 </tr>
               </tfoot>
             </table>
