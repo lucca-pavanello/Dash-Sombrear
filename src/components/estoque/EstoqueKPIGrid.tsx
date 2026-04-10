@@ -8,9 +8,10 @@ interface Props {
   produtos: EstoqueProduto[]
   alertas: EstoqueProdutoAlerta[]
   movimentacoesHoje: EstoqueMovimentacao[]
+  resetKey?: number
 }
 
-export default function EstoqueKPIGrid({ produtos, alertas, movimentacoesHoje }: Props) {
+export default function EstoqueKPIGrid({ produtos, alertas, movimentacoesHoje, resetKey }: Props) {
   const totalProdutos = produtos.length
   const totalAlertas = alertas.length
   const totalMovs = movimentacoesHoje.length
@@ -18,10 +19,10 @@ export default function EstoqueKPIGrid({ produtos, alertas, movimentacoesHoje }:
     return s + (p.quantidade_atual ?? 0) * (p.custo_unitario ?? 0)
   }, 0)
 
-  const animProdutos = useCountUp(totalProdutos, 700)
-  const animAlertas  = useCountUp(totalAlertas,  600)
-  const animValor    = useCountUp(valorEmEstoque, 900)
-  const animMovs     = useCountUp(totalMovs,      650)
+  const animProdutos = useCountUp(totalProdutos, 700, false, resetKey)
+  const animAlertas  = useCountUp(totalAlertas,  600, false, resetKey)
+  const animValor    = useCountUp(valorEmEstoque, 900, false, resetKey)
+  const animMovs     = useCountUp(totalMovs,      650, false, resetKey)
 
   const cards = [
     {

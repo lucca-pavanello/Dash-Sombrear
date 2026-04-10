@@ -85,7 +85,7 @@ function gerarInsights(
   return insights
 }
 
-export default function EstoqueAnalises() {
+export default function EstoqueAnalises({ resetKey }: { resetKey?: number } = {}) {
   const [meses, setMeses] = useState(6)
   const { data: produtos = [] } = useEstoqueProdutos()
   const { data: consumoMensal = [], isLoading: loadingMensal } = useConsumoMensal(meses)
@@ -138,14 +138,14 @@ export default function EstoqueAnalises() {
           <div className="h-52 flex items-center justify-center text-sm text-muted-foreground">Carregando...</div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={consumoMensal} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <BarChart key={resetKey} data={consumoMensal} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={45} />
               <Tooltip content={<ChartTooltip />} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out" />
-              <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={350} animationDuration={1100} animationEasing="ease-out" />
+              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={0} animationDuration={700} animationEasing="ease-out" />
+              <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={100} animationDuration={700} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -161,6 +161,7 @@ export default function EstoqueAnalises() {
         ) : (
           <ResponsiveContainer width="100%" height={Math.max(180, topProdutos.length * 32)}>
             <BarChart
+              key={resetKey}
               data={topProdutos}
               layout="vertical"
               margin={{ top: 0, right: 32, left: 8, bottom: 0 }}

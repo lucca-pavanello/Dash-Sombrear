@@ -23,9 +23,10 @@ function loadFilters() {
 interface Props {
   data: Orcamento[]
   loading: boolean
+  resetKey?: number
 }
 
-export default function TabOrcamentos({ data, loading }: Props) {
+export default function TabOrcamentos({ data, loading, resetKey }: Props) {
   const [searchParams, setSearchParams] = useSearchParams()
   const saved = loadFilters()
   const [search, setSearch] = useState('')
@@ -98,7 +99,7 @@ export default function TabOrcamentos({ data, loading }: Props) {
 
   return (
     <div className="space-y-5">
-      <KPIGrid data={filtered} />
+      <KPIGrid data={filtered} resetKey={resetKey} />
 
       <hr className="border-border/25" />
 
@@ -131,7 +132,7 @@ export default function TabOrcamentos({ data, loading }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <RankingResponsavel data={filtered} />
-        <ResponsavelChart data={filtered} />
+        <ResponsavelChart data={filtered} resetKey={resetKey} />
         <ModelosChart data={filtered} />
       </div>
 

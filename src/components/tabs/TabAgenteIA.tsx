@@ -166,7 +166,7 @@ type LeadSort = { key: 'created_at' | 'nome' | 'timestamp_ultima_msg'; dir: 'asc
 type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
 // ── Componente principal ─────────────────────────────────────────────────────
-export default function TabAgenteIA() {
+export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { data: leads = [], isLoading: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
   const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
   const { mutate: marcarConvertido, isPending: marcando } = useMarcarConvertido()
@@ -229,15 +229,15 @@ export default function TabAgenteIA() {
       return !convertido && horasDecorridas(l.timestamp_ultima_msg) > ESPERA_HORAS
     }), [filtrados])
 
-  const animLeads      = useCountUp(filtrados.length, 700, hasLoaded)
-  const animAguard     = useCountUp(aguardando.length, 700, hasLoaded)
-  const animConv       = useCountUp(convertidos.length, 750, hasLoaded)
-  const animValor      = useCountUp(valorTotal, 900, hasLoaded)
-  const animMed        = useCountUp(comMedicao.length, 750, hasLoaded)
-  const animForaLeads  = useCountUp(foraLeads.length, 700, hasLoaded)
-  const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded)
-  const animForaMsgs   = useCountUp(foraMsgs.length, 700, hasLoaded)
-  const animEspera     = useCountUp(leadsEmEspera.length, 700, hasLoaded)
+  const animLeads      = useCountUp(filtrados.length, 700, hasLoaded, resetKey)
+  const animAguard     = useCountUp(aguardando.length, 700, hasLoaded, resetKey)
+  const animConv       = useCountUp(convertidos.length, 750, hasLoaded, resetKey)
+  const animValor      = useCountUp(valorTotal, 900, hasLoaded, resetKey)
+  const animMed        = useCountUp(comMedicao.length, 750, hasLoaded, resetKey)
+  const animForaLeads  = useCountUp(foraLeads.length, 700, hasLoaded, resetKey)
+  const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded, resetKey)
+  const animForaMsgs   = useCountUp(foraMsgs.length, 700, hasLoaded, resetKey)
+  const animEspera     = useCountUp(leadsEmEspera.length, 700, hasLoaded, resetKey)
 
   const alcanceKpis = [
     { label: 'Pessoas respondidas',      value: Math.round(animLeads),     icon: Users,         alcance: true,  sub: 'atendidas pelo agente' },

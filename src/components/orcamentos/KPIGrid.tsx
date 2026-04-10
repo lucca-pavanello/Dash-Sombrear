@@ -69,7 +69,7 @@ function OdometerValue({ value }: { value: number }) {
   )
 }
 
-interface Props { data: Orcamento[] }
+interface Props { data: Orcamento[]; resetKey?: number }
 
 function KpiTooltip({ lines }: { lines: string[] }) {
   return (
@@ -82,7 +82,7 @@ function KpiTooltip({ lines }: { lines: string[] }) {
   )
 }
 
-function KPIGrid({ data }: Props) {
+function KPIGrid({ data, resetKey }: Props) {
   const {
     fechados, emAberto, totalVenda, totalInst, faturamento, totalOrc,
     ticketMedio, convRate, valorEmAberto, comMargem, margemMedia, emRisco, valorEmRisco,
@@ -110,13 +110,13 @@ function KPIGrid({ data }: Props) {
     return { fechados, emAberto, totalVenda, totalInst, faturamento, totalOrc, ticketMedio, convRate, valorEmAberto, comMargem, margemMedia, emRisco, valorEmRisco }
   }, [data])
 
-  const animFechados = useCountUp(fechados.length, 480)
-  const animTotalOrc = useCountUp(totalOrc, 450)
-  const animTicket = useCountUp(ticketMedio, 580)
-  const animConv = useCountUp(convRate, 500)
-  const animMargem = useCountUp(margemMedia ?? 0, margemMedia != null ? 540 : 0)
-  const animEmAberto = useCountUp(valorEmAberto, 580)
-  const animEmRisco = useCountUp(emRisco.length, 500)
+  const animFechados = useCountUp(fechados.length, 480, false, resetKey)
+  const animTotalOrc = useCountUp(totalOrc, 450, false, resetKey)
+  const animTicket = useCountUp(ticketMedio, 580, false, resetKey)
+  const animConv = useCountUp(convRate, 500, false, resetKey)
+  const animMargem = useCountUp(margemMedia ?? 0, margemMedia != null ? 540 : 0, false, resetKey)
+  const animEmAberto = useCountUp(valorEmAberto, 580, false, resetKey)
+  const animEmRisco = useCountUp(emRisco.length, 500, false, resetKey)
 
   const [flippedCard, setFlippedCard] = useState<string | null>(null)
 
@@ -142,7 +142,7 @@ function KPIGrid({ data }: Props) {
   }
 
   const metaPct = meta > 0 ? Math.min((faturamento / meta) * 100, 100) : 0
-  const animMetaPct = useCountUp(metaPct, 700)
+  const animMetaPct = useCountUp(metaPct, 700, false, resetKey)
 
   const { data: monthly } = useMonthlyComparison()
   const pctChange = monthly && monthly.previousMonth > 0
@@ -337,7 +337,7 @@ function KPIGrid({ data }: Props) {
             key={label}
             tabIndex={0}
             onClick={() => setFlippedCard(isFlipped ? null : label)}
-            className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 shadow-sm transition-shadow duration-200 hover:shadow-md cursor-pointer outline-none ${
+            className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer outline-none ${
               amber ? 'border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10'
               : 'border-border bg-primary/5 dark:bg-primary/10'
             }`}

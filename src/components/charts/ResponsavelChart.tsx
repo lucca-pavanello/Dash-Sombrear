@@ -5,9 +5,9 @@ import ChartTooltip from '@/components/shared/ChartTooltip'
 
 const CHART_COLORS = ['#E8701A', '#F59E0B', '#D97706', '#B45309', '#92400E', '#F97316', '#FB923C', '#FDBA74']
 
-interface Props { data: Orcamento[] }
+interface Props { data: Orcamento[]; resetKey?: number }
 
-function ResponsavelChart({ data }: Props) {
+function ResponsavelChart({ data, resetKey }: Props) {
   const chartData = useMemo(() => {
     const grouped = data.reduce<Record<string, number>>((acc, o) => {
       acc[o.responsavel] = (acc[o.responsavel] ?? 0) + 1
@@ -25,11 +25,11 @@ function ResponsavelChart({ data }: Props) {
         <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados</div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }} barSize={28}>
+          <BarChart key={resetKey} data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }} barSize={28}>
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
             <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
             <Tooltip content={<ChartTooltip />} />
-            <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer" isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out">
+            <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer" isAnimationActive animationBegin={0} animationDuration={600} animationEasing="ease-out">
               {chartData.map((entry, i) => (
                 <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}

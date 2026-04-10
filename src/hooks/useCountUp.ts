@@ -4,11 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 const easeOutExpo = (t: number): number =>
   t === 1 ? 1 : 1 - Math.pow(2, -10 * t)
 
-export function useCountUp(target: number, duration = 850, skipAnimation = false): number {
+export function useCountUp(target: number, duration = 850, skipAnimation = false, resetKey?: number): number {
   const [current, setCurrent] = useState(0)
   const rafRef = useRef<number>(0)
   const startRef = useRef<number>(0)
   const currentRef = useRef(0)
+
+  // When resetKey changes, reset the starting point to 0 so the next animation starts from scratch
+  useEffect(() => {
+    if (resetKey === undefined) return
+    currentRef.current = 0
+  }, [resetKey])
 
   useEffect(() => {
     if (skipAnimation) {
@@ -38,7 +44,8 @@ export function useCountUp(target: number, duration = 850, skipAnimation = false
 
     rafRef.current = requestAnimationFrame(step)
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [target, duration, skipAnimation])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, duration, skipAnimation, resetKey])
 
   return current
 }

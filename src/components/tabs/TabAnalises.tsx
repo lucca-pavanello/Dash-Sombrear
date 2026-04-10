@@ -17,7 +17,7 @@ import {
   getMonthlyDataSeries,
 } from '@/lib/analytics'
 
-interface Props { data: Orcamento[]; isLoading?: boolean; error?: boolean }
+interface Props { data: Orcamento[]; isLoading?: boolean; error?: boolean; resetKey?: number }
 
 function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
   const [displayed, setDisplayed] = useState('')
@@ -781,7 +781,7 @@ function ActivityHeatmap({ data }: { data: Orcamento[] }) {
 
 // ─── TabAnalises ────────────────────────────────────────────────────────────
 
-export default function TabAnalises({ data, isLoading, error }: Props) {
+export default function TabAnalises({ data, isLoading, error, resetKey }: Props) {
   // useMemo deve ficar antes dos early returns para não violar Rules of Hooks
   const { monthly, daily, insights, now, fechados, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth } = useMemo(() => {
     const now = new Date()
@@ -948,11 +948,11 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
             <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">Sem dados ainda</div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
+              <BarChart key={resetKey} data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
                 <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip content={<ChartTooltip formatter={formatCurrency} />} />
-                <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out" />
+                <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" isAnimationActive animationBegin={0} animationDuration={700} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -961,11 +961,11 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           <h3 className="font-display text-sm font-medium tracking-wide">Volume de orçamentos</h3>
           <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Últimos 6 meses — todos os registros</p>
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+            <BarChart key={resetKey} data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.5} cursor="pointer" isAnimationActive animationBegin={300} animationDuration={1100} animationEasing="ease-out" />
+              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.5} cursor="pointer" isAnimationActive animationBegin={0} animationDuration={700} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -26,9 +26,10 @@ const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
 
 interface Props {
   toast: (type: ToastType, message: string) => void
+  resetKey?: number
 }
 
-export default function TabEstoque({ toast }: Props) {
+export default function TabEstoque({ toast, resetKey }: Props) {
   const [subTab, setSubTab] = useState<SubTab>('produtos')
   const [produtoModalOpen, setProdutoModalOpen] = useState(false)
   const [editandoProduto, setEditandoProduto] = useState<EstoqueProduto | null>(null)
@@ -112,6 +113,7 @@ export default function TabEstoque({ toast }: Props) {
         produtos={produtos}
         alertas={alertas}
         movimentacoesHoje={movimentacoesHoje}
+        resetKey={resetKey}
       />
 
       {/* Painel de alertas (só na sub-aba produtos) */}
@@ -158,7 +160,7 @@ export default function TabEstoque({ toast }: Props) {
       )}
 
       {subTab === 'analises' && (
-        <EstoqueAnalises />
+        <EstoqueAnalises resetKey={resetKey} />
       )}
 
       {/* Modais */}
