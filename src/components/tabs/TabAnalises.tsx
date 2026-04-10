@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
@@ -8,7 +8,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, CartesianGrid,
 } from 'recharts'
-import { META_KEY } from '@/lib/constants'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import {
   filterOrcamentosPorMes,
@@ -349,19 +348,6 @@ function PerformancePorCanal({ data }: { data: Orcamento[] }) {
 // ─── TabAnalises ────────────────────────────────────────────────────────────
 
 export default function TabAnalises({ data, isLoading, error }: Props) {
-  const [meta, setMeta] = useState(() => {
-    const s = localStorage.getItem(META_KEY)
-    return s ? Number(s) : 0
-  })
-
-  useEffect(() => {
-    function onStorage(e: StorageEvent) {
-      if (e.key === META_KEY) setMeta(e.newValue ? Number(e.newValue) : 0)
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
-
   // useMemo deve ficar antes dos early returns para não violar Rules of Hooks
   const { monthly, daily, insights, now, fechados, valorVendaTotal, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth } = useMemo(() => {
     const now = new Date()
@@ -444,109 +430,111 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
   ]
 
   return (
-    <div className="space-y-5">
-      {/* ─── Seção: Análise – Planilha Orçamentos ─── */}
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-base font-semibold tracking-wide">Análise – Planilha Orçamentos</h2>
-        <button
-          onClick={() => exportPDF(data)}
-          className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
-        >
-          <FileDown className="h-3.5 w-3.5" />
-          Exportar PDF
-        </button>
-      </div>
+    <div className="space-y-10">
 
-      {/* Destaques financeiros */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Valor de Venda</p>
-          <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(valorVendaTotal)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{fechados.length} pedido{fechados.length !== 1 ? 's' : ''} fechado{fechados.length !== 1 ? 's' : ''}</p>
-        </div>
-        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Faturamento Total</p>
-          <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{formatCurrency(faturamentoGeral)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">venda + instalação</p>
-        </div>
-        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Margem Média</p>
-          <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">
-            {margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—'}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {fechadosComMargem.length > 0 ? `${fechadosComMargem.length} pedidos com margem` : 'sem dados de custo'}
-          </p>
-        </div>
-      </div>
+      {/* ════════ Seção 1: Planilha Orçamentos ════════ */}
+      <section className="space-y-5">
 
-      {/* Comparativo mês a mês */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {comparisons.map(({ label, value, delta }) => (
-          <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">{label}</p>
-            <p className="font-display mt-1.5 text-2xl font-bold tracking-tight truncate">{value}</p>
-            <div className="mt-0.5">{delta ?? <span className="text-xs text-muted-foreground/60">base de comparação</span>}</div>
+        {/* Header da seção */}
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-1 shrink-0 rounded-full bg-primary" />
+          <h2 className="font-display text-base font-semibold tracking-wide">Planilha Orçamentos</h2>
+          <div className="flex-1 h-px bg-border" />
+          <button
+            onClick={() => exportPDF(data)}
+            title="Exportar relatório em PDF"
+            className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Exportar PDF</span>
+          </button>
+        </div>
+
+        {/* 1 — Análise Automática no topo (executive summary) */}
+        {insights.length > 0 && (
+          <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="rounded-md bg-primary/10 p-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <h3 className="font-display text-sm font-semibold tracking-wide">Análise Automática</h3>
+              <span className="ml-auto text-[11px] text-muted-foreground">baseado nos dados atuais</span>
+            </div>
+            <ul className="space-y-2.5">
+              {insights.map((insight, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm leading-relaxed">
+                  <span className="mt-px shrink-0 text-[10px] font-bold tabular-nums text-primary/60 w-4 text-right">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span className="text-foreground/80">{insight}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        ))}
-      </div>
-
-      {/* Meta do Mês */}
-      {meta > 0 && (
-        <div className="rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary/60">Meta do Mês</p>
-          <p className="font-display mt-1.5 text-2xl font-bold tracking-tight text-primary">{formatCurrency(thisFat)}</p>
-          <div className="mt-2 h-2 w-full rounded-full bg-primary/20 overflow-hidden">
-            <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${Math.min((thisFat / meta) * 100, 100)}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">{Math.round((thisFat / meta) * 100)}% de {formatCurrency(meta)}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground/60">Configure a meta na aba Orçamentos</p>
-        </div>
-      )}
-
-      {/* Faturamento mensal */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Faturamento mensal (últimos 6 meses)</h3>
-        {monthly.every((m) => m.faturamento === 0) ? (
-          <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados de faturamento</div>
-        ) : (
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
-              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
-              <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" />
-            </BarChart>
-          </ResponsiveContainer>
         )}
-      </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Volume mensal */}
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Volume de orçamentos (últimos 6 meses)</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-              <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-              <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-              <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* 2 — KPIs do mês atual */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {comparisons.map(({ label, value, delta }) => (
+            <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">{label}</p>
+              <p className="font-display mt-1.5 text-2xl font-bold tracking-tight truncate">{value}</p>
+              <div className="mt-1">{delta ?? <span className="text-[11px] text-muted-foreground/50">base de comparação</span>}</div>
+            </div>
+          ))}
         </div>
 
-        {/* Tendência diária */}
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Tendência diária — {now.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
-          {daily.length === 0 ? (
-            <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">Sem dados este mês</div>
-          ) : (
+        {/* 3 — Gráficos lado a lado: Faturamento | Volume */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+            <h3 className="font-display text-sm font-medium tracking-wide">Faturamento mensal</h3>
+            <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Últimos 6 meses — pedidos fechados</p>
+            {monthly.every((m) => m.faturamento === 0) ? (
+              <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">Sem dados ainda</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -10 }}>
+                  <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
+                  <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+            <h3 className="font-display text-sm font-medium tracking-wide">Volume de orçamentos</h3>
+            <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Últimos 6 meses — todos os registros</p>
             <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+                <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
+                <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.5} cursor="pointer" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 4 — Tendência diária (full width) */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+          <div className="flex items-baseline justify-between mb-0.5">
+            <h3 className="font-display text-sm font-medium tracking-wide">Tendência diária</h3>
+            <span className="text-xs text-muted-foreground capitalize">
+              {now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+            </span>
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">Orçamentos criados por dia no mês atual</p>
+          {daily.length === 0 ? (
+            <div className="flex h-[140px] items-center justify-center text-sm text-muted-foreground">Sem dados este mês</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={140}>
               <AreaChart data={daily} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#fb923c" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#fb923c" stopOpacity={0.04} />
+                    <stop offset="5%" stopColor="#fb923c" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#fb923c" stopOpacity={0.03} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -558,66 +546,72 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
             </ResponsiveContainer>
           )}
         </div>
-      </div>
 
-      {/* Taxa de Conversão por Modelo */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-        <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Taxa de Conversão por Modelo</h3>
-        <ConversaoPorModelo data={data} />
-      </div>
-
-      {/* Performance por Canal */}
-      <PerformancePorCanal data={data} />
-
-      {/* Análise Automática — orçamentos */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="rounded-lg bg-primary/10 p-1.5">
-            <TrendingUp className="h-4 w-4 text-primary" />
+        {/* 5 — Conversão por Modelo | Performance por Canal */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
+            <h3 className="font-display text-sm font-medium tracking-wide">Taxa de Conversão por Modelo</h3>
+            <p className="mt-0.5 mb-4 text-xs text-muted-foreground">% de orçamentos fechados por modelo</p>
+            <ConversaoPorModelo data={data} />
           </div>
-          <h3 className="font-display text-sm font-medium tracking-wide">Análise Automática</h3>
-          <span className="ml-auto text-xs text-muted-foreground">baseado nos dados atuais</span>
+          <PerformancePorCanal data={data} />
         </div>
-        <ul className="space-y-2.5">
-          {insights.map((insight, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-              {insight}
-            </li>
-          ))}
-        </ul>
-      </div>
 
-      {/* ─── Seção: Análise – Planilha Custos ─── */}
-      <div className="border-t border-border pt-6">
-        <h2 className="font-display text-base font-semibold tracking-wide mb-5">Análise – Planilha Custos</h2>
-
-        {/* KPIs */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-5">
+        {/* 6 — Totais gerais (resumo acumulado) */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
-            { label: 'Total no Mês', value: formatCurrency(totalMesCusto) },
-            { label: 'Usos na Semana', value: String(usosSemana) },
-            { label: `Média Diária (${diasDecorridos}d)`, value: formatCurrency(mediaDiaria) },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-xl border-2 border-primary/40 bg-primary/5 p-5 shadow-sm">
-              <div className="flex flex-col items-center gap-2 text-center">
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="font-display text-2xl font-bold">{value}</p>
-              </div>
+            { label: 'Valor de Venda', value: formatCurrency(valorVendaTotal), sub: `${fechados.length} pedido${fechados.length !== 1 ? 's' : ''} fechado${fechados.length !== 1 ? 's' : ''}` },
+            { label: 'Faturamento Total', value: formatCurrency(faturamentoGeral), sub: 'venda + instalação' },
+            { label: 'Margem Média', value: margemMedia !== null ? `${margemMedia.toFixed(1)}%` : '—', sub: fechadosComMargem.length > 0 ? `${fechadosComMargem.length} pedidos com margem calculada` : 'sem dados de custo' },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated hover:-translate-y-px cursor-default">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+              <p className="font-display mt-1.5 text-3xl font-bold tracking-tight text-primary">{value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
+            </div>
+          ))}
+        </div>
+
+      </section>
+
+      {/* ════════ Seção 2: Planilha Custos ════════ */}
+      <section className="space-y-5">
+
+        {/* Header da seção */}
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-1 shrink-0 rounded-full bg-muted-foreground/30" />
+          <h2 className="font-display text-base font-semibold tracking-wide">Planilha Custos</h2>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* KPIs — horizontal, com sub-label */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            { label: 'Custo Total no Mês', value: formatCurrency(totalMesCusto), sub: `${comCustoMes.length} orçamento${comCustoMes.length !== 1 ? 's' : ''} calculado${comCustoMes.length !== 1 ? 's' : ''}` },
+            { label: 'Usos na Semana', value: String(usosSemana), sub: 'orçamentos esta semana' },
+            { label: 'Média Diária', value: formatCurrency(mediaDiaria), sub: `referente a ${diasDecorridos} dia${diasDecorridos !== 1 ? 's' : ''} do mês` },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md cursor-default">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+              <p className="font-display mt-1.5 text-2xl font-bold tracking-tight">{value}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
             </div>
           ))}
         </div>
 
         {/* Custo por Modelo */}
         {Object.keys(custoPorModelo).length === 0 ? (
-          <div className="rounded-xl border border-border bg-card px-5 py-10 text-center text-sm text-muted-foreground">
-            Nenhum custo registrado ainda.
+          <div className="rounded-xl border border-border bg-card px-5 py-12 text-center">
+            <p className="text-sm text-muted-foreground">Nenhum custo registrado ainda.</p>
+            <p className="mt-1 text-xs text-muted-foreground/60">Use a aba Calcular Orçamento para registrar custos.</p>
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
             <div className="border-b px-5 py-4">
               <h3 className="font-display text-sm font-medium tracking-wide">Custo por Modelo</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">{comCusto.length} orçamento{comCusto.length !== 1 ? 's' : ''} com custo registrado</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {comCusto.length} orçamento{comCusto.length !== 1 ? 's' : ''} com custo registrado
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -639,16 +633,16 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
                       return (
                         <tr key={modelo} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                           <td className="px-5 py-3.5 font-medium">{modelo}</td>
-                          <td className="px-5 py-3.5 text-center">{count}</td>
-                          <td className="px-5 py-3.5 text-right">{formatCurrency(total)}</td>
-                          <td className="px-5 py-3.5 text-right">{formatCurrency(count > 0 ? total / count : 0)}</td>
-                          <td className="px-5 py-3.5 text-muted-foreground">
+                          <td className="px-5 py-3.5 text-center tabular-nums">{count}</td>
+                          <td className="px-5 py-3.5 text-right tabular-nums">{formatCurrency(total)}</td>
+                          <td className="px-5 py-3.5 text-right tabular-nums">{formatCurrency(count > 0 ? total / count : 0)}</td>
+                          <td className="px-5 py-3.5">
                             {topTecido ? (
-                              <span className="inline-flex items-center gap-1">
+                              <span className="inline-flex items-center gap-1.5">
                                 <span>{topTecido[0]}</span>
-                                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">{topTecido[1]}x</span>
+                                <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary leading-none">{topTecido[1]}×</span>
                               </span>
-                            ) : '—'}
+                            ) : <span className="text-muted-foreground/50">—</span>}
                           </td>
                         </tr>
                       )
@@ -657,9 +651,13 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
                 <tfoot>
                   <tr className="border-t-2 bg-muted/30 font-semibold">
                     <td className="px-5 py-3 text-xs text-muted-foreground uppercase tracking-wide">Total</td>
-                    <td className="px-5 py-3 text-center">{comCusto.length}</td>
-                    <td className="px-5 py-3 text-right text-primary">{formatCurrency(comCusto.reduce((s, o) => s + (o.custo_tecido ?? 0), 0))}</td>
-                    <td className="px-5 py-3 text-right">{formatCurrency(comCusto.length > 0 ? comCusto.reduce((s, o) => s + (o.custo_tecido ?? 0), 0) / comCusto.length : 0)}</td>
+                    <td className="px-5 py-3 text-center tabular-nums">{comCusto.length}</td>
+                    <td className="px-5 py-3 text-right tabular-nums text-primary">
+                      {formatCurrency(comCusto.reduce((s, o) => s + (o.custo_tecido ?? 0), 0))}
+                    </td>
+                    <td className="px-5 py-3 text-right tabular-nums">
+                      {formatCurrency(comCusto.length > 0 ? comCusto.reduce((s, o) => s + (o.custo_tecido ?? 0), 0) / comCusto.length : 0)}
+                    </td>
                     <td className="px-5 py-3" />
                   </tr>
                 </tfoot>
@@ -667,7 +665,8 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
             </div>
           </div>
         )}
-      </div>
+
+      </section>
     </div>
   )
 }
