@@ -8,6 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, CartesianGrid,
 } from 'recharts'
+import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import {
   filterOrcamentosPorMes,
   calcFaturamentoPorMes,
@@ -35,26 +36,64 @@ function getDailyTrend(data: Orcamento[]) {
 function generateInsights(data: Orcamento[]): string[] {
   const insights: string[] = []
   const now = new Date()
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
   const thisMonth = filterOrcamentosPorMes(data, now.getFullYear(), now.getMonth())
-  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const lastMonth = filterOrcamentosPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
-
+  const fechados = data.filter((o) => o.fechado === true)
   const thisFat = calcFaturamentoPorMes(data, now.getFullYear(), now.getMonth())
   const lastFat = calcFaturamentoPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
+  const thisFechados = thisMonth.filter((o) => o.fechado === true)
 
+  // 1. Faturamento vs mês anterior com valores reais
   if (lastFat > 0 && thisFat > 0) {
     const pct = ((thisFat - lastFat) / lastFat) * 100
-    if (pct > 5) insights.push(`Faturamento cresceu ${pct.toFixed(0)}% em relação ao mês anterior — bom ritmo de vendas.`)
-    else if (pct < -5) insights.push(`Faturamento caiu ${Math.abs(pct).toFixed(0)}% em relação ao mês anterior — vale reforçar o acompanhamento dos leads.`)
-    else insights.push(`Faturamento estável em relação ao mês anterior.`)
+    if (pct > 5) insights.push(`Faturamento este mês está ${pct.toFixed(0)}% acima do mês anterior — ${formatCurrency(thisFat)} vs ${formatCurrency(lastFat)}. Bom ritmo de vendas.`)
+    else if (pct < -5) insights.push(`Faturamento caiu ${Math.abs(pct).toFixed(0)}% em relação ao mês passado — ${formatCurrency(thisFat)} vs ${formatCurrency(lastFat)}. Vale reativar leads em aberto.`)
+    else insights.push(`Faturamento estável: ${formatCurrency(thisFat)} este mês vs ${formatCurrency(lastFat)} no mês anterior.`)
   }
 
-  const byResp = Object.entries(
-    data.reduce<Record<string, { total: number; feitos: number }>>((acc, o) => {
-      if (!acc[o.responsavel]) acc[o.responsavel] = { total: 0, feitos: 0 }
+  // 2. Projeção para o fim do mês com base no ritmo atual
+  const diasNoMes = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const diasDecorridos = now.getDate()
+  if (diasDecorridos >= 5 && thisFat > 0) {
+    const projecao = (thisFat / diasDecorridos) * diasNoMes
+    const diffPct = lastFat > 0 ? ((projecao - lastFat) / lastFat) * 100 : null
+    const diffTxt = diffPct !== null ? ` (${diffPct > 0 ? '+' : ''}${diffPct.toFixed(0)}% vs mês anterior)` : ''
+    insights.push(`Projeção para o fim de ${now.toLocaleDateString('pt-BR', { month: 'long' })}: ${formatCurrency(projecao)}${diffTxt} — com base no ritmo dos últimos ${diasDecorridos} dias.`)
+  }
+
+  // 3. Modelo mais e menos lucrativo (requer dados de margem)
+  const modelosMargem = Object.entries(
+    data.filter((o) => o.fechado === true && o.margem != null && o.margem > 0)
+      .reduce<Record<string, { soma: number; count: number }>>((acc, o) => {
+        if (!acc[o.modelo]) acc[o.modelo] = { soma: 0, count: 0 }
+        acc[o.modelo].soma += o.margem ?? 0
+        acc[o.modelo].count += 1
+        return acc
+      }, {})
+  )
+    .map(([modelo, s]) => ({ modelo, margem: s.soma / s.count, count: s.count }))
+    .filter((r) => r.count >= 2)
+    .sort((a, b) => b.margem - a.margem)
+
+  if (modelosMargem.length >= 2) {
+    const best = modelosMargem[0]
+    const worst = modelosMargem[modelosMargem.length - 1]
+    insights.push(`Modelo mais lucrativo: ${best.modelo} com margem média de ${best.margem.toFixed(1)}%. ${worst.modelo} tem a menor margem (${worst.margem.toFixed(1)}%) — revise o preço ou negocie o custo do material.`)
+  } else if (modelosMargem.length === 1) {
+    insights.push(`${modelosMargem[0].modelo} tem margem média de ${modelosMargem[0].margem.toFixed(1)}% nos pedidos fechados com custo registrado.`)
+  }
+
+  // 4. Melhor vendedor com faturamento gerado
+  const vendedores = Object.entries(
+    data.reduce<Record<string, { total: number; feitos: number; fat: number }>>((acc, o) => {
+      if (!acc[o.responsavel]) acc[o.responsavel] = { total: 0, feitos: 0, fat: 0 }
       acc[o.responsavel].total++
-      if (o.fechado === true) acc[o.responsavel].feitos++
+      if (o.fechado === true) {
+        acc[o.responsavel].feitos++
+        acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instacao ?? 0)
+      }
       return acc
     }, {})
   )
@@ -62,40 +101,38 @@ function generateInsights(data: Orcamento[]): string[] {
     .filter((r) => r.total >= 3)
     .sort((a, b) => b.taxa - a.taxa)
 
-  if (byResp.length > 0) {
-    const best = byResp[0]
-    insights.push(`${best.name} tem a melhor taxa de conversão: ${(best.taxa * 100).toFixed(0)}% (${best.feitos} de ${best.total} fechados).`)
+  if (vendedores.length >= 2) {
+    const best = vendedores[0]
+    insights.push(`${best.name} lidera em conversão: ${(best.taxa * 100).toFixed(0)}% (${best.feitos}/${best.total} fechados) e ${formatCurrency(best.fat)} em faturamento total.`)
+  } else if (vendedores.length === 1) {
+    insights.push(`${vendedores[0].name}: ${(vendedores[0].taxa * 100).toFixed(0)}% de conversão e ${formatCurrency(vendedores[0].fat)} em faturamento.`)
   }
 
-  const byModelo = Object.entries(
-    data.reduce<Record<string, number>>((acc, o) => { acc[o.modelo] = (acc[o.modelo] ?? 0) + 1; return acc }, {})
-  ).sort((a, b) => b[1] - a[1])
-
-  if (byModelo.length > 0 && data.length > 0) {
-    const [modelo, count] = byModelo[0]
-    insights.push(`Modelo mais solicitado: ${modelo} (${((count / data.length) * 100).toFixed(0)}% dos orçamentos).`)
+  // 5. Ticket médio este mês vs histórico geral
+  const fatGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const ticketGeral = fechados.length > 0 ? fatGeral / fechados.length : 0
+  const ticketMes = thisFechados.length > 0 ? thisFat / thisFechados.length : 0
+  if (ticketGeral > 0 && ticketMes > 0 && thisFechados.length >= 2) {
+    const diff = ((ticketMes - ticketGeral) / ticketGeral) * 100
+    if (diff > 5) insights.push(`Ticket médio este mês (${formatCurrency(ticketMes)}) está ${diff.toFixed(0)}% acima da média histórica (${formatCurrency(ticketGeral)}) — clientes comprando mais.`)
+    else if (diff < -5) insights.push(`Ticket médio este mês (${formatCurrency(ticketMes)}) está ${Math.abs(diff).toFixed(0)}% abaixo da média histórica (${formatCurrency(ticketGeral)}) — oportunidade para oferecer upgrades de produto.`)
   }
 
-  const thisFechados = thisMonth.filter((o) => o.fechado === true)
-  const lastFechados = lastMonth.filter((o) => o.fechado === true)
-  if (thisFechados.length > 0 && lastFechados.length > 0 && thisFat > 0 && lastFat > 0) {
-    const thisAvg = thisFat / thisFechados.length
-    const lastAvg = lastFat / lastFechados.length
-    const pct = ((thisAvg - lastAvg) / lastAvg) * 100
-    if (Math.abs(pct) > 5) {
-      insights.push(`Ticket médio ${pct > 0 ? 'subiu' : 'caiu'} ${Math.abs(pct).toFixed(0)}% — de ${formatCurrency(lastAvg)} para ${formatCurrency(thisAvg)}.`)
-    }
-  }
-
+  // 6. Volume de orçamentos vs mês anterior
   if (thisMonth.length > 0 && lastMonth.length > 0) {
     const pct = ((thisMonth.length - lastMonth.length) / lastMonth.length) * 100
-    if (pct > 15) insights.push(`Volume de orçamentos cresceu ${pct.toFixed(0)}% vs mês anterior — pipeline aquecido.`)
-    else if (pct < -15) insights.push(`Volume de orçamentos caiu ${Math.abs(pct).toFixed(0)}% vs mês anterior — vale prospectar mais ativamente.`)
+    if (pct > 15) insights.push(`Pipeline aquecido: ${thisMonth.length} orçamentos este mês vs ${lastMonth.length} no anterior (+${pct.toFixed(0)}%). Mais leads entrando no funil.`)
+    else if (pct < -15) insights.push(`Volume de orçamentos caiu ${Math.abs(pct).toFixed(0)}% — ${thisMonth.length} este mês vs ${lastMonth.length} no anterior. Intensifique a prospecção.`)
   }
 
-  if (insights.length === 0) {
-    insights.push('Dados insuficientes para análise. Continue registrando orçamentos para ver os insights.')
+  // 7. Taxa de conversão geral com contexto
+  if (data.length >= 10) {
+    const conv = (fechados.length / data.length) * 100
+    if (conv < 25) insights.push(`Taxa de conversão geral de ${conv.toFixed(0)}% (${fechados.length}/${data.length}) está abaixo do ideal — qualificar melhor os leads antes de orçar pode aumentar esse número.`)
+    else if (conv >= 50) insights.push(`Taxa de conversão de ${conv.toFixed(0)}% (${fechados.length}/${data.length}) — excelente aproveitamento do pipeline. Acima da média do setor.`)
   }
+
+  if (insights.length === 0) insights.push('Continue registrando orçamentos para ver os insights automáticos.')
 
   return insights
 }
@@ -347,6 +384,13 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
     return { monthly, daily, insights, now, fechados, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth }
   }, [data])
 
+  const comCusto = useMemo(() => data.filter((o) => o.custo_tecido != null && o.custo_tecido > 0), [data])
+  const comCustoMes = useMemo(() => filterByPeriod(comCusto, 'mes', (o) => o.created_at), [comCusto])
+  const totalMesCusto = useMemo(() => comCustoMes.reduce((s, o) => s + (o.custo_tecido ?? 0), 0), [comCustoMes])
+  const usosSemana = useMemo(() => filterByPeriod(comCusto, 'semana', (o) => o.created_at).length, [comCusto])
+  const diasDecorridosCusto = now.getDate()
+  const mediaDiaria = diasDecorridosCusto > 0 ? totalMesCusto / diasDecorridosCusto : 0
+
   const rentabilidadePorModelo = useMemo(() => {
     const map: Record<string, { count: number; fat: number; custo: number; fechados: number; tecidos: Record<string, number> }> = {}
     for (const o of data) {
@@ -449,7 +493,28 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         ))}
       </div>
 
-      {/* 3 — Gráficos lado a lado */}
+      {/* 3 — Análise Automática */}
+      {insights.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="rounded-md bg-primary/10 p-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <h3 className="font-display text-sm font-semibold tracking-wide">Análise Automática</h3>
+            <span className="ml-auto text-[11px] text-muted-foreground">baseado nos dados atuais</span>
+          </div>
+          <div className="space-y-2.5">
+            {insights.map((insight, i) => (
+              <div key={i} className="flex items-start gap-4 rounded-lg bg-muted/40 px-4 py-3.5 hover:bg-muted/60 transition-colors">
+                <span className="font-display text-2xl font-bold text-primary/25 leading-none tabular-nums select-none shrink-0 w-7 mt-0.5">{i + 1}</span>
+                <p className="text-sm leading-relaxed text-foreground/85">{insight}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4 — Gráficos lado a lado */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="font-display text-sm font-medium tracking-wide">Faturamento mensal</h3>
@@ -548,7 +613,22 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
         )}
       </div>
 
-      {/* 5 — Performance por Vendedor + Conversão por Modelo */}
+      {/* 5 — Custos do mês */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[
+          { label: 'Custo Total no Mês', value: formatCurrency(totalMesCusto), sub: `${comCustoMes.length} orçamento${comCustoMes.length !== 1 ? 's' : ''} com custo calculado` },
+          { label: 'Usos na Semana', value: String(usosSemana), sub: 'cálculos realizados esta semana' },
+          { label: 'Média Diária de Custo', value: formatCurrency(mediaDiaria), sub: `referente a ${diasDecorridosCusto} dia${diasDecorridosCusto !== 1 ? 's' : ''} do mês` },
+        ].map(({ label, value, sub }) => (
+          <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md cursor-default">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+            <p className="font-display mt-1.5 text-2xl font-bold tracking-tight">{value}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* 6 — Performance por Vendedor + Conversão por Modelo */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
           <h3 className="font-display text-sm font-medium tracking-wide">Performance por Vendedor</h3>
@@ -561,29 +641,6 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
           <ConversaoPorModelo data={data} />
         </div>
       </div>
-
-      {/* 6 — Análise Automática */}
-      {insights.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="rounded-md bg-primary/10 p-1.5">
-              <TrendingUp className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <h3 className="font-display text-sm font-semibold tracking-wide">Análise Automática</h3>
-            <span className="ml-auto text-[11px] text-muted-foreground">baseado nos dados atuais</span>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {insights.map((insight, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px">
-                <span className="block font-display text-3xl font-bold text-primary/15 leading-none mb-2 tabular-nums select-none">
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <p className="text-sm leading-relaxed text-foreground/80">{insight}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* 7 — Tendência diária */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
