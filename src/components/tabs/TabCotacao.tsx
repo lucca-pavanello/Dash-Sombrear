@@ -4,12 +4,14 @@ import {
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
   ChevronRight, ChevronDown, Package, PenLine, Copy,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { useModelosTecidos } from '@/hooks/useModelosTecidos'
 import { RESPONSAVEIS, SUGESTOES_AMBIENTE, DEFAULT_RESPONSAVEL } from '@/lib/constants'
+import { supabase } from '@/lib/supabase'
 
 /* ─── Constants ─────────────────────────────────────────── */
 const CORES_FERRAGEM = ['Sem', 'Branca', 'Preta']
@@ -17,6 +19,8 @@ const ACABAMENTOS = [
   'Sem', 'Bando Branco', 'Bando Preto', 'Kit Box',
   'Cadarço', 'Fita', 'Barra Niveladora',
 ]
+const MODEL_PH50 = 'PH_50'
+const PH50_ACABAMENTOS = ['Cadarço', 'Fita']
 const N8N_WEBHOOK = import.meta.env.VITE_N8N_WEBHOOK as string | undefined
 if (!N8N_WEBHOOK && import.meta.env.DEV) {
   console.warn('[TabCotacao] VITE_N8N_WEBHOOK não está definido.')
@@ -80,7 +84,8 @@ const medidaFilled = (m: Medida) =>
   parseFloat(m.largura) > 0 && parseFloat(m.altura) > 0 && parseInt(m.quantidade) >= 1
 
 const persianaFilled = (p: Persiana) =>
-  !!(p.modelo && p.tecido && p.medidas.length > 0 && p.medidas.every(medidaFilled))
+  !!(p.modelo && p.tecido && p.medidas.length > 0 && p.medidas.every(medidaFilled) &&
+    (p.modelo !== MODEL_PH50 || PH50_ACABAMENTOS.includes(p.acabamento)))
 
 function ambienteFilled(a: Ambiente) {
   return a.persianas.length > 0 && a.persianas.every(persianaFilled)
@@ -107,6 +112,7 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
+  const navigate = useNavigate()
   const nextIdRef = useRef(1)
   const draftRef = useRef(loadDraft())
   const [form, setForm] = useState<FormState>(() => draftRef.current?.form ?? INITIAL_FORM)
@@ -159,7 +165,13 @@ export default function TabCotacao() {
   function setPersianaModelo(ambienteId: number, persianaId: number, modelo: string) {
     setAmbientes(prev => prev.map(a =>
       a.id === ambienteId
-        ? { ...a, persianas: a.persianas.map(p => p.id === persianaId ? { ...p, modelo, tecido: '' } : p) }
+        ? {
+            ...a, persianas: a.persianas.map(p => {
+              if (p.id !== persianaId) return p
+              const acabamento = modelo === MODEL_PH50 && !PH50_ACABAMENTOS.includes(p.acabamento) ? '' : p.acabamento
+              return { ...p, modelo, tecido: '', acabamento }
+            })
+          }
         : a
     ))
   }
@@ -286,6 +298,8 @@ export default function TabCotacao() {
         const nP = a.persianas.length > 1 ? ` — P${j + 1}` : ''
         const n = `${nA}${nP}`
         if (!p.modelo) return `Modelo é obrigatório${n}.`
+        if (p.modelo === MODEL_PH50 && !PH50_ACABAMENTOS.includes(p.acabamento))
+          return `Modelo ${MODEL_PH50} requer acabamento Cadarço ou Fita${n}.`
         if (!p.tecido.trim()) return `Tecido é obrigatório${n}.`
         if (p.medidas.length === 0) return `Adicione ao menos uma medida${n}.`
         for (let k = 0; k < p.medidas.length; k++) {
@@ -308,11 +322,14 @@ export default function TabCotacao() {
     if (!N8N_WEBHOOK) { toast('error', 'Webhook não configurado. Contate o administrador.'); return }
 
     setIsLoading(true)
+    const { data: sessionData } = await supabase.auth.getSession()
+    const userId = sessionData.session?.user?.id ?? null
     const payload = {
       responsavel: form.responsavel,
       whatsapp: form.whatsapp,
       cliente: form.cliente.trim(),
       fonte: 'planilha',
+      user_id: userId,
       ambientes: ambientes.map((a, aIdx) => ({
         ambiente: a.ambiente.trim(),
         persianas: a.persianas.flatMap((p, pIdx) =>
@@ -339,6 +356,7 @@ export default function TabCotacao() {
       setIsSuccess(true)
       toast('success', 'Orçamento enviado com sucesso!')
       startResetCountdown()
+      setTimeout(() => navigate('/planilha'), 2500)
     } catch (err) {
       clearTimeout(timeoutId)
       console.error('[TabCotacao] submit error:', err)
@@ -555,6 +573,7 @@ export default function TabCotacao() {
                               const tecidoOpcoes = tecidosPorModelo[p.modelo] ?? []
                               const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
                               const isLastPersiana = persianaIndex === a.persianas.length - 1
+                              const isPH50 = p.modelo === MODEL_PH50
 
                               return (
                                 <div
@@ -654,11 +673,19 @@ export default function TabCotacao() {
                                         />
                                       </div>
                                       <div>
-                                        <label className={labelCls}>Acabamento</label>
+                                        <label className={labelCls}>
+                                          Acabamento{isPH50 && <Req />}
+                                          {isPH50 && (
+                                            <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                                              PH_50: obrigatório
+                                            </span>
+                                          )}
+                                        </label>
                                         <CustomSelect
                                           value={p.acabamento}
                                           onChange={v => setPersianaField(a.id, p.id, 'acabamento', v)}
-                                          options={ACABAMENTOS}
+                                          options={isPH50 ? PH50_ACABAMENTOS : ACABAMENTOS}
+                                          placeholder={isPH50 ? 'Selecione Cadarço ou Fita...' : undefined}
                                         />
                                       </div>
                                     </div>
@@ -962,13 +989,13 @@ function SubmitButton({ isLoading, isSuccess, isValid }: { isLoading: boolean; i
   return (
     <button
       type="submit"
-      disabled={isLoading || isSuccess}
+      disabled={isLoading || isSuccess || !isValid}
       className={cn(
         'w-full flex items-center justify-center gap-2.5 rounded-xl px-4 py-4 text-sm font-bold text-white transition-all duration-200 touch-manipulation',
         isSuccess ? 'bg-emerald-500 cursor-default'
           : isLoading ? 'bg-primary/70 cursor-not-allowed'
           : isValid ? 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98]'
-          : 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98] opacity-80',
+          : 'bg-brand-gradient shadow-brand opacity-50 cursor-not-allowed',
       )}
     >
       {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>

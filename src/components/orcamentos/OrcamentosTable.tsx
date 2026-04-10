@@ -300,7 +300,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     { label: 'Qtd' },
     { label: 'Valor', key: 'valor_venda' },
     { label: 'Margem', key: 'margem' },
-    { label: 'Status' },
+    { label: 'Status n8n' },
+    { label: 'Fechado' },
   ]
 
   const now = Date.now()
@@ -368,9 +369,9 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                           position: 'sticky',
                           top: 0,
                           backgroundColor: 'hsl(var(--muted))',
-                          zIndex: label === '#' ? 30 : label === 'Status' ? 30 : 10,
+                          zIndex: label === '#' ? 30 : label === 'Fechado' ? 30 : 10,
                           ...(label === '#' ? { left: 0, boxShadow: '4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
-                          ...(label === 'Status' ? { right: 0, boxShadow: '-4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
+                          ...(label === 'Fechado' ? { right: 0, boxShadow: '-4px 0 6px -1px rgba(0,0,0,0.12)' } : {}),
                         }}
                       >
                         <span className="flex items-center gap-1">
@@ -480,6 +481,16 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             <span className="text-xs text-muted-foreground/30">—</span>
                           )}
                         </td>
+                        {/* status n8n */}
+                        <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                          {o.status === 'ENVIADO' ? (
+                            <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-600 dark:text-blue-400">Enviado</span>
+                          ) : o.status === 'CALCULADO' ? (
+                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">Calculado</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/30">—</span>
+                          )}
+                        </td>
                         {/* sticky right */}
                         <td className="px-4 py-3" style={{ position: 'sticky', right: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '-4px 0 6px -2px rgba(0,0,0,0.12)' }}><FechadoCheckbox orcamento={o} toast={toast} /></td>
                       </tr>
@@ -494,7 +505,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                     <td className="px-4 py-2.5 text-sm font-bold text-primary">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}
                     </td>
-                    <td colSpan={4} />
+                    <td colSpan={3} />
                   </tr>
                 </tfoot>
               </table>

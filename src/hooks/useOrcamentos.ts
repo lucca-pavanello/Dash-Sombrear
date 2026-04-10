@@ -42,10 +42,8 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
       const userId = authData.user?.id ?? null
       currentUserIdRef.current = userId
 
-      // Não abre subscription sem userId — evita escutar dados de todos os usuários
+      // Sem userId não abre subscription
       if (!userId) return
-
-      const filter = `user_id=eq.${userId}`
 
       channel = supabase
         .channel('orcamentos-realtime')
@@ -55,14 +53,11 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
             event: '*',
             schema: 'public',
             table: 'orcamentos',
-            filter,
+            // Filtra no servidor por user_id — captura tanto rows do dash
+            // quanto rows inseridas pelo n8n (que agora recebe user_id no payload)
+            filter: `user_id=eq.${userId}`,
           },
           (payload) => {
-            // Client-side fallback check (belt-and-suspenders)
-            const eventUserId = (payload.new as Record<string, unknown>)?.user_id
-              ?? (payload.old as Record<string, unknown>)?.user_id
-            if (currentUserIdRef.current && eventUserId && eventUserId !== currentUserIdRef.current) return
-
             qc.invalidateQueries({ queryKey: ['orcamentos'] })
             if (payload.eventType === 'INSERT') {
               playNotificationSound()
@@ -91,6 +86,9 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
       if (error) throw error
       return data as Orcamento[]
     },
+    // Polling de fallback: garante que rows inseridas pelo n8n aparecem
+    // mesmo que o realtime falhe ou o user_id não tenha chegado a tempo
+    refetchInterval: 30000,
   })
 }
 
