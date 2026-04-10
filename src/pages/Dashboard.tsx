@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, useMemo } from 'react'
+import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -43,6 +43,11 @@ export default function Dashboard() {
   // — state primeiro, sempre, para conformidade com Rules of Hooks —
   const [unreadCount, setUnreadCount] = useState(0)
   const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [showSplash, setShowSplash] = useState(true)
+  const [splashFading, setSplashFading] = useState(false)
+  const [secsSinceUpdate, setSecsSinceUpdate] = useState(0)
+  const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 })
+  const tabBarRef = useRef<HTMLDivElement>(null)
 
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => {
     const initial = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
@@ -60,7 +65,7 @@ export default function Dashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
   const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta()
-  const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
+  const { data: orcamentos = [], isLoading, isError, realtimeStatus } = useOrcamentos((novo) => {
     toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel ?? 'sem identificação'}`)
     if (!document.hasFocus()) setUnreadCount((n) => n + 1)
   })
@@ -149,6 +154,38 @@ export default function Dashboard() {
     }
   }, [])
 
+  // ── Splash screen: some quando dados carregam ──
+  useEffect(() => {
+    if (!isLoading && showSplash) {
+      setSplashFading(true)
+      const t = setTimeout(() => setShowSplash(false), 400)
+      return () => clearTimeout(t)
+    }
+  }, [isLoading, showSplash])
+
+  // ── Contador "há Xs" desde última atualização ──
+  useEffect(() => { setSecsSinceUpdate(0) }, [orcamentos])
+  useEffect(() => {
+    const t = setInterval(() => setSecsSinceUpdate(s => s + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // ── Sliding tab indicator ──
+  useEffect(() => {
+    const bar = tabBarRef.current
+    if (!bar) return
+    requestAnimationFrame(() => {
+      const activeBtn = bar.querySelector(`[data-tab="${activeTab}"]`) as HTMLButtonElement | null
+      if (!activeBtn) return
+      const barRect = bar.getBoundingClientRect()
+      const btnRect = activeBtn.getBoundingClientRect()
+      setTabIndicator({
+        left: btnRect.left - barRect.left + bar.scrollLeft,
+        width: btnRect.width,
+      })
+    })
+  }, [activeTab])
+
   const TABS = useMemo(() => [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: Calculator, badge: 0 },
     { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
@@ -170,9 +207,29 @@ export default function Dashboard() {
   }
 
   return (
+    <>
+    {/* ── Splash Screen ── */}
+    {showSplash && (
+      <div
+        className={cn(
+          'fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background',
+          splashFading && 'splash-overlay-out',
+        )}
+      >
+        <div className="splash-icon-pulse flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand">
+          <span className="font-display text-3xl font-bold text-white">S</span>
+        </div>
+        <h2 className="mt-5 font-display text-xl font-bold text-foreground">Sombrear</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Carregando dados...</p>
+        <div className="mt-6 h-1 w-48 overflow-hidden rounded-full bg-muted">
+          <div className="splash-progress-bar h-1 rounded-full bg-primary" />
+        </div>
+      </div>
+    )}
+
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] backdrop-blur-md shadow-sm">
+      <header className="header-aurora sticky top-0 z-50 overflow-hidden border-b border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] backdrop-blur-md shadow-sm">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-gradient shadow-brand">
@@ -194,6 +251,20 @@ export default function Dashboard() {
               <span>Buscar...</span>
               <kbd className="hidden md:flex h-4 items-center rounded border border-border bg-background px-1 text-[9px] font-mono">⌘K</kbd>
             </button>
+            {/* Live indicator */}
+            <div className="hidden sm:flex items-center gap-1.5 mr-2 rounded-full border border-border/50 bg-muted/50 px-2.5 py-1 text-xs">
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full animate-pulse',
+                  realtimeStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-400',
+                )}
+              />
+              <span className="text-muted-foreground tabular-nums">
+                {realtimeStatus === 'connected'
+                  ? `Ao vivo · há ${secsSinceUpdate}s`
+                  : 'Conectando...'}
+              </span>
+            </div>
             <span className="hidden sm:block mr-1 text-xs text-muted-foreground tabular-nums">
               {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
             </span>
@@ -249,10 +320,18 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
-        <div className="mb-6 flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none">
+        <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none">
+          {/* Sliding underline indicator */}
+          {tabIndicator.width > 0 && (
+            <div
+              className="tab-indicator pointer-events-none absolute bottom-1.5 h-0.5 rounded-full bg-primary/70"
+              style={{ left: tabIndicator.left + 6, width: tabIndicator.width - 12 }}
+            />
+          )}
           {TABS.map(({ id, label, icon: Icon, badge }) => (
             <button
               key={id}
+              data-tab={id}
               onClick={() => handleTabChange(id)}
               title={label}
               className={cn(
@@ -349,5 +428,6 @@ export default function Dashboard() {
 
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
+    </>
   )
 }

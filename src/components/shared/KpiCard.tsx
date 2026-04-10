@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ReactNode, CSSProperties } from 'react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
 export type KpiVariant = 'default' | 'emerald' | 'blue' | 'orange' | 'purple' | 'amber'
@@ -47,12 +48,66 @@ export default function KpiCard({
   trend,
 }: KpiCardProps) {
   const styles = VARIANTS[variant]
+
+  // ── 3D tilt on hover ──
+  const [tiltStyle, setTiltStyle] = useState<CSSProperties>({
+    transition: 'transform 300ms ease-out, box-shadow 300ms ease-out',
+  })
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / rect.width
+    const y = (e.clientY - rect.top) / rect.height
+    const rotY = (x - 0.5) * 12
+    const rotX = -(y - 0.5) * 12
+    setTiltStyle({
+      transform: `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`,
+      transition: 'transform 80ms ease-out, box-shadow 80ms ease-out',
+      boxShadow: `${rotY * -0.8}px ${rotX * 0.8}px 20px hsl(var(--primary) / 0.12)`,
+    })
+  }
+
+  function handleMouseLeave() {
+    setTiltStyle({
+      transform: 'perspective(600px) rotateX(0deg) rotateY(0deg) scale(1)',
+      transition: 'transform 300ms ease-out, box-shadow 300ms ease-out',
+      boxShadow: undefined,
+    })
+  }
+
+  // ── Flash when value changes ──
+  const prevValueRef = useRef<string | number | undefined>(undefined)
+  const valueElRef = useRef<HTMLParagraphElement>(null)
+
+  useEffect(() => {
+    if (prevValueRef.current === undefined) {
+      prevValueRef.current = value
+      return
+    }
+    if (prevValueRef.current !== value) {
+      prevValueRef.current = value
+      const el = valueElRef.current
+      if (el) {
+        el.classList.remove('kpi-value-flash')
+        void el.offsetWidth
+        el.classList.add('kpi-value-flash')
+        const t = setTimeout(() => el.classList.remove('kpi-value-flash'), 800)
+        return () => clearTimeout(t)
+      }
+    }
+  }, [value])
+
   return (
-    <div className={`rounded-xl border bg-card p-4 shadow-sm ${styles.border} ${className}`}>
+    <div
+      className={`rounded-xl border bg-card p-4 shadow-sm will-change-transform ${styles.border} ${className}`}
+      style={{ ...tiltStyle, transformStyle: 'preserve-3d' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">{title}</p>
-          <p className="font-display mt-1 text-xl font-bold truncate">{value}</p>
+          <p ref={valueElRef} className="font-display mt-1 text-xl font-bold truncate">{value}</p>
           {subtitle && <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>}
           {trend != null && (
             <p

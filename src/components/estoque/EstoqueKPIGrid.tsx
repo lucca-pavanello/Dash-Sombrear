@@ -1,6 +1,7 @@
 import { Package, AlertTriangle, DollarSign, ArrowLeftRight } from 'lucide-react'
-import KpiCard from '@/components/shared/KpiCard'
+import KpiCard, { type KpiVariant } from '@/components/shared/KpiCard'
 import { formatCurrency } from '@/lib/utils'
+import { useCountUp } from '@/hooks/useCountUp'
 import type { EstoqueProduto, EstoqueProdutoAlerta, EstoqueMovimentacao } from '@/lib/supabase'
 
 interface Props {
@@ -11,43 +12,59 @@ interface Props {
 
 export default function EstoqueKPIGrid({ produtos, alertas, movimentacoesHoje }: Props) {
   const totalProdutos = produtos.length
-
+  const totalAlertas = alertas.length
+  const totalMovs = movimentacoesHoje.length
   const valorEmEstoque = produtos.reduce((s, p) => {
     return s + (p.quantidade_atual ?? 0) * (p.custo_unitario ?? 0)
   }, 0)
 
-  const totalAlertas = alertas.length
+  const animProdutos = useCountUp(totalProdutos, 700)
+  const animAlertas  = useCountUp(totalAlertas,  600)
+  const animValor    = useCountUp(valorEmEstoque, 900)
+  const animMovs     = useCountUp(totalMovs,      650)
+
+  const cards = [
+    {
+      title: 'Produtos Ativos',
+      value: Math.round(animProdutos),
+      icon: <Package className="h-4 w-4" />,
+      subtitle: 'em estoque',
+      variant: 'default' as const,
+    },
+    {
+      title: 'Alertas de Estoque',
+      value: Math.round(animAlertas),
+      icon: <AlertTriangle className="h-4 w-4" />,
+      subtitle: totalAlertas === 0 ? 'tudo em ordem' : `${totalAlertas} abaixo do mínimo`,
+      variant: (totalAlertas > 0 ? 'amber' : 'default') as KpiVariant,
+    },
+    {
+      title: 'Valor em Estoque',
+      value: formatCurrency(animValor),
+      icon: <DollarSign className="h-4 w-4" />,
+      subtitle: 'custo estimado',
+      variant: 'blue' as const,
+    },
+    {
+      title: 'Movimentações Hoje',
+      value: Math.round(animMovs),
+      icon: <ArrowLeftRight className="h-4 w-4" />,
+      subtitle: 'entradas e saídas',
+      variant: 'orange' as const,
+    },
+  ]
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <KpiCard
-        title="Produtos Ativos"
-        value={totalProdutos}
-        icon={<Package className="h-4 w-4" />}
-        subtitle="em estoque"
-        variant="default"
-      />
-      <KpiCard
-        title="Alertas de Estoque"
-        value={totalAlertas}
-        icon={<AlertTriangle className="h-4 w-4" />}
-        subtitle={totalAlertas === 0 ? 'tudo em ordem' : `${totalAlertas} abaixo do mínimo`}
-        variant={totalAlertas > 0 ? 'amber' : 'default'}
-      />
-      <KpiCard
-        title="Valor em Estoque"
-        value={formatCurrency(valorEmEstoque)}
-        icon={<DollarSign className="h-4 w-4" />}
-        subtitle="custo estimado"
-        variant="blue"
-      />
-      <KpiCard
-        title="Movimentações Hoje"
-        value={movimentacoesHoje.length}
-        icon={<ArrowLeftRight className="h-4 w-4" />}
-        subtitle="entradas e saídas"
-        variant="orange"
-      />
+      {cards.map((card, i) => (
+        <div
+          key={card.title}
+          className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'both' }}
+        >
+          <KpiCard {...card} />
+        </div>
+      ))}
     </div>
   )
 }

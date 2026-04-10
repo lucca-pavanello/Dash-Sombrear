@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase, type Orcamento } from '@/lib/supabase'
+
+export type RealtimeStatus = 'connecting' | 'connected' | 'error'
 
 export type HistoricoEntry = {
   id: string
@@ -32,6 +34,7 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
   const onInsertRef = useRef(onInsert)
   onInsertRef.current = onInsert
   const currentUserIdRef = useRef<string | null>(null)
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>('connecting')
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
@@ -66,7 +69,12 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
           },
         )
         .subscribe((status, err) => {
-          if (status === 'CHANNEL_ERROR') console.error('[useOrcamentos] realtime error:', err)
+          if (destroyed) return
+          if (status === 'SUBSCRIBED') setRealtimeStatus('connected')
+          else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setRealtimeStatus('error')
+            console.error('[useOrcamentos] realtime error:', err)
+          }
         })
     })
 
@@ -76,7 +84,7 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
     }
   }, [qc])
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['orcamentos'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -90,6 +98,7 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
     // mesmo que o realtime falhe ou o user_id não tenha chegado a tempo
     refetchInterval: 30000,
   })
+  return { ...query, realtimeStatus }
 }
 
 export function useMonthlyComparison() {

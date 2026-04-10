@@ -31,7 +31,7 @@ function ResponsavelChart({ data }: Props) {
               contentStyle={{ borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
               labelStyle={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}
             />
-            <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer">
+            <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer" isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out">
               {chartData.map((entry, i) => (
                 <Cell key={entry.name} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}

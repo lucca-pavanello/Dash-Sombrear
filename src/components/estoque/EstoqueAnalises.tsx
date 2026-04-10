@@ -146,8 +146,8 @@ export default function EstoqueAnalises() {
                 formatter={(v: number) => [v.toLocaleString('pt-BR', { maximumFractionDigits: 1 }), '']}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="entradas" name="Entradas" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out" />
+              <Bar dataKey="saidas" name="Saídas" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} isAnimationActive animationBegin={350} animationDuration={1100} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -179,7 +179,7 @@ export default function EstoqueAnalises() {
                 contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
                 formatter={(v: number) => [v.toLocaleString('pt-BR', { maximumFractionDigits: 1 }), '']}
               />
-              <Bar dataKey="total_saidas" name="Saídas" fill="hsl(var(--primary))" radius={[0, 3, 3, 0]} />
+              <Bar dataKey="total_saidas" name="Saídas" fill="hsl(var(--primary))" radius={[0, 3, 3, 0]} isAnimationActive animationBegin={200} animationDuration={1200} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>
         )}

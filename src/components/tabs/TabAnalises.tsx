@@ -527,7 +527,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
                 <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip {...tooltipStyle} formatter={(v: number) => [formatCurrency(v), 'Faturamento']} />
-                <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" />
+                <Bar dataKey="faturamento" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.85} cursor="pointer" isAnimationActive animationBegin={200} animationDuration={1100} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -540,7 +540,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.5} cursor="pointer" />
+              <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" fillOpacity={0.5} cursor="pointer" isAnimationActive animationBegin={300} animationDuration={1100} animationEasing="ease-out" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -678,7 +678,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
               <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
               <Tooltip {...tooltipStyle} formatter={(v: number) => [v, 'Orçamentos']} />
-              <Area type="monotone" dataKey="orcamentos" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#areaGrad)" />
+              <Area type="monotone" dataKey="orcamentos" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#areaGrad)" isAnimationActive animationBegin={200} animationDuration={1300} animationEasing="ease-out" />
             </AreaChart>
           </ResponsiveContainer>
         )}
