@@ -54,6 +54,45 @@ export default function TabCalculoCusto({ isLoading, error }: Props) {
 
   const isFilteredCI = !!searchCI || responsavelCI !== 'todos' || modeloCI !== 'todos' || periodoCI !== 'todos' || !!dateFromCI || !!dateToCI
 
+  const custosDoMes = useMemo(() => {
+    const now = new Date()
+    return custosInternos.filter((c) => {
+      const d = new Date(c.created_at)
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    })
+  }, [custosInternos])
+
+  const custoTotalMes = useMemo(() =>
+    custosDoMes.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0),
+    [custosDoMes])
+
+  const custosNaSemana = useMemo(() =>
+    filterByPeriod(custosInternos, 'semana', (c) => c.created_at).length,
+    [custosInternos])
+
+  const custoTotalGeral = useMemo(() =>
+    custosInternos.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0),
+    [custosInternos])
+
+  const custoPorModelo = useMemo(() => {
+    const map: Record<string, { count: number; total: number; tecidos: Record<string, number> }> = {}
+    for (const c of custosInternos) {
+      if (!map[c.modelo]) map[c.modelo] = { count: 0, total: 0, tecidos: {} }
+      map[c.modelo].count++
+      map[c.modelo].total += (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0)
+      if (c.tecido) map[c.modelo].tecidos[c.tecido] = (map[c.modelo].tecidos[c.tecido] ?? 0) + 1
+    }
+    return Object.entries(map)
+      .map(([modelo, s]) => ({
+        modelo,
+        count: s.count,
+        total: s.total,
+        media: s.count > 0 ? s.total / s.count : 0,
+        topTecido: Object.entries(s.tecidos).sort(([, a], [, b]) => b - a)[0] ?? null,
+      }))
+      .sort((a, b) => b.total - a.total)
+  }, [custosInternos])
+
   // early returns depois de todos os hooks
   if (isLoading) {
     return (
@@ -116,6 +155,71 @@ export default function TabCalculoCusto({ isLoading, error }: Props) {
 
   return (
     <div className="space-y-6">
+
+      {/* KPIs */}
+      {!custosLoading && custosInternos.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            { label: 'Custo Total no Mês', value: formatCurrency(custoTotalMes), sub: `${custosDoMes.length} cálculo${custosDoMes.length !== 1 ? 's' : ''} este mês` },
+            { label: 'Cálculos na Semana', value: String(custosNaSemana), sub: 'registros nos últimos 7 dias' },
+            { label: 'Custo Total Geral', value: formatCurrency(custoTotalGeral), sub: `${custosInternos.length} cálculo${custosInternos.length !== 1 ? 's' : ''} no total` },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm cursor-default">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+              <p className="font-display mt-1.5 text-2xl font-bold tracking-tight">{value}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Custo por Modelo */}
+      {!custosLoading && custoPorModelo.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="border-b px-5 py-4">
+            <h3 className="font-display text-sm font-medium tracking-wide">Custo por Modelo</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{custosInternos.length} cálculo{custosInternos.length !== 1 ? 's' : ''} registrados</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: 560 }}>
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  <th className="px-5 py-3.5 text-left font-semibold text-muted-foreground text-xs uppercase tracking-wide">Modelo</th>
+                  <th className="px-5 py-3.5 text-center font-semibold text-muted-foreground text-xs uppercase tracking-wide">Qtd.</th>
+                  <th className="px-5 py-3.5 text-right font-semibold text-muted-foreground text-xs uppercase tracking-wide">Custo Total</th>
+                  <th className="px-5 py-3.5 text-right font-semibold text-muted-foreground text-xs uppercase tracking-wide">Custo Médio</th>
+                  <th className="px-5 py-3.5 text-left font-semibold text-muted-foreground text-xs uppercase tracking-wide">Top Tecido</th>
+                </tr>
+              </thead>
+              <tbody>
+                {custoPorModelo.map(({ modelo, count, total, media, topTecido }) => (
+                  <tr key={modelo} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-3.5 font-medium">{modelo}</td>
+                    <td className="px-5 py-3.5 text-center tabular-nums text-muted-foreground">{count}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums font-medium">{formatCurrency(total)}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-muted-foreground">{formatCurrency(media)}</td>
+                    <td className="px-5 py-3.5">
+                      {topTecido
+                        ? <span className="inline-flex items-center gap-1.5 text-xs"><span>{topTecido[0]}</span><span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary leading-none">{topTecido[1]}×</span></span>
+                        : <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 bg-muted/30 font-semibold">
+                  <td className="px-5 py-3 text-xs text-muted-foreground uppercase tracking-widest">Total</td>
+                  <td className="px-5 py-3 text-center tabular-nums">{custosInternos.length}</td>
+                  <td className="px-5 py-3 text-right tabular-nums text-primary">{formatCurrency(custoTotalGeral)}</td>
+                  <td className="px-5 py-3 text-right tabular-nums text-muted-foreground">{custosInternos.length > 0 ? formatCurrency(custoTotalGeral / custosInternos.length) : '—'}</td>
+                  <td className="px-5 py-3" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Planilha de Custos Internos */}
       <div className="rounded-xl border-2 bg-card shadow-sm">
         <div className="flex items-center justify-between gap-2 border-b px-5 py-4">
