@@ -46,7 +46,6 @@ export default function Dashboard() {
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
   const [splashFading, setSplashFading] = useState(false)
-  const [secsSinceUpdate, setSecsSinceUpdate] = useState(0)
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 })
   const [orcPulse, setOrcPulse] = useState(false)
   const prevUnreadRef = useRef(0)
@@ -70,7 +69,7 @@ export default function Dashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
   const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta()
-  const { data: orcamentos = [], isLoading, isError, realtimeStatus } = useOrcamentos((novo) => {
+  const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
     toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel ?? 'sem identificação'}`)
     if (!document.hasFocus()) setUnreadCount((n) => n + 1)
   })
@@ -196,12 +195,6 @@ export default function Dashboard() {
     }
   }, [isLoading, showSplash])
 
-  // ── Contador "há Xs" desde última atualização ──
-  useEffect(() => { setSecsSinceUpdate(0) }, [orcamentos])
-  useEffect(() => {
-    const t = setInterval(() => setSecsSinceUpdate(s => s + 1), 1000)
-    return () => clearInterval(t)
-  }, [])
 
   // ── Badge pulse no tab Orçamentos quando novo orçamento chega ──
   useEffect(() => {
@@ -299,20 +292,7 @@ export default function Dashboard() {
               <span>Buscar...</span>
               <kbd className="hidden md:flex h-4 items-center rounded border border-border bg-background px-1 text-[9px] font-mono">⌘K</kbd>
             </button>
-            {/* Live indicator */}
-            <div className="hidden sm:flex items-center gap-1.5 mr-2 rounded-full border border-border/50 bg-muted/50 px-2.5 py-1 text-xs">
-              <span
-                className={cn(
-                  'h-1.5 w-1.5 rounded-full animate-pulse',
-                  realtimeStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-400',
-                )}
-              />
-              <span className="text-muted-foreground tabular-nums">
-                {realtimeStatus === 'connected'
-                  ? `Ao vivo · há ${secsSinceUpdate}s`
-                  : 'Conectando...'}
-              </span>
-            </div>
+
             <span className="hidden sm:block mr-1 text-xs text-muted-foreground tabular-nums">
               {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
             </span>
