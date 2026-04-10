@@ -408,7 +408,7 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
 
         {/* 2 — Análise Automática (contextualiza os totais) */}
         {insights.length > 0 && (
-          <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-5 shadow-sm">
+          <div>
             <div className="flex items-center gap-2 mb-3">
               <div className="rounded-md bg-primary/10 p-1.5">
                 <TrendingUp className="h-3.5 w-3.5 text-primary" />
@@ -416,16 +416,16 @@ export default function TabAnalises({ data, isLoading, error }: Props) {
               <h3 className="font-display text-sm font-semibold tracking-wide">Análise Automática</h3>
               <span className="ml-auto text-[11px] text-muted-foreground">baseado nos dados atuais</span>
             </div>
-            <ul className="space-y-2.5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {insights.map((insight, i) => (
-                <li key={i} className="flex items-start gap-3 text-sm leading-relaxed">
-                  <span className="mt-px shrink-0 text-[10px] font-bold tabular-nums text-primary/60 w-4 text-right">
+                <div key={i} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px">
+                  <span className="block font-display text-3xl font-bold text-primary/15 leading-none mb-2 tabular-nums select-none">
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <span className="text-foreground/80">{insight}</span>
-                </li>
+                  <p className="text-sm leading-relaxed text-foreground/80">{insight}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
