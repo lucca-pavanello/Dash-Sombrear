@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -16,6 +16,8 @@ import SkeletonCard from '@/components/shared/SkeletonCard'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 import { useUiSound } from '@/hooks/useUiSound'
+import { usePresence } from '@/hooks/usePresence'
+import AICopilot from '@/components/shared/AICopilot'
 
 const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
 const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
@@ -49,6 +51,7 @@ export default function Dashboard() {
   const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 })
   const [orcPulse, setOrcPulse] = useState(false)
   const [scrollY, setScrollY] = useState(0)
+  const [copilotOpen, setCopilotOpen] = useState(false)
   const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
   const cursorDotRef = useRef<HTMLDivElement>(null)
@@ -85,6 +88,7 @@ export default function Dashboard() {
   const activeTab = VALID_TABS.includes(tabFromUrl) && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
+  const others = usePresence(profile ?? null, activeTab)
 
   function handleTabChange(id: string) {
     uiSound.play('tab')
@@ -448,6 +452,36 @@ export default function Dashboard() {
                 </span>
               </button>
             )}
+            {/* Live presence avatars */}
+            {others.length > 0 && (
+              <div className="hidden sm:flex items-center mr-1" title={others.map(u => `${u.name} está em ${TAB_LABELS[u.tab] ?? u.tab}`).join('\n')}>
+                {others.slice(0, 3).map((u, idx) => (
+                  <div key={u.id} className="relative ring-2 ring-emerald-400 rounded-full" style={{ marginLeft: idx === 0 ? 0 : '-6px', zIndex: 3 - idx }}>
+                    <AvatarInitials name={u.name} size="sm" />
+                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-background" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
+                  </div>
+                ))}
+                {others.length > 3 && (
+                  <span className="ml-0.5 text-[10px] font-semibold text-muted-foreground">+{others.length - 3}</span>
+                )}
+              </div>
+            )}
+
+            {/* AI Copilot button */}
+            <MagneticBtn
+              onClick={() => setCopilotOpen(v => !v)}
+              className={cn(
+                'rounded-lg p-2 transition-colors duration-150 active:scale-95',
+                copilotOpen
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
+              aria-label="Copilot IA"
+              title="Copilot Sombrear (IA)"
+            >
+              <Sparkles className="h-4 w-4" />
+            </MagneticBtn>
+
             <MagneticBtn
               onClick={uiSound.toggle}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
@@ -589,6 +623,8 @@ export default function Dashboard() {
       <CommandPalette open={paletteOpen} onClose={closePalette} orcamentos={orcamentos} />
 
       <Toaster toasts={toasts} onDismiss={dismiss} />
+
+      <AICopilot open={copilotOpen} onClose={() => setCopilotOpen(false)} data={orcamentos} />
     </div>
     </>
   )

@@ -7,6 +7,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
+import { calcPropensityScore } from '@/lib/analytics'
 import EditOrcamentoForm from './EditOrcamentoForm'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
@@ -244,7 +245,7 @@ function calcMargem(o: Orcamento) {
     : null
 }
 
-type SortKey = 'created_at' | 'cliente' | 'responsavel' | 'valor_venda' | 'margem'
+type SortKey = 'created_at' | 'cliente' | 'responsavel' | 'valor_venda' | 'margem' | 'score'
 
 interface Props {
   data: Orcamento[]
@@ -257,7 +258,7 @@ interface Props {
 
 const ORC_COLS_KEY = 'sombrear-orcamentos-cols'
 
-type ColId = 'num' | 'data' | 'cliente' | 'responsavel' | 'ambiente' | 'modelo' | 'tecido' | 'qtd' | 'valor' | 'margem' | 'status' | 'fechado'
+type ColId = 'num' | 'data' | 'cliente' | 'responsavel' | 'ambiente' | 'modelo' | 'tecido' | 'qtd' | 'valor' | 'margem' | 'score' | 'status' | 'fechado'
 
 const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; align: 'left' | 'center' | 'right' }[] = [
   { id: 'num',         label: '#',          optional: false, align: 'center' },
@@ -270,6 +271,7 @@ const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; al
   { id: 'qtd',         label: 'Qtd',        optional: true,  align: 'center' },
   { id: 'valor',       label: 'Valor',      key: 'valor_venda', optional: false, align: 'right' },
   { id: 'margem',      label: 'Margem',     key: 'margem',     optional: false, align: 'right' },
+  { id: 'score',        label: 'Score',      key: 'score',      optional: true,  align: 'center' },
   { id: 'status',      label: 'Status n8n', optional: true,  align: 'left' },
   { id: 'fechado',     label: 'Fechado',    optional: false, align: 'left' },
 ]
@@ -277,7 +279,7 @@ const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; al
 const COL_DEFAULTS: Record<ColId, boolean> = {
   num: true, data: true, cliente: true, responsavel: true,
   ambiente: true, modelo: true, tecido: true, qtd: true,
-  valor: true, margem: true, status: false, fechado: true,
+  valor: true, margem: true, score: true, status: false, fechado: true,
 }
 
 function loadColVis(): Record<ColId, boolean> {
@@ -385,6 +387,9 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
       if (ma === null) return 1
       if (mb === null) return -1
       av = ma; bv = mb
+    }
+    else if (sort.key === 'score') {
+      av = calcPropensityScore(a, data); bv = calcPropensityScore(b, data)
     }
     else { av = a.valor_venda ?? -1; bv = b.valor_venda ?? -1 }
     if (av < bv) return sort.dir === 'asc' ? -1 : 1
@@ -622,6 +627,23 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             <span className="text-xs text-muted-foreground/20">—</span>
                           )}
                         </td>
+                        {/* score */}
+                        {vis('score') && <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                          {(() => {
+                            const s = calcPropensityScore(o, data)
+                            if (s === -1) return <span className="text-muted-foreground/20 text-xs">—</span>
+                            return (
+                              <span className={cn(
+                                'inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold tabular-nums min-w-[2.2rem]',
+                                s >= 70 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                  : s >= 40 ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                  : 'bg-red-500/15 text-red-600 dark:text-red-400'
+                              )}>
+                                {s}
+                              </span>
+                            )
+                          })()}
+                        </td>}
                         {/* status n8n */}
                         {vis('status') && <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           {o.status === 'ENVIADO' ? (
