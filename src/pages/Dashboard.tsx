@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Kanban } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Kanban, Tv2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -18,6 +18,7 @@ import { ADMIN_EMAIL } from '@/lib/constants'
 import { useUiSound } from '@/hooks/useUiSound'
 import { usePresence } from '@/hooks/usePresence'
 import AICopilot from '@/components/shared/AICopilot'
+import PresentationMode from '@/components/shared/PresentationMode'
 
 const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
 const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
@@ -54,6 +55,7 @@ export default function Dashboard() {
   const [orcPulse, setOrcPulse] = useState(false)
   const [scrollY, setScrollY] = useState(0)
   const [copilotOpen, setCopilotOpen] = useState(false)
+  const [presentationOpen, setPresentationOpen] = useState(false)
   const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
 
@@ -155,6 +157,10 @@ export default function Dashboard() {
       if ((e.key === 'n' || e.key === 'N') && (activeTab === 'planilha' || activeTab === 'orcamentos')) {
         const btn = document.getElementById('novo-orcamento-btn') as HTMLButtonElement | null
         btn?.click()
+      }
+      // 'p' → modo apresentação
+      if (e.key === 'p' || e.key === 'P') {
+        setPresentationOpen(v => !v)
       }
     }
     window.addEventListener('keydown', handleKey)
@@ -427,6 +433,16 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Presentation mode button */}
+            <MagneticBtn
+              onClick={() => setPresentationOpen(true)}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
+              aria-label="Modo Apresentação"
+              title="Modo Apresentação (P)"
+            >
+              <Tv2 className="h-4 w-4" />
+            </MagneticBtn>
+
             {/* AI Copilot button */}
             <MagneticBtn
               onClick={() => setCopilotOpen(v => !v)}
@@ -592,6 +608,7 @@ export default function Dashboard() {
       <Toaster toasts={toasts} onDismiss={dismiss} />
 
       <AICopilot open={copilotOpen} onClose={() => setCopilotOpen(false)} data={orcamentos} />
+      <PresentationMode open={presentationOpen} onClose={() => setPresentationOpen(false)} data={orcamentos} />
     </div>
     </>
   )

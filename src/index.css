@@ -262,6 +262,12 @@
     50%       { opacity: 0; }
   }
 
+  /* ── Presentation mode progress bar ── */
+  @keyframes grow {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
   /* ── Animated SVG ring draw-on ── */
   @keyframes svg-ring-draw {
     from { stroke-dashoffset: 176; opacity: 0.2; }
