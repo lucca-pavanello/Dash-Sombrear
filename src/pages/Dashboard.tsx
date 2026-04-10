@@ -56,10 +56,6 @@ export default function Dashboard() {
   const [copilotOpen, setCopilotOpen] = useState(false)
   const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
-  const cursorDotRef = useRef<HTMLDivElement>(null)
-  const cursorTarget = useRef({ x: -100, y: -100 })
-  const cursorPos = useRef({ x: -100, y: -100 })
-  const cursorVisible = useRef(false)
 
   const uiSound = useUiSound()
 
@@ -267,39 +263,6 @@ export default function Dashboard() {
     link.href = canvas.toDataURL()
   }, [unreadCount])
 
-  // ── Trailing cursor dot ──
-  useEffect(() => {
-    if (!window.matchMedia('(pointer: fine)').matches) return
-    function onMove(e: MouseEvent) {
-      cursorTarget.current = { x: e.clientX, y: e.clientY }
-      if (!cursorVisible.current) {
-        cursorVisible.current = true
-        if (cursorDotRef.current) cursorDotRef.current.style.opacity = '1'
-      }
-    }
-    function onLeave() {
-      cursorVisible.current = false
-      if (cursorDotRef.current) cursorDotRef.current.style.opacity = '0'
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseleave', onLeave)
-    let raf: number
-    function animate() {
-      const dot = cursorDotRef.current
-      if (dot) {
-        cursorPos.current.x += (cursorTarget.current.x - cursorPos.current.x) * 0.11
-        cursorPos.current.y += (cursorTarget.current.y - cursorPos.current.y) * 0.11
-        dot.style.transform = `translate(${cursorPos.current.x - 5}px, ${cursorPos.current.y - 5}px)`
-      }
-      raf = requestAnimationFrame(animate)
-    }
-    raf = requestAnimationFrame(animate)
-    return () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseleave', onLeave)
-      cancelAnimationFrame(raf)
-    }
-  }, [])
 
   // ── Sliding tab indicator ──
   useEffect(() => {
@@ -360,13 +323,6 @@ export default function Dashboard() {
 
   return (
     <>
-    {/* ── Trailing cursor dot ── */}
-    <div
-      ref={cursorDotRef}
-      className="pointer-events-none fixed left-0 top-0 z-[9997] h-2.5 w-2.5 rounded-full bg-primary/50 mix-blend-multiply dark:mix-blend-screen hidden md:block"
-      style={{ opacity: 0, willChange: 'transform', transition: 'opacity 200ms ease' }}
-    />
-
     {/* ── Splash Screen ── */}
     {showSplash && (
       <div
