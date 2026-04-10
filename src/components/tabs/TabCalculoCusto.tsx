@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatCurrency } from '@/lib/utils'
-import { Calculator, AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileText } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown } from 'lucide-react'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useCustosInternos } from '@/hooks/useCustosInternos'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -226,6 +226,34 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
   return (
     <div className="space-y-4">
 
+      {/* Cabeçalho de seção — fora dos cards, igual ao padrão de Orçamentos */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div>
+            <h2 className="font-display text-base font-semibold">Planilha de Custos</h2>
+            <p className="text-xs text-muted-foreground">
+              {filteredCI.length} registro{filteredCI.length !== 1 ? 's' : ''}{isFilteredCI ? ' filtrados' : ''}
+            </p>
+          </div>
+          <button
+            onClick={() => setCustosOpen(v => !v)}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            title={custosOpen ? 'Minimizar tabela' : 'Expandir tabela'}
+          >
+            {custosOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        </div>
+        {toast && (
+          <button
+            onClick={() => setFormOpen(true)}
+            className="hidden md:flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-150"
+          >
+            <Plus className="h-4 w-4" />
+            Novo Custo
+          </button>
+        )}
+      </div>
+
       {/* FiltersBar standalone */}
       <div className="rounded-xl border-2 border-border bg-card shadow-sm">
         {/* Busca sempre visível + toggle filtros */}
@@ -356,52 +384,41 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
       </div>
 
       {/* Card da tabela */}
-      <div className="rounded-xl border-2 bg-card shadow-sm">
-        <div className="flex items-center justify-between gap-2 border-b px-5 py-4">
-          <button onClick={() => setCustosOpen((v) => !v)} className="flex flex-1 items-center gap-2 text-left">
-            <Calculator className="h-4 w-4 text-primary" />
-            <div>
-              <h2 className="font-display text-sm font-medium tracking-wide">Planilha de Custos Internos</h2>
-              <p className="text-xs text-muted-foreground">
-                {filteredCI.length} registro{filteredCI.length !== 1 ? 's' : ''}{isFilteredCI ? ' filtrados' : ''}
-              </p>
-            </div>
-            {!custosLoading && (
-              <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                {filteredCI.length}
-              </span>
-            )}
-          </button>
-          <div className="flex items-center gap-1.5">
-            {toast && (
-              <button
-                onClick={() => setFormOpen(true)}
-                className="hidden md:flex items-center gap-1.5 rounded-lg bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-brand hover:opacity-90 active:scale-95 transition-all"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Novo Custo
-              </button>
-            )}
-            <button onClick={exportCsvCI} className="hidden sm:flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-all active:scale-95">
+      {custosOpen && <div className="rounded-xl border-2 bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="font-display text-sm font-medium tracking-wide">Planilha de Custos Internos</h2>
+          <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+            <button
+              onClick={exportCsvCI}
+              disabled={filteredCI.length === 0}
+              title={`Exportar ${filteredCI.length} registros como CSV`}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
               <Download className="h-3.5 w-3.5" />CSV
             </button>
-            <button onClick={exportXlsxCI} className="hidden sm:flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-all active:scale-95">
+            <button
+              onClick={exportXlsxCI}
+              disabled={filteredCI.length === 0}
+              title={`Exportar ${filteredCI.length} registros como XLSX`}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
               <Download className="h-3.5 w-3.5" />XLSX
             </button>
-            <button onClick={exportPdfCI} className="hidden sm:flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-muted/50 transition-all active:scale-95">
-              <FileText className="h-3.5 w-3.5" />PDF
-            </button>
-            <button onClick={() => setCustosOpen((v) => !v)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-              {custosOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <button
+              onClick={exportPdfCI}
+              disabled={filteredCI.length === 0}
+              title={`Exportar ${filteredCI.length} registros como PDF`}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              <FileDown className="h-3.5 w-3.5" />PDF
             </button>
           </div>
         </div>
 
-        {custosOpen && (
-          <>
-            {custosLoading ? (
-              <div className="p-5 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-10 rounded bg-muted animate-pulse" />)}</div>
-            ) : custosError ? (
+        <>
+          {custosLoading ? (
+            <div className="p-5 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-10 rounded bg-muted animate-pulse" />)}</div>
+          ) : custosError ? (
               <div className="flex items-center justify-between gap-3 px-5 py-6">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
@@ -471,9 +488,8 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                 </table>
               </div>
             )}
-          </>
-        )}
-      </div>
+        </>
+      </div>}
 
       {/* Mobile FABs */}
       <div className="fixed bottom-6 right-4 z-40 md:hidden flex flex-col gap-3 items-end">
