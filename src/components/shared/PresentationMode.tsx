@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
 import AvatarInitials from '@/components/shared/AvatarInitials'
-import { X, TrendingUp, DollarSign, Target } from 'lucide-react'
+import { X, TrendingUp, DollarSign, Target, Pause, Play } from 'lucide-react'
 
 interface Props {
   open: boolean
@@ -69,14 +69,14 @@ function SlideKPIs({ data }: { data: Orcamento[] }) {
 
       <div className="grid grid-cols-3 gap-8 w-full max-w-3xl">
         {[
-          { label: 'Fechamentos', value: fechados.length, icon: Target, suffix: '' },
-          { label: 'Conversão', value: Math.round(convRate), icon: TrendingUp, suffix: '%' },
-          { label: 'Ticket Médio', value: Math.round(ticket / 1000), icon: DollarSign, suffix: 'k', prefix: 'R$' },
-        ].map(({ label, value, icon: Icon, suffix, prefix }) => (
+          { label: 'Fechamentos', value: fechados.length, icon: Target, renderValue: () => <AnimatedNumber value={fechados.length} /> },
+          { label: 'Conversão',   value: convRate,        icon: TrendingUp, renderValue: () => <AnimatedNumber value={Math.round(convRate)} suffix="%" /> },
+          { label: 'Ticket Médio', value: ticket,         icon: DollarSign, renderValue: () => <span>{formatCurrency(ticket)}</span> },
+        ].map(({ label, icon: Icon, renderValue }) => (
           <div key={label} className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-6 py-5 backdrop-blur-sm">
             <Icon className="h-6 w-6 text-primary/70" />
-            <span className="text-5xl font-black tabular-nums text-white">
-              <AnimatedNumber value={value} prefix={prefix} suffix={suffix} />
+            <span className="text-4xl font-black tabular-nums text-white">
+              {renderValue()}
             </span>
             <span className="text-sm text-white/50 uppercase tracking-widest">{label}</span>
           </div>
@@ -150,7 +150,7 @@ function SlideRanking({ data }: { data: Orcamento[] }) {
 // ── Slide 3: Pipeline atual ───────────────────────────────────────
 function SlidePipeline({ data }: { data: Orcamento[] }) {
   const cols = useMemo(() => {
-    const aberto = data.filter(o => !o.fechado && o.status !== 'PERDIDO')
+    const aberto = data.filter(o => !o.fechado && o.status !== 'PERDIDO' && o.status !== 'FEITO')
     const total = aberto.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
     const em_contato = aberto.filter(o => !o.status || (o.status !== 'PROPOSTA' && o.status !== 'ENVIADO' && o.status !== 'CALCULADO' && o.status !== 'NEGOCIANDO'))
     const proposta = aberto.filter(o => o.status === 'PROPOSTA' || o.status === 'ENVIADO' || o.status === 'CALCULADO')
@@ -337,16 +337,31 @@ export default function PresentationMode({ open, onClose, data }: Props) {
             <span className="font-display text-base font-bold text-white">S</span>
           </div>
           <span className="font-display text-xl font-bold text-white/80">Sombrear</span>
+          <span className="ml-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-0.5 text-xs font-semibold uppercase tracking-widest text-primary/80">
+            Modo TV
+          </span>
         </div>
 
-        {/* Clock */}
-        <div className="text-right">
-          <p className="text-4xl font-black tabular-nums text-white leading-none">
-            {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <p className="text-white/40 text-sm capitalize mt-0.5">
-            {now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+        <div className="flex items-center gap-4">
+          {/* Clock */}
+          <div className="text-right">
+            <p className="text-4xl font-black tabular-nums text-white leading-none">
+              {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <p className="text-white/40 text-sm capitalize mt-0.5">
+              {now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+
+          {/* Botão fechar — visível e grande */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onClose() }}
+            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+            title="Fechar Modo TV (ESC)"
+          >
+            <X className="h-5 w-5" />
+            <span className="text-sm font-medium">Sair</span>
+          </button>
         </div>
       </div>
 
@@ -379,16 +394,15 @@ export default function PresentationMode({ open, onClose, data }: Props) {
         )}
       </div>
 
-      {/* Controls hint */}
-      <div className="absolute bottom-6 right-8 text-white/20 text-xs flex items-center gap-4">
-        <span>← → navegar</span>
-        <span>espaço pausar</span>
-        <span>ESC sair</span>
+      {/* Controls hint + pause button */}
+      <div className="absolute bottom-6 right-8 flex items-center gap-3">
+        <span className="text-white/20 text-xs">← → navegar · espaço pausar · ESC sair</span>
         <button
-          onClick={(e) => { e.stopPropagation(); onClose() }}
-          className="rounded-lg p-1.5 hover:bg-white/10 hover:text-white/60 transition-colors"
+          onClick={(e) => { e.stopPropagation(); setPaused(v => !v) }}
+          className="rounded-lg border border-white/15 bg-white/10 p-2 text-white/50 hover:bg-white/20 hover:text-white transition-colors"
+          title={paused ? 'Continuar' : 'Pausar'}
         >
-          <X className="h-4 w-4" />
+          {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
         </button>
       </div>
 
