@@ -29,10 +29,15 @@ function playNotificationSound() {
   } catch { /* browser pode bloquear sem interação prévia */ }
 }
 
-export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
+export function useOrcamentos(
+  onInsert?: (record: Orcamento) => void,
+  onUpdate?: () => void,
+) {
   const qc = useQueryClient()
   const onInsertRef = useRef(onInsert)
   onInsertRef.current = onInsert
+  const onUpdateRef = useRef(onUpdate)
+  onUpdateRef.current = onUpdate
   const currentUserIdRef = useRef<string | null>(null)
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>('connecting')
 
@@ -65,6 +70,8 @@ export function useOrcamentos(onInsert?: (record: Orcamento) => void) {
             if (payload.eventType === 'INSERT') {
               playNotificationSound()
               onInsertRef.current?.(payload.new as Orcamento)
+            } else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+              onUpdateRef.current?.()
             }
           },
         )

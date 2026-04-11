@@ -148,9 +148,12 @@ function KanbanColumn({ col, cards, allData, draggingId, dragOverCol, onDragOver
   const isOver = dragOverCol === col.id
 
   return (
-    <div className="flex flex-col w-[272px] shrink-0 rounded-xl border bg-card/50 backdrop-blur-sm overflow-hidden">
+    <div className={cn(
+      'flex flex-col w-[272px] shrink-0 rounded-xl border bg-card/50 backdrop-blur-sm overflow-hidden transition-all duration-150',
+      isOver && 'ring-2 ring-primary/30 shadow-lg shadow-primary/10'
+    )}>
       {/* Header */}
-      <div className={cn('flex items-center gap-2 px-3.5 py-3 border-b', col.bg)}>
+      <div className={cn('flex items-center gap-2 px-3.5 py-3 border-b transition-all duration-150', col.bg, isOver && 'brightness-110')}>
         <span className={cn('h-2 w-2 rounded-full shrink-0', col.dot)} />
         <span className={cn('font-semibold text-[13px] flex-1 truncate', col.color)}>{col.label}</span>
         <span className="text-[11px] font-mono text-muted-foreground bg-background/60 rounded-full px-2 py-0.5">{cards.length}</span>
@@ -191,7 +194,10 @@ function KanbanColumn({ col, cards, allData, draggingId, dragOverCol, onDragOver
           />
         ))}
         {isOver && (
-          <div className="h-12 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 animate-pulse" />
+          <div className="h-14 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 flex items-center justify-center gap-2 animate-pulse">
+            <span className={cn('h-2 w-2 rounded-full shrink-0', col.dot)} />
+            <span className={cn('text-xs font-semibold', col.color)}>Mover para {col.label}</span>
+          </div>
         )}
       </div>
     </div>

@@ -80,6 +80,23 @@ export default function TabOrcamentos({ data, loading, resetKey }: Props) {
   const responsaveis = useMemo(() => [...new Set(data.map((o) => o.responsavel))].filter(Boolean), [data])
   const modelos = useMemo(() => [...new Set(data.map((o) => o.modelo))].filter(Boolean), [data])
 
+  const smartInsight = useMemo(() => {
+    if (filtered.length > 0 || data.length === 0) return null
+    if (debouncedSearch) {
+      const inBase = data.filter(o =>
+        [o.cliente, o.responsavel].some(v => v?.toLowerCase().includes(debouncedSearch.toLowerCase()))
+      ).length
+      if (inBase > 0)
+        return `Há ${inBase} orçamento${inBase > 1 ? 's' : ''} com "${debouncedSearch}" na base — tente limpar os outros filtros`
+      return `Nenhum resultado para "${debouncedSearch}" na base de dados`
+    }
+    if (responsavel !== 'todos')
+      return `${responsavel} não tem orçamentos com os filtros atuais`
+    if (modelo !== 'todos')
+      return `Nenhum orçamento do modelo "${modelo}" com os filtros atuais`
+    return 'Os filtros ativos não retornaram resultados'
+  }, [filtered.length, data, debouncedSearch, responsavel, modelo])
+
   if (loading) {
     return (
       <div className="space-y-5">
@@ -117,13 +134,13 @@ export default function TabOrcamentos({ data, loading, resetKey }: Props) {
         storageKey="sombrear-filters-open-orcamentos"
       />
 
-      {filtered.length === 0 && data.length > 0 && (
-        <div className="rounded-xl border-2 border-border bg-card p-8 text-center space-y-3">
-          <p className="text-sm font-medium text-foreground">Nenhum orçamento encontrado</p>
-          <p className="text-xs text-muted-foreground">Os filtros ativos não retornaram resultados.</p>
+      {smartInsight && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <p className="text-sm font-semibold text-foreground">Nenhum resultado encontrado</p>
+          <p className="text-xs text-primary/70 max-w-sm mx-auto">{smartInsight}</p>
           <button
             onClick={clearFilters}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+            className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
           >
             Limpar filtros
           </button>

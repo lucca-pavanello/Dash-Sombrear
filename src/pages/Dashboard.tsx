@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Tv2 } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -58,8 +58,14 @@ export default function Dashboard() {
   const [presentationOpen, setPresentationOpen] = useState(false)
   const [tabVersions, setTabVersions] = useState<Record<string, number>>({})
   const [tabDir, setTabDir] = useState<'left' | 'right'>('right')
+  const [focusResponsavel, setFocusResponsavel] = useState<string | null>(
+    () => { try { return localStorage.getItem('sombrear-focus-responsavel') ?? null } catch { return null } }
+  )
+  const [focusOpen, setFocusOpen] = useState(false)
+  const [tabUpdatePulse, setTabUpdatePulse] = useState<Set<string>>(new Set())
   const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
+  const focusRef = useRef<HTMLDivElement>(null)
 
   const uiSound = useUiSound()
 
@@ -79,10 +85,19 @@ export default function Dashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
   const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta()
-  const { data: orcamentos = [], isLoading, isError } = useOrcamentos((novo) => {
-    toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel ?? 'sem identificação'}`)
-    if (!document.hasFocus()) setUnreadCount((n) => n + 1)
-  })
+  const { data: orcamentos = [], isLoading, isError } = useOrcamentos(
+    (novo) => {
+      toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel ?? 'sem identificação'}`)
+      if (!document.hasFocus()) setUnreadCount((n) => n + 1)
+    },
+    () => {
+      // Pulsa as tabs de dados quando um orçamento é atualizado/deletado via realtime
+      ;['orcamentos', 'planilha'].forEach(id => {
+        setTabUpdatePulse(prev => new Set([...prev, id]))
+        setTimeout(() => setTabUpdatePulse(prev => { const n = new Set(prev); n.delete(id); return n }), 800)
+      })
+    }
+  )
 
   const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
   const tabFromUrl = location.pathname.replace(/^\//, '') || DEFAULT_TAB
@@ -91,6 +106,33 @@ export default function Dashboard() {
     ? tabFromUrl
     : DEFAULT_TAB
   const others = usePresence(profile ?? null, activeTab)
+
+  const focusedOrcamentos = useMemo(
+    () => focusResponsavel ? orcamentos.filter(o => o.responsavel === focusResponsavel) : orcamentos,
+    [orcamentos, focusResponsavel]
+  )
+
+  const responsaveisUnicos = useMemo(
+    () => [...new Set(orcamentos.map(o => o.responsavel))].filter(Boolean).sort(),
+    [orcamentos]
+  )
+
+  function setFocus(nome: string | null) {
+    setFocusResponsavel(nome)
+    setFocusOpen(false)
+    try {
+      if (nome) localStorage.setItem('sombrear-focus-responsavel', nome)
+      else localStorage.removeItem('sombrear-focus-responsavel')
+    } catch { /* noop */ }
+  }
+
+  function timeAgo(ms: number): string {
+    const s = Math.floor((Date.now() - ms) / 1000)
+    if (s < 60) return `há ${s}s`
+    const m = Math.floor(s / 60)
+    if (m < 60) return `há ${m}min`
+    return `há ${Math.floor(m / 60)}h`
+  }
 
   function handleTabChange(id: string) {
     const nextIdx = TABS.findIndex(t => t.id === id)
@@ -169,10 +211,26 @@ export default function Dashboard() {
       if (e.key === 'p' || e.key === 'P') {
         setPresentationOpen(v => !v)
       }
+      // 'f' → abre/fecha seletor de Modo Foco
+      if (e.key === 'f' || e.key === 'F') {
+        setFocusOpen(v => !v)
+      }
+      // 'Escape' → sai do Modo Foco (se estiver ativo e sem outros modais abertos)
+      if (e.key === 'Escape' && focusResponsavel && !profileModalOpen && !copilotOpen && !presentationOpen) {
+        setFocus(null)
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [activeTab])
+  }, [activeTab, focusResponsavel, profileModalOpen, copilotOpen, presentationOpen])
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (focusRef.current && !focusRef.current.contains(e.target as Node)) setFocusOpen(false)
+    }
+    if (focusOpen) document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [focusOpen])
 
   useEffect(() => {
     setMountedTabs(prev => {
@@ -425,16 +483,32 @@ export default function Dashboard() {
             )}
             {/* Live presence avatars */}
             {others.length > 0 && (
-              <div className="hidden sm:flex items-center mr-1" title={others.map(u => `${u.name} está em ${TAB_LABELS[u.tab] ?? u.tab}`).join('\n')}>
+              <div className="hidden sm:flex items-center mr-1 relative group/presence">
                 {others.slice(0, 3).map((u, idx) => (
                   <div key={u.id} className="relative ring-2 ring-emerald-400 rounded-full" style={{ marginLeft: idx === 0 ? 0 : '-6px', zIndex: 3 - idx }}>
                     <AvatarInitials name={u.name} size="sm" />
-                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-background" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
+                    <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-background animate-pulse" />
                   </div>
                 ))}
                 {others.length > 3 && (
                   <span className="ml-0.5 text-[10px] font-semibold text-muted-foreground">+{others.length - 3}</span>
                 )}
+                {/* Hover card */}
+                <div className="absolute top-full right-0 mt-2 z-50 hidden group-hover/presence:flex flex-col gap-1.5 min-w-[200px] rounded-xl border border-border bg-card shadow-elevated p-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-1.5 pb-1">Online agora</p>
+                  {others.map(u => (
+                    <div key={u.id} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 hover:bg-muted/60 transition-colors">
+                      <AvatarInitials name={u.name} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-foreground truncate">{u.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {TAB_LABELS[u.tab] ?? u.tab}{u.at ? ` · ${timeAgo(u.at)}` : ''}
+                        </p>
+                      </div>
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -463,6 +537,50 @@ export default function Dashboard() {
               <Sparkles className="h-4 w-4" />
             </MagneticBtn>
 
+            {/* Modo Foco */}
+            <div ref={focusRef} className="relative">
+              <MagneticBtn
+                onClick={() => setFocusOpen(v => !v)}
+                className={cn(
+                  'rounded-lg p-2 transition-colors duration-150 active:scale-95',
+                  focusResponsavel
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+                title="Modo Foco (F)"
+                aria-label="Modo Foco"
+              >
+                <Users className="h-4 w-4" />
+              </MagneticBtn>
+              {focusOpen && responsaveisUnicos.length > 0 && (
+                <div className="absolute top-full right-0 mt-1 z-50 min-w-[160px] rounded-xl border border-border bg-card shadow-elevated py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 py-1.5">Focar em</p>
+                  {responsaveisUnicos.map(nome => (
+                    <button
+                      key={nome}
+                      onClick={() => setFocus(focusResponsavel === nome ? null : nome)}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted transition-colors',
+                        focusResponsavel === nome && 'text-primary font-semibold bg-primary/5'
+                      )}
+                    >
+                      <AvatarInitials name={nome} size="sm" />
+                      {nome}
+                      {focusResponsavel === nome && <span className="ml-auto text-[10px] text-primary/60">ativo</span>}
+                    </button>
+                  ))}
+                  {focusResponsavel && (
+                    <button
+                      onClick={() => setFocus(null)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:bg-muted border-t border-border/50"
+                    >
+                      <X className="h-3 w-3" />Sair do modo foco
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <MagneticBtn
               onClick={uiSound.toggle}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
@@ -489,6 +607,26 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* Modo Foco banner */}
+      {focusResponsavel && (
+        <div className="border-b border-primary/20 bg-primary/5 px-4 md:px-6 py-2 flex items-center gap-3">
+          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+          <span className="text-xs font-semibold text-primary/80 uppercase tracking-widest">Modo Foco</span>
+          <AvatarInitials name={focusResponsavel} size="sm" />
+          <span className="font-semibold text-sm text-foreground flex-1">{focusResponsavel}</span>
+          <span className="text-xs text-muted-foreground hidden sm:block">
+            {focusedOrcamentos.length} orçamento{focusedOrcamentos.length !== 1 ? 's' : ''} · apenas dados deste responsável
+          </span>
+          <button
+            onClick={() => setFocus(null)}
+            className="rounded-lg p-1.5 text-primary/60 hover:bg-primary/10 hover:text-primary transition-colors"
+            title="Sair do Modo Foco (Esc)"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
@@ -525,6 +663,10 @@ export default function Dashboard() {
               {id === 'orcamentos' && orcPulse && activeTab !== 'orcamentos' && (
                 <span className="badge-ping-once absolute inset-0 rounded-lg border-2 border-primary/60 pointer-events-none" />
               )}
+              {/* Halo laranja quando UPDATE/DELETE realtime */}
+              {tabUpdatePulse.has(id) && (
+                <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
+              )}
               {activeTab === id && (
                 <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-primary sm:hidden" />
               )}
@@ -543,7 +685,7 @@ export default function Dashboard() {
           {mountedTabs.has('planilha') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'planilha' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />
+                <TabPlanilha data={focusedOrcamentos} loading={isLoading} toast={toast} />
               </div>
             </Suspense>
           )}
@@ -557,7 +699,7 @@ export default function Dashboard() {
           {mountedTabs.has('orcamentos') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'orcamentos' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                <TabOrcamentos data={orcamentos} loading={isLoading} resetKey={tabVersions['orcamentos']} />
+                <TabOrcamentos data={focusedOrcamentos} loading={isLoading} resetKey={tabVersions['orcamentos']} />
               </div>
             </Suspense>
           )}
@@ -571,7 +713,7 @@ export default function Dashboard() {
           {mountedTabs.has('analises') && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'analises' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} resetKey={tabVersions['analises']} />
+                <TabAnalises data={focusedOrcamentos} isLoading={isLoading} error={isError} resetKey={tabVersions['analises']} />
               </div>
             </Suspense>
           )}
@@ -605,8 +747,8 @@ export default function Dashboard() {
 
       <Toaster toasts={toasts} onDismiss={dismiss} />
 
-      <AICopilot open={copilotOpen} onClose={() => setCopilotOpen(false)} data={orcamentos} />
-      <PresentationMode open={presentationOpen} onClose={() => setPresentationOpen(false)} data={orcamentos} />
+      <AICopilot open={copilotOpen} onClose={() => setCopilotOpen(false)} data={focusedOrcamentos} />
+      <PresentationMode open={presentationOpen} onClose={() => setPresentationOpen(false)} data={focusedOrcamentos} />
     </div>
     </>
   )

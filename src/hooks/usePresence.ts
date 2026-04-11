@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/hooks/useProfile'
 
-export type PresenceUser = { id: string; name: string; tab: string }
+export type PresenceUser = { id: string; name: string; tab: string; at?: number }
 
 export function usePresence(profile: Profile | null, activeTab: string) {
   const [others, setOthers] = useState<PresenceUser[]>([])
@@ -27,6 +27,7 @@ export function usePresence(profile: Profile | null, activeTab: string) {
           id: profile.id,
           name: profile.full_name ?? profile.email ?? 'Usuário',
           tab: activeTab,
+          at: Date.now(),
         })
       }
     })
@@ -46,6 +47,7 @@ export function usePresence(profile: Profile | null, activeTab: string) {
       id: profile.id,
       name: profile.full_name ?? profile.email ?? 'Usuário',
       tab: activeTab,
+      at: Date.now(),
     })
   }, [activeTab, profile])
 
