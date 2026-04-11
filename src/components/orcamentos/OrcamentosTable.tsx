@@ -12,10 +12,14 @@ import EditOrcamentoForm from './EditOrcamentoForm'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
 import type { ToastType } from '@/hooks/useToast'
+import Sparkline from '@/components/shared/Sparkline'
+import { haptic } from '@/lib/haptic'
 
 type ToastFn = (type: ToastType, message: string, opts?: { duration?: number; undoAction?: () => void }) => void
 
-function fireConfetti(originX: number, originY: number) {
+const BIG_DEAL_THRESHOLD = 5000
+
+function fireConfetti(originX: number, originY: number, bigDeal = false) {
   const canvas = document.createElement('canvas')
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
@@ -23,11 +27,13 @@ function fireConfetti(originX: number, originY: number) {
   document.body.appendChild(canvas)
   const ctx = canvas.getContext('2d')!
   const colors = ['#E8701A', '#F59E0B', '#FDBA74', '#34D399', '#60A5FA', '#A78BFA', '#F472B6']
-  const particles = Array.from({ length: 55 }, () => ({
+  const count = bigDeal ? 110 : 55
+  const speed = bigDeal ? 15.6 : 13
+  const particles = Array.from({ length: count }, () => ({
     x: originX, y: originY,
-    vx: (Math.random() - 0.5) * 13,
-    vy: -Math.random() * 13 - 3,
-    size: Math.random() * 6 + 3,
+    vx: (Math.random() - 0.5) * speed,
+    vy: -Math.random() * speed - 3,
+    size: Math.random() * (bigDeal ? 8 : 6) + 3,
     color: colors[Math.floor(Math.random() * colors.length)],
     rotation: Math.random() * Math.PI * 2,
     rotV: (Math.random() - 0.5) * 0.28,
@@ -66,7 +72,9 @@ function FechadoCheckbox({ orcamento, toast }: { orcamento: Orcamento; toast: To
     const novoEstado = !wasFechado
     if (novoEstado) {
       const rect = e.currentTarget.getBoundingClientRect()
-      fireConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      const bigDeal = (orcamento.valor_venda ?? 0) + (orcamento.instacao ?? 0) >= BIG_DEAL_THRESHOLD
+      fireConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, bigDeal)
+      haptic('success')
     }
     update({ id: orcamento.id, fechado: novoEstado }, {
       onSuccess: () => {
@@ -406,6 +414,18 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
   }
 
   const now = Date.now()
+  const RECENT_THRESHOLD_MS = 2 * 60 * 60 * 1000 // 2 horas
+
+  const clientHistory = useMemo(() => {
+    const map = new Map<string, number[]>()
+    ;[...data].reverse().forEach(o => {
+      const key = (o.cliente ?? o.responsavel).toLowerCase().trim()
+      const v = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(v)
+    })
+    return map
+  }, [data])
 
   return (
     <>
@@ -549,7 +569,10 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         style={{ animationDelay: `${i * 25}ms` }}
                       >
                         {/* sticky left */}
-                        <td className="px-2 py-3 text-center w-10" style={{ position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.12)' }}>
+                        <td className="px-2 py-3 text-center w-10 relative" style={{ position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.12)' }}>
+                          {(now - new Date(o.created_at).getTime()) < RECENT_THRESHOLD_MS && (
+                            <span className="absolute left-1 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-emerald-400 animate-pulse" title="Recente (< 2h)" />
+                          )}
                           <span className="inline-flex items-center justify-center h-5 min-w-[1.4rem] rounded-md px-1.5 text-[10px] font-bold tabular-nums bg-primary/10 dark:bg-primary/25 text-primary">
                             {globalIndex}
                           </span>
@@ -602,7 +625,14 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         {vis('qtd') && <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.quantidade}</td>}
                         <td className={cn('px-4 py-3 text-right', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           <span className="flex flex-col items-end leading-tight">
-                            <span>{o.valor_venda ? formatCurrency(o.valor_venda) : <span className="text-muted-foreground/30">—</span>}</span>
+                            <span className="flex items-center gap-0">
+                              <span>{o.valor_venda ? formatCurrency(o.valor_venda) : <span className="text-muted-foreground/30">—</span>}</span>
+                              {(() => {
+                                const key = (o.cliente ?? o.responsavel).toLowerCase().trim()
+                                const hist = clientHistory.get(key) ?? []
+                                return hist.length >= 2 ? <Sparkline values={hist.slice(-6)} /> : null
+                              })()}
+                            </span>
                             {o.instacao ? (
                               <span className="text-xs text-primary/70">+{formatCurrency(o.instacao)} inst.</span>
                             ) : null}

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Kanban, Tv2 } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Tv2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL } from '@/lib/constants'
 import { useUiSound } from '@/hooks/useUiSound'
 import { usePresence } from '@/hooks/usePresence'
+import { haptic } from '@/lib/haptic'
 import AICopilot from '@/components/shared/AICopilot'
 import PresentationMode from '@/components/shared/PresentationMode'
 
@@ -28,7 +29,6 @@ const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
 
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
 const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
-const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
 const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban']
@@ -57,6 +57,7 @@ export default function Dashboard() {
   const [copilotOpen, setCopilotOpen] = useState(false)
   const [presentationOpen, setPresentationOpen] = useState(false)
   const [tabVersions, setTabVersions] = useState<Record<string, number>>({})
+  const [tabDir, setTabDir] = useState<'left' | 'right'>('right')
   const prevUnreadRef = useRef(0)
   const tabBarRef = useRef<HTMLDivElement>(null)
 
@@ -92,7 +93,11 @@ export default function Dashboard() {
   const others = usePresence(profile ?? null, activeTab)
 
   function handleTabChange(id: string) {
+    const nextIdx = TABS.findIndex(t => t.id === id)
+    const prevIdx = TABS.findIndex(t => t.id === activeTab)
+    setTabDir(nextIdx >= prevIdx ? 'right' : 'left')
     uiSound.play('tab')
+    haptic('light')
     setUnreadCount(0)
     setTabVersions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
     navigate(`/${id}`)
@@ -190,7 +195,6 @@ export default function Dashboard() {
 
       import('@/components/admin/PainelAdmin')
       import('@/components/tabs/TabEstoque')
-      import('@/components/tabs/TabKanban')
     }
     if ('requestIdleCallback' in window) {
       const id = (window as Window & { requestIdleCallback: (cb: () => void, opts?: object) => number })
@@ -293,7 +297,6 @@ export default function Dashboard() {
     { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
     { id: 'calculo-custo', label: 'Planilha Custos', icon: ClipboardList, badge: 0 },
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
-    { id: 'kanban', label: 'Funil', icon: Kanban, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
     { id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length },
@@ -532,63 +535,56 @@ export default function Dashboard() {
         <div>
           {mountedTabs.has('calcular-orcamento') && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'calcular-orcamento' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'calcular-orcamento' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabCotacao />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('planilha') && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'planilha' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'planilha' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabPlanilha data={orcamentos} loading={isLoading} toast={toast} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('agente-ia') && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'agente-ia' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'agente-ia' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabAgenteIA resetKey={tabVersions['agente-ia']} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('orcamentos') && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'orcamentos' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'orcamentos' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabOrcamentos data={orcamentos} loading={isLoading} resetKey={tabVersions['orcamentos']} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('calculo-custo') && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'calculo-custo' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'calculo-custo' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabCalculoCusto isLoading={isLoading} error={isError} toast={toast} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('analises') && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'analises' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'analises' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabAnalises data={orcamentos} isLoading={isLoading} error={isError} resetKey={tabVersions['analises']} />
-              </div>
-            </Suspense>
-          )}
-          {mountedTabs.has('kanban') && (
-            <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'kanban' ? 'tab-active' : 'tab-hidden'}>
-                <TabKanban data={orcamentos} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('estoque') && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'estoque' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'estoque' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabEstoque toast={toast} resetKey={tabVersions['estoque']} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('admin') && isAdmin && (
             <Suspense fallback={<TabSkeleton />}>
-              <div className={activeTab === 'admin' ? 'tab-active' : 'tab-hidden'}>
+              <div className={activeTab === 'admin' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <PainelAdmin toast={toast} />
               </div>
             </Suspense>

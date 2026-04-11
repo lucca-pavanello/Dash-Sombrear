@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useUpdateOrcamento, useDeleteOrcamento, useOrcamentoHistorico, useAddHistorico, type HistoricoEntry } from '@/hooks/useOrcamentos'
+import { useUpdateOrcamento, useDeleteOrcamento, useAddOrcamento, useOrcamentoHistorico, useAddHistorico, type HistoricoEntry } from '@/hooks/useOrcamentos'
+import { haptic } from '@/lib/haptic'
 import { useToggleShare } from '@/hooks/useKanban'
 import type { Orcamento } from '@/lib/supabase'
 import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
@@ -12,7 +13,7 @@ const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-wi
 interface Props {
   orcamento: Orcamento
   onClose: () => void
-  toast: (type: 'success' | 'error', message: string) => void
+  toast: (type: 'success' | 'error', message: string, opts?: { duration?: number; undoAction?: () => void }) => void
 }
 
 const TRACKED_FIELDS: Array<{ key: string; label: string; currency?: boolean }> = [
@@ -167,6 +168,7 @@ function TimeMachine({ historico }: { historico: HistoricoEntry[] }) {
 export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) {
   const { mutateAsync: update, isPending: isUpdating } = useUpdateOrcamento()
   const { mutateAsync: remove, isPending: isDeleting } = useDeleteOrcamento()
+  const { mutateAsync: add } = useAddOrcamento()
   const { mutateAsync: addHistorico } = useAddHistorico()
   const { mutateAsync: toggleShare, isPending: isTogglingShare } = useToggleShare()
   const { data: historico } = useOrcamentoHistorico(orcamento.id)
@@ -358,10 +360,19 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   }
 
   async function handleDelete() {
+    const snapshot = { ...orcamento }
     try {
       await remove(orcamento.id)
-      toast('success', 'Orçamento excluído.')
+      haptic('warning')
       onClose()
+      const label = snapshot.cliente ?? snapshot.responsavel ?? 'Orçamento'
+      toast('success', `"${label}" excluído`, {
+        duration: 7000,
+        undoAction: async () => {
+          const { id: _id, created_at: _c, ...rest } = snapshot
+          await add(rest)
+        },
+      })
     } catch {
       toast('error', 'Erro ao excluir orçamento.')
     }
