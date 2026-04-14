@@ -95,3 +95,11 @@ export const CLASSES_ABC: Record<string, string> = {
   C:         'C',
   sem_dados: 'Sem dados',
 }
+
+export const NIVEIS_ACESSO: Record<string, string> = {
+  balcao:    'Balcão',
+  acessivel: 'Acessível',
+  medio:     'Médio',
+  fundo:     'Fundo',
+  deposito:  'Depósito',
+}

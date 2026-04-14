@@ -28,6 +28,7 @@ const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
   { id: 'entradas',     label: 'Entradas',     icon: <PackagePlus className="h-3.5 w-3.5" /> },
   { id: 'vendas',       label: 'Vendas',       icon: <ShoppingCart className="h-3.5 w-3.5" /> },
   { id: 'analises',    label: 'Análises',     icon: <BarChart2 className="h-3.5 w-3.5" /> },
+  { id: 'mover',       label: 'Mover Itens',  icon: <ArrowLeftRight className="h-3.5 w-3.5" /> },
 ]
 
 interface Props {
@@ -165,6 +166,9 @@ export default function TabEstoque({ toast }: Props) {
 
       {/* ── Análises ── */}
       {subTab === 'analises' && <AnalisesDashboard />}
+
+      {/* ── Mover Itens ── */}
+      {subTab === 'mover' && <MoverItensView toast={toast} />}
 
       {/* ── Modais — Produto e Movimentação ── */}
       <NovoProdutoForm
