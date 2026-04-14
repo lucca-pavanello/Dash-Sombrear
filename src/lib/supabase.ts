@@ -114,21 +114,6 @@ export type EstoqueFornecedor = {
   observacoes: string | null
 }
 
-export type EstoqueLocalizacao = {
-  id: string
-  created_at: string
-  updated_at: string
-  codigo: string
-  setor: string
-  prateleira: string | null
-  posicao: string | null
-  nivel_acesso: 'balcao' | 'acessivel' | 'medio' | 'fundo' | 'deposito'
-  descricao: string | null
-  ativo: boolean
-  // embed de JOIN (count de produtos alocados)
-  estoque_produtos?: { count: number }[]
-}
-
 export type EstoqueLote = {
   id: string
   created_at: string
