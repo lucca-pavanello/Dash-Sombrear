@@ -81,6 +81,7 @@ export type EstoqueProduto = {
   preco_venda?: number | null
   classificacao_abc?: 'A' | 'B' | 'C' | 'sem_dados' | null
   localizacao_id?: string | null
+
   // embeds de JOIN
   estoque_categorias?: { nome: string; tipo: string } | null
   localizacao?: { codigo: string; setor: string } | null
@@ -111,6 +112,21 @@ export type EstoqueFornecedor = {
   prazo_entrega_dias: number | null
   ativo: boolean
   observacoes: string | null
+}
+
+export type EstoqueLocalizacao = {
+  id: string
+  created_at: string
+  updated_at: string
+  codigo: string
+  setor: string
+  prateleira: string | null
+  posicao: string | null
+  nivel_acesso: 'balcao' | 'acessivel' | 'medio' | 'fundo' | 'deposito'
+  descricao: string | null
+  ativo: boolean
+  // embed de JOIN (count de produtos alocados)
+  estoque_produtos?: { count: number }[]
 }
 
 export type EstoqueLote = {
@@ -179,4 +195,21 @@ export type EstoqueVendaItem = {
   subtotal: number
   // embed de JOIN
   estoque_produtos?: { nome: string; unidade: string } | null
+}
+
+export type SugestaoCompra = {
+  id: string
+  codigo: string | null
+  nome: string
+  classificacao_abc: string
+  quantidade_atual: number
+  quantidade_minima: number
+  custo_unitario: number | null
+  fornecedor_id: string | null
+  fornecedor_nome: string | null
+  prazo_entrega_dias: number | null
+  lec_sugerido: number
+  custo_estimado: number
+  deficit: number
+  urgencia: 'critico' | 'abaixo_minimo' | 'atencao' | 'ok'
 }
