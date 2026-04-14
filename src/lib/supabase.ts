@@ -78,7 +78,8 @@ export type EstoqueProduto = {
   fornecedor: string | null
   ativo: boolean
   observacoes: string | null
-  classificacao_abc?: 'A' | 'B' | 'C' | null
+  preco_venda?: number | null
+  classificacao_abc?: 'A' | 'B' | 'C' | 'sem_dados' | null
   // embed de JOIN (select com nested)
   estoque_categorias?: { nome: string; tipo: string } | null
 }
@@ -138,6 +139,28 @@ export type EstoqueMovimentacao = {
   custo_unitario: number | null
   user_id: string | null
   responsavel: string
+  // embed de JOIN
+  estoque_produtos?: { nome: string; unidade: string } | null
+}
+
+export type EstoqueVenda = {
+  id: string
+  created_at: string
+  data: string
+  cliente: string | null
+  total: number
+  vendedor_id: string | null
+  observacao: string | null
+}
+
+export type EstoqueVendaItem = {
+  id: string
+  venda_id: string
+  produto_id: string
+  quantidade: number
+  preco_unitario: number
+  desconto: number
+  subtotal: number
   // embed de JOIN
   estoque_produtos?: { nome: string; unidade: string } | null
 }

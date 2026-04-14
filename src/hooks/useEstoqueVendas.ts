@@ -1,0 +1,159 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import type { EstoqueVenda, EstoqueVendaItem } from '@/lib/supabase'
+
+// ─── Tipos locais ──────────────────────────────────────────────────────────────
+
+export type VendaComContagem = EstoqueVenda & {
+  num_itens: number
+  vendedor_nome: string | null
+}
+
+export type VendaDetalhe = EstoqueVenda & {
+  vendedor_nome: string | null
+  estoque_venda_itens: (EstoqueVendaItem & {
+    estoque_produtos: { nome: string; unidade: string; codigo: string | null } | null
+  })[]
+}
+
+export type NovaVendaPayload = {
+  data: string
+  cliente?: string
+  observacao?: string
+  vendedor_id?: string
+  itens: {
+    produto_id: string
+    quantidade: number
+    preco_unitario: number
+    desconto: number
+  }[]
+}
+
+// ─── Queries ──────────────────────────────────────────────────────────────────
+
+export function useVendas() {
+  return useQuery({
+    queryKey: ['estoque-vendas'],
+    queryFn: async (): Promise<VendaComContagem[]> => {
+      const { data, error } = await supabase
+        .from('estoque_vendas')
+        .select(`
+          id, data, cliente, total, vendedor_id, created_at, observacao,
+          profiles!vendedor_id(full_name, email),
+          estoque_venda_itens(count)
+        `)
+        .order('data', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+
+      return (data ?? []).map((row: any) => ({
+        id: row.id,
+        created_at: row.created_at,
+        data: row.data,
+        cliente: row.cliente,
+        total: row.total,
+        vendedor_id: row.vendedor_id,
+        observacao: row.observacao,
+        num_itens: row.estoque_venda_itens?.[0]?.count ?? 0,
+        vendedor_nome: row.profiles?.full_name ?? row.profiles?.email ?? null,
+      }))
+    },
+    staleTime: 30_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useVendaDetalhe(id: string | null) {
+  return useQuery({
+    queryKey: ['estoque-venda-detalhe', id],
+    enabled: !!id,
+    queryFn: async (): Promise<VendaDetalhe | null> => {
+      if (!id) return null
+
+      const { data, error } = await supabase
+        .from('estoque_vendas')
+        .select(`
+          id, data, cliente, total, vendedor_id, created_at, observacao,
+          profiles!vendedor_id(full_name, email),
+          estoque_venda_itens(
+            id, venda_id, produto_id, quantidade, preco_unitario, desconto, subtotal,
+            estoque_produtos(nome, unidade, codigo)
+          )
+        `)
+        .eq('id', id)
+        .single()
+
+      if (error) throw error
+      if (!data) return null
+
+      const row = data as any
+      return {
+        id: row.id,
+        created_at: row.created_at,
+        data: row.data,
+        cliente: row.cliente,
+        total: row.total,
+        vendedor_id: row.vendedor_id,
+        observacao: row.observacao,
+        vendedor_nome: row.profiles?.full_name ?? row.profiles?.email ?? null,
+        estoque_venda_itens: row.estoque_venda_itens ?? [],
+      }
+    },
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+}
+
+// ─── Mutação ──────────────────────────────────────────────────────────────────
+
+export function useRegistrarVenda() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: NovaVendaPayload): Promise<string> => {
+      // 1. Insert venda-pai
+      const { data: venda, error: vendaErr } = await supabase
+        .from('estoque_vendas')
+        .insert({
+          data: payload.data,
+          cliente: payload.cliente?.trim() || null,
+          observacao: payload.observacao?.trim() || null,
+          vendedor_id: payload.vendedor_id ?? null,
+        })
+        .select('id')
+        .single()
+
+      if (vendaErr) throw vendaErr
+
+      // 2. Insert itens em bulk
+      const itensRows = payload.itens.map((item) => ({
+        venda_id: venda.id,
+        produto_id: item.produto_id,
+        quantidade: item.quantidade,
+        preco_unitario: item.preco_unitario,
+        desconto: item.desconto,
+      }))
+
+      const { error: itensErr } = await supabase
+        .from('estoque_venda_itens')
+        .insert(itensRows)
+
+      // 3. Rollback manual se itens falharam
+      if (itensErr) {
+        await supabase.from('estoque_vendas').delete().eq('id', venda.id)
+        throw itensErr
+      }
+
+      return venda.id
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['estoque-vendas'] })
+      qc.invalidateQueries({ queryKey: ['estoque-produtos'] })
+      qc.invalidateQueries({ queryKey: ['estoque-movimentacoes'] })
+    },
+  })
+}

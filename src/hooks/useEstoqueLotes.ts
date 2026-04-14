@@ -102,6 +102,7 @@ export function useAddLote() {
       qc.invalidateQueries({ queryKey: ['estoque-lotes'] })
       qc.invalidateQueries({ queryKey: ['estoque-produtos'] })
       qc.invalidateQueries({ queryKey: ['estoque-movimentacoes'] })
+      qc.invalidateQueries({ queryKey: ['estoque-entradas-historico'] })
     },
   })
 }
