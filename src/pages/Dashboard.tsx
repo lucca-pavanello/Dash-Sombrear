@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Search, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -436,52 +436,15 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Busca global Cmd+K */}
-            <button
-              onClick={() => setPaletteOpen(true)}
-              className="hidden sm:flex items-center gap-2 rounded-lg border border-border/60 bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-150 mr-1"
-              title="Busca global (Ctrl+K)"
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span>Buscar...</span>
-              <kbd className="hidden md:flex h-4 items-center rounded border border-border bg-background px-1 text-[9px] font-mono">⌘K</kbd>
-            </button>
 
-            <span className="hidden sm:block mr-1 text-xs text-muted-foreground tabular-nums">
+            {/* ── Grupo 1: Data ── */}
+            <span className="hidden sm:block text-xs text-muted-foreground tabular-nums px-1">
               {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
             </span>
 
-            {/* Profile button */}
-            {profile && (
-              <button
-                onClick={() => setProfileModalOpen(true)}
-                className="relative rounded-full hover:ring-2 hover:ring-primary/60 hover:ring-offset-2 hover:ring-offset-background transition-all duration-150 active:scale-95"
-                title="Meu perfil"
-                aria-label="Meu perfil"
-              >
-                <AvatarInitials name={profile.full_name || profile.email} size="sm" />
-                {isAdmin && (
-                  <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary ring-1 ring-background">
-                    <ShieldCheck className="h-2 w-2 text-white" />
-                  </span>
-                )}
-              </button>
-            )}
+            <span className="hidden sm:block h-4 w-px bg-border/50 mx-1.5" />
 
-            {isAdmin && pendingCount > 0 && (
-              <button
-                onClick={() => handleTabChange('admin')}
-                className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
-                title="Aprovações pendentes"
-                aria-label="Aprovações pendentes"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
-                  {pendingCount}
-                </span>
-              </button>
-            )}
-            {/* Live presence avatars */}
+            {/* ── Grupo 2: Social — Presence + Foco ── */}
             {others.length > 0 && (
               <div className="hidden sm:flex items-center mr-1 relative group/presence">
                 {others.slice(0, 3).map((u, idx) => (
@@ -511,31 +474,6 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
-
-            {/* Presentation mode button */}
-            <MagneticBtn
-              onClick={() => setPresentationOpen(true)}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
-              aria-label="Modo Apresentação"
-              title="Modo Apresentação (P)"
-            >
-              <Tv2 className="h-4 w-4" />
-            </MagneticBtn>
-
-            {/* AI Copilot button */}
-            <MagneticBtn
-              onClick={() => setCopilotOpen(v => !v)}
-              className={cn(
-                'rounded-lg p-2 transition-colors duration-150 active:scale-95',
-                copilotOpen
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-              aria-label="Copilot IA"
-              title="Copilot Sombrear (IA)"
-            >
-              <Sparkles className="h-4 w-4" />
-            </MagneticBtn>
 
             {/* Modo Foco */}
             <div ref={focusRef} className="relative">
@@ -581,6 +519,32 @@ export default function Dashboard() {
               )}
             </div>
 
+            <span className="h-4 w-px bg-border/50 mx-1.5" />
+
+            {/* ── Grupo 3: Ferramentas — Apresentação, Copilot, Som, Tema ── */}
+            <MagneticBtn
+              onClick={() => setPresentationOpen(true)}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
+              aria-label="Modo Apresentação"
+              title="Modo Apresentação (P)"
+            >
+              <Tv2 className="h-4 w-4" />
+            </MagneticBtn>
+
+            <MagneticBtn
+              onClick={() => setCopilotOpen(v => !v)}
+              className={cn(
+                'rounded-lg p-2 transition-colors duration-150 active:scale-95',
+                copilotOpen
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
+              aria-label="Copilot IA"
+              title="Copilot Sombrear (IA)"
+            >
+              <Sparkles className="h-4 w-4" />
+            </MagneticBtn>
+
             <MagneticBtn
               onClick={uiSound.toggle}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
@@ -589,6 +553,7 @@ export default function Dashboard() {
             >
               {uiSound.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </MagneticBtn>
+
             <MagneticBtn
               onClick={handleThemeToggle}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
@@ -596,6 +561,40 @@ export default function Dashboard() {
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </MagneticBtn>
+
+            <span className="h-4 w-px bg-border/50 mx-1.5" />
+
+            {/* ── Grupo 4: Usuário — Admin badge, Avatar, Sair ── */}
+            {isAdmin && pendingCount > 0 && (
+              <button
+                onClick={() => handleTabChange('admin')}
+                className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+                title="Aprovações pendentes"
+                aria-label="Aprovações pendentes"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
+                  {pendingCount}
+                </span>
+              </button>
+            )}
+
+            {profile && (
+              <button
+                onClick={() => setProfileModalOpen(true)}
+                className="relative rounded-full hover:ring-2 hover:ring-primary/60 hover:ring-offset-2 hover:ring-offset-background transition-all duration-150 active:scale-95"
+                title="Meu perfil"
+                aria-label="Meu perfil"
+              >
+                <AvatarInitials name={profile.full_name || profile.email} size="sm" />
+                {isAdmin && (
+                  <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary ring-1 ring-background">
+                    <ShieldCheck className="h-2 w-2 text-white" />
+                  </span>
+                )}
+              </button>
+            )}
+
             <MagneticBtn
               onClick={() => supabase.auth.signOut()}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
