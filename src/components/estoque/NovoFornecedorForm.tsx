@@ -30,6 +30,8 @@ export default function NovoFornecedorForm({ open, onClose, toast, editando }: P
   const [form, setForm] = useState(EMPTY_FORM)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const [ativo, setAtivo] = useState(true)
+
   const addMutation = useAddFornecedor()
   const updateMutation = useUpdateFornecedor()
   const isPending = addMutation.isPending || updateMutation.isPending
@@ -63,8 +65,10 @@ export default function NovoFornecedorForm({ open, onClose, toast, editando }: P
         prazo_entrega_dias: editando.prazo_entrega_dias != null ? String(editando.prazo_entrega_dias) : '',
         observacoes:        editando.observacoes ?? '',
       })
+      setAtivo(editando.ativo)
     } else {
       setForm(EMPTY_FORM)
+      setAtivo(true)
     }
   }, [open, editando])
 
@@ -95,7 +99,7 @@ export default function NovoFornecedorForm({ open, onClose, toast, editando }: P
         contato:            form.contato.trim() || null,
         prazo_entrega_dias: form.prazo_entrega_dias ? parseInt(form.prazo_entrega_dias) : null,
         observacoes:        form.observacoes.trim() || null,
-        ativo:              true,
+        ativo,
       }
       if (isEditing) {
         await updateMutation.mutateAsync({ id: editando!.id, ...payload })
@@ -217,6 +221,32 @@ export default function NovoFornecedorForm({ open, onClose, toast, editando }: P
               className={cn(inputClass, 'resize-none')}
             />
           </div>
+
+          {isEditing && (
+            <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold">Fornecedor ativo</p>
+                <p className="text-xs text-muted-foreground">Desativar remove da listagem principal</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={ativo}
+                onClick={() => setAtivo((v) => !v)}
+                className={cn(
+                  'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                  ativo ? 'bg-primary' : 'bg-muted-foreground/30',
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                    ativo ? 'translate-x-6' : 'translate-x-1',
+                  )}
+                />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
