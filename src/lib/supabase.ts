@@ -78,8 +78,46 @@ export type EstoqueProduto = {
   fornecedor: string | null
   ativo: boolean
   observacoes: string | null
+  classificacao_abc: 'A' | 'B' | 'C' | null
   // embed de JOIN (select com nested)
   estoque_categorias?: { nome: string; tipo: string } | null
+}
+
+export type EstoqueFornecedor = {
+  id: string
+  created_at: string
+  nome: string
+  cnpj: string | null
+  telefone: string | null
+  email: string | null
+  contato: string | null
+  prazo_entrega_dias: number | null
+  ativo: boolean
+  observacoes: string | null
+}
+
+export type EstoqueLote = {
+  id: string
+  created_at: string
+  fornecedor_id: string | null
+  nf_numero: string | null
+  data_entrada: string
+  valor_total: number
+  observacoes: string | null
+  user_id: string | null
+  // embed de JOIN
+  estoque_fornecedores?: { nome: string } | null
+}
+
+export type EstoqueLoteItem = {
+  id: string
+  created_at: string
+  lote_id: string
+  produto_id: string
+  quantidade: number
+  custo_unitario: number
+  // embed de JOIN
+  estoque_produtos?: { nome: string; unidade: string } | null
 }
 
 export type EstoqueProdutoAlerta = EstoqueProduto & {

@@ -1,0 +1,55 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import type { EstoqueFornecedor } from '@/lib/supabase'
+
+export function useEstoqueFornecedores() {
+  return useQuery({
+    queryKey: ['estoque-fornecedores'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estoque_fornecedores')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome')
+      if (error) throw error
+      return (data ?? []) as EstoqueFornecedor[]
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+}
+
+type FornecedorPayload = Omit<EstoqueFornecedor, 'id' | 'created_at'>
+
+export function useAddFornecedor() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: FornecedorPayload) => {
+      const { data, error } = await supabase
+        .from('estoque_fornecedores')
+        .insert(payload)
+        .select()
+        .single()
+      if (error) throw error
+      return data as EstoqueFornecedor
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['estoque-fornecedores'] }),
+  })
+}
+
+export function useUpdateFornecedor() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: Partial<FornecedorPayload> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('estoque_fornecedores')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data as EstoqueFornecedor
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['estoque-fornecedores'] }),
+  })
+}
