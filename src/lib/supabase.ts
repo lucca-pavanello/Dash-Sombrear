@@ -80,8 +80,24 @@ export type EstoqueProduto = {
   observacoes: string | null
   preco_venda?: number | null
   classificacao_abc?: 'A' | 'B' | 'C' | 'sem_dados' | null
-  // embed de JOIN (select com nested)
+  localizacao_id?: string | null
+  // embeds de JOIN
   estoque_categorias?: { nome: string; tipo: string } | null
+  localizacao?: { codigo: string; setor: string } | null
+}
+
+export type EstoqueLocalizacao = {
+  id: string
+  created_at: string
+  updated_at: string
+  codigo: string
+  setor: string
+  prateleira: string | null
+  posicao: string | null
+  nivel_acesso: 'balcao' | 'acessivel' | 'medio' | 'fundo' | 'deposito'
+  descricao: string | null
+  ativo: boolean
+  estoque_produtos?: { count: number }[]
 }
 
 export type EstoqueFornecedor = {

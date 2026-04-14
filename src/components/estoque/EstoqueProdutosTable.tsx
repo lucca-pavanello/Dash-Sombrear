@@ -3,6 +3,7 @@ import { Search, X, Plus, Pencil, PackageX, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
+import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
 import { TIPOS_PRODUTO, CLASSES_ABC } from '@/lib/constants'
 import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
@@ -29,9 +30,11 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   const [search, setSearch] = useState('')
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>('todos')
   const [abcFilter, setAbcFilter] = useState<AbcFilter>('todas')
+  const [localizacaoFilter, setLocalizacaoFilter] = useState<string>('todas')
   const [mostrarInativos, setMostrarInativos] = useState(false)
 
   const { data: produtos = [], isLoading } = useEstoqueProdutos({ includeInactive: mostrarInativos })
+  const { data: localizacoes = [] } = useEstoqueLocalizacoes()
   const deactivate = useDeactivateEstoqueProduto()
 
   const filtered = useMemo(() => {
@@ -40,9 +43,14 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
       if (q && !p.nome.toLowerCase().includes(q) && !p.codigo?.toLowerCase().includes(q)) return false
       if (tipoFilter !== 'todos' && p.estoque_categorias?.tipo !== tipoFilter) return false
       if (abcFilter !== 'todas' && (p.classificacao_abc ?? 'sem_dados') !== abcFilter) return false
+      if (localizacaoFilter === 'sem') {
+        if (p.localizacao_id != null) return false
+      } else if (localizacaoFilter !== 'todas') {
+        if (p.localizacao_id !== localizacaoFilter) return false
+      }
       return true
     })
-  }, [produtos, search, tipoFilter, abcFilter])
+  }, [produtos, search, tipoFilter, abcFilter, localizacaoFilter])
 
   async function handleDesativar(p: EstoqueProduto) {
     if (!window.confirm(`Desativar "${p.nome}"? O produto não aparecerá mais no estoque.`)) return
@@ -109,6 +117,19 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           <option value="sem_dados">Sem dados</option>
         </select>
 
+        {/* Localização */}
+        <select
+          value={localizacaoFilter}
+          onChange={(e) => setLocalizacaoFilter(e.target.value)}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all"
+        >
+          <option value="todas">Todas as localizações</option>
+          <option value="sem">Sem localização</option>
+          {localizacoes.map((l) => (
+            <option key={l.id} value={l.id}>{l.codigo} – {l.setor}</option>
+          ))}
+        </select>
+
         {/* Toggle inativos */}
         <button
           type="button"
@@ -145,7 +166,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
 
       {/* Tabela */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '860px' }}>
+        <table className="w-full text-sm" style={{ minWidth: '960px' }}>
           <thead>
             <tr className="border-b bg-muted/40">
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
@@ -153,6 +174,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Tipo</th>
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Unidade</th>
               <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Estoque atual</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Localização</th>
               <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Custo médio</th>
               <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Preço venda</th>
               <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">ABC</th>
@@ -162,7 +184,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={10} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   Nenhum produto encontrado.
                 </td>
               </tr>
@@ -200,6 +222,9 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                     <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">
                       {p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">{p.unidade}</span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap">
+                      {p.localizacao?.codigo ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap hidden xl:table-cell">
                       {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground">—</span>}
@@ -247,7 +272,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                 <td colSpan={4} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}
                 </td>
-                <td colSpan={5} />
+                <td colSpan={6} />
               </tr>
             </tfoot>
           )}

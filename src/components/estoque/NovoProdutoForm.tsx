@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueCategorias } from '@/hooks/useEstoqueCategorias'
+import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
 import { useCreateEstoqueProduto, useUpdateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
 import { useRegistrarMovimentacao } from '@/hooks/useEstoqueMovimentacoes'
 import type { EstoqueProduto } from '@/lib/supabase'
@@ -33,6 +34,7 @@ const EMPTY_FORM = {
   quantidade_minima: '0',
   custo_unitario: '',
   fornecedor: '',
+  localizacao_id: '',
   observacoes: '',
   quantidade_inicial: '0',
 }
@@ -44,6 +46,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const { data: categorias = [] } = useEstoqueCategorias()
+  const { data: localizacoes = [] } = useEstoqueLocalizacoes()
   const createMutation = useCreateEstoqueProduto()
   const updateMutation = useUpdateEstoqueProduto()
   const registrarMov = useRegistrarMovimentacao()
@@ -83,6 +86,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
         quantidade_minima: String(editando.quantidade_minima),
         custo_unitario: editando.custo_unitario != null ? String(editando.custo_unitario) : '',
         fornecedor: editando.fornecedor ?? '',
+        localizacao_id: editando.localizacao_id ?? '',
         observacoes: editando.observacoes ?? '',
         quantidade_inicial: '0',
       })
@@ -127,6 +131,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
         quantidade_minima: parseFloat(form.quantidade_minima) || 0,
         custo_unitario: form.custo_unitario ? parseFloat(form.custo_unitario) : null,
         fornecedor: form.fornecedor.trim() || null,
+        localizacao_id: form.localizacao_id || null,
         observacoes: form.observacoes.trim() || null,
         ativo: true,
         quantidade_atual: 0,
@@ -316,6 +321,19 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
                   placeholder="Nome do fornecedor"
                   className={inputClass}
                 />
+              </div>
+              <div>
+                <label className={labelClass}>Localização</label>
+                <select
+                  value={form.localizacao_id}
+                  onChange={(e) => set('localizacao_id', e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Sem localização</option>
+                  {localizacoes.map((l) => (
+                    <option key={l.id} value={l.id}>{l.codigo} – {l.setor}</option>
+                  ))}
+                </select>
               </div>
             </>
           )}
