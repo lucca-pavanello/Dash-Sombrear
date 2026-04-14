@@ -1,27 +1,32 @@
-import { useState, useMemo } from 'react'
-import { Package, History, BarChart2 } from 'lucide-react'
+import { useState } from 'react'
+import {
+  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, TrendingDown,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueMovimentacoes } from '@/hooks/useEstoqueMovimentacoes'
-import { supabase } from '@/lib/supabase'
-import { useQuery } from '@tanstack/react-query'
+import { useProfile } from '@/hooks/useProfile'
 import EstoqueKPIGrid from '@/components/estoque/EstoqueKPIGrid'
 import EstoqueAlertasPanel from '@/components/estoque/EstoqueAlertasPanel'
+import AbcCurveChart from '@/components/estoque/AbcCurveChart'
 import EstoqueProdutosTable from '@/components/estoque/EstoqueProdutosTable'
-import EstoqueMovimentacoesTable from '@/components/estoque/EstoqueMovimentacoesTable'
-import EstoqueAnalises from '@/components/estoque/EstoqueAnalises'
 import NovoProdutoForm from '@/components/estoque/NovoProdutoForm'
 import NovaMovimentacaoForm from '@/components/estoque/NovaMovimentacaoForm'
+import FornecedoresTable from '@/components/estoque/FornecedoresTable'
+import LotesTable from '@/components/estoque/LotesTable'
+import EstoqueMovimentacoesTable from '@/components/estoque/EstoqueMovimentacoesTable'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
-type SubTab = 'produtos' | 'historico' | 'analises'
+type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas'
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
 const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'produtos',   label: 'Produtos',   icon: <Package className="h-3.5 w-3.5" /> },
-  { id: 'historico',  label: 'Histórico',  icon: <History className="h-3.5 w-3.5" /> },
-  { id: 'analises',   label: 'Análises',   icon: <BarChart2 className="h-3.5 w-3.5" /> },
+  { id: 'dashboard',    label: 'Dashboard',    icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
+  { id: 'produtos',     label: 'Produtos',     icon: <Package className="h-3.5 w-3.5" /> },
+  { id: 'fornecedores', label: 'Fornecedores', icon: <Truck className="h-3.5 w-3.5" /> },
+  { id: 'entradas',     label: 'Entradas',     icon: <PackagePlus className="h-3.5 w-3.5" /> },
+  { id: 'vendas',       label: 'Vendas',       icon: <ShoppingCart className="h-3.5 w-3.5" /> },
 ]
 
 interface Props {
@@ -29,68 +34,45 @@ interface Props {
   resetKey?: number
 }
 
+function todayIso() {
+  return new Date().toISOString().split('T')[0]
+}
+
 export default function TabEstoque({ toast, resetKey }: Props) {
-  const [subTab, setSubTab] = useState<SubTab>('produtos')
-  const [produtoModalOpen, setProdutoModalOpen] = useState(false)
+  const [subTab, setSubTab] = useState<SubTab>('dashboard')
+
+  // Modal states
+  const [novoProdutoOpen, setNovoProdutoOpen] = useState(false)
   const [editandoProduto, setEditandoProduto] = useState<EstoqueProduto | null>(null)
-  const [movModalOpen, setMovModalOpen] = useState(false)
+  const [movOpen, setMovOpen] = useState(false)
   const [movTipo, setMovTipo] = useState<TipoMov>('entrada')
   const [movProduto, setMovProduto] = useState<EstoqueProduto | null>(null)
+  const [vendaOpen, setVendaOpen] = useState(false)
 
-  const { data: produtos = [], isLoading: loadingProdutos } = useEstoqueProdutos()
+  // Data
+  const { data: produtos = [], isLoading: loadingProd } = useEstoqueProdutos()
   const { data: alertas = [] } = useEstoqueProdutosAlerta()
+  const { data: movsHoje } = useEstoqueMovimentacoes({ dateFrom: todayIso(), dateTo: todayIso() })
+  const movimentacoesHoje = movsHoje?.rows ?? []
+  const { data: profile } = useProfile()
 
-  // Movimentações de hoje (para KPI)
-  const hoje = useMemo(() => {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    return d.toISOString()
-  }, [])
-  const { data: movsHojeData } = useEstoqueMovimentacoes({ dateFrom: hoje })
-  const movimentacoesHoje = movsHojeData?.rows ?? []
-
-  // Usuário atual (para preencher responsavel)
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return null
-      const { data } = await supabase.from('profiles').select('full_name, id').eq('id', user.id).single()
-      return data as { full_name: string; id: string } | null
-    },
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const responsavel = profile?.full_name ?? 'Usuário'
+  const responsavel = profile?.full_name ?? profile?.email ?? 'Usuário'
   const userId = profile?.id
 
-  function abrirMovimentacao(produto: EstoqueProduto | EstoqueProdutoAlerta, tipo: TipoMov) {
-    setMovProduto(produto as EstoqueProduto)
-    setMovTipo(tipo)
-    setMovModalOpen(true)
-  }
-
-  function abrirEditar(produto: EstoqueProduto) {
-    setEditandoProduto(produto)
-    setProdutoModalOpen(true)
-  }
-
-  function abrirNovoProduto() {
+  function handleNovoProduto() {
     setEditandoProduto(null)
-    setProdutoModalOpen(true)
+    setNovoProdutoOpen(true)
   }
 
-  if (loadingProdutos) {
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 rounded-xl border bg-card animate-pulse" />
-          ))}
-        </div>
-        <div className="h-64 rounded-xl border bg-card animate-pulse" />
-      </div>
-    )
+  function handleEditarProduto(p: EstoqueProduto) {
+    setEditandoProduto(p)
+    setNovoProdutoOpen(true)
+  }
+
+  function handleMovimentar(p: EstoqueProduto | EstoqueProdutoAlerta, tipo: TipoMov) {
+    setMovProduto(p as EstoqueProduto)
+    setMovTipo(tipo)
+    setMovOpen(true)
   }
 
   return (
@@ -99,30 +81,9 @@ export default function TabEstoque({ toast, resetKey }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-base font-semibold">Estoque</h2>
-          <p className="text-xs text-muted-foreground">
-            {produtos.length} produto{produtos.length !== 1 ? 's' : ''} ativos
-            {alertas.length > 0 && (
-              <span className="ml-2 text-amber-600 font-medium">· {alertas.length} em alerta</span>
-            )}
-          </p>
+          <p className="text-xs text-muted-foreground">Gestão de materiais, entradas e vendas</p>
         </div>
       </div>
-
-      {/* KPIs */}
-      <EstoqueKPIGrid
-        produtos={produtos}
-        alertas={alertas}
-        movimentacoesHoje={movimentacoesHoje}
-        resetKey={resetKey}
-      />
-
-      {/* Painel de alertas (só na sub-aba produtos) */}
-      {subTab === 'produtos' && alertas.length > 0 && (
-        <EstoqueAlertasPanel
-          alertas={alertas}
-          onMovimentar={(p, tipo) => abrirMovimentacao(p, tipo)}
-        />
-      )}
 
       {/* Sub-navegação */}
       <div className="flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none w-fit">
@@ -139,45 +100,111 @@ export default function TabEstoque({ toast, resetKey }: Props) {
           >
             {icon}
             {label}
+            {id === 'dashboard' && alertas.length > 0 && (
+              <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                {alertas.length > 9 ? '9+' : alertas.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Conteúdo */}
+      {/* ── Dashboard ── */}
+      {subTab === 'dashboard' && (
+        <div className="space-y-4">
+          <EstoqueKPIGrid
+            produtos={produtos}
+            alertas={alertas}
+            movimentacoesHoje={movimentacoesHoje}
+            resetKey={resetKey}
+          />
+          {alertas.length > 0 && (
+            <EstoqueAlertasPanel
+              alertas={alertas}
+              onMovimentar={(p, tipo) => handleMovimentar(p, tipo)}
+            />
+          )}
+          <AbcCurveChart toast={toast} />
+        </div>
+      )}
+
+      {/* ── Produtos ── */}
       {subTab === 'produtos' && (
-        <EstoqueProdutosTable
-          produtos={produtos}
-          alertas={alertas}
-          toast={toast}
-          onNovoProduto={abrirNovoProduto}
-          onEditar={abrirEditar}
-          onMovimentar={(p, tipo) => abrirMovimentacao(p, tipo)}
-        />
+        <>
+          {loadingProd ? (
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-14 rounded-xl skeleton-shimmer" />
+              ))}
+            </div>
+          ) : (
+            <EstoqueProdutosTable
+              produtos={produtos}
+              alertas={alertas}
+              toast={toast}
+              onNovoProduto={handleNovoProduto}
+              onEditar={handleEditarProduto}
+              onMovimentar={handleMovimentar}
+            />
+          )}
+        </>
       )}
 
-      {subTab === 'historico' && (
-        <EstoqueMovimentacoesTable />
+      {/* ── Fornecedores ── */}
+      {subTab === 'fornecedores' && (
+        <FornecedoresTable toast={toast} />
       )}
 
-      {subTab === 'analises' && (
-        <EstoqueAnalises resetKey={resetKey} />
+      {/* ── Entradas ── */}
+      {subTab === 'entradas' && (
+        <LotesTable toast={toast} />
       )}
 
-      {/* Modais */}
+      {/* ── Vendas ── */}
+      {subTab === 'vendas' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">Registro de Vendas</p>
+              <p className="text-xs text-muted-foreground">Saídas de estoque por orçamento ou venda direta</p>
+            </div>
+            <button
+              onClick={() => setVendaOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+            >
+              <TrendingDown className="h-3.5 w-3.5" />
+              Registrar Venda
+            </button>
+          </div>
+          <EstoqueMovimentacoesTable defaultTipo="saida" />
+        </div>
+      )}
+
+      {/* ── Modais — Produto e Movimentação ── */}
       <NovoProdutoForm
-        open={produtoModalOpen}
-        onClose={() => { setProdutoModalOpen(false); setEditandoProduto(null) }}
+        open={novoProdutoOpen}
+        onClose={() => { setNovoProdutoOpen(false); setEditandoProduto(null) }}
         toast={toast}
         editando={editandoProduto}
         responsavel={responsavel}
       />
 
       <NovaMovimentacaoForm
-        open={movModalOpen}
-        onClose={() => { setMovModalOpen(false); setMovProduto(null) }}
+        open={movOpen}
+        onClose={() => { setMovOpen(false); setMovProduto(null) }}
         toast={toast}
         tipoInicial={movTipo}
         produtoInicial={movProduto}
+        responsavel={responsavel}
+        userId={userId}
+      />
+
+      {/* Modal de venda rápida (botão "Registrar Venda") */}
+      <NovaMovimentacaoForm
+        open={vendaOpen}
+        onClose={() => setVendaOpen(false)}
+        toast={toast}
+        tipoInicial="saida"
         responsavel={responsavel}
         userId={userId}
       />

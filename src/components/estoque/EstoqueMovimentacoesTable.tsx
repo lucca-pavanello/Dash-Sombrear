@@ -18,10 +18,15 @@ const TIPO_SINAL: Record<string, string> = {
   entrada: '+', saida: '−', perda: '−', ajuste: '=',
 }
 
-export default function EstoqueMovimentacoesTable() {
+interface Props {
+  defaultTipo?: string
+  headerAction?: React.ReactNode
+}
+
+export default function EstoqueMovimentacoesTable({ defaultTipo = '', headerAction }: Props) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [tipoFilter, setTipoFilter] = useState('')
+  const [tipoFilter, setTipoFilter] = useState(defaultTipo)
   const [produtoFilter, setProdutoFilter] = useState('')
 
   const filters: MovimentacaoFilters = {
@@ -40,8 +45,9 @@ export default function EstoqueMovimentacoesTable() {
 
   return (
     <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
-      {/* Filtros */}
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+        {headerAction && <div className="w-full sm:w-auto sm:ml-auto order-last sm:order-none">{headerAction}</div>}
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
