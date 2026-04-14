@@ -119,6 +119,7 @@ export default function TabEstoque({ toast }: Props) {
           produtos={produtos}
           alertas={alertas}
           onMovimentar={handleMovimentar}
+          onNavigateToLeadTime={() => setSubTab('lead-time')}
         />
       )}
 

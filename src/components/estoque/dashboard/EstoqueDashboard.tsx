@@ -1,5 +1,7 @@
 import { Package, DollarSign, Star, Clock } from 'lucide-react'
 import MetricCard from './MetricCard'
+import { CardTecidoParado } from './CardTecidoParado'
+import CardSemLocalizacao from './CardSemLocalizacao'
 import ParetoChart from './ParetoChart'
 import TopAClassTable from './TopAClassTable'
 import RecalcularABCButton from './RecalcularABCButton'
@@ -16,9 +18,10 @@ interface Props {
   produtos: EstoqueProduto[]
   alertas: EstoqueProdutoAlerta[]
   onMovimentar: (p: EstoqueProduto | EstoqueProdutoAlerta, tipo: 'entrada' | 'saida' | 'ajuste' | 'perda') => void
+  onNavigateToLeadTime?: () => void
 }
 
-export default function EstoqueDashboard({ toast, produtos, alertas, onMovimentar }: Props) {
+export default function EstoqueDashboard({ toast, produtos, alertas, onMovimentar, onNavigateToLeadTime }: Props) {
   const { data: paretoData, isLoading: loadingPareto } = useParetoData()
 
   // ── Métricas dos 4 cards ──────────────────────────────────────
@@ -37,8 +40,8 @@ export default function EstoqueDashboard({ toast, produtos, alertas, onMovimenta
 
   return (
     <div className="space-y-5">
-      {/* Seção 1 — 4 Cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Seção 1 — 6 Cards */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <MetricCard
           title="Produtos ativos"
           value={totalAtivos}
@@ -67,6 +70,8 @@ export default function EstoqueDashboard({ toast, produtos, alertas, onMovimenta
           icon={Clock}
           accent={semVenda90d > 0 ? 'amber' : 'default'}
         />
+        <CardTecidoParado onClick={onNavigateToLeadTime} />
+        <CardSemLocalizacao />
       </div>
 
       {/* Alertas de estoque mínimo */}

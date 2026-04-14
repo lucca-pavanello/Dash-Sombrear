@@ -43,7 +43,6 @@ export default function SugestaoCompraView({ toast }: Props) {
   const [filtroFornecedor, setFiltroFornecedor] = useState<string>('todos')
   const [selecionados, setSelecionados]         = useState<Set<string>>(new Set())
 
-  // KPI calcs
   const totalClasseA    = data.length
   const sugestoesAtivas = data.filter(r => r.urgencia !== 'ok').length
   const criticos        = data.filter(r => r.urgencia === 'critico').length
@@ -121,7 +120,6 @@ export default function SugestaoCompraView({ toast }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div>
         <h3 className="font-display text-base font-semibold">Sugestão de Compra</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -129,7 +127,6 @@ export default function SugestaoCompraView({ toast }: Props) {
         </p>
       </div>
 
-      {/* KPI Cards */}
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
@@ -169,7 +166,6 @@ export default function SugestaoCompraView({ toast }: Props) {
         </div>
       )}
 
-      {/* Tabela */}
       <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">

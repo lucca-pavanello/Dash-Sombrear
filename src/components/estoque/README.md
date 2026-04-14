@@ -91,6 +91,7 @@ src/
 | `estoque_lotes` | Cabeçalho de compra: fornecedor, NF, data, valor total (calculado por trigger) |
 | `estoque_lote_itens` | Itens de cada lote; ao inserir, triggers atualizam `quantidade_atual` e `custo_unitario` |
 | `estoque_movimentacoes` | Trilha de auditoria de todas as movimentações (entrada, saída, ajuste, perda) |
+| `estoque_localizacoes` | Localizações físicas da loja (setor, prateleira, nível de acesso) para organização de produtos |
 
 ---
 
@@ -103,6 +104,8 @@ src/
 | **Fornecedores** | Tabela de fornecedores com busca; criação e edição inline via modal |
 | **Entradas** | Formulário rápido de registro de entrada (single-product); histórico dos últimos 50 itens de entrada |
 | **Vendas** | Registro de vendas com saída de estoque; histórico de vendas com detalhe por venda |
+| **Localizações** | CRUD de localizações físicas com nível de acesso e contagem de produtos alocados |
+| **Mover Itens** | Sugestões de reorganização ABC — produtos mal-alocados com ação para confirmar movimentação |
 
 ---
 
@@ -116,12 +119,28 @@ Ao inserir em `estoque_lote_itens`:
 
 ---
 
+## Fase 3 — PEPS + Lead Time + Configurações ✓
+
+### PEPS (First-In-First-Out)
+- `estoque_lote_itens.quantidade_restante` rastreia quanto de cada lote ainda está disponível
+- `estoque_consumir_peps(produto_id, quantidade)` — função PL/pgSQL que consome lotes na ordem FIFO
+- `trg_venda_item_movimentacao_peps` — trigger que chama PEPS ao registrar item de venda
+
+### Lead Time
+- View `estoque_vw_lead_time` — dias parados por produto (data do lote mais antigo com saldo)
+- Sub-tab **Lead Time** com tabela colorida: verde ≤ 90 dias, amarelo 90–180, vermelho > 180
+- Card **"Tecido parado"** no dashboard com alerta vermelho quando há produtos críticos
+
+### Configurações
+- Tabela `estoque_config` (chave/valor) com thresholds configuráveis
+- Sub-tab **Configurações**: formulário em seções extensíveis para editar parâmetros
+- Chaves: `lead_time_verde_max_dias` (90), `lead_time_amarelo_max_dias` (180)
+
+---
+
 ## Limitações conhecidas (fases futuras)
 
 | Funcionalidade | Fase planejada |
 |---|---|
-| Consumo PEPS de lotes (rastrear qual lote foi consumido) | Fase 3 |
-| Alertas de lead time (avisar quando pedir antes de zerar) | Fase 3 |
-| Giro de estoque, estoque médio e LEC (Lote Econômico de Compra) | Fase 4 |
-| Mapa físico da loja (localização de produtos nas prateleiras) | Fase 2 |
+| Giro de estoque, estoque médio e LEC (Lote Econômico de Compra) | Fase 4 ✓ |
 | RLS refinado por papel de usuário (hoje é permissivo para autenticados) | Fase futura |

@@ -101,6 +101,18 @@ export type EstoqueLocalizacao = {
   estoque_produtos?: { count: number }[]
 }
 
+export type EstoqueSugestaoMover = {
+  produto_id: string
+  sku: string | null
+  nome: string
+  classe_abc: 'A' | 'B' | 'C'
+  localizacao_id: string
+  localizacao_codigo: string
+  nivel_atual: string
+  nivel_sugerido: string
+  acao_sugerida: string
+}
+
 export type EstoqueFornecedor = {
   id: string
   created_at: string
