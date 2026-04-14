@@ -78,7 +78,7 @@ export type EstoqueProduto = {
   fornecedor: string | null
   ativo: boolean
   observacoes: string | null
-  classificacao_abc: 'A' | 'B' | 'C' | null
+  classificacao_abc?: 'A' | 'B' | 'C' | null
   // embed de JOIN (select com nested)
   estoque_categorias?: { nome: string; tipo: string } | null
 }

@@ -14,7 +14,7 @@ import EditProfileModal from '@/components/profile/EditProfileModal'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import { cn } from '@/lib/utils'
-import { ADMIN_EMAIL } from '@/lib/constants'
+import { ADMIN_EMAIL, ESTOQUE_EMAIL } from '@/lib/constants'
 import { useUiSound } from '@/hooks/useUiSound'
 import { usePresence } from '@/hooks/usePresence'
 import { haptic } from '@/lib/haptic'
@@ -81,7 +81,7 @@ export default function Dashboard() {
   // — dados e tema —
   const { isDark, toggle } = useTheme()
   const { toasts, toast, dismiss } = useToast()
-  const { open: paletteOpen, setOpen: setPaletteOpen, close: closePalette } = useCommandPalette()
+  const { open: paletteOpen, close: closePalette } = useCommandPalette()
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
   const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta()
@@ -100,9 +100,12 @@ export default function Dashboard() {
   )
 
   const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
+  const canEstoque = profile?.email === ESTOQUE_EMAIL || isAdmin
   const tabFromUrl = location.pathname.replace(/^\//, '') || DEFAULT_TAB
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
-  const activeTab = VALID_TABS.includes(tabFromUrl) && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
+  const activeTab = VALID_TABS.includes(tabFromUrl)
+    && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
+    && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
   const others = usePresence(profile ?? null, activeTab)
@@ -237,9 +240,11 @@ export default function Dashboard() {
       if (prev.has(activeTab)) return prev
       // Não monta a aba admin enquanto o perfil está carregando ou se não for admin
       if (activeTab === 'admin' && (profileLoading || !isAdmin)) return prev
+      // Não monta a aba estoque enquanto o perfil está carregando ou sem permissão
+      if (activeTab === 'estoque' && (profileLoading || !canEstoque)) return prev
       return new Set([...prev, activeTab])
     })
-  }, [activeTab, isAdmin, profileLoading])
+  }, [activeTab, isAdmin, canEstoque, profileLoading])
 
   useEffect(() => {
     const preload = () => {
@@ -357,9 +362,9 @@ export default function Dashboard() {
     { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
     { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
     { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
-    { id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length },
+    ...(canEstoque ? [{ id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length }] : []),
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
-  ], [isAdmin, pendingCount, estoqueAlertas.length])
+  ], [isAdmin, canEstoque, pendingCount, estoqueAlertas.length])
 
   function MagneticBtn({ children, style, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
     const [off, setOff] = useState({ x: 0, y: 0 })
@@ -716,7 +721,7 @@ export default function Dashboard() {
               </div>
             </Suspense>
           )}
-          {mountedTabs.has('estoque') && (
+          {mountedTabs.has('estoque') && canEstoque && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'estoque' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabEstoque toast={toast} resetKey={tabVersions['estoque']} />

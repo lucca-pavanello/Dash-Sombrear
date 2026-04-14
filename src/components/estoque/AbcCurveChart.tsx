@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { RefreshCw } from 'lucide-react'
 import { useCurvaAbc, useRecalcularAbc } from '@/hooks/useEstoqueAnalytics'
 import type { ToastType } from '@/hooks/useToast'
