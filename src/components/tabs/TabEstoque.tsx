@@ -13,7 +13,8 @@ import EstoqueProdutosTable from '@/components/estoque/EstoqueProdutosTable'
 import NovoProdutoForm from '@/components/estoque/NovoProdutoForm'
 import NovaMovimentacaoForm from '@/components/estoque/NovaMovimentacaoForm'
 import FornecedoresTable from '@/components/estoque/FornecedoresTable'
-import LotesTable from '@/components/estoque/LotesTable'
+import EntradaRapidaForm from '@/components/estoque/EntradaRapidaForm'
+import EntradasHistoricoTable from '@/components/estoque/EntradasHistoricoTable'
 import EstoqueMovimentacoesTable from '@/components/estoque/EstoqueMovimentacoesTable'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
@@ -50,7 +51,7 @@ export default function TabEstoque({ toast, resetKey }: Props) {
   const [vendaOpen, setVendaOpen] = useState(false)
 
   // Data
-  const { data: produtos = [], isLoading: loadingProd } = useEstoqueProdutos()
+  const { data: produtos = [] } = useEstoqueProdutos()
   const { data: alertas = [] } = useEstoqueProdutosAlerta()
   const { data: movsHoje } = useEstoqueMovimentacoes({ dateFrom: todayIso(), dateTo: todayIso() })
   const movimentacoesHoje = movsHoje?.rows ?? []
@@ -130,24 +131,12 @@ export default function TabEstoque({ toast, resetKey }: Props) {
 
       {/* ── Produtos ── */}
       {subTab === 'produtos' && (
-        <>
-          {loadingProd ? (
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-14 rounded-xl skeleton-shimmer" />
-              ))}
-            </div>
-          ) : (
-            <EstoqueProdutosTable
-              produtos={produtos}
-              alertas={alertas}
-              toast={toast}
-              onNovoProduto={handleNovoProduto}
-              onEditar={handleEditarProduto}
-              onMovimentar={handleMovimentar}
-            />
-          )}
-        </>
+        <EstoqueProdutosTable
+          toast={toast}
+          onNovoProduto={handleNovoProduto}
+          onEditar={handleEditarProduto}
+          onMovimentar={handleMovimentar}
+        />
       )}
 
       {/* ── Fornecedores ── */}
@@ -157,7 +146,16 @@ export default function TabEstoque({ toast, resetKey }: Props) {
 
       {/* ── Entradas ── */}
       {subTab === 'entradas' && (
-        <LotesTable toast={toast} />
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-display text-base font-semibold">Registro de Entradas</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Registre toda compra que chega na loja. O estoque e o custo médio são atualizados automaticamente.
+            </p>
+          </div>
+          <EntradaRapidaForm toast={toast} />
+          <EntradasHistoricoTable />
+        </div>
       )}
 
       {/* ── Vendas ── */}
