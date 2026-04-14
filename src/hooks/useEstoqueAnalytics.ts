@@ -98,6 +98,123 @@ export function useCurvaAbc() {
   })
 }
 
+// ── Pareto / Trilha C ─────────────────────────────────────────
+
+export type ParetoItem = {
+  produto_id: string
+  codigo: string
+  nome: string
+  classificacao_abc: 'A' | 'B' | 'C' | 'sem_dados' | null
+  valor_total: number
+  percentual_individual: number
+  percentual_acumulado: number
+}
+
+export type ParetoData = {
+  items: ParetoItem[]
+  totalVendas: number   // nº de vendas no período (para empty state)
+}
+
+export function useParetoData() {
+  return useQuery({
+    queryKey: ['estoque-pareto-data'],
+    queryFn: async (): Promise<ParetoData> => {
+      const date90dAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+
+      // 1. Vendas dos últimos 90 dias
+      const { data: vendas, error: errV } = await supabase
+        .from('estoque_vendas')
+        .select('id')
+        .gte('data', date90dAgo)
+      if (errV) throw errV
+
+      const vendaIds = (vendas ?? []).map((v: { id: string }) => v.id)
+      if (vendaIds.length === 0) return { items: [], totalVendas: 0 }
+
+      // 2. Itens dessas vendas com dados do produto
+      const { data: itens, error: errI } = await supabase
+        .from('estoque_venda_itens')
+        .select('produto_id, subtotal, estoque_produtos(id, nome, codigo, classificacao_abc)')
+        .in('venda_id', vendaIds)
+      if (errI) throw errI
+
+      // 3. Agrega por produto
+      const map = new Map<string, {
+        produto_id: string
+        codigo: string
+        nome: string
+        classificacao_abc: 'A' | 'B' | 'C' | 'sem_dados' | null
+        valor_total: number
+      }>()
+
+      type VendaItem = {
+        produto_id: string
+        subtotal: number
+        estoque_produtos: { id: string; nome: string; codigo: string | null; classificacao_abc: string | null } | null
+      }
+
+      for (const item of (itens ?? []) as unknown as VendaItem[]) {
+        const prod = item.estoque_produtos
+        if (!prod) continue
+        const existing = map.get(item.produto_id)
+        if (existing) {
+          existing.valor_total += Number(item.subtotal)
+        } else {
+          map.set(item.produto_id, {
+            produto_id: item.produto_id,
+            codigo: prod.codigo ?? item.produto_id.slice(0, 8),
+            nome: prod.nome,
+            classificacao_abc: (prod.classificacao_abc as 'A' | 'B' | 'C' | 'sem_dados' | null),
+            valor_total: Number(item.subtotal),
+          })
+        }
+      }
+
+      // 4. Ordena desc, pega top 20
+      const sorted = Array.from(map.values())
+        .sort((a, b) => b.valor_total - a.valor_total)
+        .slice(0, 20)
+
+      const totalGeral = sorted.reduce((s, p) => s + p.valor_total, 0)
+
+      // 5. Calcula % individual e acumulado
+      let acumulado = 0
+      const items: ParetoItem[] = sorted.map((p) => {
+        const pct = totalGeral > 0 ? (p.valor_total / totalGeral) * 100 : 0
+        acumulado += pct
+        return {
+          ...p,
+          percentual_individual: Math.round(pct * 100) / 100,
+          percentual_acumulado: Math.round(acumulado * 100) / 100,
+        }
+      })
+
+      return { items, totalVendas: vendas?.length ?? 0 }
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+}
+
+/** Chama estoque_recalcular_abc (por valor monetário, Pareto 80/15/5) */
+export function useRecalcularAbcV2() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('estoque_recalcular_abc')
+      if (error) throw error
+      return (data as { total_classificados: number; classe_a: number; classe_b: number; classe_c: number }[])?.[0] ?? null
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['estoque-produtos'] })
+      qc.invalidateQueries({ queryKey: ['estoque-curva-abc'] })
+      qc.invalidateQueries({ queryKey: ['estoque-pareto-data'] })
+    },
+  })
+}
+
 export function useConsumoMensal(meses = 6) {
   return useQuery({
     queryKey: ['estoque-analytics-mensal', meses],
