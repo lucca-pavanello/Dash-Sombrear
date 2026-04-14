@@ -4,11 +4,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
-import { useEstoqueMovimentacoes } from '@/hooks/useEstoqueMovimentacoes'
 import { useProfile } from '@/hooks/useProfile'
-import EstoqueKPIGrid from '@/components/estoque/EstoqueKPIGrid'
-import EstoqueAlertasPanel from '@/components/estoque/EstoqueAlertasPanel'
-import AbcCurveChart from '@/components/estoque/AbcCurveChart'
+import EstoqueDashboard from '@/components/estoque/dashboard/EstoqueDashboard'
 import EstoqueProdutosTable from '@/components/estoque/EstoqueProdutosTable'
 import NovoProdutoForm from '@/components/estoque/NovoProdutoForm'
 import NovaMovimentacaoForm from '@/components/estoque/NovaMovimentacaoForm'
@@ -34,11 +31,7 @@ interface Props {
   resetKey?: number
 }
 
-function todayIso() {
-  return new Date().toISOString().split('T')[0]
-}
-
-export default function TabEstoque({ toast, resetKey }: Props) {
+export default function TabEstoque({ toast }: Props) {
   const [subTab, setSubTab] = useState<SubTab>('dashboard')
 
   // Modal states
@@ -52,8 +45,6 @@ export default function TabEstoque({ toast, resetKey }: Props) {
   // Data
   const { data: produtos = [], isLoading: loadingProd } = useEstoqueProdutos()
   const { data: alertas = [] } = useEstoqueProdutosAlerta()
-  const { data: movsHoje } = useEstoqueMovimentacoes({ dateFrom: todayIso(), dateTo: todayIso() })
-  const movimentacoesHoje = movsHoje?.rows ?? []
   const { data: profile } = useProfile()
 
   const responsavel = profile?.full_name ?? profile?.email ?? 'Usuário'
@@ -111,21 +102,12 @@ export default function TabEstoque({ toast, resetKey }: Props) {
 
       {/* ── Dashboard ── */}
       {subTab === 'dashboard' && (
-        <div className="space-y-4">
-          <EstoqueKPIGrid
-            produtos={produtos}
-            alertas={alertas}
-            movimentacoesHoje={movimentacoesHoje}
-            resetKey={resetKey}
-          />
-          {alertas.length > 0 && (
-            <EstoqueAlertasPanel
-              alertas={alertas}
-              onMovimentar={(p, tipo) => handleMovimentar(p, tipo)}
-            />
-          )}
-          <AbcCurveChart toast={toast} />
-        </div>
+        <EstoqueDashboard
+          toast={toast}
+          produtos={produtos}
+          alertas={alertas}
+          onMovimentar={handleMovimentar}
+        />
       )}
 
       {/* ── Produtos ── */}
