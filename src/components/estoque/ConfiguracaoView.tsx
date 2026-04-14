@@ -18,6 +18,19 @@ const schema = z.object({
     .number({ error: 'Informe um número' })
     .int('Deve ser inteiro')
     .positive('Deve ser > 0'),
+  custo_pedido: z
+    .number({ error: 'Informe um número' })
+    .positive('Deve ser > 0'),
+  taxa_estocagem: z
+    .number({ error: 'Informe um número' })
+    .int('Deve ser inteiro')
+    .min(0, 'Mínimo 0')
+    .max(100, 'Máximo 100'),
+  meses_historico: z
+    .number({ error: 'Informe um número' })
+    .int('Deve ser inteiro')
+    .min(1, 'Mínimo 1')
+    .max(36, 'Máximo 36'),
 }).refine((d) => d.amarelo_max > d.verde_max, {
   message: 'O máximo amarelo deve ser maior que o verde',
   path: ['amarelo_max'],
@@ -30,7 +43,14 @@ type FormData = z.infer<typeof schema>
 type ConfigSection = {
   title: string
   description?: string
-  fields: { key: string; label: string; formField: keyof FormData }[]
+  fields: {
+    key: string
+    label: string
+    formField: keyof FormData
+    step?: number
+    min?: number
+    helpText?: string
+  }[]
 }
 
 const SECTIONS: ConfigSection[] = [
@@ -51,13 +71,46 @@ const SECTIONS: ConfigSection[] = [
       },
     ],
   },
+  {
+    title: 'Parâmetros de Compra',
+    description: 'Usados no cálculo do Lote Econômico de Compra (LEC) para sugestões de reposição.',
+    fields: [
+      {
+        key: 'custo_pedido_reais',
+        label: 'Custo médio de emitir um pedido (R$)',
+        formField: 'custo_pedido',
+        step: 0.01,
+        min: 0.01,
+        helpText: 'Inclui tempo administrativo, frete fixo, etc. Afeta o tamanho do LEC.',
+      },
+      {
+        key: 'taxa_custo_estocagem_percent',
+        label: 'Taxa anual de custo de estocagem (%)',
+        formField: 'taxa_estocagem',
+        step: 1,
+        min: 0,
+        helpText: 'Percentual do custo unitário por ano (armazenagem, capital parado). Ex: 20.',
+      },
+      {
+        key: 'meses_historico_demanda',
+        label: 'Meses de histórico para demanda',
+        formField: 'meses_historico',
+        step: 1,
+        min: 1,
+        helpText: 'Janela de vendas passadas usada para estimar a demanda anual. Ex: 12.',
+      },
+    ],
+  },
 ]
 
 // ─── Mapa: formField → chave do banco ────────────────────────────────────────
 
 const FIELD_TO_KEY: Record<keyof FormData, string> = {
-  verde_max:  'lead_time_verde_max_dias',
-  amarelo_max: 'lead_time_amarelo_max_dias',
+  verde_max:       'lead_time_verde_max_dias',
+  amarelo_max:     'lead_time_amarelo_max_dias',
+  custo_pedido:    'custo_pedido_reais',
+  taxa_estocagem:  'taxa_custo_estocagem_percent',
+  meses_historico: 'meses_historico_demanda',
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -88,8 +141,11 @@ export default function ConfiguracaoView({ toast }: Props) {
   useEffect(() => {
     if (!config) return
     reset({
-      verde_max:  parseInt(config['lead_time_verde_max_dias']   ?? '90',  10),
-      amarelo_max: parseInt(config['lead_time_amarelo_max_dias'] ?? '180', 10),
+      verde_max:       parseInt(config['lead_time_verde_max_dias']      ?? '90',  10),
+      amarelo_max:     parseInt(config['lead_time_amarelo_max_dias']     ?? '180', 10),
+      custo_pedido:    parseFloat(config['custo_pedido_reais']           ?? '50'),
+      taxa_estocagem:  parseInt(config['taxa_custo_estocagem_percent']   ?? '20',  10),
+      meses_historico: parseInt(config['meses_historico_demanda']        ?? '12',  10),
     })
   }, [config, reset])
 
@@ -142,12 +198,15 @@ export default function ConfiguracaoView({ toast }: Props) {
                     </label>
                     <input
                       type="number"
-                      min={1}
-                      step={1}
+                      min={field.min ?? 1}
+                      step={field.step ?? 1}
                       disabled={isLoading}
                       {...register(field.formField, { valueAsNumber: true })}
                       className={cn(inputClass, err && inputErrorClass)}
                     />
+                    {field.helpText && (
+                      <p className="text-[11px] text-muted-foreground">{field.helpText}</p>
+                    )}
                     {err && (
                       <p className="text-xs text-red-500">{err.message}</p>
                     )}
