@@ -73,3 +73,25 @@ export const ORCS_PAGE_SIZE = 20;
 export const HORA_INICIO = 8;
 export const HORA_FIM = 18;
 export const ESPERA_HORAS = 2;
+
+// Estoque — labels em português dos ENUMs
+export const TIPOS_PRODUTO: Record<string, string> = {
+  tecido:    'Tecido',
+  ferragem:  'Ferragem',
+  acessorio: 'Acessório',
+}
+
+export const UNIDADES: Record<string, string> = {
+  metro:         'Metro',
+  metro_quadrado: 'Metro quadrado',
+  peca:          'Peça',
+  kit:           'Kit',
+  par:           'Par',
+}
+
+export const CLASSES_ABC: Record<string, string> = {
+  A:         'A',
+  B:         'B',
+  C:         'C',
+  sem_dados: 'Sem dados',
+}
