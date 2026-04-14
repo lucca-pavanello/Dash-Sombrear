@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, TrendingDown,
+  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, TrendingDown, BarChart2, ArrowLeftRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
@@ -13,10 +13,12 @@ import FornecedoresTable from '@/components/estoque/FornecedoresTable'
 import EntradaRapidaForm from '@/components/estoque/EntradaRapidaForm'
 import EntradasHistoricoTable from '@/components/estoque/EntradasHistoricoTable'
 import EstoqueMovimentacoesTable from '@/components/estoque/EstoqueMovimentacoesTable'
+import AnalisesDashboard from '@/components/estoque/analises/AnalisesDashboard'
+import MoverItensView from '@/components/estoque/MoverItensView'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
-type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas'
+type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas' | 'analises' | 'mover'
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
 const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
@@ -25,6 +27,7 @@ const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
   { id: 'fornecedores', label: 'Fornecedores', icon: <Truck className="h-3.5 w-3.5" /> },
   { id: 'entradas',     label: 'Entradas',     icon: <PackagePlus className="h-3.5 w-3.5" /> },
   { id: 'vendas',       label: 'Vendas',       icon: <ShoppingCart className="h-3.5 w-3.5" /> },
+  { id: 'analises',    label: 'Análises',     icon: <BarChart2 className="h-3.5 w-3.5" /> },
 ]
 
 interface Props {
@@ -159,6 +162,9 @@ export default function TabEstoque({ toast }: Props) {
           <EstoqueMovimentacoesTable defaultTipo="saida" />
         </div>
       )}
+
+      {/* ── Análises ── */}
+      {subTab === 'analises' && <AnalisesDashboard />}
 
       {/* ── Modais — Produto e Movimentação ── */}
       <NovoProdutoForm
