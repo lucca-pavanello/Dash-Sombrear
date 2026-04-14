@@ -2,6 +2,8 @@ import { Package, DollarSign, Star, Clock } from 'lucide-react'
 import MetricCard from './MetricCard'
 import { CardTecidoParado } from './CardTecidoParado'
 import CardSemLocalizacao from './CardSemLocalizacao'
+import { CardGiro } from './CardGiro'
+import { CardSugestoesCompra } from './CardSugestoesCompra'
 import ParetoChart from './ParetoChart'
 import TopAClassTable from './TopAClassTable'
 import RecalcularABCButton from './RecalcularABCButton'
@@ -19,9 +21,11 @@ interface Props {
   alertas: EstoqueProdutoAlerta[]
   onMovimentar: (p: EstoqueProduto | EstoqueProdutoAlerta, tipo: 'entrada' | 'saida' | 'ajuste' | 'perda') => void
   onNavigateToLeadTime?: () => void
+  onNavigateToAnalises?: () => void
+  onNavigateToSugestao?: () => void
 }
 
-export default function EstoqueDashboard({ toast, produtos, alertas, onMovimentar, onNavigateToLeadTime }: Props) {
+export default function EstoqueDashboard({ toast, produtos, alertas, onMovimentar, onNavigateToLeadTime, onNavigateToAnalises, onNavigateToSugestao }: Props) {
   const { data: paretoData, isLoading: loadingPareto } = useParetoData()
 
   // ── Métricas dos 4 cards ──────────────────────────────────────
@@ -40,8 +44,8 @@ export default function EstoqueDashboard({ toast, produtos, alertas, onMovimenta
 
   return (
     <div className="space-y-5">
-      {/* Seção 1 — 6 Cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      {/* Linha 1 — Operacional */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard
           title="Produtos ativos"
           value={totalAtivos}
@@ -56,6 +60,12 @@ export default function EstoqueDashboard({ toast, produtos, alertas, onMovimenta
           icon={DollarSign}
           accent="blue"
         />
+        <CardTecidoParado onClick={onNavigateToLeadTime} />
+        <CardSemLocalizacao />
+      </div>
+
+      {/* Linha 2 — Gerencial */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard
           title="Produtos classe A"
           value={classeACount}
@@ -70,8 +80,8 @@ export default function EstoqueDashboard({ toast, produtos, alertas, onMovimenta
           icon={Clock}
           accent={semVenda90d > 0 ? 'amber' : 'default'}
         />
-        <CardTecidoParado onClick={onNavigateToLeadTime} />
-        <CardSemLocalizacao />
+        <CardGiro onClick={onNavigateToAnalises} />
+        <CardSugestoesCompra onClick={onNavigateToSugestao} />
       </div>
 
       {/* Alertas de estoque mínimo */}
