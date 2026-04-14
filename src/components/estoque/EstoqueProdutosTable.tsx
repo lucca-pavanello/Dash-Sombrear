@@ -1,68 +1,48 @@
 import { useState, useMemo } from 'react'
-import { Search, X, Plus, TrendingUp, TrendingDown, RefreshCw, Pencil, PackageX } from 'lucide-react'
+import { Search, X, Plus, Pencil, PackageX, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
-import { useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
-import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
+import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
+import { TIPOS_PRODUTO, CLASSES_ABC } from '@/lib/constants'
+import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
+type TipoFilter = 'todos' | 'tecido' | 'ferragem' | 'acessorio'
+type AbcFilter = 'todas' | 'A' | 'B' | 'C' | 'sem_dados'
 
 interface Props {
-  produtos: EstoqueProduto[]
-  alertas: EstoqueProdutoAlerta[]
   toast: (type: ToastType, message: string) => void
   onNovoProduto: () => void
   onEditar: (p: EstoqueProduto) => void
   onMovimentar: (p: EstoqueProduto, tipo: TipoMov) => void
 }
 
-type StatusFilter = 'todos' | 'alerta' | 'ok'
-
-function getStatus(p: EstoqueProduto): 'zerado' | 'baixo' | 'ok' {
-  if (p.quantidade_atual <= 0 && p.quantidade_minima > 0) return 'zerado'
-  if (p.quantidade_minima > 0 && p.quantidade_atual <= p.quantidade_minima) return 'baixo'
-  return 'ok'
+const ABC_BADGE: Record<string, string> = {
+  A:         'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  B:         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  C:         'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  sem_dados: 'bg-muted text-muted-foreground',
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  ok:     'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  baixo:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  zerado: 'bg-destructive/10 text-destructive',
-}
-const STATUS_LABEL: Record<string, string> = {
-  ok: 'OK', baixo: '⚠ Baixo', zerado: '🔴 Zerado',
-}
-
-export default function EstoqueProdutosTable({
-  produtos, alertas, toast, onNovoProduto, onEditar, onMovimentar,
-}: Props) {
+export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
   const [search, setSearch] = useState('')
-  const [categoriaFilter, setCategoriaFilter] = useState('todas')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos')
+  const [tipoFilter, setTipoFilter] = useState<TipoFilter>('todos')
+  const [abcFilter, setAbcFilter] = useState<AbcFilter>('todas')
+  const [mostrarInativos, setMostrarInativos] = useState(false)
 
+  const { data: produtos = [], isLoading } = useEstoqueProdutos({ includeInactive: mostrarInativos })
   const deactivate = useDeactivateEstoqueProduto()
-
-  const alertaIds = useMemo(() => new Set(alertas.map((a) => a.id)), [alertas])
-
-  const categorias = useMemo(() => {
-    const cats = new Set<string>()
-    produtos.forEach((p) => {
-      if (p.estoque_categorias?.nome) cats.add(p.estoque_categorias.nome)
-    })
-    return Array.from(cats).sort()
-  }, [produtos])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return produtos.filter((p) => {
-      if (q && !p.nome.toLowerCase().includes(q) && !p.codigo?.toLowerCase().includes(q) && !p.fornecedor?.toLowerCase().includes(q)) return false
-      if (categoriaFilter !== 'todas' && p.estoque_categorias?.nome !== categoriaFilter) return false
-      if (statusFilter === 'alerta' && !alertaIds.has(p.id)) return false
-      if (statusFilter === 'ok' && alertaIds.has(p.id)) return false
+      if (q && !p.nome.toLowerCase().includes(q) && !p.codigo?.toLowerCase().includes(q)) return false
+      if (tipoFilter !== 'todos' && p.estoque_categorias?.tipo !== tipoFilter) return false
+      if (abcFilter !== 'todas' && (p.classificacao_abc ?? 'sem_dados') !== abcFilter) return false
       return true
     })
-  }, [produtos, search, categoriaFilter, statusFilter, alertaIds])
+  }, [produtos, search, tipoFilter, abcFilter])
 
   async function handleDesativar(p: EstoqueProduto) {
     if (!window.confirm(`Desativar "${p.nome}"? O produto não aparecerá mais no estoque.`)) return
@@ -72,6 +52,16 @@ export default function EstoqueProdutosTable({
     } catch {
       toast('error', 'Erro ao desativar produto.')
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-14 rounded-xl skeleton-shimmer" />
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -84,7 +74,7 @@ export default function EstoqueProdutosTable({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar produto..."
+            placeholder="Buscar por nome ou SKU..."
             className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-8 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
           />
           {search && (
@@ -94,31 +84,55 @@ export default function EstoqueProdutosTable({
           )}
         </div>
 
-        {/* Categoria */}
+        {/* Tipo */}
         <select
-          value={categoriaFilter}
-          onChange={(e) => setCategoriaFilter(e.target.value)}
+          value={tipoFilter}
+          onChange={(e) => setTipoFilter(e.target.value as TipoFilter)}
           className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all"
         >
-          <option value="todas">Todas categorias</option>
-          {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+          <option value="todos">Todos os tipos</option>
+          <option value="tecido">Tecido</option>
+          <option value="ferragem">Ferragem</option>
+          <option value="acessorio">Acessório</option>
         </select>
 
-        {/* Status */}
-        <div className="flex gap-0.5 rounded-lg bg-card border border-border p-1">
-          {(['todos', 'alerta', 'ok'] as StatusFilter[]).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={cn(
-                'rounded-md px-3 py-1 text-xs font-semibold transition-all active:scale-95 capitalize',
-                statusFilter === s ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              )}
-            >
-              {s === 'todos' ? 'Todos' : s === 'alerta' ? '⚠ Alerta' : '✓ OK'}
-            </button>
-          ))}
-        </div>
+        {/* Classe ABC */}
+        <select
+          value={abcFilter}
+          onChange={(e) => setAbcFilter(e.target.value as AbcFilter)}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all"
+        >
+          <option value="todas">Todas as classes</option>
+          <option value="A">Classe A</option>
+          <option value="B">Classe B</option>
+          <option value="C">Classe C</option>
+          <option value="sem_dados">Sem dados</option>
+        </select>
+
+        {/* Toggle inativos */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={mostrarInativos}
+          onClick={() => setMostrarInativos((v) => !v)}
+          className={cn(
+            'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-all',
+            mostrarInativos
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/60'
+          )}
+        >
+          <span className={cn(
+            'inline-block h-4 w-7 rounded-full transition-colors relative',
+            mostrarInativos ? 'bg-primary' : 'bg-muted-foreground/30'
+          )}>
+            <span className={cn(
+              'absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform',
+              mostrarInativos ? 'translate-x-3.5' : 'translate-x-0.5'
+            )} />
+          </span>
+          Inativos
+        </button>
 
         <button
           onClick={onNovoProduto}
@@ -131,71 +145,80 @@ export default function EstoqueProdutosTable({
 
       {/* Tabela */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '800px' }}>
+        <table className="w-full text-sm" style={{ minWidth: '860px' }}>
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Produto</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Categoria</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Qtd Atual</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Mínimo</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Custo/Un</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">SKU</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Nome</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Tipo</th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Unidade</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Estoque atual</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Custo médio</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Preço venda</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">ABC</th>
               <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   Nenhum produto encontrado.
                 </td>
               </tr>
             ) : (
               filtered.map((p) => {
-                const status = getStatus(p)
+                const abc = p.classificacao_abc ?? 'sem_dados'
+                const inativo = !p.ativo
                 return (
-                  <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                  <tr
+                    key={p.id}
+                    className={cn(
+                      'border-b last:border-0 hover:bg-muted/20 transition-colors',
+                      inativo && 'opacity-50'
+                    )}
+                  >
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      {p.codigo ?? '—'}
+                    </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium">{p.nome}</p>
-                      {p.codigo && <p className="text-xs text-muted-foreground">{p.codigo}</p>}
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{p.nome}</span>
+                        {inativo && (
+                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                            Inativo
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">
-                      {p.estoque_categorias?.nome ?? '—'}
+                      {TIPOS_PRODUTO[p.estoque_categorias?.tipo ?? ''] ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold', STATUS_BADGE[status])}>
-                        {STATUS_LABEL[status]}
-                      </span>
+                    <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell uppercase">
+                      {p.unidade}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">
                       {p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">{p.unidade}</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap hidden lg:table-cell">
-                      {p.quantidade_minima.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {p.unidade}
+                    <td className="px-4 py-3 text-right whitespace-nowrap hidden xl:table-cell">
+                      {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap hidden xl:table-cell">
-                      {p.custo_unitario ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground">—</span>}
+                      {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center hidden sm:table-cell">
+                      <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold', ABC_BADGE[abc])}>
+                        {CLASSES_ABC[abc] ?? abc}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
                         <ActionBtn
                           icon={<TrendingUp className="h-3.5 w-3.5" />}
-                          label="Entrada"
+                          label="Registrar entrada"
                           className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                           onClick={() => onMovimentar(p, 'entrada')}
-                        />
-                        <ActionBtn
-                          icon={<TrendingDown className="h-3.5 w-3.5" />}
-                          label="Saída"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => onMovimentar(p, 'saida')}
-                        />
-                        <ActionBtn
-                          icon={<RefreshCw className="h-3.5 w-3.5" />}
-                          label="Ajuste"
-                          className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          onClick={() => onMovimentar(p, 'ajuste')}
                         />
                         <ActionBtn
                           icon={<Pencil className="h-3.5 w-3.5" />}
@@ -203,12 +226,14 @@ export default function EstoqueProdutosTable({
                           className="text-muted-foreground hover:bg-muted"
                           onClick={() => onEditar(p)}
                         />
-                        <ActionBtn
-                          icon={<PackageX className="h-3.5 w-3.5" />}
-                          label="Desativar"
-                          className="text-muted-foreground/60 hover:bg-muted hover:text-destructive"
-                          onClick={() => handleDesativar(p)}
-                        />
+                        {p.ativo && (
+                          <ActionBtn
+                            icon={<PackageX className="h-3.5 w-3.5" />}
+                            label="Desativar"
+                            className="text-muted-foreground/60 hover:bg-muted hover:text-destructive"
+                            onClick={() => handleDesativar(p)}
+                          />
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -219,10 +244,10 @@ export default function EstoqueProdutosTable({
           {filtered.length > 0 && (
             <tfoot>
               <tr className="border-t border-border" style={{ backgroundColor: 'hsl(var(--muted))' }}>
-                <td colSpan={3} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <td colSpan={4} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}
                 </td>
-                <td colSpan={4} />
+                <td colSpan={5} />
               </tr>
             </tfoot>
           )}
@@ -244,10 +269,7 @@ function ActionBtn({
     <button
       title={label}
       onClick={onClick}
-      className={cn(
-        'rounded-lg p-1.5 transition-colors',
-        className
-      )}
+      className={cn('rounded-lg p-1.5 transition-colors', className)}
     >
       {icon}
     </button>
