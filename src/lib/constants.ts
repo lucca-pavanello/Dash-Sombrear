@@ -1,4 +1,5 @@
 export const ADMIN_EMAIL = 'luccapavanallo@gmail.com';
+export const ESTOQUE_EMAIL = 'luccapavanallo@gmail.com';
 
 export const RESPONSAVEIS = ['Sombrear', 'Stella', 'Rogério', 'Thais', 'Gregório', 'Sueli', 'Teste'];
 
