@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, TrendingDown, MapPin,
+  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, MapPin, ShoppingBag, Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
@@ -12,12 +12,15 @@ import NovaMovimentacaoForm from '@/components/estoque/NovaMovimentacaoForm'
 import FornecedoresTable from '@/components/estoque/FornecedoresTable'
 import EntradaRapidaForm from '@/components/estoque/EntradaRapidaForm'
 import EntradasHistoricoTable from '@/components/estoque/EntradasHistoricoTable'
-import EstoqueMovimentacoesTable from '@/components/estoque/EstoqueMovimentacoesTable'
 import LocalizacoesTable from '@/components/estoque/LocalizacoesTable'
+import SugestaoCompraView from '@/components/estoque/sugestao/SugestaoCompraView'
+import RegistroVendasView from '@/components/estoque/RegistroVendasView'
+import VendaDetalheView from '@/components/estoque/VendaDetalheView'
+import LeadTimeView from '@/components/estoque/LeadTimeView'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
-type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas' | 'localizacoes'
+type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas' | 'localizacoes' | 'sugestao' | 'lead-time'
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
 const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
@@ -27,6 +30,8 @@ const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
   { id: 'entradas',     label: 'Entradas',     icon: <PackagePlus className="h-3.5 w-3.5" /> },
   { id: 'vendas',       label: 'Vendas',       icon: <ShoppingCart className="h-3.5 w-3.5" /> },
   { id: 'localizacoes', label: 'Localizações', icon: <MapPin className="h-3.5 w-3.5" /> },
+  { id: 'sugestao',     label: 'Sugestão',     icon: <ShoppingBag className="h-3.5 w-3.5" /> },
+  { id: 'lead-time',    label: 'Lead Time',    icon: <Timer className="h-3.5 w-3.5" /> },
 ]
 
 interface Props {
@@ -43,7 +48,7 @@ export default function TabEstoque({ toast }: Props) {
   const [movOpen, setMovOpen] = useState(false)
   const [movTipo, setMovTipo] = useState<TipoMov>('entrada')
   const [movProduto, setMovProduto] = useState<EstoqueProduto | null>(null)
-  const [vendaOpen, setVendaOpen] = useState(false)
+  const [vendaDetalheId, setVendaDetalheId] = useState<string | null>(null)
 
   // Data
   const { data: produtos = [] } = useEstoqueProdutos()
@@ -144,28 +149,21 @@ export default function TabEstoque({ toast }: Props) {
 
       {/* ── Vendas ── */}
       {subTab === 'vendas' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">Registro de Vendas</p>
-              <p className="text-xs text-muted-foreground">Saídas de estoque por orçamento ou venda direta</p>
-            </div>
-            <button
-              onClick={() => setVendaOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
-            >
-              <TrendingDown className="h-3.5 w-3.5" />
-              Registrar Venda
-            </button>
-          </div>
-          <EstoqueMovimentacoesTable defaultTipo="saida" />
-        </div>
+        vendaDetalheId
+          ? <VendaDetalheView vendaId={vendaDetalheId} onVoltar={() => setVendaDetalheId(null)} />
+          : <RegistroVendasView toast={toast} responsavel={responsavel} userId={userId} onVerDetalhe={setVendaDetalheId} />
       )}
 
       {/* ── Localizações ── */}
       {subTab === 'localizacoes' && (
         <LocalizacoesTable toast={toast} />
       )}
+
+      {/* ── Sugestão de Compra ── */}
+      {subTab === 'sugestao' && <SugestaoCompraView toast={toast} />}
+
+      {/* ── Lead Time ── */}
+      {subTab === 'lead-time' && <LeadTimeView toast={toast} />}
 
       {/* ── Modais — Produto e Movimentação ── */}
       <NovoProdutoForm
@@ -182,16 +180,6 @@ export default function TabEstoque({ toast }: Props) {
         toast={toast}
         tipoInicial={movTipo}
         produtoInicial={movProduto}
-        responsavel={responsavel}
-        userId={userId}
-      />
-
-      {/* Modal de venda rápida (botão "Registrar Venda") */}
-      <NovaMovimentacaoForm
-        open={vendaOpen}
-        onClose={() => setVendaOpen(false)}
-        toast={toast}
-        tipoInicial="saida"
         responsavel={responsavel}
         userId={userId}
       />

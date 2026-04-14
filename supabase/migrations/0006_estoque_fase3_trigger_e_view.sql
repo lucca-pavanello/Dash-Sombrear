@@ -98,26 +98,29 @@ CREATE TRIGGER trg_venda_item_movimentacao_peps
 --    com quantidade_restante > 0). Usado no dashboard de demo.
 --
 --    Colunas:
---      produto_id, codigo, nome, quantidade_atual, classificacao_abc,
+--      produto_id, codigo, nome, quantidade_atual, classificacao_abc, tipo,
 --      data_lote_mais_antigo, dias_em_estoque,
 --      quantidade_parada (sum restante), valor_parado_reais
 -- -------------------------------------------------------------
 
-CREATE OR REPLACE VIEW estoque_vw_lead_time AS
+DROP VIEW IF EXISTS estoque_vw_lead_time;
+CREATE VIEW estoque_vw_lead_time AS
 SELECT
   p.id                                                    AS produto_id,
   p.codigo,
   p.nome,
   p.quantidade_atual,
   p.classificacao_abc,
+  ec.tipo                                                 AS tipo,
   min(lo.data_entrada)                                    AS data_lote_mais_antigo,
   (current_date - min(lo.data_entrada))::int              AS dias_em_estoque,
   sum(li.quantidade_restante)                             AS quantidade_parada,
   sum(li.quantidade_restante * li.custo_unitario)         AS valor_parado_reais
 FROM estoque_produtos p
+LEFT JOIN estoque_categorias ec ON ec.id = p.categoria_id
 LEFT JOIN estoque_lote_itens li
        ON li.produto_id = p.id AND li.quantidade_restante > 0
 LEFT JOIN estoque_lotes lo ON lo.id = li.lote_id
 WHERE p.ativo = true
 GROUP BY
-  p.id, p.codigo, p.nome, p.quantidade_atual, p.classificacao_abc;
+  p.id, p.codigo, p.nome, p.quantidade_atual, p.classificacao_abc, ec.tipo;
