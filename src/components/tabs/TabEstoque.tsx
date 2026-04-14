@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, MapPin, ShoppingBag, Timer, ArrowLeftRight, Settings,
+  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, MapPin, ShoppingBag, Timer, ArrowLeftRight, Settings, BarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
@@ -14,6 +14,7 @@ import EntradaRapidaForm from '@/components/estoque/EntradaRapidaForm'
 import EntradasHistoricoTable from '@/components/estoque/EntradasHistoricoTable'
 import LocalizacoesTable from '@/components/estoque/LocalizacoesTable'
 import SugestaoCompraView from '@/components/estoque/sugestao/SugestaoCompraView'
+import AnalisesDashboard from '@/components/estoque/analises/AnalisesDashboard'
 import RegistroVendasView from '@/components/estoque/RegistroVendasView'
 import VendaDetalheView from '@/components/estoque/VendaDetalheView'
 import LeadTimeView from '@/components/estoque/LeadTimeView'
@@ -22,11 +23,12 @@ import ConfiguracaoView from '@/components/estoque/ConfiguracaoView'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
-type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas' | 'localizacoes' | 'mover' | 'sugestao' | 'lead-time' | 'configuracao'
+type SubTab = 'dashboard' | 'analises' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas' | 'localizacoes' | 'mover' | 'sugestao' | 'lead-time' | 'configuracao'
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
 const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard',    label: 'Dashboard',    icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
+  { id: 'analises',     label: 'Análises',     icon: <BarChart2 className="h-3.5 w-3.5" /> },
   { id: 'produtos',     label: 'Produtos',     icon: <Package className="h-3.5 w-3.5" /> },
   { id: 'fornecedores', label: 'Fornecedores', icon: <Truck className="h-3.5 w-3.5" /> },
   { id: 'entradas',     label: 'Entradas',     icon: <PackagePlus className="h-3.5 w-3.5" /> },
@@ -120,8 +122,13 @@ export default function TabEstoque({ toast }: Props) {
           alertas={alertas}
           onMovimentar={handleMovimentar}
           onNavigateToLeadTime={() => setSubTab('lead-time')}
+          onNavigateToAnalises={() => setSubTab('analises')}
+          onNavigateToSugestao={() => setSubTab('sugestao')}
         />
       )}
+
+      {/* ── Análises ── */}
+      {subTab === 'analises' && <AnalisesDashboard />}
 
       {/* ── Produtos ── */}
       {subTab === 'produtos' && (
