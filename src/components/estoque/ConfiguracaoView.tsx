@@ -1,0 +1,175 @@
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Save } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useEstoqueConfig, useSalvarConfig } from '@/hooks/useEstoqueConfig'
+import type { ToastType } from '@/hooks/useToast'
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
+const schema = z.object({
+  verde_max: z
+    .number({ error: 'Informe um número' })
+    .int('Deve ser inteiro')
+    .positive('Deve ser > 0'),
+  amarelo_max: z
+    .number({ error: 'Informe um número' })
+    .int('Deve ser inteiro')
+    .positive('Deve ser > 0'),
+}).refine((d) => d.amarelo_max > d.verde_max, {
+  message: 'O máximo amarelo deve ser maior que o verde',
+  path: ['amarelo_max'],
+})
+
+type FormData = z.infer<typeof schema>
+
+// ─── Seções (extensível para Fase 4) ─────────────────────────────────────────
+
+type ConfigSection = {
+  title: string
+  description?: string
+  fields: { key: string; label: string; formField: keyof FormData }[]
+}
+
+const SECTIONS: ConfigSection[] = [
+  {
+    title: 'Lead Time',
+    description:
+      'Verde é saudável (produto girando). Entre verde e amarelo é alerta. Acima do amarelo é crítico.',
+    fields: [
+      {
+        key: 'lead_time_verde_max_dias',
+        label: 'Lead time verde máximo (dias)',
+        formField: 'verde_max',
+      },
+      {
+        key: 'lead_time_amarelo_max_dias',
+        label: 'Lead time amarelo máximo (dias)',
+        formField: 'amarelo_max',
+      },
+    ],
+  },
+]
+
+// ─── Mapa: formField → chave do banco ────────────────────────────────────────
+
+const FIELD_TO_KEY: Record<keyof FormData, string> = {
+  verde_max:  'lead_time_verde_max_dias',
+  amarelo_max: 'lead_time_amarelo_max_dias',
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface Props {
+  toast: (type: ToastType, message: string) => void
+}
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+const inputClass =
+  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+
+const inputErrorClass = 'border-red-400 focus:border-red-500'
+
+export default function ConfiguracaoView({ toast }: Props) {
+  const { data: config, isLoading } = useEstoqueConfig()
+  const salvar = useSalvarConfig()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  // Popula o form quando os dados chegam do banco
+  useEffect(() => {
+    if (!config) return
+    reset({
+      verde_max:  parseInt(config['lead_time_verde_max_dias']   ?? '90',  10),
+      amarelo_max: parseInt(config['lead_time_amarelo_max_dias'] ?? '180', 10),
+    })
+  }, [config, reset])
+
+  async function onSubmit(data: FormData) {
+    const rows = (Object.keys(data) as (keyof FormData)[]).map((field) => ({
+      chave: FIELD_TO_KEY[field],
+      valor: String(data[field]),
+    }))
+
+    try {
+      await salvar.mutateAsync(rows)
+      toast('success', 'Configurações salvas')
+    } catch {
+      toast('error', 'Erro ao salvar configurações')
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div>
+        <h3 className="font-display text-base font-semibold">Configurações do Estoque</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Ajuste os parâmetros de alertas e cálculos do módulo.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {SECTIONS.map((section) => (
+          <div
+            key={section.title}
+            className="rounded-xl border bg-card shadow-sm p-5 space-y-4"
+          >
+            {/* Cabeçalho da seção */}
+            <div>
+              <h4 className="text-sm font-semibold">{section.title}</h4>
+              {section.description && (
+                <p className="text-xs text-muted-foreground mt-0.5">{section.description}</p>
+              )}
+            </div>
+
+            {/* Campos */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              {section.fields.map((field) => {
+                const err = errors[field.formField]
+                return (
+                  <div key={field.key} className="space-y-1">
+                    <label className="text-xs font-medium text-foreground">
+                      {field.label}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      disabled={isLoading}
+                      {...register(field.formField, { valueAsNumber: true })}
+                      className={cn(inputClass, err && inputErrorClass)}
+                    />
+                    {err && (
+                      <p className="text-xs text-red-500">{err.message}</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* Botão salvar */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={isSubmitting || isLoading || salvar.isPending}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <Save className="h-4 w-4" />
+            {isSubmitting || salvar.isPending ? 'Salvando...' : 'Salvar configurações'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}

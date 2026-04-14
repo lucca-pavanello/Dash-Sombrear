@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, MapPin, ShoppingBag, Timer,
+  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, MapPin, ShoppingBag, Timer, ArrowLeftRight, Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
@@ -17,10 +17,12 @@ import SugestaoCompraView from '@/components/estoque/sugestao/SugestaoCompraView
 import RegistroVendasView from '@/components/estoque/RegistroVendasView'
 import VendaDetalheView from '@/components/estoque/VendaDetalheView'
 import LeadTimeView from '@/components/estoque/LeadTimeView'
+import MoverItensView from '@/components/estoque/MoverItensView'
+import ConfiguracaoView from '@/components/estoque/ConfiguracaoView'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
-type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas' | 'localizacoes' | 'sugestao' | 'lead-time'
+type SubTab = 'dashboard' | 'produtos' | 'fornecedores' | 'entradas' | 'vendas' | 'localizacoes' | 'mover' | 'sugestao' | 'lead-time' | 'configuracao'
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
 const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
@@ -30,8 +32,10 @@ const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
   { id: 'entradas',     label: 'Entradas',     icon: <PackagePlus className="h-3.5 w-3.5" /> },
   { id: 'vendas',       label: 'Vendas',       icon: <ShoppingCart className="h-3.5 w-3.5" /> },
   { id: 'localizacoes', label: 'Localizações', icon: <MapPin className="h-3.5 w-3.5" /> },
+  { id: 'mover',        label: 'Mover Itens',  icon: <ArrowLeftRight className="h-3.5 w-3.5" /> },
   { id: 'sugestao',     label: 'Sugestão',     icon: <ShoppingBag className="h-3.5 w-3.5" /> },
   { id: 'lead-time',    label: 'Lead Time',    icon: <Timer className="h-3.5 w-3.5" /> },
+  { id: 'configuracao', label: 'Configurações', icon: <Settings className="h-3.5 w-3.5" /> },
 ]
 
 interface Props {
@@ -159,11 +163,17 @@ export default function TabEstoque({ toast }: Props) {
         <LocalizacoesTable toast={toast} />
       )}
 
+      {/* ── Mover Itens ── */}
+      {subTab === 'mover' && <MoverItensView toast={toast} />}
+
       {/* ── Sugestão de Compra ── */}
       {subTab === 'sugestao' && <SugestaoCompraView toast={toast} />}
 
       {/* ── Lead Time ── */}
       {subTab === 'lead-time' && <LeadTimeView toast={toast} />}
+
+      {/* ── Configurações ── */}
+      {subTab === 'configuracao' && <ConfiguracaoView toast={toast} />}
 
       {/* ── Modais — Produto e Movimentação ── */}
       <NovoProdutoForm
