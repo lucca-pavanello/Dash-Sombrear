@@ -45,51 +45,61 @@ export default function EstoqueDashboard({
   ).length
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
 
-      {/* ── Linha 1 ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard
-          title="Valor em estoque"
-          value={fmtBRL(valorEmEstoque)}
-          subtitle="custo médio × qtd"
-          icon={DollarSign}
-        />
-        <MetricCard
-          title="Produtos ativos"
-          value={totalAtivos}
-          subtitle="em estoque"
-          icon={Package}
-        />
-        <CardGiro onClick={onNavigateToAnalises} />
-        <CardSugestoesCompra onClick={onNavigateToSugestao} />
-      </div>
-
-      {/* ── Linha 2 ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard
-          title="Produtos classe A"
-          value={classeACount}
-          subtitle="top 80% do valor"
-          icon={Star}
-          onClick={onNavigateToAnalises}
-        />
-        <MetricCard
-          title="Sem venda 90 dias"
-          value={semVenda90d}
-          subtitle="sem classificação ABC"
-          icon={Clock}
-          valueColor={semVenda90d > 0 ? 'destructive' : undefined}
-          onClick={onNavigateToAnalises}
-        />
-        <CardTecidoParado onClick={onNavigateToLeadTime} />
-        <CardSemLocalizacao onClick={onNavigateToLocalizacoes} />
+      {/* ── Operacional ──────────────────────────────────────────────────────── */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-0.5">
+          Operacional
+        </p>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <MetricCard
+            title="Valor em estoque"
+            value={fmtBRL(valorEmEstoque)}
+            subtitle="custo médio × qtd"
+            icon={DollarSign}
+          />
+          <MetricCard
+            title="Produtos ativos"
+            value={totalAtivos}
+            subtitle="em estoque"
+            icon={Package}
+          />
+          <CardGiro onClick={onNavigateToAnalises} />
+          <CardSugestoesCompra onClick={onNavigateToSugestao} />
+        </div>
       </div>
 
       {/* ── Alertas de estoque mínimo ──────────────────────────────────────────── */}
       {alertas.length > 0 && (
         <EstoqueAlertasPanel alertas={alertas} onMovimentar={onMovimentar} />
       )}
+
+      {/* ── Análises rápidas ─────────────────────────────────────────────────── */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-0.5">
+          Análises rápidas
+        </p>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <MetricCard
+            title="Produtos classe A"
+            value={classeACount}
+            subtitle="top 80% do valor"
+            icon={Star}
+            onClick={onNavigateToAnalises}
+          />
+          <MetricCard
+            title="Sem venda 90 dias"
+            value={semVenda90d}
+            subtitle="sem classificação ABC"
+            icon={Clock}
+            valueColor={semVenda90d > 0 ? 'destructive' : undefined}
+            onClick={onNavigateToAnalises}
+          />
+          <CardTecidoParado onClick={onNavigateToLeadTime} />
+          <CardSemLocalizacao onClick={onNavigateToLocalizacoes} />
+        </div>
+      </div>
 
     </div>
   )
