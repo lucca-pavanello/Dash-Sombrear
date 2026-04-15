@@ -29,18 +29,16 @@ export default function CardSemLocalizacao({ onClick }: Props) {
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border-2 border-primary/20 bg-primary/5 dark:bg-primary/8 shadow-sm p-4 flex flex-col gap-3 transition-all',
+        'rounded-xl border-2 border-primary/20 bg-primary/5 dark:bg-primary/8 shadow-sm p-4 flex flex-col items-center text-center gap-2 transition-all',
         onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-px',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 leading-tight">
-          Sem localização
-        </p>
-        <div className="rounded-lg p-1.5 bg-primary/15 text-primary shrink-0">
-          <MapPinOff className="h-4 w-4" />
-        </div>
+      <div className="rounded-lg p-1.5 bg-primary/15 text-primary shrink-0">
+        <MapPinOff className="h-4 w-4" />
       </div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 leading-tight">
+        Sem localização
+      </p>
       <p className={cn('text-2xl font-bold leading-none', hasAlert ? 'text-red-700' : 'text-foreground')}>
         {isLoading ? '…' : (count ?? 0)}
       </p>
