@@ -3,6 +3,7 @@ import { Search, X, Plus, Pencil, PackageX, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
 import { TIPOS_PRODUTO, CLASSES_ABC } from '@/lib/constants'
@@ -29,8 +30,6 @@ const ABC_BADGE: Record<string, string> = {
 
 const COL_DIVIDER = 'border-l border-border/40'
 
-const SELECT_CLASS =
-  'rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all cursor-pointer'
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
   const [search, setSearch] = useState('')
@@ -108,77 +107,70 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           </button>
         </div>
 
-        {/* Linha 2 — filtros por pills + localização select + toggle */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Linha 2 — filtros + toggle */}
+        <div className="flex flex-wrap items-center gap-4">
 
           {/* Tipo */}
-          <select
-            value={tipoFilter}
-            onChange={(e) => setTipoFilter(e.target.value as TipoFilter)}
-            className={SELECT_CLASS}
-          >
-            <option value="todos">Tipo: todos</option>
-            <option value="tecido">Tecido</option>
-            <option value="ferragem">Ferragem</option>
-            <option value="acessorio">Acessório</option>
-          </select>
-
-          <div className="h-4 border-l border-border/60" />
+          <div className="w-44">
+            <CustomSelect
+              value={tipoFilter}
+              onChange={(v) => setTipoFilter(v as TipoFilter)}
+              options={[
+                { value: 'todos',     label: 'Tipo: todos' },
+                { value: 'tecido',    label: 'Tecido' },
+                { value: 'ferragem',  label: 'Ferragem' },
+                { value: 'acessorio', label: 'Acessório' },
+              ]}
+            />
+          </div>
 
           {/* Classe ABC */}
-          <select
-            value={abcFilter}
-            onChange={(e) => setAbcFilter(e.target.value as AbcFilter)}
-            className={SELECT_CLASS}
-          >
-            <option value="todas">Classe: todas</option>
-            <option value="A">Classe A</option>
-            <option value="B">Classe B</option>
-            <option value="C">Classe C</option>
-            <option value="sem_dados">Sem dados</option>
-          </select>
-
-          <div className="h-4 border-l border-border/60" />
+          <div className="w-44">
+            <CustomSelect
+              value={abcFilter}
+              onChange={(v) => setAbcFilter(v as AbcFilter)}
+              options={[
+                { value: 'todas',     label: 'Classe: todas' },
+                { value: 'A',         label: 'Classe A' },
+                { value: 'B',         label: 'Classe B' },
+                { value: 'C',         label: 'Classe C' },
+                { value: 'sem_dados', label: 'Sem dados' },
+              ]}
+            />
+          </div>
 
           {/* Localização */}
-          <select
-            value={localizacaoFilter}
-            onChange={(e) => setLocalizacaoFilter(e.target.value)}
-            className={SELECT_CLASS}
-          >
-            <option value="todas">Localização: todas</option>
-            <option value="sem">Sem localização</option>
-            {localizacoes.map((l) => (
-              <option key={l.id} value={l.id}>{l.codigo} – {l.setor}</option>
-            ))}
-          </select>
-
-          <div className="h-4 border-l border-border/60" />
+          <div className="w-52">
+            <CustomSelect
+              value={localizacaoFilter}
+              onChange={setLocalizacaoFilter}
+              options={[
+                { value: 'todas', label: 'Localização: todas' },
+                { value: 'sem',   label: 'Sem localização' },
+                ...localizacoes.map((l) => ({ value: l.id, label: `${l.codigo} – ${l.setor}` })),
+              ]}
+            />
+          </div>
 
           {/* Toggle inativos */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={mostrarInativos}
-            onClick={() => setMostrarInativos((v) => !v)}
-            className={cn(
-              'flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all',
-              mostrarInativos
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/60'
-            )}
-          >
-            <span className={cn(
-              'inline-block h-3.5 w-6 rounded-full transition-colors relative shrink-0',
-              mostrarInativos ? 'bg-primary' : 'bg-muted-foreground/30'
-            )}>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={mostrarInativos}
+              onClick={() => setMostrarInativos((v) => !v)}
+              className={cn(
+                'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                mostrarInativos ? 'bg-primary' : 'bg-muted-foreground/30',
+              )}
+            >
               <span className={cn(
-                'absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow transition-transform',
-                mostrarInativos ? 'translate-x-2.5' : 'translate-x-0.5'
+                'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
+                mostrarInativos ? 'translate-x-[18px]' : 'translate-x-0.5',
               )} />
-            </span>
-            Inativos
-          </button>
+            </button>
+            <span className="text-sm text-muted-foreground">Mostrar inativos</span>
+          </label>
         </div>
       </div>
 
