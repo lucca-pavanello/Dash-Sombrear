@@ -14,9 +14,10 @@ interface Props {
   options: SelectOption[]
   placeholder?: string
   disabled?: boolean
+  className?: string
 }
 
-export function CustomSelect({ value, onChange, options, placeholder = 'Selecione...', disabled }: Props) {
+export function CustomSelect({ value, onChange, options, placeholder = 'Selecione...', disabled, className }: Props) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [focusedIdx, setFocusedIdx] = useState(-1)
@@ -147,7 +148,8 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
             ? 'border-primary ring-2 ring-primary/15 bg-background'
             : 'border-border bg-background hover:border-muted-foreground/40',
           disabled && 'opacity-50 cursor-not-allowed bg-muted/30 pointer-events-none',
-          !value ? 'text-muted-foreground/50' : 'text-foreground'
+          !value ? 'text-muted-foreground/50' : 'text-foreground',
+          className,
         )}
       >
         <span className="flex-1 text-center truncate">
