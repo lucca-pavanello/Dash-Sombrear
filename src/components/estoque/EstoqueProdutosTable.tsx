@@ -213,8 +213,8 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
         <table className="w-full text-sm" style={{ minWidth: '960px' }}>
           <thead>
             <tr className="border-b-2 border-border bg-muted/70">
-              <th className="pl-6 pr-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-foreground/60">SKU</th>
-              <th className="px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-foreground/60">Nome</th>
+              <th className="pl-6 pr-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60">SKU</th>
+              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60', COL_DIVIDER)}>Nome</th>
               <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden md:table-cell', COL_DIVIDER)}>Tipo</th>
               <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden lg:table-cell', COL_DIVIDER)}>Unidade</th>
               <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60', COL_DIVIDER)}>Estoque atual</th>
@@ -248,11 +248,11 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                       inativo && 'opacity-50'
                     )}
                   >
-                    <td className="pl-6 pr-4 py-3.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                    <td className="pl-6 pr-4 py-3.5 text-center font-mono text-xs text-muted-foreground whitespace-nowrap">
                       {p.codigo ?? '—'}
                     </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
+                    <td className={cn('px-4 py-3.5', COL_DIVIDER)}>
+                      <div className="flex items-center justify-center gap-2">
                         <span className="font-medium">{p.nome}</span>
                         {inativo && (
                           <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
