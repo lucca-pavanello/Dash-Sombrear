@@ -1,12 +1,10 @@
-import { useState } from 'react'
 import {
-  ChevronDown, ChevronRight, ShoppingBag, Clock, BarChart2,
-  ArrowLeftRight, TrendingUp, AlertTriangle,
+  ShoppingBag, Clock, BarChart2,
+  ArrowLeftRight, AlertTriangle, Activity,
   CircleCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
-import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { useSugestaoCompra } from '@/hooks/useEstoqueSugestao'
 import { useEstoquePontoPedido } from '@/hooks/useEstoquePontoPedido'
 import { useLeadTimeRows } from '@/hooks/useEstoqueLeadTime'
@@ -17,7 +15,9 @@ import ParetoChart from './dashboard/ParetoChart'
 import TopAClassTable from './dashboard/TopAClassTable'
 import RecalcularABCButton from './dashboard/RecalcularABCButton'
 import GiroMensalChart from './analises/GiroMensalChart'
+import SectionCard from './shared/SectionCard'
 import EstoqueTable, { type EstoqueTableColumn } from './shared/EstoqueTable'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { ToastType } from '@/hooks/useToast'
 import type { NivelAlerta } from './theme'
 
@@ -70,49 +70,6 @@ function NivelBadge({ nivel }: { nivel: NivelAlerta }) {
   )
 }
 
-// ─── Seção collapsável ─────────────────────────────────────────────────────────
-
-function Section({
-  icon,
-  title,
-  subtitle,
-  badge,
-  defaultOpen = false,
-  children,
-}: {
-  icon: React.ReactNode
-  title: React.ReactNode
-  subtitle: string
-  badge?: React.ReactNode
-  defaultOpen?: boolean
-  children: React.ReactNode
-}) {
-  const [open, setOpen] = useState(defaultOpen)
-
-  return (
-    <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
-      >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-          {icon}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
-        </div>
-        {badge && <div className="shrink-0">{badge}</div>}
-        <span className="shrink-0 text-muted-foreground">
-          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </span>
-      </button>
-      {open && <div className="border-t">{children}</div>}
-    </div>
-  )
-}
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -124,7 +81,7 @@ interface Props {
 
 export default function AnalisesUnificadas({ toast, onDrillDown }: Props) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header da página */}
       <div>
         <h3 className="font-display text-base font-semibold">Análises de Estoque</h3>
@@ -169,18 +126,8 @@ const urgencyLabel: Record<string, string> = {
 function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
   const { data = [], isLoading } = useSugestaoCompra()
   const naoOk = data.filter(r => r.urgencia !== 'ok')
-  const criticos = data.filter(r => r.urgencia === 'critico').length
   const totalEstimado = naoOk.reduce((s, r) => s + r.custo_estimado, 0)
   const top10 = naoOk.slice(0, 10)
-
-  const badge = isLoading ? null : (
-    <span className={cn(
-      'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-      criticos > 0 ? 'bg-destructive/10 text-destructive' : naoOk.length > 0 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground',
-    )}>
-      {naoOk.length === 0 ? 'Tudo OK' : `${naoOk.length} produto${naoOk.length !== 1 ? 's' : ''}`}
-    </span>
-  )
 
   type Row = typeof top10[number]
   const columns: EstoqueTableColumn<Row>[] = [
@@ -228,11 +175,14 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
   ]
 
   return (
-    <Section
-      icon={<ShoppingBag className="h-4 w-4" />}
-      title={<InfoTooltip label="O que comprar agora" tip="Os produtos mais importantes que estão acabando e precisam de reposição." />}
+    <SectionCard
+      icon={ShoppingBag}
+      title="O que comprar agora"
       subtitle={isLoading ? 'Carregando...' : naoOk.length === 0 ? 'Nenhum produto precisa de reposição agora.' : `${naoOk.length} precisam de reposição · ${fmtBRL(totalEstimado)} estimado`}
-      badge={badge}
+      badge={isLoading ? undefined : naoOk.length > 0
+        ? { label: `${naoOk.length} produto${naoOk.length !== 1 ? 's' : ''}`, variant: 'info' }
+        : { label: 'Tudo abastecido', variant: 'neutral' }
+      }
       defaultOpen
     >
       <EstoqueTable
@@ -253,7 +203,7 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
           </button>
         }
       />
-    </Section>
+    </SectionCard>
   )
 }
 
@@ -263,16 +213,14 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
   const { data = [], isLoading } = useEstoquePontoPedido()
   const alertas = data.filter(r => r.nivel_alerta !== 'ok' && r.nivel_alerta !== 'sem_dados')
   const rupturas = alertas.filter(r => r.nivel_alerta === 'ruptura').length
+  const criticos = alertas.filter(r => r.nivel_alerta === 'critico').length
   const top10 = alertas.slice(0, 10)
 
-  const badge = isLoading ? null : (
-    <span className={cn(
-      'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-      rupturas > 0 ? 'bg-destructive/10 text-destructive' : alertas.length > 0 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground',
-    )}>
-      {alertas.length === 0 ? 'Tudo OK' : `${alertas.length} produto${alertas.length !== 1 ? 's' : ''}`}
-    </span>
-  )
+  const badge = isLoading ? undefined :
+    rupturas > 0 ? { label: `${rupturas} em ruptura`, variant: 'urgent' as const } :
+    criticos > 0 ? { label: `${criticos} crítico${criticos !== 1 ? 's' : ''}`, variant: 'urgent' as const } :
+    alertas.length > 0 ? { label: `${alertas.length} em alerta`, variant: 'warning' as const } :
+    { label: 'Tudo ok', variant: 'neutral' as const }
 
   type Row = typeof top10[number]
   const columns: EstoqueTableColumn<Row>[] = [
@@ -322,10 +270,10 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
   ]
 
   return (
-    <Section
-      icon={<AlertTriangle className="h-4 w-4" />}
-      title={<InfoTooltip label="Quando comprar" tip="O nível de estoque em que o sistema avisa: 'compra agora!'. Se você esperar mais, vai faltar produto antes do pedido chegar." />}
-      subtitle={isLoading ? 'Carregando...' : alertas.length === 0 ? 'Nenhum produto abaixo do ponto de pedido.' : `${alertas.length} produto${alertas.length !== 1 ? 's' : ''} abaixo do ponto de pedido`}
+    <SectionCard
+      icon={AlertTriangle}
+      title="Quando comprar"
+      subtitle="Produtos que já passaram do ponto de pedido. Se não comprar agora, vai faltar antes da entrega chegar."
       badge={badge}
       defaultOpen
     >
@@ -347,7 +295,7 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
           </button>
         }
       />
-    </Section>
+    </SectionCard>
   )
 }
 
@@ -358,12 +306,6 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
   const comEstoque = rows.filter(r => r.quantidade_atual > 0)
   const top10 = comEstoque.slice(0, 10)
   const valorTotal = rows.reduce((s, r) => s + Number(r.valor_parado_reais ?? 0), 0)
-
-  const badge = isLoading ? null : (
-    <span className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
-      {formatCurrency(valorTotal)} parado
-    </span>
-  )
 
   type Row = typeof top10[number]
   const columns: EstoqueTableColumn<Row>[] = [
@@ -409,11 +351,11 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
   ]
 
   return (
-    <Section
-      icon={<Clock className="h-4 w-4" />}
-      title={<InfoTooltip label="O que está parado" tip="Tempo médio que o produto fica parado em estoque entre comprar e vender. Quanto maior, mais dinheiro empatado." />}
-      subtitle="Produtos sentados há mais tempo no estoque. Cada dia parado é dinheiro empatado."
-      badge={badge}
+    <SectionCard
+      icon={Clock}
+      title="O que está parado"
+      subtitle="Produtos sentados no estoque há muito tempo. Cada dia parado é dinheiro empatado."
+      badge={isLoading ? undefined : { label: `${formatCurrency(valorTotal)} parado`, variant: 'warning' }}
     >
       <EstoqueTable
         columns={columns}
@@ -428,7 +370,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
           </button>
         }
       />
-    </Section>
+    </SectionCard>
   )
 }
 
@@ -439,10 +381,10 @@ function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) =>
   const hasData = (paretoData?.totalVendas ?? 0) >= 5
 
   return (
-    <Section
-      icon={<BarChart2 className="h-4 w-4" />}
-      title={<InfoTooltip label="O que mais vende" tip="Classifica produtos pelo quanto geram de receita. Classe A = 20% dos produtos que dão 80% do dinheiro. Princípio de Pareto." />}
-      subtitle="Os produtos que mais geram dinheiro pra você. Foco neles."
+    <SectionCard
+      icon={BarChart2}
+      title="O que mais vende"
+      subtitle="Curva ABC: 20% dos produtos geram 80% do faturamento. Estes são os que importam."
     >
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
@@ -460,7 +402,7 @@ function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) =>
           </>
         )}
       </div>
-    </Section>
+    </SectionCard>
   )
 }
 
@@ -469,15 +411,6 @@ function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) =>
 function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
   const { data: sugestoes = [], isLoading } = useEstoqueSugestoesMover()
   const top10 = sugestoes.slice(0, 10)
-
-  const badge = isLoading ? null : (
-    <span className={cn(
-      'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-      sugestoes.length > 0 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground',
-    )}>
-      {sugestoes.length === 0 ? 'Tudo OK' : `${sugestoes.length} sugestão${sugestoes.length !== 1 ? 'ões' : ''}`}
-    </span>
-  )
 
   type Row = typeof top10[number]
   const columns: EstoqueTableColumn<Row>[] = [
@@ -516,11 +449,14 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
   ]
 
   return (
-    <Section
-      icon={<ArrowLeftRight className="h-4 w-4" />}
+    <SectionCard
+      icon={ArrowLeftRight}
       title="Como reorganizar a loja"
-      subtitle="Sugestões pra deixar os produtos mais vendidos perto do balcão."
-      badge={badge}
+      subtitle="Sugestões pra deixar os produtos mais vendidos perto do balcão e os menos vendidos no fundo."
+      badge={isLoading ? undefined : sugestoes.length > 0
+        ? { label: `${sugestoes.length} sugestão${sugestoes.length !== 1 ? 'ões' : ''}`, variant: 'info' }
+        : undefined
+      }
     >
       <EstoqueTable
         columns={columns}
@@ -540,7 +476,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
           </button>
         }
       />
-    </Section>
+    </SectionCard>
   )
 }
 
@@ -553,10 +489,10 @@ function SecaoGiroMensal() {
     new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
   return (
-    <Section
-      icon={<TrendingUp className="h-4 w-4" />}
-      title={<InfoTooltip label="Evolução do giro" tip="Quantas vezes seu estoque inteiro é vendido e reposto num ano. Giro 6 = você 'troca' o estoque 6× por ano. Quanto maior, melhor." />}
-      subtitle="Quantas vezes seu estoque girou em cada mês do último ano."
+    <SectionCard
+      icon={Activity}
+      title="Evolução do giro"
+      subtitle="Quantas vezes seu estoque inteiro foi vendido e reposto em cada mês do último ano."
     >
       <div className="p-4 space-y-3">
         {giro && (
@@ -575,6 +511,6 @@ function SecaoGiroMensal() {
         )}
         <GiroMensalChart />
       </div>
-    </Section>
+    </SectionCard>
   )
 }
