@@ -29,21 +29,8 @@ const ABC_BADGE: Record<string, string> = {
 
 const COL_DIVIDER = 'border-l border-border/40'
 
-// Pills de filtro: opções fixas com poucas entradas
-const TIPO_PILLS: { value: TipoFilter; label: string }[] = [
-  { value: 'todos',     label: 'Todos' },
-  { value: 'tecido',    label: 'Tecido' },
-  { value: 'ferragem',  label: 'Ferragem' },
-  { value: 'acessorio', label: 'Acessório' },
-]
-
-const ABC_PILLS: { value: AbcFilter; label: string }[] = [
-  { value: 'todas',     label: 'Todas' },
-  { value: 'A',         label: 'A' },
-  { value: 'B',         label: 'B' },
-  { value: 'C',         label: 'C' },
-  { value: 'sem_dados', label: '—' },
-]
+const SELECT_CLASS =
+  'rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground outline-none hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all cursor-pointer'
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
   const [search, setSearch] = useState('')
@@ -124,53 +111,40 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
         {/* Linha 2 — filtros por pills + localização select + toggle */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
 
-          {/* Tipo — pills */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground mr-0.5">Tipo</span>
-            {TIPO_PILLS.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setTipoFilter(value)}
-                className={cn(
-                  'rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all',
-                  tipoFilter === value
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* Tipo */}
+          <select
+            value={tipoFilter}
+            onChange={(e) => setTipoFilter(e.target.value as TipoFilter)}
+            className={SELECT_CLASS}
+          >
+            <option value="todos">Tipo: todos</option>
+            <option value="tecido">Tecido</option>
+            <option value="ferragem">Ferragem</option>
+            <option value="acessorio">Acessório</option>
+          </select>
 
           <div className="h-4 border-l border-border/60" />
 
-          {/* Classe ABC — pills */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground mr-0.5">Classe</span>
-            {ABC_PILLS.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setAbcFilter(value)}
-                className={cn(
-                  'rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all',
-                  abcFilter === value
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* Classe ABC */}
+          <select
+            value={abcFilter}
+            onChange={(e) => setAbcFilter(e.target.value as AbcFilter)}
+            className={SELECT_CLASS}
+          >
+            <option value="todas">Classe: todas</option>
+            <option value="A">Classe A</option>
+            <option value="B">Classe B</option>
+            <option value="C">Classe C</option>
+            <option value="sem_dados">Sem dados</option>
+          </select>
 
           <div className="h-4 border-l border-border/60" />
 
-          {/* Localização — select (dados dinâmicos) */}
+          {/* Localização */}
           <select
             value={localizacaoFilter}
             onChange={(e) => setLocalizacaoFilter(e.target.value)}
-            className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs outline-none focus:border-primary transition-all text-foreground"
+            className={SELECT_CLASS}
           >
             <option value="todas">Localização: todas</option>
             <option value="sem">Sem localização</option>
