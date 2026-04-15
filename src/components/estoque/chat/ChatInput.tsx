@@ -1,19 +1,19 @@
 import { useState } from "react"
 import type { KeyboardEvent } from "react"
 import { Send } from "lucide-react"
+import { useChatStore } from "./store"
+import { useChatAPI } from "./useChatAPI"
 
-interface Props {
-  onEnviar: (texto: string) => void
-  loading: boolean
-}
-
-export function ChatInput({ onEnviar, loading }: Props) {
+export function ChatInput() {
   const [texto, setTexto] = useState("")
+  const { loading } = useChatStore()
+  const { enviarMensagem } = useChatAPI()
 
-  const enviar = () => {
+  const enviar = async () => {
     if (!texto.trim() || loading) return
-    onEnviar(texto.trim())
+    const txt = texto.trim()
     setTexto("")
+    await enviarMensagem(txt)
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {

@@ -25,6 +25,7 @@ import MoverItensView from '@/components/estoque/MoverItensView'
 import ConfiguracaoView from '@/components/estoque/ConfiguracaoView'
 import { ChatTrigger } from '@/components/estoque/chat/ChatTrigger'
 import { ChatDrawer } from '@/components/estoque/chat/ChatDrawer'
+import { ConfirmacaoAcao } from '@/components/estoque/chat/ConfirmacaoAcao'
 import { isAIEstoqueEnabled } from '@/components/estoque/chat/featureFlag'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
@@ -391,7 +392,12 @@ export default function TabEstoque({ toast }: Props) {
         userId={userId}
       />
 
-      {isAIEstoqueEnabled() && <ChatDrawer />}
+      {isAIEstoqueEnabled() && (
+        <>
+          <ChatDrawer />
+          <ConfirmacaoAcao />
+        </>
+      )}
     </div>
   )
 }

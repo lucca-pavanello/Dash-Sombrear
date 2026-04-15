@@ -1,4 +1,5 @@
 import { Sparkles, ShoppingCart, TrendingUp, Clock, Package, Calculator } from "lucide-react"
+import { useChatAPI } from "./useChatAPI"
 
 const SUGESTOES = [
   { icon: TrendingUp, texto: "Como está meu estoque hoje?", categoria: "Visão geral" },
@@ -9,11 +10,9 @@ const SUGESTOES = [
   { icon: Sparkles, texto: "Me dá um insight sobre meu negócio", categoria: "IA" },
 ]
 
-interface Props {
-  onUsar: (texto: string) => void
-}
+export function ChatSugestoes() {
+  const { enviarMensagem } = useChatAPI()
 
-export function ChatSugestoes({ onUsar }: Props) {
   return (
     <div className="space-y-4">
       <div className="text-center py-6">
@@ -29,7 +28,7 @@ export function ChatSugestoes({ onUsar }: Props) {
         {SUGESTOES.map((sug, i) => (
           <button
             key={i}
-            onClick={() => onUsar(sug.texto)}
+            onClick={() => enviarMensagem(sug.texto)}
             className="w-full flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-colors text-left group"
           >
             <div className="h-8 w-8 rounded-lg bg-gray-50 group-hover:bg-orange-100 flex items-center justify-center flex-shrink-0 transition-colors">
