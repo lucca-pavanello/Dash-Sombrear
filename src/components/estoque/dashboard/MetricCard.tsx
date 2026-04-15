@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
   subtitle?: string
   icon: LucideIcon
   accent?: 'default' | 'primary' | 'amber' | 'orange' | 'slate'
+  onClick?: () => void
 }
 
 const ACCENT_CLASSES: Record<NonNullable<Props['accent']>, string> = {
@@ -16,10 +18,17 @@ const ACCENT_CLASSES: Record<NonNullable<Props['accent']>, string> = {
   slate:   'border-l-slate-400 text-slate-500',
 }
 
-export default function MetricCard({ title, value, subtitle, icon: Icon, accent = 'default' }: Props) {
+export default function MetricCard({ title, value, subtitle, icon: Icon, accent = 'default', onClick }: Props) {
   const accentCls = ACCENT_CLASSES[accent]
   return (
-    <div className={`rounded-xl border-2 border-l-4 bg-card shadow-sm px-4 py-3 flex items-center gap-3 ${accentCls}`}>
+    <div
+      onClick={onClick}
+      className={cn(
+        'rounded-xl border-2 border-l-4 bg-card shadow-sm px-4 py-3 flex items-center gap-3 transition-shadow',
+        accentCls,
+        onClick && 'cursor-pointer hover:shadow-md',
+      )}
+    >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
         <Icon className="h-4 w-4 text-muted-foreground" />
       </div>

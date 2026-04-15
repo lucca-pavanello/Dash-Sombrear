@@ -263,6 +263,7 @@ export default function TabEstoque({ toast }: Props) {
           onNavigateToLeadTime={() => setSubTab('lead-time')}
           onNavigateToAnalises={() => setSubTab('analises')}
           onNavigateToSugestao={() => setSubTab('sugestao')}
+          onNavigateToLocalizacoes={() => setSubTab('localizacoes')}
         />
       )}
 
