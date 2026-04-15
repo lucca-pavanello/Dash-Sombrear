@@ -2,10 +2,11 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Save } from 'lucide-react'
+import { Save, Clock, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueConfig, useSalvarConfig } from '@/hooks/useEstoqueConfig'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { INPUT_CLASSES, LABEL_CLASS } from '@/components/estoque/shared/inputStyles'
 import type { ToastType } from '@/hooks/useToast'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -39,11 +40,13 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-// ─── Seções (extensível para Fase 4) ─────────────────────────────────────────
+// ─── Seções ───────────────────────────────────────────────────────────────────
 
 type ConfigSection = {
   title: string
   description?: string
+  icon: React.ReactNode
+  tooltip: string
   fields: {
     key: string
     label: string
@@ -59,6 +62,8 @@ const SECTIONS: ConfigSection[] = [
     title: 'Lead Time',
     description:
       'Verde é saudável (produto girando). Entre verde e amarelo é alerta. Acima do amarelo é crítico.',
+    icon: <Clock className="h-4 w-4 text-orange-600" />,
+    tooltip: 'Tempo médio que o produto fica parado em estoque entre a compra e a venda. Quanto maior, mais dinheiro empatado.',
     fields: [
       {
         key: 'lead_time_verde_max_dias',
@@ -75,6 +80,8 @@ const SECTIONS: ConfigSection[] = [
   {
     title: 'Parâmetros de Compra',
     description: 'Usados no cálculo do Lote Econômico de Compra (LEC) para sugestões de reposição.',
+    icon: <ShoppingCart className="h-4 w-4 text-orange-600" />,
+    tooltip: 'Usados no cálculo do LEC (Lote Econômico de Compra). Afetam as sugestões de reposição.',
     fields: [
       {
         key: 'custo_pedido_reais',
@@ -122,11 +129,6 @@ interface Props {
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-const inputClass =
-  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-
-const inputErrorClass = 'border-red-400 focus:border-red-500'
-
 export default function ConfiguracaoView({ toast }: Props) {
   const { data: config, isLoading } = useEstoqueConfig()
   const salvar = useSalvarConfig()
@@ -138,7 +140,6 @@ export default function ConfiguracaoView({ toast }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  // Popula o form quando os dados chegam do banco
   useEffect(() => {
     if (!config) return
     reset({
@@ -155,7 +156,6 @@ export default function ConfiguracaoView({ toast }: Props) {
       chave: FIELD_TO_KEY[field],
       valor: String(data[field]),
     }))
-
     try {
       await salvar.mutateAsync(rows)
       toast('success', 'Configurações salvas')
@@ -165,77 +165,68 @@ export default function ConfiguracaoView({ toast }: Props) {
   }
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div>
-        <h3 className="font-display text-base font-semibold">Configurações do Estoque</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Ajuste os parâmetros de alertas e cálculos do módulo.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {SECTIONS.map((section) => (
-          <div
-            key={section.title}
-            className="rounded-xl border bg-card shadow-sm p-5 space-y-4"
-          >
-            {/* Cabeçalho da seção */}
-            <div>
-              <h4 className="text-sm font-semibold">
-                {section.title === 'Lead Time' ? (
-                  <InfoTooltip label="Lead Time" tip="Tempo médio que o produto fica parado em estoque entre a compra e a venda. Quanto maior, mais dinheiro empatado." />
-                ) : section.title === 'Parâmetros de Compra' ? (
-                  <InfoTooltip label="Parâmetros de Compra" tip="Usados no cálculo do LEC (Lote Econômico de Compra). Afetam as sugestões de reposição." />
-                ) : section.title}
-              </h4>
-              {section.description && (
-                <p className="text-xs text-muted-foreground mt-0.5">{section.description}</p>
-              )}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {SECTIONS.map((section) => (
+        <div
+          key={section.title}
+          className="rounded-xl border bg-card shadow-sm p-5 space-y-4"
+        >
+          {/* Cabeçalho do card */}
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+              {section.icon}
             </div>
-
-            {/* Campos */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              {section.fields.map((field) => {
-                const err = errors[field.formField]
-                return (
-                  <div key={field.key} className="space-y-1">
-                    <label className="text-xs font-medium text-foreground">
-                      {field.label}
-                    </label>
-                    <input
-                      type="number"
-                      min={field.min ?? 1}
-                      step={field.step ?? 1}
-                      disabled={isLoading}
-                      {...register(field.formField, { valueAsNumber: true })}
-                      className={cn(inputClass, err && inputErrorClass)}
-                    />
-                    {field.helpText && (
-                      <p className="text-[11px] text-muted-foreground">{field.helpText}</p>
-                    )}
-                    {err && (
-                      <p className="text-xs text-red-500">{err.message}</p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+            <h4 className="text-sm font-semibold">
+              <InfoTooltip label={section.title} tip={section.tooltip} />
+            </h4>
           </div>
-        ))}
 
-        {/* Botão salvar */}
-        <div className="flex">
-          <button
-            type="submit"
-            disabled={isSubmitting || isLoading || salvar.isPending}
-            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <Save className="h-4 w-4" />
-            {isSubmitting || salvar.isPending ? 'Salvando...' : 'Salvar configurações'}
-          </button>
+          {section.description && (
+            <p className="text-xs text-muted-foreground text-center">{section.description}</p>
+          )}
+
+          {/* Campos */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            {section.fields.map((field) => {
+              const err = errors[field.formField]
+              return (
+                <div key={field.key} className="space-y-1">
+                  <label className={LABEL_CLASS}>{field.label}</label>
+                  <input
+                    type="number"
+                    min={field.min ?? 1}
+                    step={field.step ?? 1}
+                    disabled={isLoading}
+                    {...register(field.formField, { valueAsNumber: true })}
+                    className={cn(
+                      INPUT_CLASSES,
+                      err && '!border-red-400 focus:!border-red-500 focus:!ring-red-500',
+                    )}
+                  />
+                  {field.helpText && (
+                    <p className="text-[11px] text-muted-foreground text-center">{field.helpText}</p>
+                  )}
+                  {err && (
+                    <p className="text-xs text-red-500 text-center">{err.message}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </form>
-    </div>
+      ))}
+
+      {/* Botão salvar */}
+      <div className="flex justify-center mt-6">
+        <button
+          type="submit"
+          disabled={isSubmitting || isLoading || salvar.isPending}
+          className="flex items-center gap-2 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Save className="h-4 w-4" />
+          {isSubmitting || salvar.isPending ? 'Salvando...' : 'Salvar configurações'}
+        </button>
+      </div>
+    </form>
   )
 }
