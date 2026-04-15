@@ -88,7 +88,7 @@ export default function LocalizacoesTable({ toast }: Props) {
                 <th className={cn(tbl.th, 'text-left')}>Posição</th>
                 <th className={cn(tbl.th, 'text-left')}>Nível de acesso</th>
                 <th className={cn(tbl.th, 'text-right')}>Produtos</th>
-                <th className={cn(tbl.th, 'text-right')}>Ações</th>
+                <th className={cn(tbl.th, 'text-right border-r-0')}>Ações</th>
               </tr>
             </thead>
             <tbody>

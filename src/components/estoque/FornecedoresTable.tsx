@@ -77,7 +77,7 @@ export default function FornecedoresTable({ toast }: Props) {
                 <th className={cn(tbl.th, 'text-left')}>Telefone</th>
                 <th className={cn(tbl.th, 'text-left')}>CNPJ</th>
                 <th className={cn(tbl.th, 'text-right')}>Prazo entrega</th>
-                <th className={cn(tbl.th, 'text-right')}>Ações</th>
+                <th className={cn(tbl.th, 'text-right border-r-0')}>Ações</th>
               </tr>
             </thead>
             <tbody>

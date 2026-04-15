@@ -175,7 +175,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
               <th className={cn(tbl.th, 'text-center hidden sm:table-cell')}>
                 <InfoTooltip label="ABC" tip="Classifica produtos pelo quanto geram de receita. Classe A = 20% dos produtos que dão 80% do dinheiro. Princípio de Pareto." />
               </th>
-              <th className={cn(tbl.th, 'text-right pr-6')}>Ações</th>
+              <th className={cn(tbl.th, 'text-right pr-6 border-r-0')}>Ações</th>
             </tr>
           </thead>
           <tbody>
