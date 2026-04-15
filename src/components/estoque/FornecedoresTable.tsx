@@ -51,126 +51,135 @@ export default function FornecedoresTable({ toast }: Props) {
     <>
       <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 border-b px-4 py-3">
-          <div className="relative flex-1 w-full sm:max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <div className="flex items-center gap-3 border-b px-4 py-3">
+          <div className="relative flex-1 max-w-3xl">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar fornecedor..."
-              className="w-full rounded-lg border bg-background py-2 pl-8 pr-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all"
+              placeholder="Buscar fornecedor por nome, contato ou CNPJ..."
+              className="w-full rounded-lg border border-gray-200 bg-background h-10 pl-10 pr-3 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
             />
           </div>
           <button
             onClick={handleNovo}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors ml-auto"
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 h-10 text-sm font-semibold text-white hover:bg-primary/90 transition-colors shrink-0"
           >
             <Plus className="h-3.5 w-3.5" />
             Novo Fornecedor
           </button>
         </div>
 
-        {/* Table header */}
-        <div className="hidden sm:grid grid-cols-[1fr_140px_140px_110px_48px] gap-4 border-b bg-muted/40 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          <span>Fornecedor / Contato</span>
-          <span>Telefone</span>
-          <span>CNPJ</span>
-          <span>Prazo entrega</span>
-          <span />
-        </div>
-
-        {/* Rows */}
-        {isLoading ? (
-          <div className="flex flex-col gap-2 p-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 rounded-lg skeleton-shimmer" />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Truck className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground">
-              {search ? 'Nenhum fornecedor encontrado' : 'Nenhum fornecedor cadastrado'}
-            </p>
-            {!search && (
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Clique em "Novo Fornecedor" para começar
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="divide-y">
-            {filtered.map((f) => (
-              <div
-                key={f.id}
-                className="grid grid-cols-1 sm:grid-cols-[1fr_140px_140px_110px_48px] gap-2 sm:gap-4 px-4 py-3 hover:bg-muted/30 transition-colors items-center"
-              >
-                {/* Nome + contato */}
-                <div>
-                  <p className="text-sm font-semibold">{f.nome}</p>
-                  {f.contato && (
-                    <p className="text-xs text-muted-foreground">{f.contato}</p>
-                  )}
-                  {f.email && (
-                    <p className="text-xs text-muted-foreground/70">{f.email}</p>
-                  )}
-                </div>
-
-                {/* Telefone */}
-                <p className="text-sm text-muted-foreground hidden sm:block">
-                  {f.telefone ?? '—'}
-                </p>
-
-                {/* CNPJ */}
-                <p className="text-sm text-muted-foreground hidden sm:block">
-                  {f.cnpj ?? '—'}
-                </p>
-
-                {/* Prazo */}
-                <div className="hidden sm:flex items-center gap-1.5">
-                  {f.prazo_entrega_dias != null ? (
-                    <>
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        {f.prazo_entrega_dias} {f.prazo_entrega_dias === 1 ? 'dia' : 'dias'}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </div>
-
-                {/* Ações */}
-                <div className="flex items-center gap-1 justify-end sm:justify-center">
-                  <button
-                    onClick={() => handleEditar(f)}
-                    title="Editar"
-                    className={cn(
-                      'rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ minWidth: '640px' }}>
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fornecedor / Contato</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Telefone</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">CNPJ</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Prazo entrega</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8">
+                    <div className="flex flex-col gap-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-10 rounded-lg skeleton-shimmer" />
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-16 text-center">
+                    <Truck className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {search ? 'Nenhum fornecedor encontrado' : 'Nenhum fornecedor cadastrado'}
+                    </p>
+                    {!search && (
+                      <p className="text-xs text-muted-foreground/60 mt-1">
+                        Clique em "Novo Fornecedor" para começar
+                      </p>
                     )}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDesativar(f)}
-                    title="Remover"
-                    disabled={updateMutation.isPending}
-                    className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
-                  >
-                    <span className="text-xs font-bold leading-none">✕</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((f) => (
+                  <tr key={f.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-150">
+                    {/* Nome + contato */}
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-foreground">{f.nome}</p>
+                      {f.contato && (
+                        <p className="text-xs text-muted-foreground">{f.contato}</p>
+                      )}
+                      {f.email && (
+                        <p className="text-xs text-muted-foreground/70">{f.email}</p>
+                      )}
+                    </td>
 
-        {/* Footer count */}
-        {filtered.length > 0 && (
-          <div className="border-t px-4 py-2 text-xs text-muted-foreground">
-            {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}
-          </div>
-        )}
+                    {/* Telefone */}
+                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                      {f.telefone ?? '—'}
+                    </td>
+
+                    {/* CNPJ */}
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                      {f.cnpj ?? '—'}
+                    </td>
+
+                    {/* Prazo */}
+                    <td className="px-4 py-3 text-right">
+                      {f.prazo_entrega_dias != null ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5 shrink-0" />
+                          {f.prazo_entrega_dias} {f.prazo_entrega_dias === 1 ? 'dia' : 'dias'}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Ações */}
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEditar(f)}
+                          title="Editar"
+                          className={cn(
+                            'rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
+                          )}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDesativar(f)}
+                          title="Remover"
+                          disabled={updateMutation.isPending}
+                          className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                        >
+                          <span className="text-xs font-bold leading-none">✕</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-border" style={{ backgroundColor: 'hsl(var(--muted))' }}>
+                  <td colSpan={5} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
       </div>
 
       <NovoFornecedorForm
