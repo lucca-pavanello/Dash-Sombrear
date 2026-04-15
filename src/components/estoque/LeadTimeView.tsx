@@ -5,17 +5,12 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { formatCurrency, formatCompact } from '@/lib/utils'
 import KpiCard from '@/components/shared/KpiCard'
 import { useLeadTimeRows, useLeadTimeConfig } from '@/hooks/useEstoqueLeadTime'
+import { ClasseABC } from './shared/ClasseABC'
 import type { LeadTimeConfig } from '@/hooks/useEstoqueLeadTime'
 import type { ToastType } from '@/hooks/useToast'
 
 // ─── Constantes visuais ───────────────────────────────────────────────────────
 
-const ABC_BADGE: Record<string, string> = {
-  A:         'bg-primary/10 text-primary',
-  B:         'bg-muted text-foreground',
-  C:         'bg-muted/60 text-muted-foreground',
-  sem_dados: 'bg-muted text-muted-foreground italic',
-}
 
 type Nivel = 'verde' | 'amarelo' | 'vermelho' | 'neutro'
 
@@ -256,12 +251,7 @@ export default function LeadTimeView(_: Props) {
 
                   {/* Classe ABC */}
                   <div className="flex items-center">
-                    <span className={cn(
-                      'inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold',
-                      ABC_BADGE[abc] ?? ABC_BADGE['sem_dados']
-                    )}>
-                      {abc === 'sem_dados' ? '—' : abc}
-                    </span>
+                    <ClasseABC classe={abc === 'sem_dados' ? null : abc} />
                   </div>
 
                   {/* Estoque atual */}

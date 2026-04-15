@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react'
 import { ArrowLeftRight, MoveRight, Package, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import {
   useEstoqueSugestoesMover,
   useTotalProdutosAnalisados,
   useMoverProduto,
 } from '@/hooks/useEstoqueSugestoesMover'
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
-import { NIVEIS_ACESSO, CLASSES_ABC } from '@/lib/constants'
+import { NIVEIS_ACESSO } from '@/lib/constants'
+import { ClasseABC } from './shared/ClasseABC'
 import type { EstoqueSugestaoMover } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -17,11 +17,6 @@ interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
-const ABC_BADGE: Record<string, string> = {
-  A: 'bg-primary/10 text-primary',
-  B: 'bg-muted text-foreground',
-  C: 'bg-muted/60 text-muted-foreground',
-}
 
 export default function MoverItensView({ toast }: Props) {
   const [classeFilter, setClasseFilter] = useState<ClasseFilter>('todas')
@@ -179,12 +174,7 @@ export default function MoverItensView({ toast }: Props) {
                       <span className="font-medium">{s.nome}</span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={cn(
-                        'inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold',
-                        ABC_BADGE[s.classe_abc] ?? 'bg-muted text-muted-foreground',
-                      )}>
-                        {CLASSES_ABC[s.classe_abc] ?? s.classe_abc}
-                      </span>
+                      <ClasseABC classe={s.classe_abc} />
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground hidden md:table-cell">
                       {s.localizacao_codigo}
@@ -220,7 +210,7 @@ export default function MoverItensView({ toast }: Props) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="dialog-mover-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-md px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-xl px-4"
         >
           <div className="w-full max-w-sm bg-card rounded-2xl shadow-elevated">
             {/* Header */}

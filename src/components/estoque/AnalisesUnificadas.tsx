@@ -17,6 +17,7 @@ import RecalcularABCButton from './dashboard/RecalcularABCButton'
 import GiroMensalChart from './analises/GiroMensalChart'
 import SectionCard from './shared/SectionCard'
 import EstoqueTable, { type EstoqueTableColumn } from './shared/EstoqueTable'
+import { ClasseABC } from './shared/ClasseABC'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { ToastType } from '@/hooks/useToast'
 import type { NivelAlerta } from './theme'
@@ -29,25 +30,6 @@ const fmtBRL = (v: number) =>
 const fmtNum = (v: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
-function AbcBadge({ cls }: { cls: string | null }) {
-  const c = cls ?? 'sem_dados'
-  const colorMap: Record<string, string> = {
-    A:         'bg-orange-100 text-orange-800',
-    B:         'bg-gray-800 text-white',
-    C:         'bg-gray-200 text-gray-700',
-    sem_dados: 'bg-gray-50 text-gray-400 italic border border-gray-200',
-  }
-  const isSemDados = c === 'sem_dados'
-  return (
-    <span className={cn(
-      'inline-flex items-center justify-center rounded-full text-[11px] font-bold',
-      isSemDados ? 'h-6 px-2' : 'h-6 w-6',
-      colorMap[c] ?? colorMap.sem_dados,
-    )}>
-      {isSemDados ? '—' : c}
-    </span>
-  )
-}
 
 function NivelBadge({ nivel }: { nivel: NivelAlerta }) {
   const colorMap: Record<string, string> = {
@@ -244,7 +226,7 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
       key: 'classe',
       header: 'Classe',
       align: 'center',
-      cell: (r) => <AbcBadge cls={r.classe_abc} />,
+      cell: (r) => <ClasseABC classe={r.classe_abc} />,
     },
     {
       key: 'estoque',
@@ -319,7 +301,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
       key: 'classe',
       header: 'Classe',
       align: 'center',
-      cell: (r) => <AbcBadge cls={r.classificacao_abc} />,
+      cell: (r) => <ClasseABC classe={r.classificacao_abc} />,
     },
     {
       key: 'dias',
@@ -424,7 +406,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
       key: 'classe',
       header: 'Classe',
       align: 'center',
-      cell: (r) => <AbcBadge cls={r.classe_abc} />,
+      cell: (r) => <ClasseABC classe={r.classe_abc} />,
     },
     {
       key: 'local_atual',

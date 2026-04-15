@@ -6,8 +6,9 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
-import { TIPOS_PRODUTO, CLASSES_ABC } from '@/lib/constants'
+import { TIPOS_PRODUTO } from '@/lib/constants'
 import { tbl } from './shared/tableStyles'
+import { ClasseABC } from './shared/ClasseABC'
 import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -22,12 +23,6 @@ interface Props {
   onMovimentar: (p: EstoqueProduto, tipo: TipoMov) => void
 }
 
-const ABC_BADGE: Record<string, string> = {
-  A:         'bg-primary/10 text-primary',
-  B:         'bg-muted text-foreground',
-  C:         'bg-muted/60 text-muted-foreground',
-  sem_dados: 'bg-muted/40 text-muted-foreground/60 italic border border-border',
-}
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
   const [search, setSearch] = useState('')
@@ -245,14 +240,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                       {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
-                      <span className={cn(
-                        abc === 'sem_dados'
-                          ? 'inline-flex h-6 px-2 items-center justify-center rounded-full text-xs italic'
-                          : 'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
-                        ABC_BADGE[abc],
-                      )}>
-                        {CLASSES_ABC[abc] ?? abc}
-                      </span>
+                      <ClasseABC classe={abc === 'sem_dados' ? null : abc} />
                     </td>
                     <td className={cn(tbl.actionTd, 'pr-6')}>
                       <div className={tbl.actionGroup}>

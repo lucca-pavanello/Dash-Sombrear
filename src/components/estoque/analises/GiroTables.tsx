@@ -1,4 +1,5 @@
 import { useTopMelhorGiro, useTopPiorGiro } from '@/hooks/useEstoqueAnalytics'
+import { ClasseABC } from '../shared/ClasseABC'
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -6,21 +7,6 @@ const fmtBRL = (v: number) =>
 const fmtNum = (v: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
-const ABC_BADGE: Record<string, string> = {
-  A:         'bg-primary/10 text-primary',
-  B:         'bg-muted text-foreground',
-  C:         'bg-muted/60 text-muted-foreground',
-  sem_dados: 'bg-muted text-muted-foreground italic',
-}
-
-function AbcBadge({ cls }: { cls: string | null }) {
-  const c = cls ?? 'sem_dados'
-  return (
-    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${ABC_BADGE[c] ?? ABC_BADGE.sem_dados}`}>
-      {c === 'sem_dados' ? '—' : c}
-    </span>
-  )
-}
 
 function TableSkeleton() {
   return (
@@ -64,7 +50,7 @@ function MelhorGiroTable() {
                   <td className="px-3 py-2 text-xs text-muted-foreground">{i + 1}</td>
                   <td className="px-3 py-2 font-mono text-xs">{item.codigo}</td>
                   <td className="px-3 py-2 max-w-[120px] truncate text-xs font-medium" title={item.nome}>{item.nome}</td>
-                  <td className="px-3 py-2 text-center"><AbcBadge cls={item.classificacao_abc} /></td>
+                  <td className="px-3 py-2 text-center"><ClasseABC classe={item.classificacao_abc} /></td>
                   <td className="px-3 py-2 text-right text-xs tabular-nums font-medium">{fmtBRL(item.valor_vendido_90d)}</td>
                   <td className="px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">{fmtNum(item.quantidade_atual)}</td>
                 </tr>
@@ -110,7 +96,7 @@ function PiorGiroTable() {
                   <td className="px-3 py-2 text-xs text-muted-foreground">{i + 1}</td>
                   <td className="px-3 py-2 font-mono text-xs">{item.codigo}</td>
                   <td className="px-3 py-2 max-w-[110px] truncate text-xs font-medium" title={item.nome}>{item.nome}</td>
-                  <td className="px-3 py-2 text-center"><AbcBadge cls={item.classificacao_abc} /></td>
+                  <td className="px-3 py-2 text-center"><ClasseABC classe={item.classificacao_abc} /></td>
                   <td className="px-3 py-2 text-right text-xs tabular-nums">
                     {item.dias_sem_vender !== null
                       ? <span className={item.dias_sem_vender > 60 ? 'text-muted-foreground font-semibold' : ''}>{item.dias_sem_vender}d</span>

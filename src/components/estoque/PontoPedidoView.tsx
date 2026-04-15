@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import KpiCard from '@/components/shared/KpiCard'
 import { useEstoquePontoPedido } from '@/hooks/useEstoquePontoPedido'
+import { ClasseABC } from './shared/ClasseABC'
 import type { NivelAlerta } from './theme'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -36,19 +37,6 @@ const NIVEL_LABEL: Record<NivelAlerta, string> = {
   sem_dados:'—',
 }
 
-function AbcBadge({ cls }: { cls: string | null }) {
-  const c = cls ?? 'sem_dados'
-  const style =
-    c === 'A' ? 'bg-primary/10 text-primary' :
-    c === 'B' ? 'bg-muted text-foreground' :
-    c === 'C' ? 'bg-muted/60 text-muted-foreground' :
-                'text-muted-foreground italic text-[10px]'
-  return (
-    <span className={cn('inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold', style)}>
-      {c === 'sem_dados' ? '—' : c}
-    </span>
-  )
-}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -202,7 +190,7 @@ export default function PontoPedidoView(_: Props) {
 
                 {/* Classe ABC */}
                 <div className="flex items-center">
-                  <AbcBadge cls={row.classe_abc} />
+                  <ClasseABC classe={row.classe_abc} />
                 </div>
 
                 {/* Estoque atual */}
