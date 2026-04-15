@@ -5,13 +5,16 @@ import { ShoppingCart, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
-import { useVendas, useRegistrarVenda } from '@/hooks/useEstoqueVendas'
+import { useVendas, useRegistrarVenda, useVendedores } from '@/hooks/useEstoqueVendas'
+import DatePicker from '@/components/ui/DatePicker'
+import { CustomSelect } from '@/components/ui/CustomSelect'
+import { tbl } from './shared/tableStyles'
 import type { ToastType } from '@/hooks/useToast'
 
 const inputClass =
-  'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
+  'w-full rounded-lg border border-gray-200 bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-orange-500 transition-all duration-150'
 const labelClass =
-  'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
+  'mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-600'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -25,6 +28,7 @@ const itemSchema = z.object({
 const schema = z.object({
   cliente:    z.string().optional(),
   data:       z.string().min(1, 'Informe a data'),
+  vendedor:   z.string().optional(),
   observacao: z.string().optional(),
   itens:      z.array(itemSchema).min(1, 'Adicione pelo menos 1 item'),
 })
@@ -49,7 +53,13 @@ interface Props {
 export default function RegistroVendasView({ toast, responsavel, userId, onVerDetalhe }: Props) {
   const { data: produtos = [] } = useEstoqueProdutos()
   const { data: vendas = [], isLoading: loadingVendas } = useVendas()
+  const { data: vendedores = [] } = useVendedores()
   const registrar = useRegistrarVenda()
+
+  const produtoOptions = produtos.map((p) => ({
+    value: p.id,
+    label: p.codigo ? `${p.codigo} — ${p.nome}` : p.nome,
+  }))
 
   const {
     register,
@@ -64,6 +74,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
     defaultValues: {
       cliente:    '',
       data:       hoje(),
+      vendedor:   responsavel,
       observacao: '',
       itens:      [{ produto_id: '', quantidade: undefined as unknown as number, preco_unitario: undefined as unknown as number, desconto: 0 }],
     },
@@ -71,6 +82,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
 
   const { fields, append, remove } = useFieldArray({ control, name: 'itens' })
   const watchedItens = watch('itens')
+  const dataValue = watch('data')
 
   // Autopreenchimento de preco_unitario ao selecionar produto
   function handleProdutoChange(index: number, produtoId: string) {
@@ -100,10 +112,12 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
 
   async function onSubmit(data: FormData) {
     try {
+      const vendedorFinal = data.vendedor?.trim() || responsavel
       const vendaId = await registrar.mutateAsync({
         data:        data.data,
         cliente:     data.cliente,
         observacao:  data.observacao,
+        vendedor:    vendedorFinal,
         vendedor_id: userId,
         itens:       data.itens,
       })
@@ -119,6 +133,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
       reset({
         cliente:    '',
         data:       hoje(),
+        vendedor:   responsavel,
         observacao: '',
         itens:      [{ produto_id: '', quantidade: undefined as unknown as number, preco_unitario: undefined as unknown as number, desconto: 0 }],
       })
@@ -131,16 +146,8 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h3 className="font-display text-base font-semibold">Registro de Vendas</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Registre vendas com um ou mais itens. O estoque é baixado automaticamente.
-        </p>
-      </div>
-
       {/* Formulário */}
-      <form onSubmit={handleSubmit(onSubmit)} className="rounded-xl border-2 bg-card shadow-sm p-5 space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
         {/* Parte 1 — Dados da venda */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -155,10 +162,9 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
           </div>
           <div>
             <label className={labelClass}>Data *</label>
-            <input
-              type="date"
-              {...register('data')}
-              className={cn(inputClass, errors.data && 'border-destructive')}
+            <DatePicker
+              value={dataValue}
+              onChange={(v) => setValue('data', v, { shouldValidate: true })}
             />
             {errors.data && <p className="mt-1 text-xs text-destructive">{errors.data.message}</p>}
           </div>
@@ -169,10 +175,14 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
             <label className={labelClass}>Vendedor</label>
             <input
               type="text"
-              value={responsavel}
-              readOnly
-              className={cn(inputClass, 'bg-muted/40 cursor-default text-muted-foreground')}
+              list="vendedores-list"
+              {...register('vendedor')}
+              placeholder={responsavel || 'Nome do vendedor'}
+              className={inputClass}
             />
+            <datalist id="vendedores-list">
+              {vendedores.map((v) => <option key={v} value={v} />)}
+            </datalist>
           </div>
           <div>
             <label className={labelClass}>Observação</label>
@@ -217,21 +227,15 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                   {/* Produto */}
                   <div>
                     <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Produto</label>
-                    <select
-                      {...register(`itens.${index}.produto_id`)}
-                      onChange={(e) => {
-                        register(`itens.${index}.produto_id`).onChange(e)
-                        handleProdutoChange(index, e.target.value)
+                    <CustomSelect
+                      value={watchedItens[index]?.produto_id ?? ''}
+                      onChange={(v) => {
+                        setValue(`itens.${index}.produto_id`, v, { shouldValidate: true })
+                        handleProdutoChange(index, v)
                       }}
-                      className={cn(inputClass, 'py-2', errors.itens?.[index]?.produto_id && 'border-destructive')}
-                    >
-                      <option value="">Selecione...</option>
-                      {produtos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.codigo ? `${p.codigo} — ` : ''}{p.nome}
-                        </option>
-                      ))}
-                    </select>
+                      options={produtoOptions}
+                      placeholder="Selecione o produto..."
+                    />
                     {errors.itens?.[index]?.produto_id && (
                       <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].produto_id?.message}</p>
                     )}
@@ -246,7 +250,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       step="0.001"
                       placeholder="0"
                       {...register(`itens.${index}.quantidade`, { valueAsNumber: true })}
-                      className={cn(inputClass, 'py-2', errors.itens?.[index]?.quantidade && 'border-destructive')}
+                      className={cn(inputClass, 'py-2 text-right', errors.itens?.[index]?.quantidade && 'border-destructive')}
                     />
                     {errors.itens?.[index]?.quantidade && (
                       <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].quantidade?.message}</p>
@@ -262,7 +266,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       step="0.01"
                       placeholder="0,00"
                       {...register(`itens.${index}.preco_unitario`, { valueAsNumber: true })}
-                      className={cn(inputClass, 'py-2', errors.itens?.[index]?.preco_unitario && 'border-destructive')}
+                      className={cn(inputClass, 'py-2 text-right', errors.itens?.[index]?.preco_unitario && 'border-destructive')}
                     />
                   </div>
 
@@ -275,7 +279,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       step="0.01"
                       placeholder="0,00"
                       {...register(`itens.${index}.desconto`, { valueAsNumber: true })}
-                      className={cn(inputClass, 'py-2')}
+                      className={cn(inputClass, 'py-2 text-right')}
                     />
                   </div>
 
@@ -286,7 +290,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       type="text"
                       readOnly
                       value={formatCurrency(sub)}
-                      className={cn(inputClass, 'py-2 bg-muted/40 cursor-default text-right font-semibold')}
+                      className={cn(inputClass, 'py-2 bg-muted/40 cursor-default text-right font-semibold text-orange-700')}
                     />
                   </div>
 
@@ -313,9 +317,9 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
         </div>
 
         {/* Total */}
-        <div className="flex items-center justify-between rounded-xl bg-primary/10 border border-primary/20 px-5 py-3">
-          <span className="text-sm font-semibold text-muted-foreground">Total da venda</span>
-          <span className="font-display text-xl font-bold text-primary">{formatCurrency(totalVenda)}</span>
+        <div className="flex items-center justify-between bg-orange-50 rounded-lg px-4 py-3">
+          <span className="text-sm font-medium text-gray-700">Total da venda</span>
+          <span className="text-xl font-bold text-orange-700">{formatCurrency(totalVenda)}</span>
         </div>
 
         {/* Submit */}
@@ -332,7 +336,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
       </form>
 
       {/* Histórico */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className={tbl.container}>
         <div className="px-5 py-3 border-b">
           <p className="text-sm font-semibold">Histórico de vendas</p>
           <p className="text-xs text-muted-foreground">Últimas 50 vendas registradas</p>
@@ -350,12 +354,12 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/30">
-                  {['Data', 'Cliente', 'Nº itens', 'Total', 'Vendedor'].map((h) => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
+                <tr className={tbl.theadRow}>
+                  <th className={tbl.th}>Data</th>
+                  <th className={tbl.th}>Cliente</th>
+                  <th className={tbl.th}>Vendedor</th>
+                  <th className={cn(tbl.th, 'text-right')}>Nº itens</th>
+                  <th className={cn(tbl.th, 'text-right border-r-0')}>Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -363,24 +367,31 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                   <tr
                     key={venda.id}
                     onClick={() => onVerDetalhe(venda.id)}
-                    className="border-b last:border-0 hover:bg-muted/40 cursor-pointer transition-colors"
+                    className={cn(tbl.tbodyRow, 'cursor-pointer')}
                   >
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className={cn(tbl.td, 'whitespace-nowrap')}>
                       {new Date(venda.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className={tbl.td}>
                       {venda.cliente || <span className="italic text-muted-foreground/60">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-center">{venda.num_itens}</td>
-                    <td className="px-4 py-3 font-semibold text-primary whitespace-nowrap">
-                      {formatCurrency(venda.total)}
+                    <td className={tbl.td}>
+                      {(venda.vendedor || venda.vendedor_nome) || <span className="italic text-muted-foreground/60">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {venda.vendedor_nome || <span className="italic text-muted-foreground/60">—</span>}
+                    <td className={cn(tbl.td, 'text-right')}>{venda.num_itens}</td>
+                    <td className={cn(tbl.td, 'text-right font-semibold text-orange-700 whitespace-nowrap border-r-0')}>
+                      {formatCurrency(venda.total)}
                     </td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr className={tbl.tfootRow}>
+                  <td colSpan={5} className={tbl.tfootCell}>
+                    Total — {vendas.length} {vendas.length === 1 ? 'venda' : 'vendas'}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

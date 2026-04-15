@@ -333,8 +333,7 @@ export default function TabEstoque({ toast }: Props) {
               <div>
                 <h3 className="font-display text-base font-semibold">Vendas</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Toda venda é registrada aqui. O estoque desce automaticamente respeitando o{' '}
-                  <span className="font-medium">PEPS</span> (primeiro a entrar, primeiro a sair).
+                  Registre vendas com um ou mais itens. O estoque desce automaticamente.
                 </p>
               </div>
               <RegistroVendasView toast={toast} responsavel={responsavel} userId={userId} onVerDetalhe={setVendaDetalheId} />

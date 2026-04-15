@@ -7,10 +7,12 @@ import type { EstoqueVenda, EstoqueVendaItem } from '@/lib/supabase'
 export type VendaComContagem = EstoqueVenda & {
   num_itens: number
   vendedor_nome: string | null
+  vendedor: string | null
 }
 
 export type VendaDetalhe = EstoqueVenda & {
   vendedor_nome: string | null
+  vendedor: string | null
   estoque_venda_itens: (EstoqueVendaItem & {
     estoque_produtos: { nome: string; unidade: string; codigo: string | null } | null
   })[]
@@ -20,6 +22,7 @@ export type NovaVendaPayload = {
   data: string
   cliente?: string
   observacao?: string
+  vendedor?: string
   vendedor_id?: string
   itens: {
     produto_id: string
@@ -38,7 +41,7 @@ export function useVendas() {
       const { data, error } = await supabase
         .from('estoque_vendas')
         .select(`
-          id, data, cliente, total, vendedor_id, created_at, observacao,
+          id, data, cliente, total, vendedor_id, vendedor, created_at, observacao,
           profiles!vendedor_id(full_name, email),
           estoque_venda_itens(count)
         `)
@@ -55,6 +58,7 @@ export function useVendas() {
         cliente: row.cliente,
         total: row.total,
         vendedor_id: row.vendedor_id,
+        vendedor: row.vendedor ?? null,
         observacao: row.observacao,
         num_itens: row.estoque_venda_itens?.[0]?.count ?? 0,
         vendedor_nome: row.profiles?.full_name ?? row.profiles?.email ?? null,
@@ -76,7 +80,7 @@ export function useVendaDetalhe(id: string | null) {
       const { data, error } = await supabase
         .from('estoque_vendas')
         .select(`
-          id, data, cliente, total, vendedor_id, created_at, observacao,
+          id, data, cliente, total, vendedor_id, vendedor, created_at, observacao,
           profiles!vendedor_id(full_name, email),
           estoque_venda_itens(
             id, venda_id, produto_id, quantidade, preco_unitario, desconto, subtotal,
@@ -97,10 +101,30 @@ export function useVendaDetalhe(id: string | null) {
         cliente: row.cliente,
         total: row.total,
         vendedor_id: row.vendedor_id,
+        vendedor: row.vendedor ?? null,
         observacao: row.observacao,
         vendedor_nome: row.profiles?.full_name ?? row.profiles?.email ?? null,
         estoque_venda_itens: row.estoque_venda_itens ?? [],
       }
+    },
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useVendedores() {
+  return useQuery({
+    queryKey: ['estoque_vendedores'],
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from('estoque_vendas')
+        .select('vendedor')
+        .not('vendedor', 'is', null)
+        .neq('vendedor', '')
+        .order('vendedor')
+      if (error) throw error
+      return [...new Set((data ?? []).map((r: any) => r.vendedor as string).filter(Boolean))]
     },
     staleTime: 60_000,
     retry: 1,
@@ -122,6 +146,7 @@ export function useRegistrarVenda() {
           data: payload.data,
           cliente: payload.cliente?.trim() || null,
           observacao: payload.observacao?.trim() || null,
+          vendedor: payload.vendedor?.trim() || null,
           vendedor_id: payload.vendedor_id ?? null,
         })
         .select('id')
@@ -152,6 +177,7 @@ export function useRegistrarVenda() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['estoque-vendas'] })
+      qc.invalidateQueries({ queryKey: ['estoque_vendedores'] })
       qc.invalidateQueries({ queryKey: ['estoque-produtos'] })
       qc.invalidateQueries({ queryKey: ['estoque-movimentacoes'] })
     },
