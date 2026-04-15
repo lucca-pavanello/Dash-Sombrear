@@ -19,9 +19,10 @@ export default function EstoqueAlertasPanel({ alertas, onMovimentar }: Props) {
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors"
+        className="w-full flex items-center px-4 py-3 hover:bg-muted/40 transition-colors"
       >
-        <div className="flex items-center gap-2">
+        <div className="w-4 shrink-0" />
+        <div className="flex-1 flex items-center justify-center gap-2">
           <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-sm font-semibold text-foreground">
             {alertas.length} produto{alertas.length !== 1 ? 's' : ''} com estoque baixo
@@ -33,9 +34,9 @@ export default function EstoqueAlertasPanel({ alertas, onMovimentar }: Props) {
           )}
         </div>
         {open ? (
-          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
         )}
       </button>
 
