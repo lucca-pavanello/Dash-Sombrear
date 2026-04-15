@@ -3,17 +3,16 @@ import { Search, X, Plus, Pencil, PackageX, TrendingUp, Package } from 'lucide-r
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
-import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
 import { TIPOS_PRODUTO } from '@/lib/constants'
 import { tbl } from './shared/tableStyles'
+import { FilterPopover } from './shared/FilterPopover'
+import { FiltrosAtivosChips } from './shared/FiltrosAtivosChips'
 import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
-type TipoFilter = 'todos' | 'tecido' | 'ferragem' | 'acessorio'
-type AbcFilter = 'todas' | 'A' | 'B' | 'C' | 'sem_dados'
 
 interface Props {
   toast: (type: ToastType, message: string) => void
@@ -22,32 +21,79 @@ interface Props {
   onMovimentar: (p: EstoqueProduto, tipo: TipoMov) => void
 }
 
+const TIPO_OPTIONS = [
+  { value: 'tecido',    label: 'Tecido' },
+  { value: 'ferragem',  label: 'Ferragem' },
+  { value: 'acessorio', label: 'Acessório' },
+]
+
+const ABC_OPTIONS = [
+  { value: 'A',         label: 'Classe A' },
+  { value: 'B',         label: 'Classe B' },
+  { value: 'C',         label: 'Classe C' },
+  { value: 'sem_dados', label: 'Sem dados' },
+]
+
+const CHIP_LABELS: Record<string, string> = {
+  tipo:        'Tipo',
+  abc:         'ABC',
+  localizacao: 'Localização',
+}
+
+const CHIP_FORMAT: Record<string, (v: string) => string> = {
+  tipo: (v) => TIPOS_PRODUTO[v] ?? v,
+  abc:  (v) => v === 'sem_dados' ? 'Sem dados' : `Classe ${v}`,
+}
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
   const [search, setSearch] = useState('')
-  const [tipoFilter, setTipoFilter] = useState<TipoFilter>('todos')
-  const [abcFilter, setAbcFilter] = useState<AbcFilter>('todas')
-  const [localizacaoFilter, setLocalizacaoFilter] = useState<string>('todas')
+  const [filtros, setFiltros] = useState<Record<string, string[]>>({})
   const [mostrarInativos, setMostrarInativos] = useState(false)
 
   const { data: produtos = [], isLoading } = useEstoqueProdutos({ includeInactive: mostrarInativos })
   const { data: localizacoes = [] } = useEstoqueLocalizacoes()
   const deactivate = useDeactivateEstoqueProduto()
 
+  const localizacaoOptions = useMemo(() => [
+    { value: 'sem', label: 'Sem localização' },
+    ...localizacoes.map((l) => ({ value: l.id, label: `${l.codigo} – ${l.setor}` })),
+  ], [localizacoes])
+
+  const chipFormatLocalizacao = useMemo<(v: string) => string>(() => (v) => {
+    if (v === 'sem') return 'Sem localização'
+    return localizacaoOptions.find(o => o.value === v)?.label ?? v
+  }, [localizacaoOptions])
+
+  const filtrosComFormat = useMemo(() => ({
+    ...CHIP_FORMAT,
+    localizacao: chipFormatLocalizacao,
+  }), [chipFormatLocalizacao])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return produtos.filter((p) => {
       if (q && !p.nome.toLowerCase().includes(q) && !p.codigo?.toLowerCase().includes(q)) return false
-      if (tipoFilter !== 'todos' && p.estoque_categorias?.tipo !== tipoFilter) return false
-      if (abcFilter !== 'todas' && (p.classificacao_abc ?? 'sem_dados') !== abcFilter) return false
-      if (localizacaoFilter === 'sem') {
-        if (p.localizacao_id != null) return false
-      } else if (localizacaoFilter !== 'todas') {
-        if (p.localizacao_id !== localizacaoFilter) return false
+      const tipos = filtros['tipo'] ?? []
+      if (tipos.length > 0 && !tipos.includes(p.estoque_categorias?.tipo ?? '')) return false
+      const abcs = filtros['abc'] ?? []
+      if (abcs.length > 0 && !abcs.includes(p.classificacao_abc ?? 'sem_dados')) return false
+      const locs = filtros['localizacao'] ?? []
+      if (locs.length > 0) {
+        const noLoc = locs.includes('sem') && p.localizacao_id == null
+        const hasLoc = p.localizacao_id != null && locs.includes(p.localizacao_id)
+        if (!noLoc && !hasLoc) return false
       }
       return true
     })
-  }, [produtos, search, tipoFilter, abcFilter, localizacaoFilter])
+  }, [produtos, search, filtros])
+
+  function setFiltro(col: string, vals: string[]) {
+    setFiltros(prev => ({ ...prev, [col]: vals }))
+  }
+
+  function removeFiltro(col: string, val: string) {
+    setFiltros(prev => ({ ...prev, [col]: (prev[col] ?? []).filter(v => v !== val) }))
+  }
 
   async function handleDesativar(p: EstoqueProduto) {
     if (!window.confirm(`Desativar "${p.nome}"? O produto não aparecerá mais no estoque.`)) return
@@ -61,7 +107,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
 
   return (
     <>
-      {/* ── Linha 1: busca + botão novo ── */}
+      {/* ── Toolbar ── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-2 justify-center">
         <div className={tbl.searchWrap}>
           <Search className={tbl.searchIcon} />
@@ -80,58 +126,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
             </button>
           )}
         </div>
-        <button onClick={onNovoProduto} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
-          <Plus className="h-4 w-4" />
-          Novo Produto
-        </button>
-      </div>
-
-      {/* ── Linha 2: filtros ── */}
-      <div className="flex flex-wrap items-center gap-3 pb-1.5 justify-center">
-        {/* Tipo */}
-        <div className="w-44">
-          <CustomSelect
-            value={tipoFilter}
-            onChange={(v) => setTipoFilter(v as TipoFilter)}
-            options={[
-              { value: 'todos',     label: 'Tipo: todos' },
-              { value: 'tecido',    label: 'Tecido' },
-              { value: 'ferragem',  label: 'Ferragem' },
-              { value: 'acessorio', label: 'Acessório' },
-            ]}
-          />
-        </div>
-
-        {/* Classe ABC */}
-        <div className="w-44">
-          <CustomSelect
-            value={abcFilter}
-            onChange={(v) => setAbcFilter(v as AbcFilter)}
-            options={[
-              { value: 'todas',     label: 'Classe: todas' },
-              { value: 'A',         label: 'Classe A' },
-              { value: 'B',         label: 'Classe B' },
-              { value: 'C',         label: 'Classe C' },
-              { value: 'sem_dados', label: 'Sem dados' },
-            ]}
-          />
-        </div>
-
-        {/* Localização */}
-        <div className="w-52">
-          <CustomSelect
-            value={localizacaoFilter}
-            onChange={setLocalizacaoFilter}
-            options={[
-              { value: 'todas', label: 'Localização: todas' },
-              { value: 'sem',   label: 'Sem localização' },
-              ...localizacoes.map((l) => ({ value: l.id, label: `${l.codigo} – ${l.setor}` })),
-            ]}
-          />
-        </div>
-
-        {/* Toggle inativos */}
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+        <label className="flex items-center gap-2 cursor-pointer select-none self-center">
           <button
             type="button"
             role="switch"
@@ -149,7 +144,20 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           </button>
           <span className="text-sm text-muted-foreground">Mostrar inativos</span>
         </label>
+        <button onClick={onNovoProduto} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
+          <Plus className="h-4 w-4" />
+          Novo Produto
+        </button>
       </div>
+
+      {/* ── Chips de filtros ativos ── */}
+      <FiltrosAtivosChips
+        filtros={filtros}
+        labels={CHIP_LABELS}
+        formatLabel={filtrosComFormat}
+        onRemove={removeFiltro}
+        onClearAll={() => setFiltros({})}
+      />
 
       {/* ── Tabela ── */}
       <div className={tbl.container}>
@@ -159,16 +167,35 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
             <tr className={tbl.theadRow}>
               <th className={cn(tbl.th, 'text-center pl-6')}>SKU</th>
               <th className={cn(tbl.th, 'text-center')}>Nome</th>
-              <th className={cn(tbl.th, 'text-center hidden md:table-cell')}>Tipo</th>
+              <th className={cn(tbl.th, 'text-center hidden md:table-cell')}>
+                <FilterPopover
+                  label="Tipo"
+                  options={TIPO_OPTIONS}
+                  selected={filtros['tipo'] ?? []}
+                  onChange={(v) => setFiltro('tipo', v)}
+                />
+              </th>
               <th className={cn(tbl.th, 'text-center hidden lg:table-cell')}>Unidade</th>
               <th className={cn(tbl.th, 'text-center')}>Estoque atual</th>
-              <th className={cn(tbl.th, 'text-center hidden lg:table-cell')}>Localização</th>
+              <th className={cn(tbl.th, 'text-center hidden lg:table-cell')}>
+                <FilterPopover
+                  label="Localização"
+                  options={localizacaoOptions}
+                  selected={filtros['localizacao'] ?? []}
+                  onChange={(v) => setFiltro('localizacao', v)}
+                />
+              </th>
               <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>
                 <InfoTooltip label="Custo médio" tip="Custo Médio Ponderado. Custo médio de cada unidade considerando todas as compras anteriores com pesos diferentes. Atualizado automaticamente a cada nova entrada." />
               </th>
               <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Preço venda</th>
               <th className={cn(tbl.th, 'text-center hidden sm:table-cell')}>
-                <InfoTooltip label="ABC" tip="Classifica produtos pelo quanto geram de receita. Classe A = 20% dos produtos que dão 80% do dinheiro. Princípio de Pareto." />
+                <FilterPopover
+                  label="ABC"
+                  options={ABC_OPTIONS}
+                  selected={filtros['abc'] ?? []}
+                  onChange={(v) => setFiltro('abc', v)}
+                />
               </th>
               <th className={cn(tbl.th, 'text-center pr-6 border-r-0')}>Ações</th>
             </tr>

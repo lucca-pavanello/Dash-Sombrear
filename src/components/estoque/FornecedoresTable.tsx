@@ -1,14 +1,39 @@
 import { useState, useMemo } from 'react'
 import { Search, Plus, Pencil, Truck, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueFornecedores, useUpdateFornecedor } from '@/hooks/useEstoqueFornecedores'
 import NovoFornecedorForm from './NovoFornecedorForm'
 import { tbl } from './shared/tableStyles'
+import { FilterPopover } from './shared/FilterPopover'
+import { FiltrosAtivosChips } from './shared/FiltrosAtivosChips'
 import type { EstoqueFornecedor } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
-type LeadTimeFilter = 'todos' | 'rapido' | 'medio' | 'longo' | 'sem_definir'
+const LEAD_TIME_OPTIONS = [
+  { value: 'rapido',      label: 'Rápido (até 7 dias)' },
+  { value: 'medio',       label: 'Médio (8 a 15 dias)' },
+  { value: 'longo',       label: 'Longo (mais de 15 dias)' },
+  { value: 'sem_definir', label: 'Sem definir' },
+]
+
+const LEAD_TIME_LABELS: Record<string, string> = {
+  rapido:      'Rápido (≤7d)',
+  medio:       'Médio (8-15d)',
+  longo:       'Longo (>15d)',
+  sem_definir: 'Sem definir',
+}
+
+const CHIP_LABELS: Record<string, string> = { lead_time: 'Lead time' }
+const CHIP_FORMAT: Record<string, (v: string) => string> = {
+  lead_time: (v) => LEAD_TIME_LABELS[v] ?? v,
+}
+
+function getLeadTimeCategoria(dias: number | null | undefined): string {
+  if (!dias || dias === 0) return 'sem_definir'
+  if (dias <= 7)  return 'rapido'
+  if (dias <= 15) return 'medio'
+  return 'longo'
+}
 
 interface Props {
   toast: (type: ToastType, message: string) => void
@@ -16,7 +41,7 @@ interface Props {
 
 export default function FornecedoresTable({ toast }: Props) {
   const [search, setSearch] = useState('')
-  const [filtroLeadTime, setFiltroLeadTime] = useState<LeadTimeFilter>('todos')
+  const [filtros, setFiltros] = useState<Record<string, string[]>>({})
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editando, setEditando] = useState<EstoqueFornecedor | null>(null)
@@ -34,15 +59,19 @@ export default function FornecedoresTable({ toast }: Props) {
         (f.cnpj?.includes(q) ?? false),
       )
       .filter(f => {
-        if (filtroLeadTime === 'todos') return true
-        const d = f.prazo_entrega_dias
-        if (filtroLeadTime === 'sem_definir') return !d || d === 0
-        if (filtroLeadTime === 'rapido') return d != null && d > 0 && d <= 7
-        if (filtroLeadTime === 'medio')  return d != null && d > 7 && d <= 15
-        if (filtroLeadTime === 'longo')  return d != null && d > 15
-        return true
+        const leadTimes = filtros['lead_time'] ?? []
+        if (leadTimes.length === 0) return true
+        return leadTimes.includes(getLeadTimeCategoria(f.prazo_entrega_dias))
       })
-  }, [fornecedores, search, filtroLeadTime])
+  }, [fornecedores, search, filtros])
+
+  function setFiltro(col: string, vals: string[]) {
+    setFiltros(prev => ({ ...prev, [col]: vals }))
+  }
+
+  function removeFiltro(col: string, val: string) {
+    setFiltros(prev => ({ ...prev, [col]: (prev[col] ?? []).filter(v => v !== val) }))
+  }
 
   function handleNovo() {
     setEditando(null)
@@ -63,41 +92,22 @@ export default function FornecedoresTable({ toast }: Props) {
     }
   }
 
+  const hasFilters = Object.values(filtros).some(v => v.length > 0)
+
   return (
     <>
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-3 justify-center">
-          <div className={tbl.searchWrap}>
-            <Search className={tbl.searchIcon} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar fornecedor por nome, contato ou CNPJ..."
-              className={tbl.searchInput}
-            />
-          </div>
-          <button onClick={handleNovo} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
-            <Plus className="h-4 w-4" />
-            Novo Fornecedor
-          </button>
-        </div>
-
-      {/* ── Linha 2: filtros ── */}
-      <div className="flex flex-wrap items-center gap-3 pb-1.5 justify-center">
-        <div className="w-52">
-          <CustomSelect
-            value={filtroLeadTime}
-            onChange={(v) => setFiltroLeadTime(v as LeadTimeFilter)}
-            options={[
-              { value: 'todos',       label: 'Lead time: todos' },
-              { value: 'rapido',      label: 'Rápido (até 7 dias)' },
-              { value: 'medio',       label: 'Médio (8 a 15 dias)' },
-              { value: 'longo',       label: 'Longo (mais de 15 dias)' },
-              { value: 'sem_definir', label: 'Sem definir' },
-            ]}
+        <div className={tbl.searchWrap}>
+          <Search className={tbl.searchIcon} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar fornecedor por nome, contato ou CNPJ..."
+            className={tbl.searchInput}
           />
         </div>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+        <label className="flex items-center gap-2 cursor-pointer select-none self-center">
           <button
             type="button"
             role="switch"
@@ -115,7 +125,20 @@ export default function FornecedoresTable({ toast }: Props) {
           </button>
           <span className="text-sm text-muted-foreground">Mostrar inativos</span>
         </label>
+        <button onClick={handleNovo} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
+          <Plus className="h-4 w-4" />
+          Novo Fornecedor
+        </button>
       </div>
+
+      {/* ── Chips de filtros ativos ── */}
+      <FiltrosAtivosChips
+        filtros={filtros}
+        labels={CHIP_LABELS}
+        formatLabel={CHIP_FORMAT}
+        onRemove={removeFiltro}
+        onClearAll={() => setFiltros({})}
+      />
 
       {/* Table */}
       <div className={tbl.container}>
@@ -126,7 +149,14 @@ export default function FornecedoresTable({ toast }: Props) {
                 <th className={cn(tbl.th, 'text-center')}>Fornecedor / Contato</th>
                 <th className={cn(tbl.th, 'text-center')}>Telefone</th>
                 <th className={cn(tbl.th, 'text-center')}>CNPJ</th>
-                <th className={cn(tbl.th, 'text-center')}>Prazo entrega</th>
+                <th className={cn(tbl.th, 'text-center')}>
+                  <FilterPopover
+                    label="Prazo entrega"
+                    options={LEAD_TIME_OPTIONS}
+                    selected={filtros['lead_time'] ?? []}
+                    onChange={(v) => setFiltro('lead_time', v)}
+                  />
+                </th>
                 <th className={cn(tbl.th, 'text-center border-r-0')}>Ações</th>
               </tr>
             </thead>
@@ -146,7 +176,7 @@ export default function FornecedoresTable({ toast }: Props) {
                   <td colSpan={5} className="px-4 py-12 text-center">
                     <Truck className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-sm font-medium text-muted-foreground">
-                      {search || filtroLeadTime !== 'todos' ? 'Nenhum fornecedor com esse filtro. Tente outra combinação.' : 'Nenhum fornecedor cadastrado'}
+                      {search || hasFilters ? 'Nenhum fornecedor com esse filtro. Tente outra combinação.' : 'Nenhum fornecedor cadastrado'}
                     </p>
                     {!search && (
                       <p className="text-xs text-muted-foreground/60 mt-1">
