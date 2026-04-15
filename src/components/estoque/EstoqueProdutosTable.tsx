@@ -215,14 +215,14 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
             <tr className="border-b-2 border-border bg-muted/70">
               <th className="pl-6 pr-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-foreground/60">SKU</th>
               <th className="px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-foreground/60">Nome</th>
-              <th className={cn('px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden md:table-cell', COL_DIVIDER)}>Tipo</th>
-              <th className="px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden lg:table-cell">Unidade</th>
-              <th className={cn('px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-widest text-foreground/60', COL_DIVIDER)}>Estoque atual</th>
-              <th className={cn('px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden lg:table-cell', COL_DIVIDER)}>Localização</th>
-              <th className={cn('px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden xl:table-cell', COL_DIVIDER)}>
+              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden md:table-cell', COL_DIVIDER)}>Tipo</th>
+              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden lg:table-cell', COL_DIVIDER)}>Unidade</th>
+              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60', COL_DIVIDER)}>Estoque atual</th>
+              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden lg:table-cell', COL_DIVIDER)}>Localização</th>
+              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden xl:table-cell', COL_DIVIDER)}>
                 <InfoTooltip label="Custo médio" tip="Custo Médio Ponderado. Custo médio de cada unidade considerando todas as compras anteriores com pesos diferentes. Atualizado automaticamente a cada nova entrada." />
               </th>
-              <th className="px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden xl:table-cell">Preço venda</th>
+              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden xl:table-cell', COL_DIVIDER)}>Preço venda</th>
               <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden sm:table-cell', COL_DIVIDER)}>
                 <InfoTooltip label="ABC" tip="Classifica produtos pelo quanto geram de receita. Classe A = 20% dos produtos que dão 80% do dinheiro. Princípio de Pareto." />
               </th>
@@ -261,23 +261,23 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                         )}
                       </div>
                     </td>
-                    <td className={cn('px-4 py-3.5 text-sm text-muted-foreground hidden md:table-cell', COL_DIVIDER)}>
+                    <td className={cn('px-4 py-3.5 text-center text-sm text-muted-foreground hidden md:table-cell', COL_DIVIDER)}>
                       {TIPOS_PRODUTO[p.estoque_categorias?.tipo ?? ''] ?? '—'}
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-muted-foreground hidden lg:table-cell uppercase">
+                    <td className={cn('px-4 py-3.5 text-center text-sm text-muted-foreground hidden lg:table-cell uppercase', COL_DIVIDER)}>
                       {p.unidade}
                     </td>
-                    <td className={cn('px-4 py-3.5 text-right font-semibold whitespace-nowrap', COL_DIVIDER)}>
+                    <td className={cn('px-4 py-3.5 text-center font-semibold whitespace-nowrap', COL_DIVIDER)}>
                       {p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">{p.unidade}</span>
                     </td>
-                    <td className={cn('px-4 py-3.5 font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap', COL_DIVIDER)}>
+                    <td className={cn('px-4 py-3.5 text-center font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap', COL_DIVIDER)}>
                       {p.localizacao?.codigo ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className={cn('px-4 py-3.5 text-right whitespace-nowrap hidden xl:table-cell', COL_DIVIDER)}>
+                    <td className={cn('px-4 py-3.5 text-center whitespace-nowrap hidden xl:table-cell', COL_DIVIDER)}>
                       {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-4 py-3.5 text-right whitespace-nowrap hidden xl:table-cell">
+                    <td className={cn('px-4 py-3.5 text-center whitespace-nowrap hidden xl:table-cell', COL_DIVIDER)}>
                       {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className={cn('px-4 py-3.5 text-center hidden sm:table-cell', COL_DIVIDER)}>
