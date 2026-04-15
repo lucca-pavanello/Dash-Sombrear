@@ -13,11 +13,11 @@ interface Props {
 }
 
 const NIVEL_BADGE: Record<string, string> = {
-  balcao:    'bg-gray-900 text-white',
-  acessivel: 'bg-gray-700 text-white',
-  medio:     'bg-gray-200 text-gray-800',
-  fundo:     'bg-gray-100 text-gray-600',
-  deposito:  'bg-gray-50 text-gray-500 border border-gray-200',
+  balcao:    'bg-foreground text-background',
+  acessivel: 'bg-muted-foreground text-background',
+  medio:     'bg-muted text-foreground',
+  fundo:     'bg-muted/60 text-muted-foreground',
+  deposito:  'bg-muted/40 text-muted-foreground border border-border',
 }
 
 export default function LocalizacoesTable({ toast }: Props) {
@@ -105,12 +105,12 @@ export default function LocalizacoesTable({ toast }: Props) {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center">
-                    <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-gray-600">
+                    <MapPin className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-muted-foreground">
                       {search ? 'Nenhuma localização encontrada' : 'Nenhuma localização cadastrada'}
                     </p>
                     {!search && (
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-muted-foreground/60 mt-1">
                         Clique em "Nova Localização" para começar
                       </p>
                     )}
@@ -128,19 +128,19 @@ export default function LocalizacoesTable({ toast }: Props) {
 
                       {/* Setor */}
                       <td className={tbl.td}>
-                        <p className="font-medium text-gray-900">{l.setor}</p>
+                        <p className="font-medium text-foreground">{l.setor}</p>
                         {l.descricao && (
-                          <p className="text-xs text-gray-500 truncate max-w-[200px]">{l.descricao}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{l.descricao}</p>
                         )}
                       </td>
 
                       {/* Prateleira */}
-                      <td className={cn(tbl.td, 'text-gray-500')}>
+                      <td className={cn(tbl.td, 'text-muted-foreground')}>
                         {l.prateleira ?? '—'}
                       </td>
 
                       {/* Posição */}
-                      <td className={cn(tbl.td, 'text-gray-500')}>
+                      <td className={cn(tbl.td, 'text-muted-foreground')}>
                         {l.posicao ?? '—'}
                       </td>
 
@@ -148,14 +148,14 @@ export default function LocalizacoesTable({ toast }: Props) {
                       <td className={tbl.td}>
                         <span className={cn(
                           'inline-flex h-6 px-3 items-center justify-center rounded-full text-xs font-medium',
-                          NIVEL_BADGE[l.nivel_acesso] ?? 'bg-gray-100 text-gray-600',
+                          NIVEL_BADGE[l.nivel_acesso] ?? 'bg-muted/60 text-muted-foreground',
                         )}>
                           {NIVEIS_ACESSO[l.nivel_acesso] ?? l.nivel_acesso}
                         </span>
                       </td>
 
                       {/* Nº produtos */}
-                      <td className={cn(tbl.td, 'text-right text-gray-500')}>
+                      <td className={cn(tbl.td, 'text-right text-muted-foreground')}>
                         {numProdutos}
                       </td>
 
@@ -165,7 +165,7 @@ export default function LocalizacoesTable({ toast }: Props) {
                           <button
                             onClick={() => handleEditar(l)}
                             title="Editar"
-                            className={cn(tbl.actionBtn, 'hover:text-gray-700 hover:bg-gray-100')}
+                            className={cn(tbl.actionBtn, 'hover:text-foreground hover:bg-muted/60')}
                           >
                             <Pencil className="h-4 w-4" />
                           </button>

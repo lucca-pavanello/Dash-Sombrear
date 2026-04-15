@@ -23,10 +23,10 @@ interface Props {
 }
 
 const ABC_BADGE: Record<string, string> = {
-  A:         'bg-orange-100 text-orange-800',
-  B:         'bg-gray-800 text-white',
-  C:         'bg-gray-200 text-gray-700',
-  sem_dados: 'bg-gray-50 text-gray-400 italic border border-gray-200',
+  A:         'bg-primary/10 text-primary',
+  B:         'bg-muted text-foreground',
+  C:         'bg-muted/60 text-muted-foreground',
+  sem_dados: 'bg-muted/40 text-muted-foreground/60 italic border border-border',
 }
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
@@ -80,7 +80,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -153,7 +153,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
               mostrarInativos ? 'translate-x-[18px]' : 'translate-x-0.5',
             )} />
           </button>
-          <span className="text-sm text-gray-500">Mostrar inativos</span>
+          <span className="text-sm text-muted-foreground">Mostrar inativos</span>
         </label>
       </div>
 
@@ -192,12 +192,12 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-6 py-12 text-center">
-                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-gray-600">
+                  <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">
                     {search ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado ainda'}
                   </p>
                   {!search && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted-foreground/60 mt-1">
                       Clique em "Novo Produto" para começar
                     </p>
                   )}
@@ -212,37 +212,37 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                     key={p.id}
                     className={cn(tbl.tbodyRow, inativo && 'opacity-50')}
                   >
-                    <td className={cn(tbl.td, 'pl-6 font-mono text-xs text-gray-500 whitespace-nowrap')}>
+                    <td className={cn(tbl.td, 'pl-6 font-mono text-xs text-muted-foreground whitespace-nowrap')}>
                       {p.codigo ?? '—'}
                     </td>
                     <td className={tbl.td}>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{p.nome}</span>
+                        <span className="font-medium text-foreground">{p.nome}</span>
                         {inativo && (
-                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
+                          <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                             Inativo
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className={cn(tbl.td, 'text-gray-500 hidden md:table-cell')}>
+                    <td className={cn(tbl.td, 'text-muted-foreground hidden md:table-cell')}>
                       {TIPOS_PRODUTO[p.estoque_categorias?.tipo ?? ''] ?? '—'}
                     </td>
-                    <td className={cn(tbl.td, 'text-gray-500 uppercase hidden lg:table-cell')}>
+                    <td className={cn(tbl.td, 'text-muted-foreground uppercase hidden lg:table-cell')}>
                       {p.unidade}
                     </td>
                     <td className={cn(tbl.td, 'text-right font-semibold whitespace-nowrap')}>
                       {p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
-                      <span className="ml-1 text-xs font-normal text-gray-400">{p.unidade}</span>
+                      <span className="ml-1 text-xs font-normal text-muted-foreground/60">{p.unidade}</span>
                     </td>
-                    <td className={cn(tbl.td, 'font-mono text-xs text-gray-500 hidden lg:table-cell whitespace-nowrap')}>
-                      {p.localizacao?.codigo ?? <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className={cn(tbl.td, 'text-right whitespace-nowrap hidden xl:table-cell')}>
-                      {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-gray-400">—</span>}
+                    <td className={cn(tbl.td, 'font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap')}>
+                      {p.localizacao?.codigo ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
                     <td className={cn(tbl.td, 'text-right whitespace-nowrap hidden xl:table-cell')}>
-                      {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-gray-400">—</span>}
+                      {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground/60">—</span>}
+                    </td>
+                    <td className={cn(tbl.td, 'text-right whitespace-nowrap hidden xl:table-cell')}>
+                      {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
                       <span className={cn(
@@ -265,7 +265,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                         <ActionBtn
                           icon={<Pencil className="h-4 w-4" />}
                           label="Editar"
-                          className="hover:text-gray-700 hover:bg-gray-100"
+                          className="hover:text-foreground hover:bg-muted/60"
                           onClick={() => onEditar(p)}
                         />
                         {p.ativo && (
@@ -312,7 +312,7 @@ function ActionBtn({
       title={label}
       onClick={onClick}
       className={cn(
-        'rounded-lg h-8 w-8 p-0 flex items-center justify-center text-gray-400 transition-colors',
+        'rounded-lg h-8 w-8 p-0 flex items-center justify-center text-muted-foreground/60 transition-colors',
         className,
       )}
     >

@@ -44,9 +44,9 @@ export default function EntradasHistoricoTable() {
   return (
     <div className={tbl.container}>
       {/* Header do card */}
-      <div className="border-b border-gray-200 px-4 py-3">
-        <p className="text-base font-semibold text-gray-900">Histórico de Entradas</p>
-        <p className="text-xs text-gray-500 mt-0.5">Últimas 50 entradas registradas</p>
+      <div className="border-b border-border px-4 py-3">
+        <p className="text-base font-semibold text-foreground">Histórico de Entradas</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Últimas 50 entradas registradas</p>
       </div>
 
       <div className="overflow-x-auto">
@@ -66,21 +66,21 @@ export default function EntradasHistoricoTable() {
             {isLoading ? (
               [1, 2, 3, 4, 5].map((i) => (
                 <tr key={i} className={tbl.tbodyRow}>
-                  <td className={tbl.td}><div className="h-4 w-20 bg-gray-200 rounded animate-pulse" /></td>
-                  <td className={tbl.td}><div className="h-4 w-32 bg-gray-200 rounded animate-pulse" /></td>
-                  <td className={tbl.td}><div className="h-4 w-14 bg-gray-200 rounded animate-pulse ml-auto" /></td>
-                  <td className={`${tbl.td} hidden md:table-cell`}><div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" /></td>
-                  <td className={tbl.td}><div className="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto" /></td>
-                  <td className={`${tbl.td} hidden lg:table-cell`}><div className="h-4 w-24 bg-gray-200 rounded animate-pulse" /></td>
-                  <td className={`${tbl.td} hidden lg:table-cell`}><div className="h-4 w-24 bg-gray-200 rounded animate-pulse" /></td>
+                  <td className={tbl.td}><div className="h-4 w-20 bg-muted rounded animate-pulse" /></td>
+                  <td className={tbl.td}><div className="h-4 w-32 bg-muted rounded animate-pulse" /></td>
+                  <td className={tbl.td}><div className="h-4 w-14 bg-muted rounded animate-pulse ml-auto" /></td>
+                  <td className={`${tbl.td} hidden md:table-cell`}><div className="h-4 w-20 bg-muted rounded animate-pulse ml-auto" /></td>
+                  <td className={tbl.td}><div className="h-4 w-20 bg-muted rounded animate-pulse ml-auto" /></td>
+                  <td className={`${tbl.td} hidden lg:table-cell`}><div className="h-4 w-24 bg-muted rounded animate-pulse" /></td>
+                  <td className={`${tbl.td} hidden lg:table-cell`}><div className="h-4 w-24 bg-muted rounded animate-pulse" /></td>
                 </tr>
               ))
             ) : itens.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-12 text-center">
-                  <Inbox className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                  <p className="text-sm text-gray-600">Nenhuma entrada registrada ainda</p>
-                  <p className="text-xs text-gray-400 mt-1">Registre a primeira entrada no formulário acima</p>
+                  <Inbox className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">Nenhuma entrada registrada ainda</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Registre a primeira entrada no formulário acima</p>
                 </td>
               </tr>
             ) : (
@@ -90,32 +90,32 @@ export default function EntradasHistoricoTable() {
                 const custo_total = item.quantidade * item.custo_unitario
                 return (
                   <tr key={item.id} className={tbl.tbodyRow}>
-                    <td className={`${tbl.td} whitespace-nowrap text-gray-500`}>
-                      {lote?.data_entrada ? formatDate(lote.data_entrada) : <span className="text-gray-300">—</span>}
+                    <td className={`${tbl.td} whitespace-nowrap text-muted-foreground`}>
+                      {lote?.data_entrada ? formatDate(lote.data_entrada) : <span className="text-muted-foreground/40">—</span>}
                     </td>
                     <td className={tbl.td}>
-                      <span className="font-medium">{produto?.nome ?? <span className="text-gray-300">—</span>}</span>
+                      <span className="font-medium">{produto?.nome ?? <span className="text-muted-foreground/40">—</span>}</span>
                       {produto?.unidade && (
-                        <span className="ml-1 text-xs text-gray-500 uppercase">({produto.unidade})</span>
+                        <span className="ml-1 text-xs text-muted-foreground uppercase">({produto.unidade})</span>
                       )}
                     </td>
                     <td className={`${tbl.td} text-right whitespace-nowrap font-semibold`}>
                       {item.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       {produto?.unidade && (
-                        <span className="ml-1 text-xs text-gray-500">{produto.unidade}</span>
+                        <span className="ml-1 text-xs text-muted-foreground">{produto.unidade}</span>
                       )}
                     </td>
-                    <td className={`${tbl.td} text-right whitespace-nowrap text-gray-500 hidden md:table-cell`}>
+                    <td className={`${tbl.td} text-right whitespace-nowrap text-muted-foreground hidden md:table-cell`}>
                       {formatCurrency(item.custo_unitario)}
                     </td>
-                    <td className={`${tbl.td} text-right whitespace-nowrap font-semibold text-orange-700`}>
+                    <td className={`${tbl.td} text-right whitespace-nowrap font-semibold text-primary`}>
                       {formatCurrency(custo_total)}
                     </td>
-                    <td className={`${tbl.td} text-gray-500 hidden lg:table-cell`}>
-                      {lote?.nf_numero ?? <span className="text-gray-300">—</span>}
+                    <td className={`${tbl.td} text-muted-foreground hidden lg:table-cell`}>
+                      {lote?.nf_numero ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className={`${tbl.td} text-gray-500 hidden lg:table-cell`}>
-                      {lote?.estoque_fornecedores?.nome ?? <span className="text-gray-300">—</span>}
+                    <td className={`${tbl.td} text-muted-foreground hidden lg:table-cell`}>
+                      {lote?.estoque_fornecedores?.nome ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
                   </tr>
                 )

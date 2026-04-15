@@ -94,12 +94,12 @@ export default function FornecedoresTable({ toast }: Props) {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center">
-                    <Truck className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-gray-600">
+                    <Truck className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-muted-foreground">
                       {search ? 'Nenhum fornecedor encontrado' : 'Nenhum fornecedor cadastrado'}
                     </p>
                     {!search && (
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-muted-foreground/60 mt-1">
                         Clique em "Novo Fornecedor" para começar
                       </p>
                     )}
@@ -110,34 +110,34 @@ export default function FornecedoresTable({ toast }: Props) {
                   <tr key={f.id} className={tbl.tbodyRow}>
                     {/* Nome + contato */}
                     <td className={tbl.td}>
-                      <p className="font-semibold text-gray-900">{f.nome}</p>
+                      <p className="font-semibold text-foreground">{f.nome}</p>
                       {f.contato && (
-                        <p className="text-xs text-gray-500">{f.contato}</p>
+                        <p className="text-xs text-muted-foreground">{f.contato}</p>
                       )}
                       {f.email && (
-                        <p className="text-xs text-gray-400">{f.email}</p>
+                        <p className="text-xs text-muted-foreground/60">{f.email}</p>
                       )}
                     </td>
 
                     {/* Telefone */}
-                    <td className={cn(tbl.td, 'text-gray-500 whitespace-nowrap')}>
+                    <td className={cn(tbl.td, 'text-muted-foreground whitespace-nowrap')}>
                       {f.telefone ?? '—'}
                     </td>
 
                     {/* CNPJ */}
-                    <td className={cn(tbl.td, 'font-mono text-xs text-gray-500 whitespace-nowrap')}>
+                    <td className={cn(tbl.td, 'font-mono text-xs text-muted-foreground whitespace-nowrap')}>
                       {f.cnpj ?? '—'}
                     </td>
 
                     {/* Prazo */}
                     <td className={cn(tbl.td, 'text-right')}>
                       {f.prazo_entrega_dias != null ? (
-                        <span className="inline-flex items-center justify-end gap-1.5 text-sm text-gray-500">
+                        <span className="inline-flex items-center justify-end gap-1.5 text-sm text-muted-foreground">
                           <Clock className="h-3.5 w-3.5 shrink-0" />
                           {f.prazo_entrega_dias} {f.prazo_entrega_dias === 1 ? 'dia' : 'dias'}
                         </span>
                       ) : (
-                        <span className="text-sm text-gray-400">—</span>
+                        <span className="text-sm text-muted-foreground/40">—</span>
                       )}
                     </td>
 
@@ -147,7 +147,7 @@ export default function FornecedoresTable({ toast }: Props) {
                         <button
                           onClick={() => handleEditar(f)}
                           title="Editar"
-                          className={cn(tbl.actionBtn, 'hover:text-gray-700 hover:bg-gray-100')}
+                          className={cn(tbl.actionBtn, 'hover:text-foreground hover:bg-muted/60')}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
