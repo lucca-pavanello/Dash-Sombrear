@@ -1,4 +1,4 @@
-import { Package, DollarSign, Star, Clock } from 'lucide-react'
+import { Package, DollarSign, Star, Clock, TrendingUp, Wallet } from 'lucide-react'
 import MetricCard from './MetricCard'
 import { CardTecidoParado } from './CardTecidoParado'
 import CardSemLocalizacao from './CardSemLocalizacao'
@@ -7,6 +7,8 @@ import { CardSugestoesCompra } from './CardSugestoesCompra'
 import EstoqueAlertasPanel from '@/components/estoque/EstoqueAlertasPanel'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
+import { useROIEstoque } from '@/hooks/useEstoqueROI'
+import { useCapitalTravado } from '@/hooks/useEstoqueCapitalTravado'
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -44,10 +46,20 @@ export default function EstoqueDashboard({
     (p) => p.classificacao_abc === 'sem_dados' && p.ativo,
   ).length
 
+  const { data: roi } = useROIEstoque()
+  const { data: capitalTravado } = useCapitalTravado(90)
+
+  const roiDisplay = roi
+    ? `${roi.roi_percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+    : '—'
+  const capitalDisplay = capitalTravado
+    ? fmtBRL(capitalTravado.total_capital_reais)
+    : '—'
+
   return (
     <div className="space-y-4">
 
-      {/* Linha 1 — 4 KPIs primários */}
+      {/* Linha 1 — 4 KPIs primários (ROI e Capital Travado em destaque) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Valor em estoque"
@@ -64,12 +76,29 @@ export default function EstoqueDashboard({
           icon={Package}
           variant="primary"
         />
-        <CardGiro onClick={onNavigateToAnalises} />
-        <CardSugestoesCompra onClick={onNavigateToSugestao} />
+        <MetricCard
+          title="ROI Estoque"
+          value={roiDisplay}
+          subtitle="lucro anualizado / estoque"
+          icon={TrendingUp}
+          variant="primary"
+          onClick={onNavigateToAnalises}
+        />
+        <MetricCard
+          title="Capital Travado"
+          value={capitalDisplay}
+          subtitle="parado há 90+ dias"
+          icon={Wallet}
+          variant="primary"
+          valueColor={capitalTravado && capitalTravado.total_capital_reais > 0 ? 'destructive' : undefined}
+          onClick={onNavigateToAnalises}
+        />
       </div>
 
-      {/* Linha 2 — 4 KPIs secundários */}
+      {/* Linha 2 — giro, sugestões e classificações */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CardGiro onClick={onNavigateToAnalises} />
+        <CardSugestoesCompra onClick={onNavigateToSugestao} />
         <MetricCard
           title="Produtos classe A"
           value={classeACount}
@@ -87,11 +116,15 @@ export default function EstoqueDashboard({
           valueColor={semVenda90d > 0 ? 'destructive' : undefined}
           onClick={onNavigateToAnalises}
         />
+      </div>
+
+      {/* Linha 3 — contexto operacional */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CardTecidoParado onClick={onNavigateToLeadTime} />
         <CardSemLocalizacao onClick={onNavigateToLocalizacoes} />
       </div>
 
-      {/* Alertas de estoque mínimo — sempre abaixo dos 8 cards */}
+      {/* Alertas de estoque mínimo — sempre abaixo dos cards */}
       {alertas.length > 0 && (
         <EstoqueAlertasPanel alertas={alertas} onMovimentar={onMovimentar} />
       )}

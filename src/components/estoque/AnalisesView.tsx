@@ -3,10 +3,12 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts'
 import {
-  BarChart2, Activity, Truck, Layers, MapPin, Calendar,
+  BarChart2, Activity, Truck, Layers, MapPin, Calendar, TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useMemo } from 'react'
 import { useParetoData, useGiroAnual } from '@/hooks/useEstoqueAnalytics'
+import { useMargemEstoque } from '@/hooks/useEstoqueMargemEstoque'
 import {
   useEstoquePerformanceFornecedor,
   useEstoquePerformanceCategoria,
@@ -20,7 +22,9 @@ import RecalcularABCButton from './dashboard/RecalcularABCButton'
 import GiroMensalChart from './analises/GiroMensalChart'
 import SectionCard from './shared/SectionCard'
 import EstoqueTable, { type EstoqueTableColumn } from './shared/EstoqueTable'
+import { ClasseABC } from './shared/ClasseABC'
 import type { ToastType } from '@/hooks/useToast'
+import type { CoberturaMargemRow } from '@/lib/supabase'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,6 +50,7 @@ export default function AnalisesView({ toast }: Props) {
     <div className="space-y-6">
       <SecaoCurvaAbc toast={toast} />
       <SecaoPerformanceCategoria />
+      <SecaoMaisRentaveis />
       <SecaoSazonalidade />
       <SecaoGiroMensal />
       <SecaoPerformanceFornecedor />
@@ -189,6 +194,111 @@ function SecaoPerformanceFornecedor() {
         keyExtractor={(r) => r.id}
         isLoading={isLoading}
         emptyMessage="Nenhum fornecedor ativo encontrado."
+      />
+    </SectionCard>
+  )
+}
+
+// ─── S_NEW: Os mais rentáveis ─────────────────────────────────────────────────
+
+type RentavelRow = CoberturaMargemRow & { lucro_unitario: number | null }
+
+function SecaoMaisRentaveis() {
+  const { data: rawRows = [], isLoading } = useMargemEstoque()
+
+  const rows: RentavelRow[] = useMemo(() => {
+    return rawRows
+      .filter(r => r.margem_percentual !== null)
+      .map(r => ({
+        ...r,
+        lucro_unitario:
+          r.preco_venda != null && r.custo_medio != null
+            ? r.preco_venda - r.custo_medio
+            : null,
+      }))
+      .slice(0, 20)
+  }, [rawRows])
+
+  const columns: EstoqueTableColumn<RentavelRow>[] = [
+    {
+      key: 'produto',
+      header: 'Produto',
+      cell: (r) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">{r.nome}</span>
+          {r.sku && <span className="text-xs font-mono text-muted-foreground/60">{r.sku}</span>}
+        </div>
+      ),
+    },
+    {
+      key: 'classe',
+      header: 'ABC',
+      align: 'center',
+      cell: (r) => <ClasseABC classe={r.classe_abc} />,
+    },
+    {
+      key: 'custo',
+      header: 'Custo',
+      align: 'right',
+      cell: (r) => (
+        <span className="tabular-nums text-muted-foreground">
+          {r.custo_medio != null ? fmtBRL(r.custo_medio) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'preco',
+      header: 'Preço venda',
+      align: 'right',
+      cell: (r) => (
+        <span className="tabular-nums">
+          {r.preco_venda != null ? fmtBRL(r.preco_venda) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'lucro',
+      header: 'Lucro unit.',
+      align: 'right',
+      cell: (r) => {
+        const l = r.lucro_unitario
+        return (
+          <span className={cn('tabular-nums font-medium', l != null && l < 0 ? 'text-red-600' : 'text-green-700 dark:text-green-400')}>
+            {l != null ? fmtBRL(l) : '—'}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'margem',
+      header: 'Margem',
+      align: 'right',
+      cell: (r) => {
+        const m = r.margem_percentual
+        const cor = m == null ? '' : m < 0 ? 'text-red-600' : m < 20 ? 'text-amber-600' : 'text-green-700 dark:text-green-400'
+        return (
+          <span className={cn('tabular-nums font-semibold', cor)}>
+            {m != null ? fmtNum(m, 1) + '%' : '—'}
+          </span>
+        )
+      },
+    },
+  ]
+
+  return (
+    <SectionCard
+      icon={TrendingUp}
+      title="Os mais rentáveis"
+      subtitle="Produtos com maior margem de contribuição — (preço − custo) ÷ preço. Top 20."
+      badge={isLoading ? undefined : { label: `${rows.length} produtos`, variant: 'neutral' }}
+      defaultOpen={false}
+    >
+      <EstoqueTable
+        columns={columns}
+        data={rows}
+        keyExtractor={(r) => r.produto_id}
+        isLoading={isLoading}
+        emptyMessage="Nenhum produto com preço e custo definidos."
       />
     </SectionCard>
   )

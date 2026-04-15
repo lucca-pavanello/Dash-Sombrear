@@ -232,3 +232,35 @@ export type SugestaoCompra = {
   deficit: number
   urgencia: 'critico' | 'abaixo_minimo' | 'atencao' | 'ok'
 }
+
+// ── Analytics: Cobertura + Margem (view: estoque_vw_cobertura_margem) ────────
+
+export type CoberturaMargemRow = {
+  produto_id: string
+  sku: string | null
+  nome: string
+  estoque_atual: number
+  custo_medio: number | null
+  preco_venda: number | null
+  classe_abc: string | null
+  consumo_90d: number
+  cobertura_dias: number | null     // null = sem consumo nos 90d
+  margem_percentual: number | null  // null = sem preco_venda ou custo
+}
+
+// ── Analytics: ROI do Estoque (fn: estoque_fn_roi_estoque) ───────────────────
+
+export type ROIEstoqueResult = {
+  lucro_bruto_90d: number
+  lucro_bruto_anualizado: number
+  valor_estoque_atual: number
+  roi_percentual: number
+}
+
+// ── Analytics: Capital Travado (fn: estoque_fn_capital_travado) ──────────────
+
+export type CapitalTravadoResult = {
+  total_produtos: number
+  total_capital_reais: number
+  por_classe: Record<string, number> | null
+}

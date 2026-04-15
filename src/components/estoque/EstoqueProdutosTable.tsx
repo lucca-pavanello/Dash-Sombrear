@@ -9,8 +9,9 @@ import { tbl } from './shared/tableStyles'
 import { FilterPopover, isFilterActive } from './shared/FilterPopover'
 import { FiltrosAtivosChips } from './shared/FiltrosAtivosChips'
 import type { RangeState } from './shared/FilterPopover'
-import type { EstoqueProduto } from '@/lib/supabase'
+import type { EstoqueProduto, CoberturaMargemRow } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
+import { useCoberturaEstoque } from '@/hooks/useEstoqueCoberturaEstoque'
 
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
@@ -121,6 +122,13 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   const { data: produtos = [], isLoading } = useEstoqueProdutos({ includeInactive: mostrarInativos })
   const { data: localizacoes = [] } = useEstoqueLocalizacoes()
   const deactivate = useDeactivateEstoqueProduto()
+  const { data: coberturaRows = [] } = useCoberturaEstoque()
+
+  const coberturaMap = useMemo(() => {
+    const m = new Map<string, CoberturaMargemRow>()
+    for (const r of coberturaRows) m.set(r.produto_id, r)
+    return m
+  }, [coberturaRows])
 
   const unidadeOptions = useMemo(() => {
     const unique = [...new Set(produtos.map(p => p.unidade))].sort()
@@ -331,6 +339,12 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                     value={filtros['abc'] ?? []} onChange={(v) => setFiltro('abc', v)} onClose={() => setOpenFilter(null)} />
                 </th>
 
+                {/* Cobertura (dias) */}
+                <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Cobertura</th>
+
+                {/* Margem % */}
+                <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Margem</th>
+
                 {/* Ações — sem filtro */}
                 <th className={cn(tbl.th, 'pr-6 border-r-0')}>Ações</th>
               </tr>
@@ -338,7 +352,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-4">
+                  <td colSpan={12} className="px-4 py-4">
                     <div className="flex flex-col gap-2">
                       {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-14 rounded-lg skeleton-shimmer" />)}
                     </div>
@@ -346,7 +360,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center">
+                  <td colSpan={12} className="px-6 py-12 text-center">
                     <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-sm font-medium text-muted-foreground">
                       {search ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado ainda'}
@@ -397,6 +411,26 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                       <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
                         {abc === 'sem_dados' ? '—' : abc}
                       </td>
+                      {/* Cobertura em dias */}
+                      <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
+                        {(() => {
+                          const dias = coberturaMap.get(p.id)?.cobertura_dias ?? null
+                          return dias !== null
+                            ? <span className="tabular-nums">{dias.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}<span className="ml-1 text-xs text-muted-foreground/60">d</span></span>
+                            : <span className="text-muted-foreground/40">—</span>
+                        })()}
+                      </td>
+
+                      {/* Margem de contribuição */}
+                      <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
+                        {(() => {
+                          const margem = coberturaMap.get(p.id)?.margem_percentual ?? null
+                          if (margem === null) return <span className="text-muted-foreground/40">—</span>
+                          const cor = margem < 0 ? 'text-red-600' : margem < 20 ? 'text-amber-600' : 'text-green-700 dark:text-green-400'
+                          return <span className={cn('tabular-nums font-medium', cor)}>{margem.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
+                        })()}
+                      </td>
+
                       <td className={cn(tbl.actionTd, 'pr-6')}>
                         <div className={cn(tbl.actionGroup, 'justify-center')}>
                           <ActionBtn icon={<TrendingUp className="h-4 w-4" />} label="Registrar entrada"
@@ -420,7 +454,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                   <td colSpan={4} className={cn(tbl.tfootCell, 'pl-6')}>
                     Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}
                   </td>
-                  <td colSpan={6} />
+                  <td colSpan={8} />
                 </tr>
               </tfoot>
             )}
