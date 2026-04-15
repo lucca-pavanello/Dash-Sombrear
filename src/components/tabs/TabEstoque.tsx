@@ -146,12 +146,15 @@ export default function TabEstoque({ toast }: Props) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center">
+        <div className="flex-1" />
+        <div className="text-center">
           <h2 className="font-display text-base font-semibold">Estoque</h2>
           <p className="text-xs text-muted-foreground">Gestão de materiais, entradas e vendas</p>
         </div>
-        <ChatTrigger />
+        <div className="flex-1 flex justify-end">
+          <ChatTrigger />
+        </div>
       </div>
 
       {/* ── Navegação em grupos ── */}
