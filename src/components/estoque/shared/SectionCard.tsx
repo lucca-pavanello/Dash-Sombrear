@@ -34,20 +34,20 @@ export default function SectionCard({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors cursor-pointer"
+        className="w-full grid grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors cursor-pointer"
       >
-        {/* Lado esquerdo: ícone + texto */}
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-950/30">
-            <Icon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-          </span>
-          <div className="flex flex-col min-w-0">
-            <p className="text-base font-semibold text-gray-900 dark:text-foreground leading-tight">{title}</p>
-            <p className="text-sm text-gray-500 dark:text-muted-foreground leading-snug mt-0.5 truncate">{subtitle}</p>
-          </div>
+        {/* Col 1: ícone */}
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-950/30">
+          <Icon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+        </span>
+
+        {/* Col 2: título + subtítulo centralizados */}
+        <div className="flex flex-col items-center justify-center text-center">
+          <p className="text-base font-semibold text-gray-900 dark:text-foreground leading-tight">{title}</p>
+          <p className="text-sm text-gray-500 dark:text-muted-foreground leading-snug mt-0.5">{subtitle}</p>
         </div>
 
-        {/* Lado direito: badge + chevron */}
+        {/* Col 3: badge + chevron */}
         <div className="flex items-center gap-3 shrink-0">
           {badge && (
             <span className={cn(
