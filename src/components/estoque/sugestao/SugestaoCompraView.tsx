@@ -17,9 +17,9 @@ const fmtNum = (v: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
 const ROW_BG: Record<string, string> = {
-  critico:       'bg-red-50 dark:bg-red-950/20',
-  abaixo_minimo: 'bg-amber-50 dark:bg-amber-950/20',
-  atencao:       'bg-amber-50/50 dark:bg-amber-950/10',
+  critico:       '',
+  abaixo_minimo: '',
+  atencao:       '',
   ok:            '',
 }
 
@@ -31,9 +31,9 @@ const URGENCIA_LABEL: Record<string, string> = {
 }
 
 const URGENCIA_BADGE: Record<string, string> = {
-  critico:       'bg-red-100 text-red-700',
-  abaixo_minimo: 'bg-amber-100 text-amber-700',
-  atencao:       'bg-amber-50 text-amber-600',
+  critico:       'bg-destructive/10 text-destructive',
+  abaixo_minimo: 'bg-muted text-foreground',
+  atencao:       'bg-muted text-muted-foreground',
   ok:            'bg-muted text-muted-foreground',
 }
 

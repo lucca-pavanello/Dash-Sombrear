@@ -62,27 +62,13 @@ export function CardSugestoesCompra({ onClick }: Props) {
         'transition-shadow',
         onClick ? 'cursor-pointer hover:shadow-md' : '',
         temCritico
-          ? 'border-l-red-500 bg-red-50/40 dark:bg-red-900/10'
-          : 'border-l-amber-500',
+          ? 'border-l-primary'
+          : 'border-l-border',
       ].join(' ')}
     >
       {/* Ícone */}
-      <div
-        className={[
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
-          temCritico
-            ? 'bg-red-100 dark:bg-red-900/30'
-            : 'bg-amber-100 dark:bg-amber-900/30',
-        ].join(' ')}
-      >
-        <ShoppingBag
-          className={[
-            'h-4 w-4',
-            temCritico
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-amber-600 dark:text-amber-400',
-          ].join(' ')}
-        />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <ShoppingBag className="h-4 w-4 text-primary" />
       </div>
 
       {/* Conteúdo */}
@@ -90,22 +76,10 @@ export function CardSugestoesCompra({ onClick }: Props) {
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
           Sugestões de compra
         </p>
-        <p
-          className={[
-            'text-xl font-bold leading-tight',
-            temCritico
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-amber-600 dark:text-amber-400',
-          ].join(' ')}
-        >
+        <p className="text-xl font-bold leading-tight text-foreground">
           {totalNaoOk}
         </p>
-        <p
-          className={[
-            'text-[10px] truncate',
-            temCritico ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground',
-          ].join(' ')}
-        >
+        <p className="text-[10px] truncate text-muted-foreground">
           {criticos} crítico(s)
         </p>
       </div>

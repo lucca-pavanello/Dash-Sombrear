@@ -21,22 +21,22 @@ type Nivel = 'verde' | 'amarelo' | 'vermelho' | 'neutro'
 
 const ROW_BG: Record<Nivel, string> = {
   verde:    '',
-  amarelo:  'border-l-4 border-amber-500 bg-amber-50/40 dark:bg-amber-950/20',
-  vermelho: 'border-l-4 border-red-600 bg-red-50/40 dark:bg-red-950/20',
+  amarelo:  'border-l-4 border-border',
+  vermelho: 'border-l-4 border-destructive/40',
   neutro:   '',
 }
 
 const NIVEL_TEXT: Record<Nivel, string> = {
   verde:    'text-muted-foreground',
-  amarelo:  'text-amber-700 dark:text-amber-500',
-  vermelho: 'text-red-700 dark:text-red-400',
+  amarelo:  'text-foreground font-semibold',
+  vermelho: 'text-destructive',
   neutro:   'text-muted-foreground',
 }
 
 const NIVEL_BADGE: Record<Nivel, string> = {
   verde:    'bg-muted text-muted-foreground',
-  amarelo:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  vermelho: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  amarelo:  'bg-muted text-muted-foreground',
+  vermelho: 'bg-destructive/10 text-destructive',
   neutro:   'bg-muted text-muted-foreground',
 }
 

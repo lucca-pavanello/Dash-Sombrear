@@ -13,17 +13,17 @@ const fmtNum = (v: number) =>
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
 const NIVEL_ROW: Record<NivelAlerta, string> = {
-  ruptura:  'border-l-4 border-red-600 bg-red-50/40 dark:bg-red-950/20',
-  critico:  'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10',
-  atencao:  'border-l-4 border-amber-500 bg-amber-50/40 dark:bg-amber-950/20',
+  ruptura:  'border-l-4 border-destructive/50',
+  critico:  'border-l-4 border-destructive/30',
+  atencao:  'border-l-4 border-border',
   ok:       '',
   sem_dados:'',
 }
 
 const NIVEL_BADGE_CLS: Record<NivelAlerta, string> = {
-  ruptura:  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  critico:  'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',
-  atencao:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  ruptura:  'bg-destructive/10 text-destructive',
+  critico:  'bg-destructive/10 text-destructive',
+  atencao:  'bg-muted text-foreground',
   ok:       'bg-muted text-muted-foreground',
   sem_dados:'text-muted-foreground italic',
 }

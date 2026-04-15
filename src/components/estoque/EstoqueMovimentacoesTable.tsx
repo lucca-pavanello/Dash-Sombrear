@@ -9,7 +9,7 @@ const TIPO_BADGE: Record<string, string> = {
   entrada: 'bg-primary/10 text-primary',
   saida:   'bg-destructive/10 text-destructive',
   ajuste:  'bg-muted text-muted-foreground',
-  perda:   'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  perda:   'bg-muted text-muted-foreground',
 }
 const TIPO_LABEL: Record<string, string> = {
   entrada: 'Entrada', saida: 'Saída', ajuste: 'Ajuste', perda: 'Perda',

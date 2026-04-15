@@ -89,15 +89,15 @@ export default function MoverItensView({ toast }: Props) {
         <KpiCard
           title="Sugestões ativas"
           value={sugestoes.length}
-          icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
-          accent={sugestoes.length > 0 ? 'amber' : 'default'}
+          icon={<AlertTriangle className="h-4 w-4 text-muted-foreground" />}
+          accent="default"
           subtitle="localização inadequada"
         />
         <KpiCard
           title="Classe A mal-alocados"
           value={classeACount}
           icon={<TrendingDown className="h-4 w-4 text-destructive" />}
-          accent={classeACount > 0 ? 'red' : 'default'}
+          accent="default"
           subtitle="fora do balcão/acessível"
         />
         <KpiCard
@@ -193,8 +193,8 @@ export default function MoverItensView({ toast }: Props) {
                       {NIVEIS_ACESSO[s.nivel_atual] ?? s.nivel_atual}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
-                        <MoveRight className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex items-center gap-1 text-sm text-foreground font-medium">
+                        <MoveRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         {s.nivel_sugerido}
                       </span>
                     </td>
@@ -233,11 +233,11 @@ export default function MoverItensView({ toast }: Props) {
 
             {/* Body */}
             <div className="px-5 py-4 space-y-4">
-              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2">
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+              <div className="rounded-lg bg-muted/60 border border-border px-3 py-2">
+                <p className="text-xs font-semibold text-foreground">
                   Nível sugerido: {movendo.nivel_sugerido}
                 </p>
-                <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {movendo.acao_sugerida}
                 </p>
               </div>

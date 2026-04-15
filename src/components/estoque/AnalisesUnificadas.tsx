@@ -43,9 +43,9 @@ function AbcBadge({ cls }: { cls: string | null }) {
 
 function NivelBadge({ nivel }: { nivel: NivelAlerta }) {
   const style =
-    nivel === 'ruptura' ? 'bg-red-100 text-red-700' :
-    nivel === 'critico' ? 'bg-red-50 text-red-600' :
-    nivel === 'atencao' ? 'bg-amber-100 text-amber-700' :
+    nivel === 'ruptura' ? 'bg-destructive/10 text-destructive' :
+    nivel === 'critico' ? 'bg-destructive/10 text-destructive' :
+    nivel === 'atencao' ? 'bg-muted text-foreground' :
     nivel === 'ok'      ? 'bg-muted text-muted-foreground' :
                           'text-muted-foreground italic'
   const labels: Record<NivelAlerta, string> = {
@@ -154,7 +154,7 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
   const badge = isLoading ? null : (
     <span className={cn(
       'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-      criticos > 0 ? 'bg-red-100 text-red-700' : naoOk.length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground',
+      criticos > 0 ? 'bg-destructive/10 text-destructive' : naoOk.length > 0 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground',
     )}>
       {naoOk.length === 0 ? 'Tudo OK' : `${naoOk.length} produto${naoOk.length !== 1 ? 's' : ''}`}
     </span>
@@ -196,9 +196,9 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
               <tbody>
                 {top10.map(r => {
                   const ub: Record<string, string> = {
-                    critico:       'bg-red-100 text-red-700',
-                    abaixo_minimo: 'bg-amber-100 text-amber-700',
-                    atencao:       'bg-amber-50 text-amber-600',
+                    critico:       'bg-destructive/10 text-destructive',
+                    abaixo_minimo: 'bg-muted text-foreground',
+                    atencao:       'bg-muted text-muted-foreground',
                     ok:            'bg-muted text-muted-foreground',
                   }
                   const ul: Record<string, string> = {
@@ -248,7 +248,7 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
   const badge = isLoading ? null : (
     <span className={cn(
       'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-      rupturas > 0 ? 'bg-red-100 text-red-700' : alertas.length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground',
+      rupturas > 0 ? 'bg-destructive/10 text-destructive' : alertas.length > 0 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground',
     )}>
       {alertas.length === 0 ? 'Tudo OK' : `${alertas.length} produto${alertas.length !== 1 ? 's' : ''}`}
     </span>
@@ -363,7 +363,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
               <tbody>
                 {top10.map(r => {
                   const dias = r.dias_em_estoque ?? 0
-                  const diasCls = dias > 180 ? 'text-red-600 font-semibold' : dias > 90 ? 'text-amber-600 font-semibold' : 'text-muted-foreground'
+                  const diasCls = dias > 180 ? 'text-destructive font-semibold' : dias > 90 ? 'text-foreground font-semibold' : 'text-muted-foreground'
                   return (
                     <tr key={r.produto_id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                       <td className="px-3 py-2 font-medium max-w-[180px] truncate">{r.nome}</td>
@@ -433,7 +433,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
   const badge = isLoading ? null : (
     <span className={cn(
       'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-      sugestoes.length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground',
+      sugestoes.length > 0 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground',
     )}>
       {sugestoes.length === 0 ? 'Tudo OK' : `${sugestoes.length} sugestão${sugestoes.length !== 1 ? 'ões' : ''}`}
     </span>
@@ -473,7 +473,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
                     <td className="px-3 py-2 font-medium max-w-[140px] truncate">{s.nome}</td>
                     <td className="px-3 py-2 text-center"><AbcBadge cls={s.classe_abc} /></td>
                     <td className="px-3 py-2 font-mono text-muted-foreground">{s.localizacao_codigo}</td>
-                    <td className="px-3 py-2 text-amber-600 font-medium">{s.nivel_sugerido}</td>
+                    <td className="px-3 py-2 text-foreground font-medium">{s.nivel_sugerido}</td>
                   </tr>
                 ))}
               </tbody>

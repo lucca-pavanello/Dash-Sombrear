@@ -62,21 +62,14 @@ export function CardTecidoParado({ onClick }: Props) {
         'transition-shadow',
         onClick ? 'cursor-pointer hover:shadow-md' : '',
         critico
-          ? 'border-l-red-500 bg-red-50/40 dark:bg-red-900/10'
+          ? 'border-l-primary'
           : 'border-l-border',
       ].join(' ')}
     >
       {/* Ícone */}
-      <div
-        className={[
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
-          critico
-            ? 'bg-red-100 dark:bg-red-900/30'
-            : 'bg-muted/60',
-        ].join(' ')}
-      >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
         {critico ? (
-          <AlertOctagon className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <AlertOctagon className="h-4 w-4 text-muted-foreground" />
         ) : (
           <CheckCheck className="h-4 w-4 text-muted-foreground" />
         )}
@@ -87,14 +80,7 @@ export function CardTecidoParado({ onClick }: Props) {
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
           Tecido parado &gt; {amarelo_max} dias
         </p>
-        <p
-          className={[
-            'text-xl font-bold leading-tight',
-            critico
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-foreground',
-          ].join(' ')}
-        >
+        <p className="text-xl font-bold leading-tight text-foreground">
           {critico ? count : 'Tudo ok'}
         </p>
         <p className="text-[10px] text-muted-foreground truncate">

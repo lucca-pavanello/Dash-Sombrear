@@ -33,32 +33,23 @@ export default function CardSemLocalizacao({ onClick }: Props) {
       className={cn(
         'rounded-xl border-2 border-l-4 bg-card shadow-sm px-4 py-3 flex items-center gap-3 w-full text-left transition-colors',
         hasAlert
-          ? 'border-l-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/10'
+          ? 'border-l-primary hover:bg-muted/30'
           : 'border-l-border',
         !onClick && 'cursor-default',
       )}
     >
-      <div className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
-        hasAlert ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted/60',
-      )}>
-        <MapPinOff className={cn(
-          'h-4 w-4',
-          hasAlert ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground',
-        )} />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+        <MapPinOff className="h-4 w-4 text-muted-foreground" />
       </div>
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
           Sem localização
         </p>
-        <p className={cn(
-          'text-xl font-bold leading-tight',
-          hasAlert ? 'text-amber-600 dark:text-amber-400' : '',
-        )}>
+        <p className="text-xl font-bold leading-tight text-foreground">
           {isLoading ? '…' : (count ?? 0)}
         </p>
         {hasAlert && (
-          <p className="text-[10px] text-amber-600/80 dark:text-amber-400/80 truncate">
+          <p className="text-[10px] text-muted-foreground truncate">
             produtos sem local definido
           </p>
         )}

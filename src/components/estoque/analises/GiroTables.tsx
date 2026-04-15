@@ -83,7 +83,7 @@ function PiorGiroTable() {
   return (
     <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
       <div className="border-b px-4 py-3">
-        <p className="text-sm font-semibold text-amber-600">Top 10 — Pior Giro</p>
+        <p className="text-sm font-semibold">Top 10 — Pior Giro</p>
         <p className="text-xs text-muted-foreground">Maior valor parado em estoque</p>
       </div>
       {isLoading ? <TableSkeleton /> : items.length === 0 ? (
@@ -113,12 +113,12 @@ function PiorGiroTable() {
                   <td className="px-3 py-2 text-center"><AbcBadge cls={item.classificacao_abc} /></td>
                   <td className="px-3 py-2 text-right text-xs tabular-nums">
                     {item.dias_sem_vender !== null
-                      ? <span className={item.dias_sem_vender > 60 ? 'text-amber-600 font-medium' : ''}>{item.dias_sem_vender}d</span>
+                      ? <span className={item.dias_sem_vender > 60 ? 'text-muted-foreground font-semibold' : ''}>{item.dias_sem_vender}d</span>
                       : <span className="text-muted-foreground/60">nunca</span>
                     }
                   </td>
                   <td className="px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">{fmtNum(item.quantidade_atual)}</td>
-                  <td className="px-3 py-2 text-right text-xs tabular-nums font-medium text-amber-600">{fmtBRL(item.valor_parado)}</td>
+                  <td className="px-3 py-2 text-right text-xs tabular-nums font-medium text-foreground">{fmtBRL(item.valor_parado)}</td>
                 </tr>
               ))}
             </tbody>
