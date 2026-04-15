@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'recharts'
 import type { ParetoItem } from '@/hooks/useEstoqueAnalytics'
+import { useChartColors } from '../shared/useChartColors'
 
 const CLASS_COLOR: Record<string, string> = {
   A:         '#f97316',  // orange-500
@@ -34,28 +35,28 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-md text-xs space-y-1 max-w-[200px]">
-      <p className="font-semibold text-sm leading-tight text-gray-900">{d.nome}</p>
-      <p className="text-gray-500">SKU: {d.codigo}</p>
-      <hr className="border-gray-100" />
+    <div className="rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card px-3 py-2.5 shadow-md text-xs space-y-1 max-w-[200px]">
+      <p className="font-semibold text-sm leading-tight text-gray-900 dark:text-foreground">{d.nome}</p>
+      <p className="text-gray-500 dark:text-muted-foreground">SKU: {d.codigo}</p>
+      <hr className="border-gray-100 dark:border-border" />
       <p>
-        <span className="text-gray-500">Valor vendido: </span>
+        <span className="text-gray-500 dark:text-muted-foreground">Valor vendido: </span>
         <span className="font-medium">{fmtBRL(d.valor_total)}</span>
       </p>
       <p>
-        <span className="text-gray-500">% individual: </span>
-        <span className="font-medium text-orange-700">{d.percentual_individual.toFixed(1)}%</span>
+        <span className="text-gray-500 dark:text-muted-foreground">% individual: </span>
+        <span className="font-medium text-orange-700 dark:text-orange-400">{d.percentual_individual.toFixed(1)}%</span>
       </p>
       <p>
-        <span className="text-gray-500">% acumulado: </span>
-        <span className="font-medium text-gray-700">{d.percentual_acumulado.toFixed(1)}%</span>
+        <span className="text-gray-500 dark:text-muted-foreground">% acumulado: </span>
+        <span className="font-medium text-gray-700 dark:text-foreground/80">{d.percentual_acumulado.toFixed(1)}%</span>
       </p>
       <div className="flex items-center gap-1.5 pt-0.5">
         <div
           className="h-2.5 w-2.5 rounded-sm shrink-0"
           style={{ background: CLASS_COLOR[d.classificacao_abc ?? 'sem_dados'] }}
         />
-        <span className="text-gray-500">
+        <span className="text-gray-500 dark:text-muted-foreground">
           Classe {d.classificacao_abc ?? 'sem dados'}
         </span>
       </div>
@@ -69,6 +70,8 @@ interface Props {
 }
 
 export default function ParetoChart({ items, isLoading }: Props) {
+  const chartColors = useChartColors()
+
   if (isLoading) {
     return <div className="h-[400px] rounded-lg skeleton-shimmer" />
   }
@@ -102,7 +105,7 @@ export default function ParetoChart({ items, isLoading }: Props) {
           tick={{ fontSize: 10 }}
           width={36}
           tickFormatter={(v: number) => `${v.toFixed(0)}%`}
-          label={{ value: '% individual', angle: -90, position: 'insideLeft', fontSize: 9, fill: '#94a3b8', offset: 8 }}
+          label={{ value: '% individual', angle: -90, position: 'insideLeft', fontSize: 9, fill: chartColors.axisLabel, offset: 8 }}
         />
         <YAxis
           yAxisId="right"
@@ -111,7 +114,7 @@ export default function ParetoChart({ items, isLoading }: Props) {
           tick={{ fontSize: 10 }}
           width={36}
           tickFormatter={(v: number) => `${v}%`}
-          label={{ value: '% acumulado', angle: 90, position: 'insideRight', fontSize: 9, fill: '#374151', offset: 8 }}
+          label={{ value: '% acumulado', angle: 90, position: 'insideRight', fontSize: 9, fill: chartColors.lineDark, offset: 8 }}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
@@ -129,9 +132,9 @@ export default function ParetoChart({ items, isLoading }: Props) {
           yAxisId="right"
           dataKey="percentual_acumulado"
           type="monotone"
-          stroke="#374151"
+          stroke={chartColors.lineDark}
           strokeWidth={2}
-          dot={{ r: 3, fill: '#374151', stroke: 'white', strokeWidth: 1 }}
+          dot={{ r: 3, fill: chartColors.lineDark, stroke: 'white', strokeWidth: 1 }}
           activeDot={{ r: 5 }}
         />
       </ComposedChart>

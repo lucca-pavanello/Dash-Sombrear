@@ -16,7 +16,7 @@ export default function TopAClassTable({ items, isLoading }: Props) {
     {
       key: 'rank',
       header: '#',
-      cell: (_row, i) => <span className="text-gray-500">{i + 1}</span>,
+      cell: (_row, i) => <span className="text-gray-500 dark:text-muted-foreground">{i + 1}</span>,
     },
     {
       key: 'sku',
@@ -38,7 +38,7 @@ export default function TopAClassTable({ items, isLoading }: Props) {
       header: 'Valor vendido 90d',
       align: 'right',
       cell: (item) => (
-        <span className="tabular-nums font-medium text-orange-700">
+        <span className="tabular-nums font-medium text-orange-700 dark:text-orange-400">
           {fmtBRL(item.valor_total)}
         </span>
       ),
@@ -48,7 +48,7 @@ export default function TopAClassTable({ items, isLoading }: Props) {
       header: '% do total',
       align: 'right',
       cell: (item) => (
-        <span className="tabular-nums text-gray-500">
+        <span className="tabular-nums text-gray-500 dark:text-muted-foreground">
           {item.percentual_individual.toFixed(1)}%
         </span>
       ),

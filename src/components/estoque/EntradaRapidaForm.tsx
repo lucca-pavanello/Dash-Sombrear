@@ -10,8 +10,8 @@ import { useEstoqueFornecedores } from '@/hooks/useEstoqueFornecedores'
 import { useAddLote } from '@/hooks/useEstoqueLotes'
 import type { ToastType } from '@/hooks/useToast'
 
-const inputClass = 'w-full rounded-lg border border-gray-200 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all duration-150'
-const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-600'
+const inputClass = 'w-full rounded-lg border border-gray-200 dark:border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all duration-150'
+const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-muted-foreground'
 
 const schema = z.object({
   produto_id:     z.string().min(1, 'Selecione o produto'),
@@ -101,7 +101,7 @@ export default function EntradaRapidaForm({ toast }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-card shadow-sm p-6">
+    <div className="rounded-xl border border-gray-200 dark:border-border bg-card shadow-sm p-6">
       <div className="flex items-center gap-2 mb-5">
         <PackagePlus className="h-5 w-5 text-primary" />
         <h3 className="text-base font-semibold">Registrar Entrada</h3>

@@ -155,7 +155,7 @@ export default function FornecedoresTable({ toast }: Props) {
                           onClick={() => handleDesativar(f)}
                           title="Remover"
                           disabled={updateMutation.isPending}
-                          className={cn(tbl.actionBtn, 'hover:text-red-600 hover:bg-red-50 disabled:opacity-50')}
+                          className={cn(tbl.actionBtn, 'hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50')}
                         >
                           <span className="text-xs font-bold leading-none">✕</span>
                         </button>

@@ -1,9 +1,9 @@
 import { cn } from '@/lib/utils'
 
 const CLASSE_CONFIG = {
-  A: { dot: 'bg-orange-400', text: 'text-gray-700 font-medium' },
-  B: { dot: 'bg-gray-400',   text: 'text-gray-600' },
-  C: { dot: 'bg-gray-300',   text: 'text-gray-500' },
+  A: { dot: 'bg-orange-400 dark:bg-orange-500', text: 'text-gray-700 dark:text-foreground/80 font-medium' },
+  B: { dot: 'bg-gray-400 dark:bg-gray-500',     text: 'text-gray-600 dark:text-muted-foreground' },
+  C: { dot: 'bg-gray-300 dark:bg-gray-600',     text: 'text-gray-500 dark:text-muted-foreground' },
 } as const
 
 interface ClasseABCProps {
@@ -13,12 +13,12 @@ interface ClasseABCProps {
 
 export function ClasseABC({ classe, className }: ClasseABCProps) {
   if (!classe || classe === 'sem_dados') {
-    return <span className={cn('text-gray-400 text-xs italic', className)}>Sem dados</span>
+    return <span className={cn('text-gray-400 dark:text-muted-foreground text-xs italic', className)}>Sem dados</span>
   }
 
   const config = CLASSE_CONFIG[classe as keyof typeof CLASSE_CONFIG]
   if (!config) {
-    return <span className={cn('text-gray-400 text-xs italic', className)}>{classe}</span>
+    return <span className={cn('text-gray-400 dark:text-muted-foreground text-xs italic', className)}>{classe}</span>
   }
 
   return (

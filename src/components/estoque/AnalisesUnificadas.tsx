@@ -33,11 +33,11 @@ const fmtNum = (v: number) =>
 
 function NivelBadge({ nivel }: { nivel: NivelAlerta }) {
   const colorMap: Record<string, string> = {
-    ruptura:   'bg-red-50 text-red-700 border border-red-200',
-    critico:   'bg-red-50 text-red-700 border border-red-200',
-    atencao:   'bg-amber-50 text-amber-700 border border-amber-200',
-    ok:        'bg-gray-50 text-gray-500 border border-gray-200',
-    sem_dados: 'bg-gray-50 text-gray-400 border border-gray-200',
+    ruptura:   'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40',
+    critico:   'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40',
+    atencao:   'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40',
+    ok:        'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-muted/20 dark:text-muted-foreground dark:border-border',
+    sem_dados: 'bg-gray-50 text-gray-400 border border-gray-200 dark:bg-muted/20 dark:text-muted-foreground dark:border-border',
   }
   const labels: Record<string, string> = {
     ruptura: 'Ruptura', critico: 'Crítico', atencao: 'Atenção', ok: 'OK', sem_dados: '—',
@@ -96,10 +96,10 @@ export default function AnalisesUnificadas({ toast, onDrillDown }: Props) {
 // ─── S1: Sugestão de Compra ───────────────────────────────────────────────────
 
 const urgencyColor: Record<string, string> = {
-  critico:       'bg-red-50 text-red-700 border border-red-200',
-  abaixo_minimo: 'bg-orange-50 text-orange-700 border border-orange-200',
-  atencao:       'bg-amber-50 text-amber-700 border border-amber-200',
-  ok:            'bg-gray-50 text-gray-500 border border-gray-200',
+  critico:       'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40',
+  abaixo_minimo: 'bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/40',
+  atencao:       'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40',
+  ok:            'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-muted/20 dark:text-muted-foreground dark:border-border',
 }
 const urgencyLabel: Record<string, string> = {
   critico: 'Crítico', abaixo_minimo: 'Ab. mínimo', atencao: 'Atenção', ok: 'OK',
@@ -128,7 +128,7 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
     {
       key: 'sku',
       header: 'SKU',
-      cell: (r) => <span className="font-mono text-gray-500">{r.codigo ?? '—'}</span>,
+      cell: (r) => <span className="font-mono text-gray-500 dark:text-muted-foreground">{r.codigo ?? '—'}</span>,
     },
     {
       key: 'nome',
@@ -152,7 +152,7 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
       key: 'fornecedor',
       header: 'Fornecedor',
       className: 'max-w-[120px]',
-      cell: (r) => <span className="block truncate text-gray-500">{r.fornecedor_nome ?? '—'}</span>,
+      cell: (r) => <span className="block truncate text-gray-500 dark:text-muted-foreground">{r.fornecedor_nome ?? '—'}</span>,
     },
   ]
 
@@ -214,7 +214,7 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
     {
       key: 'sku',
       header: 'SKU',
-      cell: (r) => <span className="font-mono text-gray-500">{r.sku ?? '—'}</span>,
+      cell: (r) => <span className="font-mono text-gray-500 dark:text-muted-foreground">{r.sku ?? '—'}</span>,
     },
     {
       key: 'nome',
@@ -246,8 +246,8 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
       align: 'right',
       cell: (r) =>
         r.cobertura_dias > 0
-          ? <span className="tabular-nums text-gray-500">{r.cobertura_dias}d</span>
-          : <span className="text-red-700 font-semibold">Ruptura</span>,
+          ? <span className="tabular-nums text-gray-500 dark:text-muted-foreground">{r.cobertura_dias}d</span>
+          : <span className="text-red-700 dark:text-red-400 font-semibold">Ruptura</span>,
     },
   ]
 
@@ -310,10 +310,10 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
       cell: (r) => {
         const dias = r.dias_em_estoque ?? 0
         const cls = dias > 180
-          ? 'text-red-700 font-semibold'
+          ? 'text-red-700 dark:text-red-400 font-semibold'
           : dias > 90
-            ? 'text-gray-900 font-semibold'
-            : 'text-gray-500'
+            ? 'text-gray-900 dark:text-foreground font-semibold'
+            : 'text-gray-500 dark:text-muted-foreground'
         return (
           <span className={cn('tabular-nums', cls)}>
             {r.dias_em_estoque !== null ? `${r.dias_em_estoque}d` : '—'}
@@ -328,7 +328,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
       cell: (r) =>
         r.valor_parado_reais !== null
           ? <span className="tabular-nums">{formatCurrency(Number(r.valor_parado_reais))}</span>
-          : <span className="text-gray-400">—</span>,
+          : <span className="text-gray-400 dark:text-muted-foreground">—</span>,
     },
   ]
 
@@ -412,7 +412,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
       key: 'local_atual',
       header: 'Local atual',
       cell: (r) => (
-        <span className="text-gray-700">
+        <span className="text-gray-700 dark:text-foreground/80">
           {NIVEIS_ACESSO[r.nivel_atual] ?? r.nivel_atual}
         </span>
       ),
@@ -425,7 +425,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
           .split(' ou ')
           .map((part: string) => NIVEIS_ACESSO[part.trim()] ?? part.trim())
           .join(' ou ')
-        return <span className="font-medium text-gray-900">{translated}</span>
+        return <span className="font-medium text-gray-900 dark:text-foreground">{translated}</span>
       },
     },
   ]
@@ -479,20 +479,20 @@ function SecaoGiroMensal() {
       <div className="p-4 space-y-4">
         {giro && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4">
-              <p className="text-xs uppercase tracking-wide text-orange-600 font-medium">GIRO ANUAL</p>
-              <p className="text-3xl font-bold text-orange-900">
+            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-xl p-4">
+              <p className="text-xs uppercase tracking-wide text-orange-600 dark:text-orange-400 font-medium">GIRO ANUAL</p>
+              <p className="text-3xl font-bold text-orange-900 dark:text-orange-200">
                 {fmtGiro(giro.giro_reais)}
-                <span className="text-base font-normal text-orange-700"> × ao ano</span>
+                <span className="text-base font-normal text-orange-700 dark:text-orange-400"> × ao ano</span>
               </p>
-              <p className="text-xs text-orange-700/80 mt-1">
+              <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mt-1">
                 Quantas vezes seu estoque foi vendido e reposto nos últimos 12 meses
               </p>
             </div>
-            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4">
-              <p className="text-xs uppercase tracking-wide text-orange-600 font-medium">ESTOQUE MÉDIO</p>
-              <p className="text-3xl font-bold text-orange-900">{fmtBRL(giro.estoque_atual_reais)}</p>
-              <p className="text-xs text-orange-700/80 mt-1">
+            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-xl p-4">
+              <p className="text-xs uppercase tracking-wide text-orange-600 dark:text-orange-400 font-medium">ESTOQUE MÉDIO</p>
+              <p className="text-3xl font-bold text-orange-900 dark:text-orange-200">{fmtBRL(giro.estoque_atual_reais)}</p>
+              <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mt-1">
                 Valor médio mantido em estoque ao longo do ano
               </p>
             </div>

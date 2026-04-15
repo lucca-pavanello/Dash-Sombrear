@@ -3,6 +3,7 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import { useGiroMensal } from '@/hooks/useEstoqueAnalytics'
+import { useChartColors } from '../shared/useChartColors'
 import type { GiroMensalItem } from '@/hooks/useEstoqueAnalytics'
 
 const fmtBRL = (v: number) =>
@@ -20,24 +21,24 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
   const giroR = payload.find(p => p.name === 'giro_reais')
   const giroU = payload.find(p => p.name === 'giro_unidades')
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-md text-xs space-y-1.5 min-w-[160px]">
-      <p className="text-sm font-medium text-gray-900">{label}</p>
-      <hr className="border-gray-100" />
+    <div className="rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card px-3 py-2.5 shadow-md text-xs space-y-1.5 min-w-[160px]">
+      <p className="text-sm font-medium text-gray-900 dark:text-foreground">{label}</p>
+      <hr className="border-gray-100 dark:border-border" />
       {giroR && (
         <p>
-          <span className="text-gray-500">Giro R$: </span>
-          <span className="font-medium text-orange-700">{giroR.value.toFixed(2)}×</span>
+          <span className="text-gray-500 dark:text-muted-foreground">Giro R$: </span>
+          <span className="font-medium text-orange-700 dark:text-orange-400">{giroR.value.toFixed(2)}×</span>
         </p>
       )}
       {giroU && (
         <p>
-          <span className="text-gray-500">Giro un.: </span>
-          <span className="font-medium text-gray-700">{giroU.value.toFixed(2)}×</span>
+          <span className="text-gray-500 dark:text-muted-foreground">Giro un.: </span>
+          <span className="font-medium text-gray-700 dark:text-foreground/80">{giroU.value.toFixed(2)}×</span>
         </p>
       )}
       <p>
-        <span className="text-gray-500">Vendas: </span>
-        <span className="text-gray-500">{fmtBRL(d?.vendas_reais ?? 0)}</span>
+        <span className="text-gray-500 dark:text-muted-foreground">Vendas: </span>
+        <span className="text-gray-500 dark:text-muted-foreground">{fmtBRL(d?.vendas_reais ?? 0)}</span>
       </p>
     </div>
   )
@@ -45,6 +46,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 
 export default function GiroMensalChart() {
   const { data: dados = [], isLoading } = useGiroMensal()
+  const chartColors = useChartColors()
 
   if (isLoading) {
     return <div className="h-[300px] rounded-lg skeleton-shimmer" />
@@ -59,7 +61,7 @@ export default function GiroMensalChart() {
             <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
         <XAxis
           dataKey="mes"
           tick={{ fontSize: 11 }}
@@ -95,10 +97,10 @@ export default function GiroMensalChart() {
         <Line
           dataKey="giro_unidades"
           name="giro_unidades"
-          stroke="#9ca3af"
+          stroke={chartColors.lineGray}
           strokeWidth={2}
           strokeDasharray="4 2"
-          dot={{ r: 3, fill: '#9ca3af' }}
+          dot={{ r: 3, fill: chartColors.lineGray }}
           activeDot={{ r: 4 }}
           type="monotone"
         />

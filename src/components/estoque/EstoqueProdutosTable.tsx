@@ -260,7 +260,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                           <ActionBtn
                             icon={<PackageX className="h-4 w-4" />}
                             label="Desativar"
-                            className="hover:text-red-600 hover:bg-red-50"
+                            className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                             onClick={() => handleDesativar(p)}
                           />
                         )}
