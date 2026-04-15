@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Check, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -155,8 +156,8 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
         <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform duration-200', open && 'rotate-180')} />
       </button>
 
-      {/* ── Dropdown panel ── */}
-      {open && (
+      {/* ── Dropdown panel (portal → fora de qualquer stacking context pai) ── */}
+      {open && createPortal(
         <div
           ref={panelRef}
           style={style}
@@ -239,7 +240,8 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
