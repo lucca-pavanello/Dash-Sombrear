@@ -126,6 +126,28 @@ export type EstoqueFornecedor = {
   observacoes: string | null
 }
 
+export type FornecedorCategoria = {
+  id: string
+  fornecedor_id: string
+  tipo_produto: 'Tecido' | 'Ferragem' | 'Acessorio'
+  lead_time_dias: number
+  prazo_pagamento_dias?: number | null
+  observacao?: string | null
+  ativo: boolean
+  created_at: string
+}
+
+export type FornecedorDescontoCombo = {
+  id: string
+  fornecedor_id: string
+  categorias_combo: string[]
+  percentual_desconto: number
+  valor_minimo_pedido?: number | null
+  observacao?: string | null
+  ativo: boolean
+  created_at: string
+}
+
 export type EstoqueLote = {
   id: string
   created_at: string

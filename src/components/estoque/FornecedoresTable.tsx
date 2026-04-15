@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, Pencil, Truck, Clock, Filter } from 'lucide-react'
+import { Search, Plus, Pencil, Truck, Clock, Filter, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueFornecedores, useUpdateFornecedor } from '@/hooks/useEstoqueFornecedores'
+import { useAllFornecedorCategorias } from '@/hooks/useFornecedorCategorias'
+import { useAllFornecedorDescontos } from '@/hooks/useFornecedorDescontos'
 import NovoFornecedorForm from './NovoFornecedorForm'
 import { tbl } from './shared/tableStyles'
 import { FilterPopover, isFilterActive } from './shared/FilterPopover'
@@ -31,6 +33,8 @@ export default function FornecedoresTable({ toast }: Props) {
   const [editando, setEditando] = useState<EstoqueFornecedor | null>(null)
 
   const { data: fornecedores = [], isLoading } = useEstoqueFornecedores({ includeInactive: mostrarInativos })
+  const { data: categoriasMap = {} } = useAllFornecedorCategorias()
+  const { data: descontosMap = {} } = useAllFornecedorDescontos()
   const updateMutation = useUpdateFornecedor()
 
   const filtered = useMemo(() => {
@@ -132,7 +136,7 @@ export default function FornecedoresTable({ toast }: Props) {
       {/* Table */}
       <div className={tbl.container}>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ minWidth: '640px' }}>
+          <table className="w-full text-sm" style={{ minWidth: '720px' }}>
             <thead>
               <tr className={tbl.theadRow}>
                 <th className={tbl.th}>Fornecedor / Contato</th>
@@ -161,13 +165,14 @@ export default function FornecedoresTable({ toast }: Props) {
                     onClose={() => setOpenFilter(null)}
                   />
                 </th>
+                <th className={tbl.th}>Descontos</th>
                 <th className={cn(tbl.th, 'border-r-0')}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-4">
+                  <td colSpan={6} className="px-4 py-4">
                     <div className="flex flex-col gap-2">
                       {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-14 rounded-lg skeleton-shimmer" />)}
                     </div>
@@ -175,7 +180,7 @@ export default function FornecedoresTable({ toast }: Props) {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
+                  <td colSpan={6} className="px-4 py-12 text-center">
                     <Truck className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-sm font-medium text-muted-foreground">
                       {search || hasFilters ? 'Nenhum fornecedor com esse filtro. Tente outra combinação.' : 'Nenhum fornecedor cadastrado'}
@@ -186,46 +191,82 @@ export default function FornecedoresTable({ toast }: Props) {
                   </td>
                 </tr>
               ) : (
-                filtered.map(f => (
-                  <tr key={f.id} className={tbl.tbodyRow}>
-                    <td className={tbl.td}>
-                      <p className="font-semibold text-foreground">{f.nome}</p>
-                      {f.contato && <p className="text-xs text-muted-foreground">{f.contato}</p>}
-                      {f.email && <p className="text-xs text-muted-foreground/60">{f.email}</p>}
-                    </td>
-                    <td className={cn(tbl.td, 'text-muted-foreground whitespace-nowrap')}>{f.telefone ?? '—'}</td>
-                    <td className={cn(tbl.td, 'font-mono text-xs text-muted-foreground whitespace-nowrap')}>{f.cnpj ?? '—'}</td>
-                    <td className={cn(tbl.td, 'text-center')}>
-                      {f.prazo_entrega_dias != null ? (
-                        <span className="inline-flex items-center justify-end gap-1.5 text-sm text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5 shrink-0" />
-                          {f.prazo_entrega_dias} {f.prazo_entrega_dias === 1 ? 'dia' : 'dias'}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground/40">—</span>
-                      )}
-                    </td>
-                    <td className={tbl.actionTd}>
-                      <div className={cn(tbl.actionGroup, 'justify-center')}>
-                        <button onClick={() => handleEditar(f)} title="Editar"
-                          className={cn(tbl.actionBtn, 'hover:text-foreground hover:bg-muted/60')}>
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleDesativar(f)} title="Remover"
-                          disabled={updateMutation.isPending}
-                          className={cn(tbl.actionBtn, 'hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50')}>
-                          <span className="text-xs font-bold leading-none">✕</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filtered.map(f => {
+                  const catsFornec = categoriasMap[f.id] ?? []
+                  const descontosFornec = descontosMap[f.id] ?? []
+
+                  // Coluna Prazo entrega
+                  let prazoCell: React.ReactNode
+                  if (catsFornec.length > 0) {
+                    const leadTimes = catsFornec.map(c => c.lead_time_dias)
+                    const minLt = Math.min(...leadTimes)
+                    const maxLt = Math.max(...leadTimes)
+                    const tooltip = catsFornec.map(c => `${c.tipo_produto}: ${c.lead_time_dias}d`).join(' | ')
+                    prazoCell = (
+                      <span
+                        title={tooltip}
+                        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground cursor-default"
+                      >
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        {minLt === maxLt ? `${minLt} dias` : `${minLt}–${maxLt} dias`}
+                        <span className="text-xs text-muted-foreground/60">({catsFornec.length} categ.)</span>
+                      </span>
+                    )
+                  } else if (f.prazo_entrega_dias != null) {
+                    prazoCell = (
+                      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        {f.prazo_entrega_dias} {f.prazo_entrega_dias === 1 ? 'dia' : 'dias'}
+                      </span>
+                    )
+                  } else {
+                    prazoCell = <span className="text-sm text-muted-foreground/40">—</span>
+                  }
+
+                  return (
+                    <tr key={f.id} className={tbl.tbodyRow}>
+                      <td className={tbl.td}>
+                        <p className="font-semibold text-foreground">{f.nome}</p>
+                        {f.contato && <p className="text-xs text-muted-foreground">{f.contato}</p>}
+                        {f.email && <p className="text-xs text-muted-foreground/60">{f.email}</p>}
+                      </td>
+                      <td className={cn(tbl.td, 'text-muted-foreground whitespace-nowrap')}>{f.telefone ?? '—'}</td>
+                      <td className={cn(tbl.td, 'font-mono text-xs text-muted-foreground whitespace-nowrap')}>{f.cnpj ?? '—'}</td>
+                      <td className={cn(tbl.td, 'text-center')}>
+                        {prazoCell}
+                      </td>
+                      <td className={cn(tbl.td, 'text-center')}>
+                        {descontosFornec.length > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-full px-2 py-0.5">
+                            <Tag className="h-3 w-3" />
+                            {descontosFornec.length} {descontosFornec.length === 1 ? 'desconto' : 'descontos'}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground/40">—</span>
+                        )}
+                      </td>
+                      <td className={tbl.actionTd}>
+                        <div className={cn(tbl.actionGroup, 'justify-center')}>
+                          <button onClick={() => handleEditar(f)} title="Editar"
+                            className={cn(tbl.actionBtn, 'hover:text-foreground hover:bg-muted/60')}>
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => handleDesativar(f)} title="Remover"
+                            disabled={updateMutation.isPending}
+                            className={cn(tbl.actionBtn, 'hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50')}>
+                            <span className="text-xs font-bold leading-none">✕</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
             {filtered.length > 0 && (
               <tfoot>
                 <tr className={tbl.tfootRow}>
-                  <td colSpan={5} className={`${tbl.tfootCell} text-center`}>
+                  <td colSpan={6} className={`${tbl.tfootCell} text-center`}>
                     Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}
                   </td>
                 </tr>
