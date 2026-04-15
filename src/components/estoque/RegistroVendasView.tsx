@@ -323,11 +323,11 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
         </div>
 
         {/* Submit */}
-        <div className="flex justify-end">
+        <div className="flex">
           <button
             type="submit"
             disabled={!hasValidItem || registrar.isPending}
-            className="flex items-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
             <ShoppingCart className="h-4 w-4" />
             {registrar.isPending ? 'Registrando...' : 'Registrar venda'}

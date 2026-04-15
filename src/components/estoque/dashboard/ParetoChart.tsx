@@ -73,12 +73,12 @@ export default function ParetoChart({ items, isLoading }: Props) {
   const chartColors = useChartColors()
 
   if (isLoading) {
-    return <div className="h-[400px] rounded-lg skeleton-shimmer" />
+    return <div className="h-64 sm:h-[400px] rounded-lg skeleton-shimmer" />
   }
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[400px] text-center px-6">
+      <div className="flex flex-col items-center justify-center h-64 sm:h-[400px] text-center px-6">
         <p className="text-sm font-medium text-muted-foreground">
           Ainda não há vendas suficientes para calcular a Curva ABC.
         </p>
@@ -90,7 +90,8 @@ export default function ParetoChart({ items, isLoading }: Props) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <div className="h-64 sm:h-[400px]">
+    <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={items} margin={{ top: 8, right: 48, left: 8, bottom: 70 }}>
         <XAxis
           dataKey="codigo"
@@ -139,5 +140,6 @@ export default function ParetoChart({ items, isLoading }: Props) {
         />
       </ComposedChart>
     </ResponsiveContainer>
+    </div>
   )
 }

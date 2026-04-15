@@ -51,7 +51,7 @@ export default function FornecedoresTable({ toast }: Props) {
   return (
     <>
       {/* Toolbar */}
-      <div className="flex items-center gap-3 pb-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-3">
           <div className={tbl.searchWrap}>
             <Search className={tbl.searchIcon} />
             <input
@@ -61,7 +61,7 @@ export default function FornecedoresTable({ toast }: Props) {
               className={tbl.searchInput}
             />
           </div>
-          <button onClick={handleNovo} className={tbl.addBtn}>
+          <button onClick={handleNovo} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
             <Plus className="h-4 w-4" />
             Novo Fornecedor
           </button>

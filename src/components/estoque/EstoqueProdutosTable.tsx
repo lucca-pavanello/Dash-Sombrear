@@ -62,7 +62,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   return (
     <>
       {/* ── Linha 1: busca + botão novo ── */}
-      <div className="flex items-center gap-3 pb-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-2">
         <div className={tbl.searchWrap}>
           <Search className={tbl.searchIcon} />
           <input
@@ -80,7 +80,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
             </button>
           )}
         </div>
-        <button onClick={onNovoProduto} className={tbl.addBtn}>
+        <button onClick={onNovoProduto} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
           <Plus className="h-4 w-4" />
           Novo Produto
         </button>

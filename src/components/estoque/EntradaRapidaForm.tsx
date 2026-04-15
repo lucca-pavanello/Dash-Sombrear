@@ -189,11 +189,11 @@ export default function EntradaRapidaForm({ toast }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end pt-1">
+        <div className="flex pt-1">
           <button
             type="submit"
             disabled={addLote.isPending}
-            className="flex items-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
             <PackagePlus className="h-4 w-4" />
             {addLote.isPending ? 'Registrando...' : 'Registrar entrada'}

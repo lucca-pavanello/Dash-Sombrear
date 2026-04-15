@@ -162,11 +162,11 @@ export default function TabEstoque({ toast }: Props) {
         </div>
 
         {/* Separador */}
-        <div className="w-px h-8 bg-border self-center" />
+        <div className="hidden sm:block w-px h-8 bg-border self-center" />
 
         {/* Grupo Cadastros */}
         <div className="flex flex-col gap-0.5">
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
+          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
             Cadastros
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
@@ -185,7 +185,7 @@ export default function TabEstoque({ toast }: Props) {
 
         {/* Grupo Operação */}
         <div className="flex flex-col gap-0.5">
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
+          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
             Operação
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
@@ -204,7 +204,7 @@ export default function TabEstoque({ toast }: Props) {
 
         {/* Grupo Análises */}
         <div className="flex flex-col gap-0.5">
-          <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
+          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
             Análises
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
@@ -219,7 +219,7 @@ export default function TabEstoque({ toast }: Props) {
         </div>
 
         {/* Separador */}
-        <div className="w-px h-8 bg-border self-center" />
+        <div className="hidden sm:block w-px h-8 bg-border self-center" />
 
         {/* Configurações — isolado no final */}
         <div className="flex gap-1 rounded-xl bg-muted/60 p-1">

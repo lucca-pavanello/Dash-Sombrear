@@ -225,11 +225,11 @@ export default function ConfiguracaoView({ toast }: Props) {
         ))}
 
         {/* Botão salvar */}
-        <div className="flex justify-end">
+        <div className="flex">
           <button
             type="submit"
             disabled={isSubmitting || isLoading || salvar.isPending}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Save className="h-4 w-4" />
             {isSubmitting || salvar.isPending ? 'Salvando...' : 'Salvar configurações'}
