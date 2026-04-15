@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -81,6 +81,8 @@ export default function EntradaRapidaForm({ toast }: Props) {
   const fornecedorId = watch('fornecedor_id')
   const dataEntrada = watch('data_entrada')
 
+  const [tipoUnidade, setTipoUnidade] = useState<'unidade' | 'metro'>('unidade')
+
   const produtoOptions = produtos.map((p) => ({
     value: p.id,
     label: p.codigo ? `${p.codigo} — ${p.nome}` : p.nome,
@@ -114,8 +116,10 @@ export default function EntradaRapidaForm({ toast }: Props) {
         }],
       })
       const qtdFmt = data.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
-      toast('success', `Entrada registrada: ${qtdFmt} unidades de ${produto?.nome ?? 'produto'}`)
+      const unidadeLabel = tipoUnidade === 'metro' ? 'metros' : 'unidades'
+      toast('success', `Entrada registrada: ${qtdFmt} ${unidadeLabel} de ${produto?.nome ?? 'produto'}`)
       reset({ produto_id: '', data_entrada: hoje(), quantidade: undefined, custo_unitario: undefined, nota_fiscal: '', fornecedor_id: '' })
+      setTipoUnidade('unidade')
     } catch (err) {
       console.error('[EntradaRapidaForm]', err)
       toast('error', 'Erro ao registrar entrada.')
@@ -158,25 +162,46 @@ export default function EntradaRapidaForm({ toast }: Props) {
           </div>
         </div>
 
+        {/* Tipo de unidade */}
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
+            {(['unidade', 'metro'] as const).map((tipo) => (
+              <button
+                key={tipo}
+                type="button"
+                onClick={() => setTipoUnidade(tipo)}
+                className={cn(
+                  'px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-150',
+                  tipoUnidade === tipo
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                {tipo === 'unidade' ? 'Unidade' : 'Metro'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Quantidade + Custo */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>
-              Quantidade <span className="text-orange-500 ml-0.5">*</span>
+              {tipoUnidade === 'unidade' ? 'Quantidade' : 'Metragem (m)'} <span className="text-orange-500 ml-0.5">*</span>
             </label>
             <input
               type="number"
               min="0.001"
               step="0.001"
               {...register('quantidade', { valueAsNumber: true })}
-              placeholder="Ex: 50"
+              placeholder={tipoUnidade === 'unidade' ? 'Ex: 50' : 'Ex: 10,5'}
               className={cn(INPUT_CLASSES, errors.quantidade && '!border-red-400 focus:!border-red-500 focus:!ring-red-200')}
             />
             {errors.quantidade && <p className="mt-1 text-xs text-red-600">{errors.quantidade.message}</p>}
           </div>
           <div>
             <label className={labelClass}>
-              Custo unitário (R$) <span className="text-orange-500 ml-0.5">*</span>
+              {tipoUnidade === 'unidade' ? 'Custo unitário (R$)' : 'Custo por metro (R$)'} <span className="text-orange-500 ml-0.5">*</span>
             </label>
             <input
               type="number"
