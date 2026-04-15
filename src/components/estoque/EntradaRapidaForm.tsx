@@ -107,7 +107,7 @@ export default function EntradaRapidaForm({ toast }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-border bg-card shadow-sm p-6">
+    <div className="rounded-xl border border-gray-200 dark:border-border bg-card shadow-sm p-4 md:p-6">
       <div className="flex items-center justify-center gap-2 mb-5">
         <PackagePlus className="h-5 w-5 text-primary" />
         <h3 className="text-base font-semibold">Registrar Entrada</h3>

@@ -122,7 +122,7 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
 
       {/* Popover */}
       {open && (
-        <div className="absolute top-[calc(100%+6px)] left-0 z-50 w-[264px] animate-in fade-in-0 slide-in-from-top-2 duration-150 rounded-xl border border-border bg-card p-3.5 shadow-elevated">
+        <div className="absolute top-[calc(100%+6px)] left-0 z-50 w-[calc(100vw-2rem)] max-w-[264px] animate-in fade-in-0 slide-in-from-top-2 duration-150 rounded-xl border border-border bg-card p-3.5 shadow-elevated">
           {/* Month navigation */}
           <div className="mb-3 flex items-center justify-between">
             <button

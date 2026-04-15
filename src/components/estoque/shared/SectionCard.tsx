@@ -34,31 +34,31 @@ export default function SectionCard({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full grid grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors cursor-pointer"
+        className="w-full grid grid-cols-[auto_1fr_auto] items-center gap-2 md:gap-4 px-3 py-3 md:px-6 md:py-4 text-left hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors cursor-pointer"
       >
         {/* Col 1: ícone */}
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-950/30">
-          <Icon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+        <span className="flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-lg md:rounded-xl bg-orange-50 dark:bg-orange-950/30">
+          <Icon className="h-4 w-4 md:h-5 md:w-5 text-orange-600 dark:text-orange-400" />
         </span>
 
         {/* Col 2: título + subtítulo centralizados */}
         <div className="flex flex-col items-center justify-center text-center">
-          <p className="text-base font-semibold text-gray-900 dark:text-foreground leading-tight">{title}</p>
-          <p className="text-sm text-gray-500 dark:text-muted-foreground leading-snug mt-0.5">{subtitle}</p>
+          <p className="text-sm md:text-base font-semibold text-gray-900 dark:text-foreground leading-tight">{title}</p>
+          <p className="text-xs md:text-sm text-gray-500 dark:text-muted-foreground leading-snug mt-0.5">{subtitle}</p>
         </div>
 
         {/* Col 3: badge + chevron */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
           {badge && (
             <span className={cn(
-              'inline-flex h-7 px-3 items-center rounded-full text-xs font-medium',
+              'inline-flex h-6 px-2 md:h-7 md:px-3 items-center rounded-full text-xs font-medium',
               badgeVariants[badge.variant],
             )}>
               {badge.label}
             </span>
           )}
           <ChevronDown className={cn(
-            'h-5 w-5 text-gray-400 dark:text-muted-foreground transition-transform duration-200',
+            'h-4 w-4 md:h-5 md:w-5 text-gray-400 dark:text-muted-foreground transition-transform duration-200',
             open && 'rotate-180',
           )} />
         </div>

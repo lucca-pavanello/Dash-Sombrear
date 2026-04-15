@@ -693,7 +693,7 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
-        <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none">
+        <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none snap-x snap-mandatory md:snap-none">
           {/* Botão Início */}
           <button
             onClick={() => navigate('/')}
@@ -724,7 +724,7 @@ export default function Dashboard() {
                 onMouseDown={handleTabRipple}
                 title={label}
                 className={cn(
-                  'relative flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+                  'relative flex shrink-0 min-w-[60px] md:flex-1 snap-start md:[snap-align:none] items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
                   estoqueSub === id
                     ? 'bg-card text-primary shadow-elevated'
                     : 'text-muted-foreground hover:text-foreground hover:bg-card/50',

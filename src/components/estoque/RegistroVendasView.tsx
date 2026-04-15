@@ -380,9 +380,9 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
           </div>
 
           {/* Total */}
-          <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-6 py-4 mt-4">
+          <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-4 py-3 md:px-6 md:py-4 mt-4">
             <span className="text-sm font-medium text-gray-700">Total da venda</span>
-            <span className="text-2xl font-bold text-orange-700">{formatCurrency(totalVenda)}</span>
+            <span className="text-xl md:text-2xl font-bold text-orange-700">{formatCurrency(totalVenda)}</span>
           </div>
 
           {/* Submit */}
