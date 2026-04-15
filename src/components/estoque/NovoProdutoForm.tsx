@@ -169,12 +169,12 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title-produto"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-md px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
     >
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
+        className="w-full sm:max-w-lg bg-card rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
