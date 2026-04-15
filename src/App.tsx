@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useProfile } from '@/hooks/useProfile'
 import type { Session } from '@supabase/supabase-js'
 import Dashboard from '@/pages/Dashboard'
+import HomePage from '@/pages/HomePage'
 import Login from '@/pages/Login'
 import ResetPassword from '@/pages/ResetPassword'
 import OrcamentoPublico from '@/pages/OrcamentoPublico'
@@ -41,7 +42,14 @@ function AppRoutes({ session }: { session: Session }) {
     )
   }
 
-  return <ErrorBoundary><Dashboard /></ErrorBoundary>
+  return (
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/*" element={<Dashboard />} />
+      </Routes>
+    </ErrorBoundary>
+  )
 }
 
 export default function App() {
