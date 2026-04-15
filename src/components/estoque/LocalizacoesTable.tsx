@@ -53,7 +53,7 @@ export default function LocalizacoesTable({ toast }: Props) {
   return (
     <>
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-3 justify-center">
           <div className={tbl.searchWrap}>
             <Search className={tbl.searchIcon} />
             <input
