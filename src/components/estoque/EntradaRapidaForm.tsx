@@ -10,7 +10,7 @@ import { useEstoqueFornecedores } from '@/hooks/useEstoqueFornecedores'
 import { useAddLote } from '@/hooks/useEstoqueLotes'
 import type { ToastType } from '@/hooks/useToast'
 
-const inputClass = 'w-full rounded-lg border border-gray-200 dark:border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all duration-150'
+const inputClass = 'h-10 w-full rounded-md border border-gray-200 dark:border-border bg-white dark:bg-background px-3 text-sm text-gray-900 dark:text-foreground placeholder:text-gray-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors'
 const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-muted-foreground'
 
 const schema = z.object({
@@ -147,7 +147,7 @@ export default function EntradaRapidaForm({ toast }: Props) {
               step="0.001"
               {...register('quantidade', { valueAsNumber: true })}
               placeholder="Ex: 50"
-              className={cn(inputClass, errors.quantidade && 'border-red-400 focus:border-red-500 focus:ring-red-200')}
+              className={cn(inputClass, 'text-right', errors.quantidade && 'border-red-400 focus:border-red-500 focus:ring-red-200')}
             />
             {errors.quantidade && <p className="mt-1 text-xs text-red-600">{errors.quantidade.message}</p>}
           </div>
@@ -161,7 +161,7 @@ export default function EntradaRapidaForm({ toast }: Props) {
               step="0.01"
               {...register('custo_unitario', { valueAsNumber: true })}
               placeholder="Ex: 40,00"
-              className={cn(inputClass, errors.custo_unitario && 'border-red-400 focus:border-red-500 focus:ring-red-200')}
+              className={cn(inputClass, 'text-right', errors.custo_unitario && 'border-red-400 focus:border-red-500 focus:ring-red-200')}
             />
             {errors.custo_unitario && <p className="mt-1 text-xs text-red-600">{errors.custo_unitario.message}</p>}
           </div>

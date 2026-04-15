@@ -323,7 +323,7 @@ export default function TabEstoque({ toast }: Props) {
 
       {subTab === 'entradas' && (
         <div className="space-y-6">
-          <div>
+          <div className="text-center">
             <h3 className="font-display text-base font-semibold">Entradas</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Toda compra que chega na loja. O estoque sobe automaticamente.
