@@ -243,7 +243,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                       {abc === 'sem_dados' ? '—' : abc}
                     </td>
                     <td className={cn(tbl.actionTd, 'pr-6')}>
-                      <div className={tbl.actionGroup}>
+                      <div className={cn(tbl.actionGroup, 'justify-center')}>
                         <ActionBtn
                           icon={<TrendingUp className="h-4 w-4" />}
                           label="Registrar entrada"
