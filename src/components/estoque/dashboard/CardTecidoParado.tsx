@@ -39,13 +39,13 @@ export function CardTecidoParado({ onClick }: Props) {
 
   if (isLoading || !data) {
     return (
-      <div className="rounded-xl border border-orange-100 bg-orange-50 dark:bg-orange-950/15 dark:border-orange-900/25 shadow-sm p-6 flex flex-col gap-3 animate-pulse">
+      <div className="rounded-xl border-2 border-primary/20 bg-primary/5 dark:bg-primary/8 shadow-sm p-4 flex flex-col gap-3 animate-pulse">
         <div className="flex items-start justify-between gap-2">
-          <div className="h-3 w-28 bg-orange-100/60 dark:bg-orange-900/30 rounded" />
-          <div className="h-7 w-7 rounded-lg bg-orange-100/60 dark:bg-orange-900/30" />
+          <div className="h-3 w-28 bg-primary/15 rounded" />
+          <div className="h-7 w-7 rounded-lg bg-primary/15" />
         </div>
-        <div className="h-8 w-8 bg-orange-100/60 dark:bg-orange-900/30 rounded" />
-        <div className="h-3 w-32 bg-orange-100/60 dark:bg-orange-900/30 rounded" />
+        <div className="h-7 w-8 bg-primary/15 rounded" />
+        <div className="h-3 w-32 bg-primary/15 rounded" />
       </div>
     )
   }
@@ -57,22 +57,22 @@ export function CardTecidoParado({ onClick }: Props) {
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border border-orange-100 bg-orange-50 dark:bg-orange-950/15 dark:border-orange-900/25 shadow-sm p-6 flex flex-col gap-3 transition-all',
+        'rounded-xl border-2 border-primary/20 bg-primary/5 dark:bg-primary/8 shadow-sm p-4 flex flex-col gap-3 transition-all',
         onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-px',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400 leading-tight">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 leading-tight">
           Parado &gt; {amarelo_max}d
         </p>
-        <div className="rounded-lg p-1.5 bg-orange-100/50 dark:bg-orange-950/20 text-orange-300 dark:text-orange-600 shrink-0">
+        <div className="rounded-lg p-1.5 bg-primary/15 text-primary shrink-0">
           <Clock className="h-4 w-4" />
         </div>
       </div>
-      <p className={cn('text-3xl font-semibold leading-none', critico ? 'text-red-700' : 'text-gray-900 dark:text-gray-100')}>
+      <p className={cn('text-2xl font-bold leading-none', critico ? 'text-red-700' : 'text-foreground')}>
         {count}
       </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-muted-foreground/60">
         {critico ? formatCurrency(valor) + ' parado' : 'nenhum produto crítico'}
       </p>
     </div>
