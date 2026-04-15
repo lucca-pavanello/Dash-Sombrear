@@ -366,6 +366,11 @@ export default function Dashboard() {
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
   ], [isAdmin, canEstoque, pendingCount, estoqueAlertas.length])
 
+  const isEstoqueArea = activeTab === 'estoque'
+  const visibleTabs = isEstoqueArea
+    ? TABS.filter(t => t.id === 'estoque')
+    : TABS.filter(t => t.id !== 'estoque')
+
   function MagneticBtn({ children, style, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
     const [off, setOff] = useState({ x: 0, y: 0 })
     function onMove(e: React.MouseEvent<HTMLButtonElement>) {
@@ -635,6 +640,16 @@ export default function Dashboard() {
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
         <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none">
+          {/* Botão Início */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all duration-100 whitespace-nowrap active:scale-95"
+            title="Voltar ao início"
+          >
+            <span className="hidden sm:inline">← Início</span>
+            <span className="sm:hidden">←</span>
+          </button>
+          <span className="w-px self-stretch bg-border/50 mx-0.5" />
           {/* Sliding underline indicator */}
           {tabIndicator.width > 0 && (
             <div
@@ -642,7 +657,7 @@ export default function Dashboard() {
               style={{ left: tabIndicator.left + 6, width: tabIndicator.width - 12 }}
             />
           )}
-          {TABS.map(({ id, label, icon: Icon, badge }) => (
+          {visibleTabs.map(({ id, label, icon: Icon, badge }) => (
             <button
               key={id}
               data-tab={id}
