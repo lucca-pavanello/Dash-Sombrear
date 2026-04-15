@@ -4,13 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { PackagePlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueFornecedores } from '@/hooks/useEstoqueFornecedores'
 import { useAddLote } from '@/hooks/useEstoqueLotes'
 import type { ToastType } from '@/hooks/useToast'
 
-const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
-const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
+const inputClass = 'w-full rounded-lg border border-gray-200 bg-background px-3.5 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all duration-150'
+const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-600'
 
 const schema = z.object({
   produto_id:     z.string().min(1, 'Selecione o produto'),
@@ -56,6 +57,17 @@ export default function EntradaRapidaForm({ toast }: Props) {
   })
 
   const produtoId = watch('produto_id')
+  const fornecedorId = watch('fornecedor_id')
+
+  const produtoOptions = produtos.map((p) => ({
+    value: p.id,
+    label: p.codigo ? `${p.codigo} — ${p.nome}` : p.nome,
+  }))
+
+  const fornecedorOptions = [
+    { value: '', label: '— Nenhum —' },
+    ...fornecedores.map((f) => ({ value: f.id, label: f.nome })),
+  ]
 
   // Auto-preenche fornecedor ao selecionar produto
   useEffect(() => {
@@ -89,66 +101,69 @@ export default function EntradaRapidaForm({ toast }: Props) {
   }
 
   return (
-    <div className="rounded-xl border-2 bg-card shadow-sm p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <PackagePlus className="h-4 w-4 text-primary" />
-        <h3 className="font-semibold text-sm">Registrar Entrada</h3>
+    <div className="rounded-xl border border-gray-200 bg-card shadow-sm p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <PackagePlus className="h-5 w-5 text-primary" />
+        <h3 className="text-base font-semibold">Registrar Entrada</h3>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Produto + Data */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Produto *</label>
-            <select
-              {...register('produto_id')}
-              className={cn(inputClass, errors.produto_id && 'border-destructive')}
-            >
-              <option value="">Selecione o produto...</option>
-              {produtos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.codigo ? `${p.codigo} — ` : ''}{p.nome}
-                </option>
-              ))}
-            </select>
-            {errors.produto_id && <p className="mt-1 text-xs text-destructive">{errors.produto_id.message}</p>}
+            <label className={labelClass}>
+              Produto <span className="text-orange-500 ml-0.5">*</span>
+            </label>
+            <CustomSelect
+              value={produtoId ?? ''}
+              onChange={(v) => setValue('produto_id', v, { shouldValidate: true })}
+              options={produtoOptions}
+              placeholder="Selecione o produto..."
+            />
+            {errors.produto_id && <p className="mt-1 text-xs text-red-600">{errors.produto_id.message}</p>}
           </div>
           <div>
-            <label className={labelClass}>Data de entrada *</label>
+            <label className={labelClass}>
+              Data de entrada <span className="text-orange-500 ml-0.5">*</span>
+            </label>
             <input
               type="date"
               {...register('data_entrada')}
-              className={cn(inputClass, errors.data_entrada && 'border-destructive')}
+              className={cn(inputClass, errors.data_entrada && 'border-red-400 focus:border-red-500 focus:ring-red-200')}
             />
-            {errors.data_entrada && <p className="mt-1 text-xs text-destructive">{errors.data_entrada.message}</p>}
+            {errors.data_entrada && <p className="mt-1 text-xs text-red-600">{errors.data_entrada.message}</p>}
           </div>
         </div>
 
         {/* Quantidade + Custo */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Quantidade *</label>
+            <label className={labelClass}>
+              Quantidade <span className="text-orange-500 ml-0.5">*</span>
+            </label>
             <input
               type="number"
               min="0.001"
               step="0.001"
               {...register('quantidade', { valueAsNumber: true })}
               placeholder="Ex: 50"
-              className={cn(inputClass, errors.quantidade && 'border-destructive')}
+              className={cn(inputClass, errors.quantidade && 'border-red-400 focus:border-red-500 focus:ring-red-200')}
             />
-            {errors.quantidade && <p className="mt-1 text-xs text-destructive">{errors.quantidade.message}</p>}
+            {errors.quantidade && <p className="mt-1 text-xs text-red-600">{errors.quantidade.message}</p>}
           </div>
           <div>
-            <label className={labelClass}>Custo unitário (R$) *</label>
+            <label className={labelClass}>
+              Custo unitário (R$) <span className="text-orange-500 ml-0.5">*</span>
+            </label>
             <input
               type="number"
               min="0"
               step="0.01"
               {...register('custo_unitario', { valueAsNumber: true })}
               placeholder="Ex: 40,00"
-              className={cn(inputClass, errors.custo_unitario && 'border-destructive')}
+              className={cn(inputClass, errors.custo_unitario && 'border-red-400 focus:border-red-500 focus:ring-red-200')}
             />
-            {errors.custo_unitario && <p className="mt-1 text-xs text-destructive">{errors.custo_unitario.message}</p>}
+            {errors.custo_unitario && <p className="mt-1 text-xs text-red-600">{errors.custo_unitario.message}</p>}
           </div>
         </div>
 
@@ -165,15 +180,12 @@ export default function EntradaRapidaForm({ toast }: Props) {
           </div>
           <div>
             <label className={labelClass}>Fornecedor</label>
-            <select
-              {...register('fornecedor_id')}
-              className={inputClass}
-            >
-              <option value="">— Nenhum —</option>
-              {fornecedores.map((f) => (
-                <option key={f.id} value={f.id}>{f.nome}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={fornecedorId ?? ''}
+              onChange={(v) => setValue('fornecedor_id', v, { shouldValidate: true })}
+              options={fornecedorOptions}
+              placeholder="— Nenhum —"
+            />
           </div>
         </div>
 
