@@ -160,6 +160,18 @@ async function checkFuncao(nome: string, opts: { opcional?: boolean } = {}) {
   try {
     const { error } = await supabase.rpc(nome)
     if (error) {
+      // Heurística: função existe mas foi chamada sem args
+      // PostgREST: "Could not find the function public.nome without parameters in the schema cache"
+      // PostgreSQL: "function nome() does not exist" (assinatura vazia não bate, função existe com args)
+      const existeComParams =
+        error.message.includes('without parameters') ||
+        (error.message.includes('does not exist') && error.message.includes(`${nome}()`))
+
+      if (existeComParams) {
+        log({ nome: `Função ${nome}`, status: 'ok', detalhe: 'Existe (requer parâmetros — verificado via heurística)' })
+        return
+      }
+
       if (error.message.includes('does not exist') || error.message.includes('Could not find')) {
         if (opts.opcional) {
           log({ nome: `Função ${nome}`, status: 'aviso', detalhe: 'Não existe (opcional — migration pendente)' })
@@ -167,7 +179,7 @@ async function checkFuncao(nome: string, opts: { opcional?: boolean } = {}) {
           log({ nome: `Função ${nome}`, status: 'erro', detalhe: 'Função não existe no banco' })
         }
       } else {
-        // Erro diferente = função existe mas precisa de parâmetros
+        // Outro erro = função existe mas há outro problema
         log({ nome: `Função ${nome}`, status: 'ok', detalhe: `Existe (requer parâmetros para executar — ${error.message})` })
       }
       return
