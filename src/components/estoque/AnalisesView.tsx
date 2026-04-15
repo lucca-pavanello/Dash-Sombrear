@@ -45,11 +45,11 @@ export default function AnalisesView({ toast }: Props) {
   return (
     <div className="space-y-6">
       <SecaoCurvaAbc toast={toast} />
+      <SecaoPerformanceCategoria />
+      <SecaoSazonalidade />
       <SecaoGiroMensal />
       <SecaoPerformanceFornecedor />
-      <SecaoPerformanceCategoria />
       <SecaoPerformanceLocalizacao />
-      <SecaoSazonalidade />
     </div>
   )
 }
@@ -65,6 +65,7 @@ function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) =>
       icon={BarChart2}
       title="O que mais vende"
       subtitle="Curva ABC: 20% dos produtos geram 80% do faturamento. Estes são os que importam."
+      defaultOpen
     >
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
@@ -96,6 +97,7 @@ function SecaoGiroMensal() {
       icon={Activity}
       title="Evolução do giro"
       subtitle="Quantas vezes seu estoque inteiro foi vendido e reposto em cada mês do último ano."
+      defaultOpen={false}
     >
       <div className="p-4 space-y-4">
         {giro && (

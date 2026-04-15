@@ -78,11 +78,11 @@ export default function AcoesView({ onDrillDown }: Props) {
       {/* S2 — Quando comprar */}
       <SecaoPontoPedido onVerTodos={() => onDrillDown('ponto-pedido')} />
 
-      {/* S3 — O que está parado */}
-      <SecaoLeadTime onVerTodos={() => onDrillDown('lead-time')} />
-
-      {/* S5 — Como reorganizar */}
+      {/* S3 — Como reorganizar */}
       <SecaoReorganizar onVerTodos={() => onDrillDown('mover')} />
+
+      {/* S4 — O que está parado */}
+      <SecaoLeadTime onVerTodos={() => onDrillDown('lead-time')} />
     </div>
   )
 }
@@ -241,7 +241,7 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
       title="Quando comprar"
       subtitle="Produtos que já passaram do ponto de pedido. Se não comprar agora, vai faltar antes da entrega chegar."
       badge={badge}
-      defaultOpen
+      defaultOpen={false}
     >
       <EstoqueTable
         columns={columns}
@@ -322,6 +322,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
       title="O que está parado"
       subtitle="Produtos sentados no estoque há muito tempo. Cada dia parado é dinheiro empatado."
       badge={isLoading ? undefined : { label: `${formatCurrency(valorTotal)} parado`, variant: 'warning' }}
+      defaultOpen={false}
     >
       <EstoqueTable
         columns={columns}
@@ -387,6 +388,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
       icon={ArrowLeftRight}
       title="Como reorganizar a loja"
       subtitle="Sugestões pra deixar os produtos mais vendidos perto do balcão e os menos vendidos no fundo."
+      defaultOpen={false}
       badge={isLoading ? undefined : sugestoes.length > 0
         ? { label: `${sugestoes.length} ${sugestoes.length === 1 ? 'sugestão' : 'sugestões'}`, variant: 'info' }
         : undefined
