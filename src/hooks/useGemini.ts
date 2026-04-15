@@ -1,9 +1,7 @@
 import { useState, useCallback } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import type { Orcamento } from '@/lib/supabase'
-
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`
+import { supabase } from '@/lib/supabase'
 
 export type GeminiMessage = { role: 'user' | 'model'; text: string }
 
@@ -41,7 +39,6 @@ export function useGemini() {
   const [isLoading, setIsLoading] = useState(false)
 
   const sendMessage = useCallback(async (userText: string, ctx: GeminiContext) => {
-    if (!API_KEY) return
     const userMsg: GeminiMessage = { role: 'user', text: userText }
     setMessages(prev => [...prev, userMsg])
     setIsLoading(true)
@@ -58,15 +55,12 @@ export function useGemini() {
         })),
       ]
 
-      const res = await fetch(ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents }),
+      const { data, error } = await supabase.functions.invoke('gemini-chat', {
+        body: { contents },
       })
 
-      if (!res.ok) throw new Error(`Gemini API error ${res.status}`)
-      const data = await res.json()
-      const reply: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Sem resposta.'
+      if (error) throw new Error(error.message)
+      const reply: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Sem resposta.'
       setMessages(prev => [...prev, { role: 'model', text: reply }])
     } catch (err) {
       setMessages(prev => [...prev, { role: 'model', text: 'Erro ao contatar o Gemini. Tente novamente.' }])
@@ -78,7 +72,7 @@ export function useGemini() {
 
   const clearChat = useCallback(() => setMessages([]), [])
 
-  return { messages, isLoading, sendMessage, clearChat, hasKey: !!API_KEY }
+  return { messages, isLoading, sendMessage, clearChat, hasKey: true }
 }
 
 export function buildGeminiContext(data: Orcamento[]): GeminiContext {

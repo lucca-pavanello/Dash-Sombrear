@@ -1,12 +1,10 @@
 import { useState, useCallback } from "react"
-import { GoogleGenerativeAI } from "@google/generative-ai"
 import { supabase } from "@/lib/supabase"
 import { TOOLS_GEMINI, NIVEIS_CONFIRMACAO, type NomeTool } from "./tools"
 import { buildSystemPrompt } from "./systemPrompt"
 import { executarTool, gerarPreviewAcao } from "./executors"
 import type { MensagemChat, NivelConfirmacao, ChatContextoEstoque } from "./types"
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
 const MODELO = "gemini-2.5-flash-preview-05-20"
 
 interface PendingConfirmation {
@@ -20,6 +18,19 @@ function makeId(): string {
   return Math.random().toString(36).slice(2)
 }
 
+/** Chama a Edge Function gemini-estoque e retorna o data parsed. */
+async function callGemini(payload: {
+  model: string
+  contents: unknown[]
+  tools?: unknown[]
+  systemInstruction?: { parts: [{ text: string }] }
+}) {
+  const { data, error } = await supabase.functions.invoke("gemini-estoque", { body: payload })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(JSON.stringify(data.error))
+  return data
+}
+
 export function useChat() {
   const [messages, setMessages] = useState<MensagemChat[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -28,7 +39,7 @@ export function useChat() {
 
   const sendMessage = useCallback(
     async (texto: string) => {
-      if (!API_KEY || isLoading) return
+      if (isLoading) return
 
       const userMsg: MensagemChat = {
         id: makeId(),
@@ -41,66 +52,72 @@ export function useChat() {
 
       try {
         // 1. Buscar snapshot do estoque
-        const { data: contexto, error: ctxError } = await supabase.rpc(
-          "estoque_chat_contexto"
-        )
+        const { data: contexto, error: ctxError } = await supabase.rpc("estoque_chat_contexto")
         if (ctxError) throw new Error("Erro ao buscar contexto: " + ctxError.message)
-
         const snap = contexto as ChatContextoEstoque
 
-        // 2. Construir system prompt com snapshot
+        // 2. System prompt
         const systemPrompt = buildSystemPrompt(snap)
 
-        // 3. Inicializar Gemini
-        const genAI = new GoogleGenerativeAI(API_KEY)
-        const model = genAI.getGenerativeModel({
-          model: MODELO,
-          tools: [TOOLS_GEMINI],
-          systemInstruction: systemPrompt,
-        })
-
-        // 4. Montar histórico (excluindo a mensagem atual já adicionada)
-        const history = messages
+        // 3. Montar contents (histórico + nova mensagem)
+        const historyContents = messages
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
-            role: m.role === "assistant" ? ("model" as const) : ("user" as const),
+            role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }],
           }))
 
-        const chat = model.startChat({ history })
-        const result = await chat.sendMessage(texto)
-        const response = result.response
+        const contents = [
+          ...historyContents,
+          { role: "user", parts: [{ text: texto }] },
+        ]
 
-        // 5. Processar resposta
-        const functionCalls = response.functionCalls()
+        // 4. Chamar Gemini via Edge Function
+        const data = await callGemini({
+          model: MODELO,
+          contents,
+          tools: [TOOLS_GEMINI],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+        })
 
-        if (functionCalls && functionCalls.length > 0) {
-          const call = functionCalls[0]
+        const candidate = data?.candidates?.[0]
+        const parts = candidate?.content?.parts ?? []
+        const functionCallPart = parts.find((p: { functionCall?: unknown }) => p.functionCall)
+        const textPart = parts.find((p: { text?: string }) => typeof p.text === "string")
+
+        if (functionCallPart?.functionCall) {
+          const call = functionCallPart.functionCall as { name: string; args: Record<string, unknown> }
           const toolName = call.name as NomeTool
-          const args = call.args as Record<string, unknown>
+          const args = call.args
           const nivel = NIVEIS_CONFIRMACAO[toolName] as NivelConfirmacao
 
           if (nivel === 1) {
             // Executa direto, sem confirmação
             const resultado = await executarTool(toolName, args)
 
-            // Envia resultado de volta ao Gemini para ele gerar resposta em texto
-            const followUp = await chat.sendMessage([
+            // Segundo turn: envia function response de volta
+            const contents2 = [
+              ...contents,
+              { role: "model", parts: [{ functionCall: call }] },
               {
-                functionResponse: {
-                  name: toolName,
-                  response: resultado.dados ?? {
-                    sucesso: resultado.sucesso,
-                    mensagem: resultado.mensagem,
+                role: "user",
+                parts: [
+                  {
+                    functionResponse: {
+                      name: toolName,
+                      response: resultado.dados ?? { sucesso: resultado.sucesso, mensagem: resultado.mensagem },
+                    },
                   },
-                },
+                ],
               },
-            ])
+            ]
+            const data2 = await callGemini({ model: MODELO, contents: contents2, tools: [TOOLS_GEMINI], systemInstruction: { parts: [{ text: systemPrompt }] } })
+            const replyText = data2?.candidates?.[0]?.content?.parts?.find((p: { text?: string }) => p.text)?.text ?? "Feito."
 
             const assistantMsg: MensagemChat = {
               id: makeId(),
               role: "assistant",
-              content: followUp.response.text(),
+              content: replyText,
               timestamp: new Date(),
               toolCall: {
                 nome: toolName,
@@ -137,7 +154,7 @@ export function useChat() {
           const assistantMsg: MensagemChat = {
             id: makeId(),
             role: "assistant",
-            content: response.text(),
+            content: textPart?.text ?? "Sem resposta.",
             timestamp: new Date(),
           }
           setMessages((prev) => [...prev, assistantMsg])
@@ -159,7 +176,7 @@ export function useChat() {
   )
 
   const confirmAction = useCallback(async () => {
-    if (!pendingConfirmation || !API_KEY) return
+    if (!pendingConfirmation) return
     setIsLoading(true)
 
     const { tool_name, tool_args, nivel } = pendingConfirmation
@@ -167,42 +184,39 @@ export function useChat() {
     try {
       const resultado = await executarTool(tool_name, tool_args)
 
-      // Manda resultado de volta ao Gemini para gerar resposta final
       const { data: contexto } = await supabase.rpc("estoque_chat_contexto")
       const snap = contexto as ChatContextoEstoque
       const systemPrompt = buildSystemPrompt(snap)
 
-      const genAI = new GoogleGenerativeAI(API_KEY)
-      const model = genAI.getGenerativeModel({
-        model: MODELO,
-        tools: [TOOLS_GEMINI],
-        systemInstruction: systemPrompt,
-      })
-
-      const history = messages
+      const historyContents = messages
         .filter((m) => m.role === "user" || m.role === "assistant")
         .map((m) => ({
-          role: m.role === "assistant" ? ("model" as const) : ("user" as const),
+          role: m.role === "assistant" ? "model" : "user",
           parts: [{ text: m.content }],
         }))
 
-      const chat = model.startChat({ history })
-      const followUp = await chat.sendMessage([
+      const contents = [
+        ...historyContents,
         {
-          functionResponse: {
-            name: tool_name,
-            response: resultado.dados ?? {
-              sucesso: resultado.sucesso,
-              mensagem: resultado.mensagem,
+          role: "user",
+          parts: [
+            {
+              functionResponse: {
+                name: tool_name,
+                response: resultado.dados ?? { sucesso: resultado.sucesso, mensagem: resultado.mensagem },
+              },
             },
-          },
+          ],
         },
-      ])
+      ]
+
+      const data = await callGemini({ model: MODELO, contents, tools: [TOOLS_GEMINI], systemInstruction: { parts: [{ text: systemPrompt }] } })
+      const replyText = data?.candidates?.[0]?.content?.parts?.find((p: { text?: string }) => p.text)?.text ?? "Feito."
 
       const confirmedMsg: MensagemChat = {
         id: makeId(),
         role: "assistant",
-        content: followUp.response.text(),
+        content: replyText,
         timestamp: new Date(),
         toolCall: {
           nome: tool_name,
@@ -265,6 +279,6 @@ export function useChat() {
     confirmAction,
     cancelAction,
     clearChat,
-    hasKey: !!API_KEY,
+    hasKey: true,
   }
 }

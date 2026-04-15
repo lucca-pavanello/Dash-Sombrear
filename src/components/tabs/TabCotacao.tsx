@@ -20,10 +20,6 @@ const ACABAMENTOS = [
 ]
 const MODEL_PH50 = 'PH_50'
 const PH50_ACABAMENTOS = ['Cadarço', 'Fita']
-const N8N_WEBHOOK = import.meta.env.VITE_N8N_WEBHOOK as string | undefined
-if (!N8N_WEBHOOK && import.meta.env.DEV) {
-  console.warn('[TabCotacao] VITE_N8N_WEBHOOK não está definido.')
-}
 const DRAFT_KEY = 'sombrear-cotacao-draft-v3'
 
 /* ─── Style tokens ───────────────────────────────────────── */
@@ -327,7 +323,6 @@ export default function TabCotacao() {
     e.preventDefault()
     const error = validate()
     if (error) { toast('error', error); return }
-    if (!N8N_WEBHOOK) { toast('error', 'Webhook não configurado. Contate o administrador.'); return }
 
     setIsLoading(true)
     const { data: sessionData } = await supabase.auth.getSession()
@@ -355,12 +350,9 @@ export default function TabCotacao() {
       })),
     }
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
     try {
-      const res = await fetch(N8N_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal })
-      clearTimeout(timeoutId)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const { error: fnError } = await supabase.functions.invoke('n8n-cotacao', { body: payload })
+      if (fnError) throw new Error(fnError.message)
       setIsSuccess(true)
       toast('success', 'Orçamento enviado! Aguarde o resultado...')
       startResetCountdown()
@@ -400,10 +392,8 @@ export default function TabCotacao() {
         }, 600000)
       }
     } catch (err) {
-      clearTimeout(timeoutId)
       console.error('[TabCotacao] submit error:', err)
-      const isTimeout = err instanceof Error && err.name === 'AbortError'
-      toast('error', isTimeout ? 'Tempo limite excedido. Verifique a conexão e tente novamente.' : 'Erro ao enviar. Tente novamente.')
+      toast('error', 'Erro ao enviar. Tente novamente.')
     } finally {
       setIsLoading(false)
     }

@@ -1,4 +1,3 @@
-import { FunctionDeclarationsTool, SchemaType } from "@google/generative-ai"
 import type { NivelConfirmacao } from "./types"
 
 export const NIVEIS_CONFIRMACAO = {
@@ -25,7 +24,8 @@ export const NIVEIS_CONFIRMACAO = {
 
 export type NomeTool = keyof typeof NIVEIS_CONFIRMACAO
 
-export const TOOLS_GEMINI: FunctionDeclarationsTool = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const TOOLS_GEMINI: any = {
   functionDeclarations: [
     // ━━━ NÍVEL 1 — LEITURA ━━━
     {
@@ -33,7 +33,7 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Retorna resumo geral do estoque: total de produtos, valor em estoque, giro anual, sugestões de compra ativas. Use quando o usuário perguntar 'como está meu estoque?', 'me dá um overview', 'quanto tenho em estoque'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {},
       },
     },
@@ -42,10 +42,10 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Lista os produtos classe A (top 80% do faturamento). Use quando perguntarem 'quais são meus produtos mais importantes?', 'top produtos', 'classe A'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
           limite: {
-            type: SchemaType.NUMBER,
+            type: "NUMBER",
             description: "Número máximo de produtos a retornar. Default 10.",
           },
         },
@@ -56,10 +56,10 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Lista produtos parados há mais de N dias. Use pra perguntas como 'o que está parado?', 'produtos com pouco giro', 'capital empatado'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
           dias_minimos: {
-            type: SchemaType.NUMBER,
+            type: "NUMBER",
             description: "Dias mínimos parado. Default 90.",
           },
         },
@@ -70,7 +70,7 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Lista produtos que precisam de reposição com LEC sugerido. Use pra 'o que preciso comprar?', 'sugestões de compra', 'falta o quê'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {},
       },
     },
@@ -79,7 +79,7 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Recalcula a classificação ABC de todos os produtos baseado nas vendas dos últimos 90 dias. Use quando o usuário pedir 'recalcula o ABC', 'atualiza a classificação'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {},
       },
     },
@@ -88,10 +88,10 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Gera CSV com produtos a comprar baseado nas sugestões. Use pra 'gera pedido de compra', 'exporta lista de compras'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
           fornecedor_id: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description:
               "ID do fornecedor pra filtrar (opcional). Se omitido, gera pra todos.",
           },
@@ -105,25 +105,25 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Cadastra um novo produto. Pede confirmação ANTES de executar. Use quando o usuário pedir 'cadastra um produto', 'adiciona X no catálogo'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
-          sku: { type: SchemaType.STRING, description: "Código SKU único" },
-          nome: { type: SchemaType.STRING, description: "Nome do produto" },
+          sku: { type: "STRING", description: "Código SKU único" },
+          nome: { type: "STRING", description: "Nome do produto" },
           tipo: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "Tecido, Ferragem ou Acessório",
           },
-          unidade: { type: SchemaType.STRING, description: "UN, M, M2, KG" },
+          unidade: { type: "STRING", description: "UN, M, M2, KG" },
           custo_inicial: {
-            type: SchemaType.NUMBER,
+            type: "NUMBER",
             description: "Custo de aquisição (opcional)",
           },
           preco_venda: {
-            type: SchemaType.NUMBER,
+            type: "NUMBER",
             description: "Preço de venda (opcional)",
           },
           fornecedor_id: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "ID do fornecedor (opcional)",
           },
         },
@@ -135,17 +135,17 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Cadastra um novo fornecedor. Pede confirmação. Use pra 'adiciona fornecedor X', 'cadastra fornecedor'.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
-          nome: { type: SchemaType.STRING, description: "Nome do fornecedor" },
+          nome: { type: "STRING", description: "Nome do fornecedor" },
           contato: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "Pessoa de contato (opcional)",
           },
-          telefone: { type: SchemaType.STRING, description: "Telefone (opcional)" },
-          cnpj: { type: SchemaType.STRING, description: "CNPJ (opcional)" },
+          telefone: { type: "STRING", description: "Telefone (opcional)" },
+          cnpj: { type: "STRING", description: "CNPJ (opcional)" },
           lead_time_dias: {
-            type: SchemaType.NUMBER,
+            type: "NUMBER",
             description: "Prazo médio de entrega em dias",
           },
         },
@@ -156,23 +156,23 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       name: "cadastrar_localizacao",
       description: "Cadastra nova localização física na loja. Pede confirmação.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
           codigo: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "Código curto (ex: BCO-01)",
           },
-          setor: { type: SchemaType.STRING, description: "Nome do setor" },
+          setor: { type: "STRING", description: "Nome do setor" },
           prateleira: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "Identificação da prateleira (opcional)",
           },
           posicao: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "Posição (Frente/Meio/Fundo/Superior)",
           },
           nivel_acesso: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "balcao/acessivel/medio/fundo/deposito",
           },
         },
@@ -184,10 +184,10 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Edita uma configuração do sistema (ex: lead time padrão, dias pra considerar parado, etc). Pede confirmação.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
-          chave: { type: SchemaType.STRING, description: "Nome da configuração" },
-          valor: { type: SchemaType.STRING, description: "Novo valor" },
+          chave: { type: "STRING", description: "Nome da configuração" },
+          valor: { type: "STRING", description: "Novo valor" },
         },
         required: ["chave", "valor"],
       },
@@ -199,20 +199,20 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Registra entrada de mercadoria (compra). Afeta estoque e dispara recálculo de custo médio. Pede confirmação COM REVISÃO COMPLETA.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
-          produto_id: { type: SchemaType.STRING, description: "ID do produto" },
+          produto_id: { type: "STRING", description: "ID do produto" },
           quantidade: {
-            type: SchemaType.NUMBER,
+            type: "NUMBER",
             description: "Quantidade entrando",
           },
-          custo_unitario: { type: SchemaType.NUMBER, description: "Custo unitário" },
+          custo_unitario: { type: "NUMBER", description: "Custo unitário" },
           fornecedor_id: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "ID do fornecedor (opcional)",
           },
           nota_fiscal: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "Número da NF (opcional)",
           },
         },
@@ -224,23 +224,23 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Registra uma venda. Afeta estoque (PEPS automático). Pede confirmação COM REVISÃO COMPLETA.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
           cliente: {
-            type: SchemaType.STRING,
+            type: "STRING",
             description: "Nome do cliente (opcional)",
           },
-          vendedor: { type: SchemaType.STRING, description: "Nome do vendedor" },
+          vendedor: { type: "STRING", description: "Nome do vendedor" },
           itens: {
-            type: SchemaType.ARRAY,
+            type: "ARRAY",
             description: "Lista de itens da venda",
             items: {
-              type: SchemaType.OBJECT,
+              type: "OBJECT",
               properties: {
-                produto_id: { type: SchemaType.STRING },
-                quantidade: { type: SchemaType.NUMBER },
-                preco_unitario: { type: SchemaType.NUMBER },
-                desconto: { type: SchemaType.NUMBER },
+                produto_id: { type: "STRING" },
+                quantidade: { type: "NUMBER" },
+                preco_unitario: { type: "NUMBER" },
+                desconto: { type: "NUMBER" },
               },
               required: ["produto_id", "quantidade", "preco_unitario"],
             },
@@ -253,10 +253,10 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       name: "mover_item_localizacao",
       description: "Move um produto de uma localização pra outra. Pede confirmação.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
-          produto_id: { type: SchemaType.STRING },
-          localizacao_destino_id: { type: SchemaType.STRING },
+          produto_id: { type: "STRING" },
+          localizacao_destino_id: { type: "STRING" },
         },
         required: ["produto_id", "localizacao_destino_id"],
       },
@@ -266,9 +266,9 @@ export const TOOLS_GEMINI: FunctionDeclarationsTool = {
       description:
         "Inativa um produto (não deleta, só esconde). Pede confirmação com revisão completa.",
       parameters: {
-        type: SchemaType.OBJECT,
+        type: "OBJECT",
         properties: {
-          produto_id: { type: SchemaType.STRING },
+          produto_id: { type: "STRING" },
         },
         required: ["produto_id"],
       },

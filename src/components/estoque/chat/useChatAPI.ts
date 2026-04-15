@@ -1,5 +1,4 @@
 import { useCallback } from "react"
-import { GoogleGenerativeAI } from "@google/generative-ai"
 import { supabase } from "@/lib/supabase"
 import { TOOLS_GEMINI, NIVEIS_CONFIRMACAO, type NomeTool } from "./tools"
 import { buildSystemPrompt } from "./systemPrompt"
@@ -7,7 +6,6 @@ import { executarTool, gerarPreviewAcao } from "./executors"
 import { useChatStore } from "./store"
 import type { MensagemChat, NivelConfirmacao, ChatContextoEstoque } from "./types"
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined
 const MODELO = "gemini-2.5-flash-preview-05-20"
 
 function makeId(): string {
@@ -16,6 +14,19 @@ function makeId(): string {
 
 function assistantMsg(content: string, toolCall?: MensagemChat["toolCall"]): MensagemChat {
   return { id: makeId(), role: "assistant", content, timestamp: new Date(), toolCall }
+}
+
+/** Chama a Edge Function gemini-estoque e retorna o data parsed. */
+async function callGemini(payload: {
+  model: string
+  contents: unknown[]
+  tools?: unknown[]
+  systemInstruction?: { parts: [{ text: string }] }
+}) {
+  const { data, error } = await supabase.functions.invoke("gemini-estoque", { body: payload })
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(JSON.stringify(data.error))
+  return data
 }
 
 export function useChatAPI() {
@@ -28,11 +39,6 @@ export function useChatAPI() {
 
   const enviarMensagem = useCallback(
     async (texto: string) => {
-      if (!API_KEY) {
-        adicionarMensagem(assistantMsg("❌ API key não configurada."))
-        return
-      }
-
       adicionarMensagem({
         id: makeId(),
         role: "user",
@@ -50,50 +56,61 @@ export function useChatAPI() {
         // 2. System prompt
         const systemPrompt = buildSystemPrompt(snap)
 
-        // 3. Gemini
-        const genAI = new GoogleGenerativeAI(API_KEY)
-        const model = genAI.getGenerativeModel({
-          model: MODELO,
-          tools: [TOOLS_GEMINI],
-          systemInstruction: systemPrompt,
-        })
-
-        // 4. Histórico (state atual antes de adicionar a mensagem do usuário)
-        const history = mensagens
+        // 3. Montar contents (histórico + nova mensagem)
+        const historyContents = mensagens
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
-            role: m.role === "assistant" ? ("model" as const) : ("user" as const),
+            role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }],
           }))
 
-        const chat = model.startChat({ history })
-        const result = await chat.sendMessage(texto)
-        const response = result.response
+        const contents = [
+          ...historyContents,
+          { role: "user", parts: [{ text: texto }] },
+        ]
 
-        // 5. Processar resposta
-        const functionCalls = response.functionCalls()
+        // 4. Chamar Gemini via Edge Function
+        const data = await callGemini({
+          model: MODELO,
+          contents,
+          tools: [TOOLS_GEMINI],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+        })
 
-        if (functionCalls && functionCalls.length > 0) {
-          const call = functionCalls[0]
+        const candidate = data?.candidates?.[0]
+        const parts = candidate?.content?.parts ?? []
+        const functionCallPart = parts.find((p: { functionCall?: unknown }) => p.functionCall)
+        const textPart = parts.find((p: { text?: string }) => typeof p.text === "string")
+
+        if (functionCallPart?.functionCall) {
+          const call = functionCallPart.functionCall as { name: string; args: Record<string, unknown> }
           const toolName = call.name as NomeTool
-          const args = call.args as Record<string, unknown>
+          const args = call.args
           const nivel = NIVEIS_CONFIRMACAO[toolName] as NivelConfirmacao
 
           if (nivel === 1) {
             const resultado = await executarTool(toolName, args)
-            const followUp = await chat.sendMessage([
+
+            // Segund turn: envia function response de volta
+            const contents2 = [
+              ...contents,
+              { role: "model", parts: [{ functionCall: call }] },
               {
-                functionResponse: {
-                  name: toolName,
-                  response: resultado.dados ?? {
-                    sucesso: resultado.sucesso,
-                    mensagem: resultado.mensagem,
+                role: "user",
+                parts: [
+                  {
+                    functionResponse: {
+                      name: toolName,
+                      response: resultado.dados ?? { sucesso: resultado.sucesso, mensagem: resultado.mensagem },
+                    },
                   },
-                },
+                ],
               },
-            ])
+            ]
+            const data2 = await callGemini({ model: MODELO, contents: contents2, tools: [TOOLS_GEMINI], systemInstruction: { parts: [{ text: systemPrompt }] } })
+            const replyText = data2?.candidates?.[0]?.content?.parts?.find((p: { text?: string }) => p.text)?.text ?? "Feito."
             adicionarMensagem(
-              assistantMsg(followUp.response.text(), {
+              assistantMsg(replyText, {
                 nome: toolName,
                 args,
                 nivelConfirmacao: nivel,
@@ -124,7 +141,7 @@ export function useChatAPI() {
             )
           }
         } else {
-          adicionarMensagem(assistantMsg(response.text()))
+          adicionarMensagem(assistantMsg(textPart?.text ?? "Sem resposta."))
         }
       } catch (err) {
         console.error("useChatAPI.enviarMensagem error:", err)
@@ -138,48 +155,44 @@ export function useChatAPI() {
 
   const confirmarAcao = useCallback(
     async (toolName: NomeTool, toolArgs: Record<string, unknown>) => {
-      if (!API_KEY) return
       setLoading(true)
 
       try {
         const resultado = await executarTool(toolName, toolArgs)
 
-        // Resposta final via Gemini (snapshot atualizado)
         const { data: contexto } = await supabase.rpc("estoque_chat_contexto")
         const snap = contexto as ChatContextoEstoque
         const systemPrompt = buildSystemPrompt(snap)
 
-        const genAI = new GoogleGenerativeAI(API_KEY)
-        const model = genAI.getGenerativeModel({
-          model: MODELO,
-          tools: [TOOLS_GEMINI],
-          systemInstruction: systemPrompt,
-        })
-
         const currentMsgs = useChatStore.getState().mensagens
-        const history = currentMsgs
+        const historyContents = currentMsgs
           .filter((m) => m.role === "user" || m.role === "assistant")
           .map((m) => ({
-            role: m.role === "assistant" ? ("model" as const) : ("user" as const),
+            role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }],
           }))
 
-        const chat = model.startChat({ history })
-        const followUp = await chat.sendMessage([
+        const contents = [
+          ...historyContents,
           {
-            functionResponse: {
-              name: toolName,
-              response: resultado.dados ?? {
-                sucesso: resultado.sucesso,
-                mensagem: resultado.mensagem,
+            role: "user",
+            parts: [
+              {
+                functionResponse: {
+                  name: toolName,
+                  response: resultado.dados ?? { sucesso: resultado.sucesso, mensagem: resultado.mensagem },
+                },
               },
-            },
+            ],
           },
-        ])
+        ]
+
+        const data = await callGemini({ model: MODELO, contents, tools: [TOOLS_GEMINI], systemInstruction: { parts: [{ text: systemPrompt }] } })
+        const replyText = data?.candidates?.[0]?.content?.parts?.find((p: { text?: string }) => p.text)?.text ?? "Feito."
 
         const nivel = NIVEIS_CONFIRMACAO[toolName] as NivelConfirmacao
         adicionarMensagem(
-          assistantMsg(followUp.response.text(), {
+          assistantMsg(replyText, {
             nome: toolName,
             args: toolArgs,
             nivelConfirmacao: nivel,
