@@ -48,9 +48,17 @@ export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
-    return () => subscription.unsubscribe()
+    // Timeout de segurança: se getSession não resolver em 5s, assume sem sessão
+    const timeout = setTimeout(() => setSession(null), 5000)
+    supabase.auth.getSession().then(({ data }) => {
+      clearTimeout(timeout)
+      setSession(data.session)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+      clearTimeout(timeout)
+      setSession(s)
+    })
+    return () => { clearTimeout(timeout); subscription.unsubscribe() }
   }, [])
 
   if (session === undefined) {
