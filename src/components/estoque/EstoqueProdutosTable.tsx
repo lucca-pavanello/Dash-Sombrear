@@ -216,7 +216,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                       {p.codigo ?? '—'}
                     </td>
                     <td className={tbl.td}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <span className="font-medium text-foreground">{p.nome}</span>
                         {inativo && (
                           <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">

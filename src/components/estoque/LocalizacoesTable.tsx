@@ -128,9 +128,9 @@ export default function LocalizacoesTable({ toast }: Props) {
 
                       {/* Setor */}
                       <td className={tbl.td}>
-                        <p className="font-medium text-foreground">{l.setor}</p>
+                        <p className="font-medium text-foreground text-center">{l.setor}</p>
                         {l.descricao && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{l.descricao}</p>
+                          <p className="text-xs text-muted-foreground text-center truncate max-w-[200px] mx-auto">{l.descricao}</p>
                         )}
                       </td>
 
