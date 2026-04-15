@@ -32,6 +32,7 @@ const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
 const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
+const PermissoesView  = lazy(() => import('@/components/admin/PermissoesView'))
 
 const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban']
 const DEFAULT_TAB = 'calcular-orcamento'
@@ -94,6 +95,7 @@ export default function Dashboard() {
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => {
     const raw = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
     const initial = (raw === 'estoque' || raw.startsWith('estoque/')) ? 'estoque'
+      : (raw === 'admin' || raw.startsWith('admin/')) ? 'admin'
       : VALID_TABS.includes(raw) ? raw
       : DEFAULT_TAB
     return new Set([initial])
@@ -125,15 +127,20 @@ export default function Dashboard() {
   )
 
   const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
-  const canEstoque = profile?.email === ESTOQUE_EMAIL || isAdmin
+  const canOrcamento = isAdmin || profile?.pode_orcamento === true
+  const canEstoque = isAdmin || profile?.pode_estoque === true || profile?.email === ESTOQUE_EMAIL
   const rawPath = location.pathname.replace(/^\//, '')
   const isEstoquePath = rawPath === 'estoque' || rawPath.startsWith('estoque/')
+  const isAdminPath = rawPath === 'admin' || rawPath.startsWith('admin/')
   const estoqueSub = isEstoquePath ? (rawPath.split('/')[1] || 'visao-geral') : 'visao-geral'
-  const tabFromUrl = isEstoquePath ? 'estoque' : (rawPath || DEFAULT_TAB)
+  const adminSub = isAdminPath ? (rawPath.split('/')[1] || 'usuarios') : 'usuarios'
+  const tabFromUrl = isEstoquePath ? 'estoque' : isAdminPath ? 'admin' : (rawPath || DEFAULT_TAB)
+  const ORCAMENTO_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'analises', 'agente-ia', 'orcamentos', 'kanban']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
     && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
+    && (!ORCAMENTO_TABS.includes(tabFromUrl) || canOrcamento || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
   const others = usePresence(profile ?? null, activeTab)
@@ -372,7 +379,7 @@ export default function Dashboard() {
     const bar = tabBarRef.current
     if (!bar) return
     requestAnimationFrame(() => {
-      const indicatorTab = isEstoquePath ? estoqueSub : activeTab
+      const indicatorTab = isEstoquePath ? estoqueSub : isAdminPath ? adminSub : activeTab
       const activeBtn = bar.querySelector(`[data-tab="${indicatorTab}"]`) as HTMLButtonElement | null
       if (!activeBtn) return
       const barRect = bar.getBoundingClientRect()
@@ -382,32 +389,40 @@ export default function Dashboard() {
         width: btnRect.width,
       })
     })
-  }, [activeTab, estoqueSub, isEstoquePath])
+  }, [activeTab, estoqueSub, isEstoquePath, adminSub, isAdminPath])
 
   const TABS = useMemo(() => [
-    { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: Calculator, badge: 0 },
-    { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
-    { id: 'calculo-custo', label: 'Planilha Custos', icon: ClipboardList, badge: 0 },
-    { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
-    { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
-    { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
+    ...(canOrcamento ? [
+      { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: Calculator, badge: 0 },
+      { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
+      { id: 'calculo-custo', label: 'Planilha Custos', icon: ClipboardList, badge: 0 },
+      { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
+      { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
+      { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
+    ] : []),
     ...(canEstoque ? [{ id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length }] : []),
-    ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
-  ], [isAdmin, canEstoque, pendingCount, estoqueAlertas.length])
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck, badge: pendingCount }] : []),
+  ], [isAdmin, canOrcamento, canEstoque, pendingCount, estoqueAlertas.length])
+
+  const ADMIN_SUBTABS = useMemo(() => [
+    { id: 'usuarios',   label: 'Usuários',   icon: Users },
+    { id: 'permissoes', label: 'Permissões', icon: ShieldCheck },
+  ], [])
 
   const ESTOQUE_SUBTABS = useMemo(() => [
-    { id: 'visao-geral',  label: 'Visão Geral',  icon: LayoutDashboard, badge: estoqueAlertas.length },
-    { id: 'entradas',     label: 'Entradas',      icon: PackagePlus,     badge: 0 },
-    { id: 'vendas',       label: 'Vendas',        icon: ShoppingCart,    badge: 0 },
-    { id: 'produtos',     label: 'Produtos',      icon: Package,         badge: 0 },
-    { id: 'fornecedores', label: 'Fornecedores',  icon: Truck,           badge: 0 },
-    { id: 'localizacoes', label: 'Localizações',  icon: MapPin,          badge: 0 },
-    { id: 'analises',     label: 'Análises',      icon: BarChart2,       badge: 0 },
-    { id: 'acoes',        label: 'Ações',         icon: Zap,             badge: 0 },
-    { id: 'configuracao', label: 'Config.',        icon: Settings,        badge: 0 },
-  ], [estoqueAlertas.length])
+    { id: 'visao-geral',  label: 'Visão Geral',  icon: LayoutDashboard },
+    { id: 'entradas',     label: 'Entradas',      icon: PackagePlus     },
+    { id: 'vendas',       label: 'Vendas',        icon: ShoppingCart    },
+    { id: 'produtos',     label: 'Produtos',      icon: Package         },
+    { id: 'fornecedores', label: 'Fornecedores',  icon: Truck           },
+    { id: 'localizacoes', label: 'Localizações',  icon: MapPin          },
+    { id: 'analises',     label: 'Análises',      icon: BarChart2       },
+    { id: 'acoes',        label: 'Ações',         icon: Zap             },
+    { id: 'configuracao', label: 'Config.',        icon: Settings        },
+  ], [])
 
   const isEstoqueArea = isEstoquePath
+  const isAdminArea = isAdminPath && isAdmin
   const visibleTabs = TABS.filter(t => t.id !== 'estoque')
 
   function MagneticBtn({ children, style, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -696,7 +711,7 @@ export default function Dashboard() {
               style={{ left: tabIndicator.left + 6, width: tabIndicator.width - 12 }}
             />
           )}
-          {isEstoqueArea && ESTOQUE_SUBTABS.map(({ id, label, icon: Icon, badge }) => (
+          {isEstoqueArea && ESTOQUE_SUBTABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 data-tab={id}
@@ -717,18 +732,36 @@ export default function Dashboard() {
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="hidden sm:inline truncate">{label}</span>
-                {badge > 0 && (
-                  <span className="flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
-                    {badge > 9 ? '9+' : badge}
-                  </span>
-                )}
               </button>
             ))
           }
           {isEstoqueArea && isAIEstoqueEnabled() && (
             <ChatIATabBtn onMouseDown={handleTabRipple} />
           )}
-          {!isEstoqueArea && (
+          {isAdminArea && ADMIN_SUBTABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              data-tab={id}
+              onClick={() => {
+                uiSound.play('tab')
+                haptic('light')
+                navigate(`/admin/${id}`)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onMouseDown={handleTabRipple}
+              title={label}
+              className={cn(
+                'relative flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+                adminSub === id
+                  ? 'bg-card text-primary shadow-elevated'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline truncate">{label}</span>
+            </button>
+          ))}
+          {!isEstoqueArea && !isAdminArea && (
             visibleTabs.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
@@ -819,7 +852,8 @@ export default function Dashboard() {
           {mountedTabs.has('admin') && isAdmin && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'admin' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                <PainelAdmin toast={toast} />
+                {adminSub === 'usuarios'   && <PainelAdmin toast={toast} />}
+                {adminSub === 'permissoes' && <PermissoesView toast={toast} />}
               </div>
             </Suspense>
           )}
