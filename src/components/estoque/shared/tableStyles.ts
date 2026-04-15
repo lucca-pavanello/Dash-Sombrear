@@ -9,7 +9,7 @@ export const tbl = {
   theadRow:    'border-b border-gray-200 bg-gray-50',
   th:          'px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-gray-600 border-r border-gray-200',
   tbodyRow:    'border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-150',
-  td:          'px-4 py-3 text-sm text-gray-900 border-r border-gray-200',
+  td:          'px-4 py-3 text-sm text-gray-900 border-r border-gray-200 align-middle',
   tfootRow:    'border-t border-gray-200 bg-gray-50',
   tfootCell:   'px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500',
   actionTd:    'px-4 py-3 text-right',
