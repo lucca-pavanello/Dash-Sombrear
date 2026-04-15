@@ -27,14 +27,14 @@ export default function GiroCards() {
       value: giro ? fmtBRL(giro.estoque_atual_reais) : 'R$ 0,00',
       subtitle: 'custo médio × qtd',
       icon: <DollarSign className="h-4 w-4" />,
-      variant: 'blue' as const,
+      variant: 'default' as const,
     },
     {
       title: 'Giro anual R$',
       value: giro ? `${fmtNum(giro.giro_reais)}×` : '0,00×',
       subtitle: 'vezes ao ano',
       icon: <TrendingUp className="h-4 w-4" />,
-      variant: 'emerald' as const,
+      variant: 'amber' as const,
     },
     {
       title: 'Giro anual un.',

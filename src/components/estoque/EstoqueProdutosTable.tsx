@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { Search, X, Plus, Pencil, PackageX, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
 import { TIPOS_PRODUTO, CLASSES_ABC } from '@/lib/constants'
@@ -20,10 +21,10 @@ interface Props {
 }
 
 const ABC_BADGE: Record<string, string> = {
-  A:         'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  B:         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  C:         'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  sem_dados: 'bg-muted text-muted-foreground',
+  A:         'bg-primary/10 text-primary',
+  B:         'bg-muted text-foreground',
+  C:         'bg-muted/60 text-muted-foreground',
+  sem_dados: 'bg-muted text-muted-foreground italic',
 }
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
@@ -175,9 +176,13 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Unidade</th>
               <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Estoque atual</th>
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Localização</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Custo médio</th>
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">
+                <InfoTooltip label="Custo médio" tip="Custo Médio Ponderado. Custo médio de cada unidade considerando todas as compras anteriores com pesos diferentes. Atualizado automaticamente a cada nova entrada." />
+              </th>
               <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden xl:table-cell">Preço venda</th>
-              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">ABC</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:table-cell">
+                <InfoTooltip label="ABC" tip="Classifica produtos pelo quanto geram de receita. Classe A = 20% dos produtos que dão 80% do dinheiro. Princípio de Pareto." />
+              </th>
               <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
             </tr>
           </thead>
@@ -242,7 +247,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                         <ActionBtn
                           icon={<TrendingUp className="h-3.5 w-3.5" />}
                           label="Registrar entrada"
-                          className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                          className="text-primary hover:bg-primary/10"
                           onClick={() => onMovimentar(p, 'entrada')}
                         />
                         <ActionBtn

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { Save } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueConfig, useSalvarConfig } from '@/hooks/useEstoqueConfig'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { ToastType } from '@/hooks/useToast'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -181,7 +182,13 @@ export default function ConfiguracaoView({ toast }: Props) {
           >
             {/* Cabeçalho da seção */}
             <div>
-              <h4 className="text-sm font-semibold">{section.title}</h4>
+              <h4 className="text-sm font-semibold">
+                {section.title === 'Lead Time' ? (
+                  <InfoTooltip label="Lead Time" tip="Tempo médio que o produto fica parado em estoque entre a compra e a venda. Quanto maior, mais dinheiro empatado." />
+                ) : section.title === 'Parâmetros de Compra' ? (
+                  <InfoTooltip label="Parâmetros de Compra" tip="Usados no cálculo do LEC (Lote Econômico de Compra). Afetam as sugestões de reposição." />
+                ) : section.title}
+              </h4>
               {section.description && (
                 <p className="text-xs text-muted-foreground mt-0.5">{section.description}</p>
               )}

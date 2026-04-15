@@ -7,10 +7,10 @@ const fmtNum = (v: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
 
 const ABC_BADGE: Record<string, string> = {
-  A:         'bg-emerald-100 text-emerald-700',
-  B:         'bg-amber-100 text-amber-700',
-  C:         'bg-slate-100 text-slate-600',
-  sem_dados: 'bg-muted text-muted-foreground',
+  A:         'bg-primary/10 text-primary',
+  B:         'bg-muted text-foreground',
+  C:         'bg-muted/60 text-muted-foreground',
+  sem_dados: 'bg-muted text-muted-foreground italic',
 }
 
 function AbcBadge({ cls }: { cls: string | null }) {
@@ -38,7 +38,7 @@ function MelhorGiroTable() {
   return (
     <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
       <div className="border-b px-4 py-3">
-        <p className="text-sm font-semibold text-emerald-600">Top 10 — Melhor Giro</p>
+        <p className="text-sm font-semibold">Top 10 — Melhor Giro</p>
         <p className="text-xs text-muted-foreground">Mais vendidos nos últimos 90 dias</p>
       </div>
       {isLoading ? <TableSkeleton /> : items.length === 0 ? (

@@ -5,14 +5,13 @@ interface Props {
   value: string | number
   subtitle?: string
   icon: LucideIcon
-  accent?: 'default' | 'emerald' | 'amber' | 'blue' | 'orange' | 'slate'
+  accent?: 'default' | 'primary' | 'amber' | 'orange' | 'slate'
 }
 
 const ACCENT_CLASSES: Record<NonNullable<Props['accent']>, string> = {
   default: 'border-l-border text-foreground',
-  emerald: 'border-l-emerald-500 text-emerald-600',
+  primary: 'border-l-primary text-primary',
   amber:   'border-l-amber-500 text-amber-600',
-  blue:    'border-l-blue-500 text-blue-600',
   orange:  'border-l-orange-500 text-orange-600',
   slate:   'border-l-slate-400 text-slate-500',
 }

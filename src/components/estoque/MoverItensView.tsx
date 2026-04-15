@@ -18,9 +18,9 @@ interface Props {
 }
 
 const ABC_BADGE: Record<string, string> = {
-  A: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  B: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  C: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  A: 'bg-primary/10 text-primary',
+  B: 'bg-muted text-foreground',
+  C: 'bg-muted/60 text-muted-foreground',
 }
 
 export default function MoverItensView({ toast }: Props) {
@@ -103,8 +103,8 @@ export default function MoverItensView({ toast }: Props) {
         <KpiCard
           title="Classe C mal-alocados"
           value={classeCCount}
-          icon={<TrendingUp className="h-4 w-4 text-blue-500" />}
-          accent={classeCCount > 0 ? 'blue' : 'default'}
+          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+          accent="default"
           subtitle="fora do fundo/depósito"
         />
       </div>
@@ -294,13 +294,12 @@ function KpiCard({
   value: number
   icon: React.ReactNode
   subtitle?: string
-  accent?: 'default' | 'amber' | 'red' | 'blue'
+  accent?: 'default' | 'amber' | 'red'
 }) {
   const borderCls = {
     default: 'border-l-border',
     amber:   'border-l-amber-500',
     red:     'border-l-red-500',
-    blue:    'border-l-blue-500',
   }[accent]
 
   return (
