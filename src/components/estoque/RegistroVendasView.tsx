@@ -1,14 +1,16 @@
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ShoppingCart, Plus, Trash2, Loader2 } from 'lucide-react'
+import { ShoppingCart, Plus, Trash2, Loader2, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { useVendas, useRegistrarVenda, useVendedores } from '@/hooks/useEstoqueVendas'
+import type { VendaComContagem } from '@/hooks/useEstoqueVendas'
 import DatePicker from '@/components/ui/DatePicker'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { tbl } from './shared/tableStyles'
+import EstoqueTable, { type EstoqueTableColumn } from './shared/EstoqueTable'
 import { INPUT_CLASSES, LABEL_CLASS } from './shared/inputStyles'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -140,258 +142,281 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
     }
   }
 
+  // ─── Colunas do histórico ───────────────────────────────────────────────────
+
+  const colunas: EstoqueTableColumn<VendaComContagem>[] = [
+    {
+      key: 'data',
+      header: 'Data',
+      align: 'center',
+      cell: (v) => new Date(v.data + 'T12:00:00').toLocaleDateString('pt-BR'),
+    },
+    {
+      key: 'cliente',
+      header: 'Cliente',
+      align: 'center',
+      cell: (v) => v.cliente || <span className="italic text-muted-foreground/60">—</span>,
+    },
+    {
+      key: 'vendedor',
+      header: 'Vendedor',
+      align: 'center',
+      cell: (v) => (v.vendedor || v.vendedor_nome) || <span className="italic text-muted-foreground/60">—</span>,
+    },
+    {
+      key: 'num_itens',
+      header: 'Nº itens',
+      align: 'right',
+      cell: (v) => v.num_itens,
+    },
+    {
+      key: 'total',
+      header: 'Total',
+      align: 'right',
+      cell: (v) => <span className="font-semibold text-orange-700 whitespace-nowrap">{formatCurrency(v.total)}</span>,
+    },
+    {
+      key: 'acoes',
+      header: '',
+      align: 'center',
+      cell: (v) => (
+        <button
+          type="button"
+          onClick={() => onVerDetalhe(v.id)}
+          className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          title="Ver detalhes"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+      ),
+    },
+  ]
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6">
-      {/* Formulário */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
-        {/* Parte 1 — Dados da venda */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={LABEL_CLASS}>Cliente</label>
-            <input
-              type="text"
-              {...register('cliente')}
-              placeholder="Nome do cliente (opcional)"
-              className={INPUT_CLASSES}
-            />
+      {/* ── Card do formulário ── */}
+      <div className="rounded-xl border border-gray-200 dark:border-border bg-card shadow-sm p-6">
+
+        {/* Header interno */}
+        <div className="flex items-center gap-2 mb-5">
+          <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+            <ShoppingCart className="h-4 w-4 text-orange-600" />
           </div>
-          <div>
-            <label className={LABEL_CLASS}>Data <span className="text-orange-500 ml-0.5">*</span></label>
-            <DatePicker
-              value={dataValue}
-              onChange={(v) => setValue('data', v, { shouldValidate: true })}
-              triggerClassName={INPUT_CLASSES}
-            />
-            {errors.data && <p className="mt-1 text-xs text-destructive">{errors.data.message}</p>}
-          </div>
+          <h3 className="text-base font-semibold">Registrar Venda</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={LABEL_CLASS}>Vendedor</label>
-            <input
-              type="text"
-              list="vendedores-list"
-              {...register('vendedor')}
-              placeholder={responsavel || 'Nome do vendedor'}
-              className={INPUT_CLASSES}
-            />
-            <datalist id="vendedores-list">
-              {vendedores.map((v) => <option key={v} value={v} />)}
-            </datalist>
-          </div>
-          <div>
-            <label className={LABEL_CLASS}>Observação</label>
-            <input
-              type="text"
-              {...register('observacao')}
-              placeholder="Opcional"
-              className={INPUT_CLASSES}
-            />
-          </div>
-        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
-        {/* Separador + Itens */}
-        <div className="border-t border-gray-200 pt-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Itens da venda</p>
-            <button
-              type="button"
-              onClick={() => append({ produto_id: '', quantidade: undefined as unknown as number, preco_unitario: undefined as unknown as number, desconto: 0 })}
-              className="flex items-center gap-1 rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Adicionar item
-            </button>
+          {/* Dados da venda */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LABEL_CLASS}>Cliente</label>
+              <input
+                type="text"
+                {...register('cliente')}
+                placeholder="Nome do cliente (opcional)"
+                className={INPUT_CLASSES}
+              />
+            </div>
+            <div>
+              <label className={LABEL_CLASS}>Data <span className="text-orange-500 ml-0.5">*</span></label>
+              <DatePicker
+                value={dataValue}
+                onChange={(v) => setValue('data', v, { shouldValidate: true })}
+                triggerClassName={INPUT_CLASSES}
+              />
+              {errors.data && <p className="mt-1 text-xs text-destructive">{errors.data.message}</p>}
+            </div>
           </div>
 
-          {/* Cabeçalho da tabela (sm+) */}
-          <div className="hidden sm:grid sm:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2 mb-1 px-1">
-            {['Produto', 'Quantidade', 'Preço unit. (R$)', 'Desconto (R$)', 'Subtotal', ''].map((h) => (
-              <span key={h} className="text-xs font-medium uppercase tracking-wide text-gray-600 text-center">{h}</span>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LABEL_CLASS}>Vendedor</label>
+              <input
+                type="text"
+                list="vendedores-list"
+                {...register('vendedor')}
+                placeholder={responsavel || 'Nome do vendedor'}
+                className={INPUT_CLASSES}
+              />
+              <datalist id="vendedores-list">
+                {vendedores.map((v) => <option key={v} value={v} />)}
+              </datalist>
+            </div>
+            <div>
+              <label className={LABEL_CLASS}>Observação</label>
+              <input
+                type="text"
+                {...register('observacao')}
+                placeholder="Opcional"
+                className={INPUT_CLASSES}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            {fields.map((field, index) => {
-              const sub = calcSubtotal(index)
-              return (
-                <div
-                  key={field.id}
-                  className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2 items-start"
-                >
-                  {/* Produto */}
-                  <div>
-                    <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Produto</label>
-                    <CustomSelect
-                      value={watchedItens[index]?.produto_id ?? ''}
-                      onChange={(v) => {
-                        setValue(`itens.${index}.produto_id`, v, { shouldValidate: true })
-                        handleProdutoChange(index, v)
-                      }}
-                      options={produtoOptions}
-                      placeholder="Selecione o produto..."
-                      className={cn(INPUT_CLASSES, "!font-normal")}
-                    />
-                    {errors.itens?.[index]?.produto_id && (
-                      <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].produto_id?.message}</p>
-                    )}
-                  </div>
+          {/* Separador + Itens */}
+          <div className="border-t border-gray-200 pt-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold">Itens da venda</p>
+              <button
+                type="button"
+                onClick={() => append({ produto_id: '', quantidade: undefined as unknown as number, preco_unitario: undefined as unknown as number, desconto: 0 })}
+                className="flex items-center gap-1 rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar item
+              </button>
+            </div>
 
-                  {/* Quantidade */}
-                  <div>
-                    <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Quantidade</label>
-                    <input
-                      type="number"
-                      min="0.001"
-                      step="0.001"
-                      placeholder="0"
-                      {...register(`itens.${index}.quantidade`, { valueAsNumber: true })}
-                      className={cn(INPUT_CLASSES, errors.itens?.[index]?.quantidade && '!border-red-400')}
-                    />
-                    {errors.itens?.[index]?.quantidade && (
-                      <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].quantidade?.message}</p>
-                    )}
-                  </div>
+            {/* Cabeçalho das colunas (sm+) */}
+            <div className="hidden sm:block bg-gray-50 border border-gray-200 rounded-t-md px-3 py-2">
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2">
+                {['Produto', 'Quantidade', 'Preço unit. (R$)', 'Desconto (R$)', 'Subtotal', ''].map((h) => (
+                  <span key={h} className="text-xs uppercase tracking-wide font-semibold text-gray-600 text-center">{h}</span>
+                ))}
+              </div>
+            </div>
 
-                  {/* Preço unitário */}
-                  <div>
-                    <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Preço unit.</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0,00"
-                      {...register(`itens.${index}.preco_unitario`, { valueAsNumber: true })}
-                      className={cn(INPUT_CLASSES, errors.itens?.[index]?.preco_unitario && '!border-red-400')}
-                    />
-                  </div>
+            {/* Linhas dos itens */}
+            <div className="border-x border-b border-gray-200 rounded-b-md p-2 space-y-2">
+              {fields.map((field, index) => {
+                const sub = calcSubtotal(index)
+                return (
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2 items-start"
+                  >
+                    {/* Produto */}
+                    <div>
+                      <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Produto</label>
+                      <CustomSelect
+                        value={watchedItens[index]?.produto_id ?? ''}
+                        onChange={(v) => {
+                          setValue(`itens.${index}.produto_id`, v, { shouldValidate: true })
+                          handleProdutoChange(index, v)
+                        }}
+                        options={produtoOptions}
+                        placeholder="Selecione o produto..."
+                        className={cn(INPUT_CLASSES, "!font-normal")}
+                      />
+                      {errors.itens?.[index]?.produto_id && (
+                        <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].produto_id?.message}</p>
+                      )}
+                    </div>
 
-                  {/* Desconto */}
-                  <div>
-                    <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Desconto</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0,00"
-                      {...register(`itens.${index}.desconto`, { valueAsNumber: true })}
-                      className={INPUT_CLASSES}
-                    />
-                  </div>
+                    {/* Quantidade */}
+                    <div>
+                      <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Quantidade</label>
+                      <input
+                        type="number"
+                        min="0.001"
+                        step="0.001"
+                        placeholder="0"
+                        {...register(`itens.${index}.quantidade`, { valueAsNumber: true })}
+                        className={cn(INPUT_CLASSES, errors.itens?.[index]?.quantidade && '!border-red-400')}
+                      />
+                      {errors.itens?.[index]?.quantidade && (
+                        <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].quantidade?.message}</p>
+                      )}
+                    </div>
 
-                  {/* Subtotal (readonly) */}
-                  <div>
-                    <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Subtotal</label>
-                    <div className={cn(INPUT_CLASSES, "!flex !items-center !justify-center !text-orange-700 !font-semibold !cursor-default")}>
-                      {formatCurrency(sub)}
+                    {/* Preço unitário */}
+                    <div>
+                      <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Preço unit.</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0,00"
+                        {...register(`itens.${index}.preco_unitario`, { valueAsNumber: true })}
+                        className={cn(INPUT_CLASSES, errors.itens?.[index]?.preco_unitario && '!border-red-400')}
+                      />
+                    </div>
+
+                    {/* Desconto */}
+                    <div>
+                      <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Desconto</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0,00"
+                        {...register(`itens.${index}.desconto`, { valueAsNumber: true })}
+                        className={INPUT_CLASSES}
+                      />
+                    </div>
+
+                    {/* Subtotal (readonly) */}
+                    <div>
+                      <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Subtotal</label>
+                      <div className={cn(INPUT_CLASSES, "!flex !items-center !justify-center !text-orange-700 !font-semibold !cursor-default")}>
+                        {formatCurrency(sub)}
+                      </div>
+                    </div>
+
+                    {/* Remover */}
+                    <div className="flex items-start pt-2 sm:pt-0 sm:justify-center">
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        disabled={fields.length === 1}
+                        className="rounded-lg p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Remover item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
+                )
+              })}
+            </div>
 
-                  {/* Remover */}
-                  <div className="flex items-start pt-2 sm:pt-0 sm:justify-center">
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      disabled={fields.length === 1}
-                      className="rounded-lg p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Remover item"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+            {errors.itens?.root && (
+              <p className="mt-1 text-xs text-destructive">{errors.itens.root.message}</p>
+            )}
           </div>
 
-          {errors.itens?.root && (
-            <p className="mt-1 text-xs text-destructive">{errors.itens.root.message}</p>
-          )}
-        </div>
+          {/* Total */}
+          <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-6 py-4 mt-4">
+            <span className="text-sm font-medium text-gray-700">Total da venda</span>
+            <span className="text-2xl font-bold text-orange-700">{formatCurrency(totalVenda)}</span>
+          </div>
 
-        {/* Total */}
-        <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-4 py-3">
-          <span className="text-sm font-medium text-gray-700">Total da venda</span>
-          <span className="text-xl font-bold text-orange-700">{formatCurrency(totalVenda)}</span>
-        </div>
+          {/* Submit */}
+          <div className="flex justify-center mt-6">
+            <button
+              type="submit"
+              disabled={!hasValidItem || registrar.isPending}
+              className="flex items-center justify-center gap-2 rounded-lg bg-brand-gradient h-11 px-8 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:!bg-gray-300 disabled:!text-gray-500 disabled:!opacity-100 disabled:!cursor-not-allowed disabled:!scale-100"
+            >
+              {registrar.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</>
+                : <><ShoppingCart className="h-4 w-4" /> Registrar venda</>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
 
-        {/* Submit */}
-        <div className="flex justify-center mt-6">
-          <button
-            type="submit"
-            disabled={!hasValidItem || registrar.isPending}
-            className="flex items-center justify-center gap-2 rounded-lg bg-brand-gradient h-11 px-8 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
-          >
-            {registrar.isPending
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</>
-              : <><ShoppingCart className="h-4 w-4" /> Registrar venda</>
-            }
-          </button>
-        </div>
-      </form>
-
-      {/* Histórico */}
+      {/* ── Histórico ── */}
       <div className={tbl.container}>
         <div className="px-5 py-3 border-b text-center">
           <p className="text-sm font-semibold">Histórico de vendas</p>
           <p className="text-xs text-muted-foreground">Últimas 50 vendas registradas</p>
         </div>
-
-        {loadingVendas ? (
-          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
-            Carregando...
-          </div>
-        ) : vendas.length === 0 ? (
-          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
-            Nenhuma venda registrada ainda.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className={tbl.theadRow}>
-                  <th className={tbl.th}>Data</th>
-                  <th className={tbl.th}>Cliente</th>
-                  <th className={tbl.th}>Vendedor</th>
-                  <th className={cn(tbl.th, 'text-right')}>Nº itens</th>
-                  <th className={cn(tbl.th, 'text-right border-r-0')}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vendas.map((venda) => (
-                  <tr
-                    key={venda.id}
-                    onClick={() => onVerDetalhe(venda.id)}
-                    className={cn(tbl.tbodyRow, 'cursor-pointer')}
-                  >
-                    <td className={cn(tbl.td, 'whitespace-nowrap')}>
-                      {new Date(venda.data + 'T12:00:00').toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className={tbl.td}>
-                      {venda.cliente || <span className="italic text-muted-foreground/60">—</span>}
-                    </td>
-                    <td className={tbl.td}>
-                      {(venda.vendedor || venda.vendedor_nome) || <span className="italic text-muted-foreground/60">—</span>}
-                    </td>
-                    <td className={cn(tbl.td, 'text-right')}>{venda.num_itens}</td>
-                    <td className={cn(tbl.td, 'text-right font-semibold text-orange-700 whitespace-nowrap border-r-0')}>
-                      {formatCurrency(venda.total)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className={tbl.tfootRow}>
-                  <td colSpan={5} className={tbl.tfootCell}>
-                    Total — {vendas.length} {vendas.length === 1 ? 'venda' : 'vendas'}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
+        <EstoqueTable
+          columns={colunas}
+          data={vendas}
+          keyExtractor={(v) => v.id}
+          isLoading={loadingVendas}
+          emptyMessage="Nenhuma venda registrada ainda."
+          footerLeft={vendas.length > 0
+            ? `Total — ${vendas.length} ${vendas.length === 1 ? 'venda' : 'vendas'}`
+            : undefined}
+        />
       </div>
     </div>
   )
