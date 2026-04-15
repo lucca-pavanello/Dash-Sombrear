@@ -1,7 +1,5 @@
 import {
-  ShoppingBag, Clock, BarChart2,
-  ArrowLeftRight, AlertTriangle, Activity,
-  CircleCheck,
+  ShoppingBag, Clock, AlertTriangle, ArrowLeftRight, CircleCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
@@ -9,17 +7,11 @@ import { useSugestaoCompra } from '@/hooks/useEstoqueSugestao'
 import { useEstoquePontoPedido } from '@/hooks/useEstoquePontoPedido'
 import { useLeadTimeRows } from '@/hooks/useEstoqueLeadTime'
 import { useEstoqueSugestoesMover } from '@/hooks/useEstoqueSugestoesMover'
-import { useParetoData, useGiroAnual } from '@/hooks/useEstoqueAnalytics'
 import { NIVEIS_ACESSO } from '@/lib/constants'
-import ParetoChart from './dashboard/ParetoChart'
-import TopAClassTable from './dashboard/TopAClassTable'
-import RecalcularABCButton from './dashboard/RecalcularABCButton'
-import GiroMensalChart from './analises/GiroMensalChart'
 import SectionCard from './shared/SectionCard'
 import EstoqueTable, { type EstoqueTableColumn } from './shared/EstoqueTable'
 import { ClasseABC } from './shared/ClasseABC'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
-import type { ToastType } from '@/hooks/useToast'
 import type { NivelAlerta } from './theme'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -29,7 +21,6 @@ const fmtBRL = (v: number) =>
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
-
 
 function NivelBadge({ nivel }: { nivel: NivelAlerta }) {
   const colorMap: Record<string, string> = {
@@ -52,23 +43,32 @@ function NivelBadge({ nivel }: { nivel: NivelAlerta }) {
   )
 }
 
+const urgencyColor: Record<string, string> = {
+  critico:       'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40',
+  abaixo_minimo: 'bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/40',
+  atencao:       'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40',
+  ok:            'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-muted/20 dark:text-muted-foreground dark:border-border',
+}
+const urgencyLabel: Record<string, string> = {
+  critico: 'Crítico', abaixo_minimo: 'Ab. mínimo', atencao: 'Atenção', ok: 'OK',
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  toast: (type: ToastType, message: string) => void
   onDrillDown: (tab: 'lead-time' | 'mover' | 'sugestao' | 'ponto-pedido') => void
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function AnalisesUnificadas({ toast, onDrillDown }: Props) {
+export default function AcoesView({ onDrillDown }: Props) {
   return (
     <div className="space-y-6">
       {/* Header da página */}
       <div>
-        <h3 className="font-display text-base font-semibold">Análises de Estoque</h3>
+        <h3 className="font-display text-base font-semibold">Ações Recomendadas</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          O sistema olha seus dados e te diz o que fazer. Veja abaixo o que ele descobriu.
+          O sistema analisa seus dados e te diz exatamente o que fazer pra otimizar o estoque.
         </p>
       </div>
 
@@ -81,29 +81,13 @@ export default function AnalisesUnificadas({ toast, onDrillDown }: Props) {
       {/* S3 — O que está parado */}
       <SecaoLeadTime onVerTodos={() => onDrillDown('lead-time')} />
 
-      {/* S4 — O que mais vende */}
-      <SecaoCurvaAbc toast={toast} />
-
       {/* S5 — Como reorganizar */}
       <SecaoReorganizar onVerTodos={() => onDrillDown('mover')} />
-
-      {/* S6 — Evolução do giro */}
-      <SecaoGiroMensal />
     </div>
   )
 }
 
 // ─── S1: Sugestão de Compra ───────────────────────────────────────────────────
-
-const urgencyColor: Record<string, string> = {
-  critico:       'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/40',
-  abaixo_minimo: 'bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/40',
-  atencao:       'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40',
-  ok:            'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-muted/20 dark:text-muted-foreground dark:border-border',
-}
-const urgencyLabel: Record<string, string> = {
-  critico: 'Crítico', abaixo_minimo: 'Ab. mínimo', atencao: 'Atenção', ok: 'OK',
-}
 
 function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
   const { data = [], isLoading } = useSugestaoCompra()
@@ -356,38 +340,6 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
   )
 }
 
-// ─── S4: Curva ABC / Pareto ───────────────────────────────────────────────────
-
-function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) => void }) {
-  const { data: paretoData, isLoading } = useParetoData()
-  const hasData = (paretoData?.totalVendas ?? 0) >= 5
-
-  return (
-    <SectionCard
-      icon={BarChart2}
-      title="O que mais vende"
-      subtitle="Curva ABC: 20% dos produtos geram 80% do faturamento. Estes são os que importam."
-    >
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Curva ABC — Top 20 produtos (últimos 90 dias)</p>
-          <RecalcularABCButton toast={toast} />
-        </div>
-        {!hasData && !isLoading ? (
-          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-            Registre pelo menos 5 vendas para ver a Curva ABC.
-          </div>
-        ) : (
-          <>
-            <ParetoChart items={paretoData?.items ?? []} isLoading={isLoading} />
-            <TopAClassTable items={paretoData?.items ?? []} isLoading={isLoading} />
-          </>
-        )}
-      </div>
-    </SectionCard>
-  )
-}
-
 // ─── S5: Reorganizar ─────────────────────────────────────────────────────────
 
 function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
@@ -458,48 +410,6 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
           </button>
         }
       />
-    </SectionCard>
-  )
-}
-
-// ─── S6: Giro Mensal ─────────────────────────────────────────────────────────
-
-function SecaoGiroMensal() {
-  const { data: giro } = useGiroAnual()
-
-  const fmtGiro = (v: number) =>
-    new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
-
-  return (
-    <SectionCard
-      icon={Activity}
-      title="Evolução do giro"
-      subtitle="Quantas vezes seu estoque inteiro foi vendido e reposto em cada mês do último ano."
-    >
-      <div className="p-4 space-y-4">
-        {giro && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-xl p-4">
-              <p className="text-xs uppercase tracking-wide text-orange-600 dark:text-orange-400 font-medium">GIRO ANUAL</p>
-              <p className="text-3xl font-bold text-orange-900 dark:text-orange-200">
-                {fmtGiro(giro.giro_reais)}
-                <span className="text-base font-normal text-orange-700 dark:text-orange-400"> × ao ano</span>
-              </p>
-              <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mt-1">
-                Quantas vezes seu estoque foi vendido e reposto nos últimos 12 meses
-              </p>
-            </div>
-            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-xl p-4">
-              <p className="text-xs uppercase tracking-wide text-orange-600 dark:text-orange-400 font-medium">ESTOQUE MÉDIO</p>
-              <p className="text-3xl font-bold text-orange-900 dark:text-orange-200">{fmtBRL(giro.estoque_atual_reais)}</p>
-              <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mt-1">
-                Valor médio mantido em estoque ao longo do ano
-              </p>
-            </div>
-          </div>
-        )}
-        <GiroMensalChart />
-      </div>
     </SectionCard>
   )
 }

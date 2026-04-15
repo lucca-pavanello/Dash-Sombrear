@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, MapPin,
-  Settings, BarChart2,
+  Settings, BarChart2, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
@@ -14,7 +14,8 @@ import FornecedoresTable from '@/components/estoque/FornecedoresTable'
 import EntradaRapidaForm from '@/components/estoque/EntradaRapidaForm'
 import EntradasHistoricoTable from '@/components/estoque/EntradasHistoricoTable'
 import LocalizacoesTable from '@/components/estoque/LocalizacoesTable'
-import AnalisesUnificadas from '@/components/estoque/AnalisesUnificadas'
+import AnalisesView from '@/components/estoque/AnalisesView'
+import AcoesView from '@/components/estoque/AcoesView'
 import SugestaoCompraView from '@/components/estoque/sugestao/SugestaoCompraView'
 import RegistroVendasView from '@/components/estoque/RegistroVendasView'
 import VendaDetalheView from '@/components/estoque/VendaDetalheView'
@@ -30,6 +31,7 @@ import type { ToastType } from '@/hooks/useToast'
 type SubTab =
   | 'visao-geral'
   | 'analises'
+  | 'acoes'
   | 'produtos'
   | 'fornecedores'
   | 'localizacoes'
@@ -164,13 +166,13 @@ export default function TabEstoque({ toast }: Props) {
         {/* Separador */}
         <div className="hidden sm:block w-px h-8 bg-border self-center" />
 
-        {/* Grupo Cadastros */}
+        {/* Grupo Operação */}
         <div className="flex flex-col gap-0.5">
           <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
-            Cadastros
+            Operação
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
-            {GROUP_CADASTROS.map(({ id, label, icon }) => (
+            {GROUP_OPERACAO.map(({ id, label, icon }) => (
               <TabBtn
                 key={id}
                 id={id}
@@ -183,13 +185,13 @@ export default function TabEstoque({ toast }: Props) {
           </div>
         </div>
 
-        {/* Grupo Operação */}
+        {/* Grupo Cadastros */}
         <div className="flex flex-col gap-0.5">
           <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
-            Operação
+            Cadastros
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
-            {GROUP_OPERACAO.map(({ id, label, icon }) => (
+            {GROUP_CADASTROS.map(({ id, label, icon }) => (
               <TabBtn
                 key={id}
                 id={id}
@@ -212,8 +214,15 @@ export default function TabEstoque({ toast }: Props) {
               id="analises"
               label="Análises"
               icon={<BarChart2 className="h-3.5 w-3.5" />}
-              active={subTab === 'analises' || subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido'}
+              active={subTab === 'analises'}
               onClick={() => setSubTab('analises')}
+            />
+            <TabBtn
+              id="acoes"
+              label="Ações"
+              icon={<Zap className="h-3.5 w-3.5" />}
+              active={subTab === 'acoes' || subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido'}
+              onClick={() => setSubTab('acoes')}
             />
           </div>
         </div>
@@ -237,10 +246,10 @@ export default function TabEstoque({ toast }: Props) {
       {(subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido') && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <button
-            onClick={() => setSubTab('analises')}
+            onClick={() => setSubTab('acoes')}
             className="hover:text-foreground hover:underline transition-colors"
           >
-            Análises
+            Ações
           </button>
           <span>/</span>
           <span className="text-foreground font-medium">
@@ -260,20 +269,20 @@ export default function TabEstoque({ toast }: Props) {
           produtos={produtos}
           alertas={alertas}
           onMovimentar={handleMovimentar}
-          onNavigateToLeadTime={() => setSubTab('lead-time')}
+          onNavigateToLeadTime={() => setSubTab('acoes')}
           onNavigateToAnalises={() => setSubTab('analises')}
-          onNavigateToSugestao={() => setSubTab('sugestao')}
+          onNavigateToSugestao={() => setSubTab('acoes')}
           onNavigateToLocalizacoes={() => setSubTab('localizacoes')}
         />
       )}
 
-      {subTab === 'analises' && (
-        <AnalisesUnificadas toast={toast} onDrillDown={setSubTab} />
-      )}
+      {subTab === 'analises' && <AnalisesView toast={toast} />}
+
+      {subTab === 'acoes' && <AcoesView onDrillDown={setSubTab} />}
 
       {subTab === 'produtos' && (
         <div className="space-y-3">
-          <div>
+          <div className="text-center">
             <h3 className="font-display text-sm font-semibold">Produtos</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Cadastre tudo que você vende. Cada produto vira uma 'ficha' que o sistema usa pra todos os cálculos.
@@ -290,7 +299,7 @@ export default function TabEstoque({ toast }: Props) {
 
       {subTab === 'fornecedores' && (
         <div className="space-y-3">
-          <div>
+          <div className="text-center">
             <h3 className="font-display text-sm font-semibold">Fornecedores</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Quem te vende as matérias-primas. O tempo de entrega de cada um afeta os cálculos de quando comprar.
@@ -302,7 +311,7 @@ export default function TabEstoque({ toast }: Props) {
 
       {subTab === 'localizacoes' && (
         <div className="space-y-3">
-          <div>
+          <div className="text-center">
             <h3 className="font-display text-sm font-semibold">Localizações</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Os lugares físicos da sua loja. Use isso pra organizar onde cada produto fica.
