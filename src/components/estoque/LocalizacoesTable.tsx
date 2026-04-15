@@ -12,13 +12,6 @@ interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
-const NIVEL_BADGE: Record<string, string> = {
-  balcao:    'bg-foreground text-background',
-  acessivel: 'bg-muted-foreground text-background',
-  medio:     'bg-muted text-foreground',
-  fundo:     'bg-muted/60 text-muted-foreground',
-  deposito:  'bg-muted/40 text-muted-foreground border border-border',
-}
 
 export default function LocalizacoesTable({ toast }: Props) {
   const { data: localizacoes = [], isLoading } = useEstoqueLocalizacoes()
@@ -146,12 +139,7 @@ export default function LocalizacoesTable({ toast }: Props) {
 
                       {/* Nível de acesso */}
                       <td className={tbl.td}>
-                        <span className={cn(
-                          'inline-flex h-6 px-3 items-center justify-center rounded-full text-xs font-medium',
-                          NIVEL_BADGE[l.nivel_acesso] ?? 'bg-muted/60 text-muted-foreground',
-                        )}>
-                          {NIVEIS_ACESSO[l.nivel_acesso] ?? l.nivel_acesso}
-                        </span>
+                        {NIVEIS_ACESSO[l.nivel_acesso] ?? l.nivel_acesso}
                       </td>
 
                       {/* Nº produtos */}
