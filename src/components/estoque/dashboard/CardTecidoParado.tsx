@@ -1,16 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertOctagon, CheckCheck } from 'lucide-react'
+import { Clock } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useEstoqueConfig } from '@/hooks/useEstoqueConfig'
 import { formatCurrency } from '@/lib/utils'
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface Props {
   onClick?: () => void
 }
-
-// ─── Componente ───────────────────────────────────────────────────────────────
 
 export function CardTecidoParado({ onClick }: Props) {
   const { data: configMap } = useEstoqueConfig()
@@ -40,10 +37,9 @@ export function CardTecidoParado({ onClick }: Props) {
     refetchOnWindowFocus: false,
   })
 
-  // ── Loading skeleton ──
   if (isLoading || !data) {
     return (
-      <div className="rounded-xl border-2 border-l-4 border-l-muted bg-card shadow-sm px-4 py-3 animate-pulse">
+      <div className="rounded-xl border-2 border-primary/25 bg-primary/5 shadow-sm px-4 py-3 animate-pulse">
         <div className="h-3 w-36 bg-muted rounded mb-2" />
         <div className="h-7 w-12 bg-muted rounded mb-1.5" />
         <div className="h-3 w-28 bg-muted rounded" />
@@ -57,36 +53,23 @@ export function CardTecidoParado({ onClick }: Props) {
   return (
     <div
       onClick={onClick}
-      className={[
-        'rounded-xl border-2 border-l-4 bg-card shadow-sm px-4 py-3 flex items-center gap-3',
-        'transition-shadow',
-        onClick ? 'cursor-pointer hover:shadow-md' : '',
-        critico
-          ? 'border-l-primary'
-          : 'border-l-border',
-      ].join(' ')}
+      className={cn(
+        'rounded-xl border-2 border-primary/25 bg-primary/5 shadow-sm px-4 py-3 flex items-center gap-3 transition-all',
+        onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-px',
+      )}
     >
-      {/* Ícone */}
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
-        {critico ? (
-          <AlertOctagon className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <CheckCheck className="h-4 w-4 text-muted-foreground" />
-        )}
+        <Clock className="h-4 w-4 text-muted-foreground" />
       </div>
-
-      {/* Conteúdo */}
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
-          Tecido parado &gt; {amarelo_max} dias
+          Parado &gt; {amarelo_max}d
         </p>
-        <p className="text-xl font-bold leading-tight text-foreground">
-          {critico ? count : 'Tudo ok'}
+        <p className={cn('text-xl font-bold leading-tight', critico ? 'text-destructive' : 'text-foreground')}>
+          {critico ? count : '0'}
         </p>
         <p className="text-[10px] text-muted-foreground truncate">
-          {critico
-            ? `Valor parado: ${formatCurrency(valor)}`
-            : 'Nenhum produto crítico'}
+          {critico ? formatCurrency(valor) + ' parado' : 'nenhum produto crítico'}
         </p>
       </div>
     </div>

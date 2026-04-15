@@ -12,6 +12,7 @@ const fmtBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 
 interface Props {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   toast: (type: ToastType, message: string) => void
   produtos: EstoqueProduto[]
   alertas: EstoqueProdutoAlerta[]
@@ -23,7 +24,6 @@ interface Props {
 }
 
 export default function EstoqueDashboard({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   toast: _toast,
   produtos,
   alertas,
@@ -47,36 +47,30 @@ export default function EstoqueDashboard({
   return (
     <div className="space-y-5">
 
-      {/* ── Seção 1: O que importa agora ──────────────────────────────────── */}
+      {/* ── Linha 1: visão do negócio ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {/* Ação — comprar agora? */}
-        <CardSugestoesCompra onClick={onNavigateToSugestao} />
-        {/* Financeiro — quanto tenho empatado? */}
         <MetricCard
           title="Valor em estoque"
           value={fmtBRL(valorEmEstoque)}
           subtitle="custo médio × qtd"
           icon={DollarSign}
-          accent="default"
         />
-        {/* Saúde — estoque girando? */}
-        <CardGiro onClick={onNavigateToAnalises} />
-        {/* Contexto — quantos produtos */}
         <MetricCard
           title="Produtos ativos"
           value={totalAtivos}
           subtitle="em estoque"
           icon={Package}
-          accent="default"
         />
+        <CardGiro onClick={onNavigateToAnalises} />
+        <CardSugestoesCompra onClick={onNavigateToSugestao} />
       </div>
 
-      {/* ── Alertas de estoque mínimo ──────────────────────────────────────── */}
+      {/* ── Alertas de estoque mínimo ──────────────────────────────────────────── */}
       {alertas.length > 0 && (
         <EstoqueAlertasPanel alertas={alertas} onMovimentar={onMovimentar} />
       )}
 
-      {/* ── Seção 2: Análises rápidas ──────────────────────────────────────── */}
+      {/* ── Linha 2: análises rápidas ──────────────────────────────────────────── */}
       <div className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-0.5">
           Análises rápidas
@@ -87,7 +81,6 @@ export default function EstoqueDashboard({
             value={classeACount}
             subtitle="top 80% do valor"
             icon={Star}
-            accent="primary"
             onClick={onNavigateToAnalises}
           />
           <MetricCard
@@ -95,7 +88,7 @@ export default function EstoqueDashboard({
             value={semVenda90d}
             subtitle="sem classificação ABC"
             icon={Clock}
-            accent="default"
+            valueColor={semVenda90d > 0 ? 'destructive' : undefined}
             onClick={onNavigateToAnalises}
           />
           <CardTecidoParado onClick={onNavigateToLeadTime} />
