@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { PackagePlus } from 'lucide-react'
+import { PackagePlus, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
@@ -213,14 +213,16 @@ export default function EntradaRapidaForm({ toast }: Props) {
           </div>
         </div>
 
-        <div className="flex pt-1">
+        <div className="flex justify-center mt-6">
           <button
             type="submit"
             disabled={addLote.isPending}
-            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            className="flex items-center justify-center gap-2 rounded-lg bg-brand-gradient h-11 px-8 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
-            <PackagePlus className="h-4 w-4" />
-            {addLote.isPending ? 'Registrando...' : 'Registrar entrada'}
+            {addLote.isPending
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</>
+              : <><PackagePlus className="h-4 w-4" /> Registrar entrada</>
+            }
           </button>
         </div>
       </form>
