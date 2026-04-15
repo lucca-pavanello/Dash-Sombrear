@@ -33,29 +33,27 @@ export default function MetricCard({ title, value, subtitle, icon: Icon, variant
 
   const valueCls = valueColor === 'destructive'
     ? 'text-red-700'
-    : v
-      ? v.valueDef
-      : valueColor === 'primary'
-        ? 'text-primary'
+    : valueColor === 'primary'
+      ? 'text-primary'
+      : v
+        ? v.valueDef
         : 'text-foreground'
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border-2 shadow-sm p-4 flex flex-col gap-3 transition-all',
+        'rounded-xl border-2 shadow-sm p-4 flex flex-col items-center text-center gap-2 transition-all',
         v ? v.card : 'bg-card',
         onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-px',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className={cn('text-[10px] font-semibold uppercase tracking-[0.07em] leading-tight', v ? v.label : 'text-muted-foreground/70')}>
-          {title}
-        </p>
-        <div className={cn('rounded-lg p-1.5 shrink-0', v ? v.iconWrap : 'bg-muted/50 text-muted-foreground')}>
-          <Icon className="h-4 w-4" />
-        </div>
+      <div className={cn('rounded-lg p-1.5 shrink-0', v ? v.iconWrap : 'bg-muted/50 text-muted-foreground')}>
+        <Icon className="h-4 w-4" />
       </div>
+      <p className={cn('text-[10px] font-semibold uppercase tracking-[0.07em] leading-tight', v ? v.label : 'text-muted-foreground/70')}>
+        {title}
+      </p>
       <p className={cn('text-2xl font-bold leading-none', valueCls)}>
         {value}
       </p>
