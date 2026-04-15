@@ -62,7 +62,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   return (
     <>
       {/* ── Linha 1: busca + botão novo ── */}
-      <div className="flex items-center gap-3 pb-3">
+      <div className="flex items-center gap-3 pb-2">
         <div className={tbl.searchWrap}>
           <Search className={tbl.searchIcon} />
           <input
@@ -87,7 +87,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
       </div>
 
       {/* ── Linha 2: filtros ── */}
-      <div className="flex flex-wrap items-center gap-3 pb-3">
+      <div className="flex flex-wrap items-center gap-3 pb-1.5">
         {/* Tipo */}
         <div className="w-44">
           <CustomSelect
