@@ -31,13 +31,11 @@ const variantCls = {
 export default function MetricCard({ title, value, subtitle, icon: Icon, variant, valueColor, onClick }: Props) {
   const v = variant ? variantCls[variant] : null
 
-  const valueCls = valueColor === 'destructive'
-    ? 'text-red-700'
-    : valueColor === 'primary'
-      ? 'text-primary'
-      : v
-        ? v.valueDef
-        : 'text-foreground'
+  const valueCls = valueColor === 'primary'
+    ? 'text-primary'
+    : v
+      ? v.valueDef
+      : 'text-foreground'
 
   return (
     <div
