@@ -155,7 +155,7 @@ export default function TabEstoque({ toast }: Props) {
       </div>
 
       {/* ── Navegação em grupos ── */}
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="flex flex-wrap items-end justify-center gap-2">
         {/* Visão Geral — destaque no início */}
         <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
           <TabBtn
