@@ -23,6 +23,9 @@ import LeadTimeView from '@/components/estoque/LeadTimeView'
 import PontoPedidoView from '@/components/estoque/PontoPedidoView'
 import MoverItensView from '@/components/estoque/MoverItensView'
 import ConfiguracaoView from '@/components/estoque/ConfiguracaoView'
+import { ChatTrigger } from '@/components/estoque/chat/ChatTrigger'
+import { ChatDrawer } from '@/components/estoque/chat/ChatDrawer'
+import { isAIEstoqueEnabled } from '@/components/estoque/chat/featureFlag'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -147,6 +150,7 @@ export default function TabEstoque({ toast }: Props) {
           <h2 className="font-display text-base font-semibold">Estoque</h2>
           <p className="text-xs text-muted-foreground">Gestão de materiais, entradas e vendas</p>
         </div>
+        <ChatTrigger />
       </div>
 
       {/* ── Navegação em grupos ── */}
@@ -386,6 +390,8 @@ export default function TabEstoque({ toast }: Props) {
         responsavel={responsavel}
         userId={userId}
       />
+
+      {isAIEstoqueEnabled() && <ChatDrawer />}
     </div>
   )
 }
