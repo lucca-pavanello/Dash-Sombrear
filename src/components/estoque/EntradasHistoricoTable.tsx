@@ -53,13 +53,13 @@ export default function EntradasHistoricoTable() {
         <table className="w-full" style={{ minWidth: '700px' }}>
           <thead>
             <tr className={tbl.theadRow}>
-              <th className={`${tbl.th} text-left`}>Data</th>
-              <th className={`${tbl.th} text-left`}>Produto</th>
-              <th className={`${tbl.th} text-right`}>Quantidade</th>
-              <th className={`${tbl.th} text-right hidden md:table-cell`}>Custo unit.</th>
-              <th className={`${tbl.th} text-right`}>Custo total</th>
-              <th className={`${tbl.th} text-left hidden lg:table-cell`}>Nota fiscal</th>
-              <th className={`${tbl.th} text-left hidden lg:table-cell`}>Fornecedor</th>
+              <th className={`${tbl.th} text-center`}>Data</th>
+              <th className={`${tbl.th} text-center`}>Produto</th>
+              <th className={`${tbl.th} text-center`}>Quantidade</th>
+              <th className={`${tbl.th} text-center hidden md:table-cell`}>Custo unit.</th>
+              <th className={`${tbl.th} text-center`}>Custo total</th>
+              <th className={`${tbl.th} text-center hidden lg:table-cell`}>Nota fiscal</th>
+              <th className={`${tbl.th} text-center hidden lg:table-cell`}>Fornecedor</th>
             </tr>
           </thead>
           <tbody>
@@ -99,16 +99,16 @@ export default function EntradasHistoricoTable() {
                         <span className="ml-1 text-xs text-muted-foreground uppercase">({produto.unidade})</span>
                       )}
                     </td>
-                    <td className={`${tbl.td} text-right whitespace-nowrap font-semibold`}>
+                    <td className={`${tbl.td} text-center whitespace-nowrap font-semibold`}>
                       {item.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       {produto?.unidade && (
                         <span className="ml-1 text-xs text-muted-foreground">{produto.unidade}</span>
                       )}
                     </td>
-                    <td className={`${tbl.td} text-right whitespace-nowrap text-muted-foreground hidden md:table-cell`}>
+                    <td className={`${tbl.td} text-center whitespace-nowrap text-muted-foreground hidden md:table-cell`}>
                       {formatCurrency(item.custo_unitario)}
                     </td>
-                    <td className={`${tbl.td} text-right whitespace-nowrap font-semibold text-primary`}>
+                    <td className={`${tbl.td} text-center whitespace-nowrap font-semibold text-primary`}>
                       {formatCurrency(custo_total)}
                     </td>
                     <td className={`${tbl.td} text-muted-foreground hidden lg:table-cell`}>

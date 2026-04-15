@@ -82,13 +82,13 @@ export default function LocalizacoesTable({ toast }: Props) {
           <table className="w-full text-sm" style={{ minWidth: '700px' }}>
             <thead>
               <tr className={tbl.theadRow}>
-                <th className={cn(tbl.th, 'text-left')}>Código</th>
-                <th className={cn(tbl.th, 'text-left')}>Setor</th>
-                <th className={cn(tbl.th, 'text-left')}>Prateleira</th>
-                <th className={cn(tbl.th, 'text-left')}>Posição</th>
-                <th className={cn(tbl.th, 'text-left')}>Nível de acesso</th>
-                <th className={cn(tbl.th, 'text-right')}>Produtos</th>
-                <th className={cn(tbl.th, 'text-right border-r-0')}>Ações</th>
+                <th className={cn(tbl.th, 'text-center')}>Código</th>
+                <th className={cn(tbl.th, 'text-center')}>Setor</th>
+                <th className={cn(tbl.th, 'text-center')}>Prateleira</th>
+                <th className={cn(tbl.th, 'text-center')}>Posição</th>
+                <th className={cn(tbl.th, 'text-center')}>Nível de acesso</th>
+                <th className={cn(tbl.th, 'text-center')}>Produtos</th>
+                <th className={cn(tbl.th, 'text-center border-r-0')}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -155,7 +155,7 @@ export default function LocalizacoesTable({ toast }: Props) {
                       </td>
 
                       {/* Nº produtos */}
-                      <td className={cn(tbl.td, 'text-right text-muted-foreground')}>
+                      <td className={cn(tbl.td, 'text-center text-muted-foreground')}>
                         {numProdutos}
                       </td>
 

@@ -162,20 +162,20 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
         <table className="w-full text-sm" style={{ minWidth: '960px' }}>
           <thead>
             <tr className={tbl.theadRow}>
-              <th className={cn(tbl.th, 'text-left pl-6')}>SKU</th>
-              <th className={cn(tbl.th, 'text-left')}>Nome</th>
-              <th className={cn(tbl.th, 'text-left hidden md:table-cell')}>Tipo</th>
-              <th className={cn(tbl.th, 'text-left hidden lg:table-cell')}>Unidade</th>
-              <th className={cn(tbl.th, 'text-right')}>Estoque atual</th>
-              <th className={cn(tbl.th, 'text-left hidden lg:table-cell')}>Localização</th>
-              <th className={cn(tbl.th, 'text-right hidden xl:table-cell')}>
+              <th className={cn(tbl.th, 'text-center pl-6')}>SKU</th>
+              <th className={cn(tbl.th, 'text-center')}>Nome</th>
+              <th className={cn(tbl.th, 'text-center hidden md:table-cell')}>Tipo</th>
+              <th className={cn(tbl.th, 'text-center hidden lg:table-cell')}>Unidade</th>
+              <th className={cn(tbl.th, 'text-center')}>Estoque atual</th>
+              <th className={cn(tbl.th, 'text-center hidden lg:table-cell')}>Localização</th>
+              <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>
                 <InfoTooltip label="Custo médio" tip="Custo Médio Ponderado. Custo médio de cada unidade considerando todas as compras anteriores com pesos diferentes. Atualizado automaticamente a cada nova entrada." />
               </th>
-              <th className={cn(tbl.th, 'text-right hidden xl:table-cell')}>Preço venda</th>
+              <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Preço venda</th>
               <th className={cn(tbl.th, 'text-center hidden sm:table-cell')}>
                 <InfoTooltip label="ABC" tip="Classifica produtos pelo quanto geram de receita. Classe A = 20% dos produtos que dão 80% do dinheiro. Princípio de Pareto." />
               </th>
-              <th className={cn(tbl.th, 'text-right pr-6 border-r-0')}>Ações</th>
+              <th className={cn(tbl.th, 'text-center pr-6 border-r-0')}>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -231,17 +231,17 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                     <td className={cn(tbl.td, 'text-muted-foreground uppercase hidden lg:table-cell')}>
                       {p.unidade}
                     </td>
-                    <td className={cn(tbl.td, 'text-right font-semibold whitespace-nowrap')}>
+                    <td className={cn(tbl.td, 'text-center font-semibold whitespace-nowrap')}>
                       {p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       <span className="ml-1 text-xs font-normal text-muted-foreground/60">{p.unidade}</span>
                     </td>
                     <td className={cn(tbl.td, 'font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap')}>
                       {p.localizacao?.codigo ?? <span className="text-muted-foreground/40">—</span>}
                     </td>
-                    <td className={cn(tbl.td, 'text-right whitespace-nowrap hidden xl:table-cell')}>
+                    <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
                       {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground/60">—</span>}
                     </td>
-                    <td className={cn(tbl.td, 'text-right whitespace-nowrap hidden xl:table-cell')}>
+                    <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
                       {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
