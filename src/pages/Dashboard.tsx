@@ -20,6 +20,8 @@ import { usePresence } from '@/hooks/usePresence'
 import { haptic } from '@/lib/haptic'
 import AICopilot from '@/components/shared/AICopilot'
 import PresentationMode from '@/components/shared/PresentationMode'
+import { useChatStore } from '@/components/estoque/chat/store'
+import { isAIEstoqueEnabled } from '@/components/estoque/chat/featureFlag'
 
 const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
 const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
@@ -33,6 +35,26 @@ const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 
 const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban']
 const DEFAULT_TAB = 'calcular-orcamento'
+function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
+  const { abrir, aberto } = useChatStore()
+  return (
+    <button
+      onClick={abrir}
+      onMouseDown={onMouseDown}
+      title="Perguntar à IA"
+      type="button"
+      className={cn(
+        'flex-[1.5] min-w-0 relative flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+        'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md',
+        aberto && 'ring-2 ring-orange-300 ring-offset-1',
+      )}
+    >
+      <Sparkles className="h-4 w-4 shrink-0" />
+      <span className="hidden sm:inline truncate">Perguntar à IA</span>
+    </button>
+  )
+}
+
 const TAB_LABELS: Record<string, string> = {
   'calcular-orcamento': 'Calcular Orçamento',
   'planilha': 'Planilha Orçamento',
@@ -674,8 +696,7 @@ export default function Dashboard() {
               style={{ left: tabIndicator.left + 6, width: tabIndicator.width - 12 }}
             />
           )}
-          {isEstoqueArea ? (
-            ESTOQUE_SUBTABS.map(({ id, label, icon: Icon, badge }) => (
+          {isEstoqueArea && ESTOQUE_SUBTABS.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
                 data-tab={id}
@@ -688,14 +709,14 @@ export default function Dashboard() {
                 onMouseDown={handleTabRipple}
                 title={label}
                 className={cn(
-                  'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95',
+                  'relative flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
                   estoqueSub === id
                     ? 'bg-card text-primary shadow-elevated'
                     : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                <span className="hidden sm:inline">{label}</span>
+                <span className="hidden sm:inline truncate">{label}</span>
                 {badge > 0 && (
                   <span className="flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
                     {badge > 9 ? '9+' : badge}
@@ -703,7 +724,11 @@ export default function Dashboard() {
                 )}
               </button>
             ))
-          ) : (
+          }
+          {isEstoqueArea && isAIEstoqueEnabled() && (
+            <ChatIATabBtn onMouseDown={handleTabRipple} />
+          )}
+          {!isEstoqueArea && (
             visibleTabs.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
