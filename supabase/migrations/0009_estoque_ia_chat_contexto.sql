@@ -81,10 +81,13 @@ begin
       'dias_em_estoque',   dias_em_estoque,
       'valor_parado_reais', valor_parado_reais
     )) as data
-    from estoque_vw_lead_time
-    where dias_em_estoque > 90 and quantidade_parada > 0
-    order by dias_em_estoque desc
-    limit 10
+    from (
+      select codigo, nome, dias_em_estoque, valor_parado_reais
+      from estoque_vw_lead_time
+      where dias_em_estoque > 90 and quantidade_parada > 0
+      order by dias_em_estoque desc
+      limit 10
+    ) t
   ),
   fornecedores as (
     select jsonb_agg(jsonb_build_object(
