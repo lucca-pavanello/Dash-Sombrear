@@ -1,33 +1,48 @@
 import { useState, useMemo } from 'react'
 import { Search, Plus, Pencil, Truck, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueFornecedores, useUpdateFornecedor } from '@/hooks/useEstoqueFornecedores'
 import NovoFornecedorForm from './NovoFornecedorForm'
 import { tbl } from './shared/tableStyles'
 import type { EstoqueFornecedor } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
+type LeadTimeFilter = 'todos' | 'rapido' | 'medio' | 'longo' | 'sem_definir'
+
 interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
 export default function FornecedoresTable({ toast }: Props) {
-  const { data: fornecedores = [], isLoading } = useEstoqueFornecedores()
-  const updateMutation = useUpdateFornecedor()
   const [search, setSearch] = useState('')
+  const [filtroLeadTime, setFiltroLeadTime] = useState<LeadTimeFilter>('todos')
+  const [mostrarInativos, setMostrarInativos] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editando, setEditando] = useState<EstoqueFornecedor | null>(null)
 
+  const { data: fornecedores = [], isLoading } = useEstoqueFornecedores({ includeInactive: mostrarInativos })
+  const updateMutation = useUpdateFornecedor()
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    if (!q) return fornecedores
-    return fornecedores.filter(
-      (f) =>
+    return fornecedores
+      .filter(f =>
+        !q ||
         f.nome.toLowerCase().includes(q) ||
         (f.contato?.toLowerCase().includes(q) ?? false) ||
         (f.cnpj?.includes(q) ?? false),
-    )
-  }, [fornecedores, search])
+      )
+      .filter(f => {
+        if (filtroLeadTime === 'todos') return true
+        const d = f.prazo_entrega_dias
+        if (filtroLeadTime === 'sem_definir') return !d || d === 0
+        if (filtroLeadTime === 'rapido') return d != null && d > 0 && d <= 7
+        if (filtroLeadTime === 'medio')  return d != null && d > 7 && d <= 15
+        if (filtroLeadTime === 'longo')  return d != null && d > 15
+        return true
+      })
+  }, [fornecedores, search, filtroLeadTime])
 
   function handleNovo() {
     setEditando(null)
@@ -67,6 +82,41 @@ export default function FornecedoresTable({ toast }: Props) {
           </button>
         </div>
 
+      {/* ── Linha 2: filtros ── */}
+      <div className="flex flex-wrap items-center gap-3 pb-1.5 justify-center">
+        <div className="w-52">
+          <CustomSelect
+            value={filtroLeadTime}
+            onChange={(v) => setFiltroLeadTime(v as LeadTimeFilter)}
+            options={[
+              { value: 'todos',       label: 'Lead time: todos' },
+              { value: 'rapido',      label: 'Rápido (até 7 dias)' },
+              { value: 'medio',       label: 'Médio (8 a 15 dias)' },
+              { value: 'longo',       label: 'Longo (mais de 15 dias)' },
+              { value: 'sem_definir', label: 'Sem definir' },
+            ]}
+          />
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={mostrarInativos}
+            onClick={() => setMostrarInativos(v => !v)}
+            className={cn(
+              'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+              mostrarInativos ? 'bg-primary' : 'bg-muted-foreground/30',
+            )}
+          >
+            <span className={cn(
+              'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
+              mostrarInativos ? 'translate-x-[18px]' : 'translate-x-0.5',
+            )} />
+          </button>
+          <span className="text-sm text-muted-foreground">Mostrar inativos</span>
+        </label>
+      </div>
+
       {/* Table */}
       <div className={tbl.container}>
         <div className="overflow-x-auto">
@@ -96,7 +146,7 @@ export default function FornecedoresTable({ toast }: Props) {
                   <td colSpan={5} className="px-4 py-12 text-center">
                     <Truck className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-sm font-medium text-muted-foreground">
-                      {search ? 'Nenhum fornecedor encontrado' : 'Nenhum fornecedor cadastrado'}
+                      {search || filtroLeadTime !== 'todos' ? 'Nenhum fornecedor com esse filtro. Tente outra combinação.' : 'Nenhum fornecedor cadastrado'}
                     </p>
                     {!search && (
                       <p className="text-xs text-muted-foreground/60 mt-1">

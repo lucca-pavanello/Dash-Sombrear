@@ -2,15 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { EstoqueLocalizacao } from '@/lib/supabase'
 
-export function useEstoqueLocalizacoes() {
+export function useEstoqueLocalizacoes({ includeInactive = false } = {}) {
   return useQuery({
-    queryKey: ['estoque-localizacoes'],
+    queryKey: ['estoque-localizacoes', includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('estoque_localizacoes')
         .select('*, estoque_produtos!localizacao_id(count)')
-        .eq('ativo', true)
         .order('codigo')
+      if (!includeInactive) q = q.eq('ativo', true)
+      const { data, error } = await q
       if (error) throw error
       return (data ?? []) as EstoqueLocalizacao[]
     },

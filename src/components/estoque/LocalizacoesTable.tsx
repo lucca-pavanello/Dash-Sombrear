@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Search, Plus, Pencil, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueLocalizacoes, useUpdateLocalizacao } from '@/hooks/useEstoqueLocalizacoes'
 import { NIVEIS_ACESSO } from '@/lib/constants'
 import NovaLocalizacaoForm from './NovaLocalizacaoForm'
@@ -8,28 +9,34 @@ import { tbl } from './shared/tableStyles'
 import type { EstoqueLocalizacao } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
+type NivelFilter = 'todos' | 'balcao' | 'acessivel' | 'medio' | 'fundo' | 'deposito'
+
 interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
 
 export default function LocalizacoesTable({ toast }: Props) {
-  const { data: localizacoes = [], isLoading } = useEstoqueLocalizacoes()
-  const updateMutation = useUpdateLocalizacao()
   const [search, setSearch] = useState('')
+  const [filtroNivel, setFiltroNivel] = useState<NivelFilter>('todos')
+  const [mostrarInativas, setMostrarInativas] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editando, setEditando] = useState<EstoqueLocalizacao | null>(null)
 
+  const { data: localizacoes = [], isLoading } = useEstoqueLocalizacoes({ includeInactive: mostrarInativas })
+  const updateMutation = useUpdateLocalizacao()
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    if (!q) return localizacoes
-    return localizacoes.filter(
-      (l) =>
+    return localizacoes
+      .filter(l =>
+        !q ||
         l.codigo.toLowerCase().includes(q) ||
         l.setor.toLowerCase().includes(q) ||
         (l.prateleira?.toLowerCase().includes(q) ?? false),
-    )
-  }, [localizacoes, search])
+      )
+      .filter(l => filtroNivel === 'todos' || l.nivel_acesso === filtroNivel)
+  }, [localizacoes, search, filtroNivel])
 
   function handleNovo() {
     setEditando(null)
@@ -69,6 +76,42 @@ export default function LocalizacoesTable({ toast }: Props) {
           </button>
         </div>
 
+      {/* ── Linha 2: filtros ── */}
+      <div className="flex flex-wrap items-center gap-3 pb-1.5 justify-center">
+        <div className="w-48">
+          <CustomSelect
+            value={filtroNivel}
+            onChange={(v) => setFiltroNivel(v as NivelFilter)}
+            options={[
+              { value: 'todos',     label: 'Nível: todos' },
+              { value: 'balcao',    label: 'Balcão' },
+              { value: 'acessivel', label: 'Acessível' },
+              { value: 'medio',     label: 'Médio' },
+              { value: 'fundo',     label: 'Fundo' },
+              { value: 'deposito',  label: 'Depósito' },
+            ]}
+          />
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={mostrarInativas}
+            onClick={() => setMostrarInativas(v => !v)}
+            className={cn(
+              'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+              mostrarInativas ? 'bg-primary' : 'bg-muted-foreground/30',
+            )}
+          >
+            <span className={cn(
+              'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
+              mostrarInativas ? 'translate-x-[18px]' : 'translate-x-0.5',
+            )} />
+          </button>
+          <span className="text-sm text-muted-foreground">Mostrar inativas</span>
+        </label>
+      </div>
+
       {/* Table */}
       <div className={tbl.container}>
         <div className="overflow-x-auto">
@@ -100,7 +143,7 @@ export default function LocalizacoesTable({ toast }: Props) {
                   <td colSpan={7} className="px-4 py-12 text-center">
                     <MapPin className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-sm font-medium text-muted-foreground">
-                      {search ? 'Nenhuma localização encontrada' : 'Nenhuma localização cadastrada'}
+                      {search || filtroNivel !== 'todos' ? 'Nenhuma localização com esse filtro. Tente outra combinação.' : 'Nenhuma localização cadastrada'}
                     </p>
                     {!search && (
                       <p className="text-xs text-muted-foreground/60 mt-1">
