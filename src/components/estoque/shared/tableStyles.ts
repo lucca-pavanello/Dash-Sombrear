@@ -1,0 +1,18 @@
+export const tbl = {
+  container:   'rounded-xl border border-gray-200 bg-card shadow-sm overflow-hidden',
+  toolbar:     'flex items-center gap-3 border-b border-gray-200 px-4 py-3',
+  filterRow:   'flex flex-wrap items-center gap-4 border-b border-gray-100 px-4 py-3',
+  searchWrap:  'relative flex-1 max-w-3xl',
+  searchIcon:  'absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400',
+  searchInput: 'w-full rounded-lg border border-gray-200 bg-background h-10 pl-10 pr-3 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all',
+  addBtn:      'flex items-center gap-1.5 rounded-lg bg-primary px-3 h-10 text-sm font-semibold text-white hover:bg-primary/90 transition-colors shrink-0',
+  theadRow:    'border-b border-gray-200 bg-gray-50',
+  th:          'px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-gray-600',
+  tbodyRow:    'border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-150',
+  td:          'px-4 py-3 text-sm text-gray-900',
+  tfootRow:    'border-t border-gray-200 bg-gray-50',
+  tfootCell:   'px-4 py-3 text-xs font-medium uppercase tracking-wide text-gray-500',
+  actionTd:    'px-4 py-3 text-right',
+  actionGroup: 'flex items-center justify-end gap-2',
+  actionBtn:   'rounded-lg h-8 w-8 p-0 flex items-center justify-center text-gray-400 transition-colors',
+}

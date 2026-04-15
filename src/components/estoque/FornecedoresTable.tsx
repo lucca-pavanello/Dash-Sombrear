@@ -3,6 +3,7 @@ import { Search, Plus, Pencil, Truck, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueFornecedores, useUpdateFornecedor } from '@/hooks/useEstoqueFornecedores'
 import NovoFornecedorForm from './NovoFornecedorForm'
+import { tbl } from './shared/tableStyles'
 import type { EstoqueFornecedor } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -49,23 +50,20 @@ export default function FornecedoresTable({ toast }: Props) {
 
   return (
     <>
-      <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
+      <div className={tbl.container}>
         {/* Toolbar */}
-        <div className="flex items-center gap-3 border-b px-4 py-3">
-          <div className="relative flex-1 max-w-3xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <div className={tbl.toolbar}>
+          <div className={tbl.searchWrap}>
+            <Search className={tbl.searchIcon} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar fornecedor por nome, contato ou CNPJ..."
-              className="w-full rounded-lg border border-gray-200 bg-background h-10 pl-10 pr-3 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+              className={tbl.searchInput}
             />
           </div>
-          <button
-            onClick={handleNovo}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 h-10 text-sm font-semibold text-white hover:bg-primary/90 transition-colors shrink-0"
-          >
-            <Plus className="h-3.5 w-3.5" />
+          <button onClick={handleNovo} className={tbl.addBtn}>
+            <Plus className="h-4 w-4" />
             Novo Fornecedor
           </button>
         </div>
@@ -74,34 +72,34 @@ export default function FornecedoresTable({ toast }: Props) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ minWidth: '640px' }}>
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fornecedor / Contato</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Telefone</th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">CNPJ</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Prazo entrega</th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ações</th>
+              <tr className={tbl.theadRow}>
+                <th className={cn(tbl.th, 'text-left')}>Fornecedor / Contato</th>
+                <th className={cn(tbl.th, 'text-left')}>Telefone</th>
+                <th className={cn(tbl.th, 'text-left')}>CNPJ</th>
+                <th className={cn(tbl.th, 'text-right')}>Prazo entrega</th>
+                <th className={cn(tbl.th, 'text-right')}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8">
+                  <td colSpan={5} className="px-4 py-4">
                     <div className="flex flex-col gap-2">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-10 rounded-lg skeleton-shimmer" />
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="h-14 rounded-lg skeleton-shimmer" />
                       ))}
                     </div>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-16 text-center">
-                    <Truck className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-12 text-center">
+                    <Truck className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-gray-600">
                       {search ? 'Nenhum fornecedor encontrado' : 'Nenhum fornecedor cadastrado'}
                     </p>
                     {!search && (
-                      <p className="text-xs text-muted-foreground/60 mt-1">
+                      <p className="text-xs text-gray-400 mt-1">
                         Clique em "Novo Fornecedor" para começar
                       </p>
                     )}
@@ -109,57 +107,55 @@ export default function FornecedoresTable({ toast }: Props) {
                 </tr>
               ) : (
                 filtered.map((f) => (
-                  <tr key={f.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-150">
+                  <tr key={f.id} className={tbl.tbodyRow}>
                     {/* Nome + contato */}
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-foreground">{f.nome}</p>
+                    <td className={tbl.td}>
+                      <p className="font-semibold text-gray-900">{f.nome}</p>
                       {f.contato && (
-                        <p className="text-xs text-muted-foreground">{f.contato}</p>
+                        <p className="text-xs text-gray-500">{f.contato}</p>
                       )}
                       {f.email && (
-                        <p className="text-xs text-muted-foreground/70">{f.email}</p>
+                        <p className="text-xs text-gray-400">{f.email}</p>
                       )}
                     </td>
 
                     {/* Telefone */}
-                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                    <td className={cn(tbl.td, 'text-gray-500 whitespace-nowrap')}>
                       {f.telefone ?? '—'}
                     </td>
 
                     {/* CNPJ */}
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                    <td className={cn(tbl.td, 'font-mono text-xs text-gray-500 whitespace-nowrap')}>
                       {f.cnpj ?? '—'}
                     </td>
 
                     {/* Prazo */}
-                    <td className="px-4 py-3 text-right">
+                    <td className={cn(tbl.td, 'text-right')}>
                       {f.prazo_entrega_dias != null ? (
-                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center justify-end gap-1.5 text-sm text-gray-500">
                           <Clock className="h-3.5 w-3.5 shrink-0" />
                           {f.prazo_entrega_dias} {f.prazo_entrega_dias === 1 ? 'dia' : 'dias'}
                         </span>
                       ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
+                        <span className="text-sm text-gray-400">—</span>
                       )}
                     </td>
 
                     {/* Ações */}
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className={tbl.actionTd}>
+                      <div className={tbl.actionGroup}>
                         <button
                           onClick={() => handleEditar(f)}
                           title="Editar"
-                          className={cn(
-                            'rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
-                          )}
+                          className={cn(tbl.actionBtn, 'hover:text-gray-700 hover:bg-gray-100')}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDesativar(f)}
                           title="Remover"
                           disabled={updateMutation.isPending}
-                          className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                          className={cn(tbl.actionBtn, 'hover:text-red-600 hover:bg-red-50 disabled:opacity-50')}
                         >
                           <span className="text-xs font-bold leading-none">✕</span>
                         </button>
@@ -171,8 +167,8 @@ export default function FornecedoresTable({ toast }: Props) {
             </tbody>
             {filtered.length > 0 && (
               <tfoot>
-                <tr className="border-t border-border" style={{ backgroundColor: 'hsl(var(--muted))' }}>
-                  <td colSpan={5} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr className={tbl.tfootRow}>
+                  <td colSpan={5} className={tbl.tfootCell}>
                     Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}
                   </td>
                 </tr>

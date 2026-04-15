@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, X, Plus, Pencil, PackageX, TrendingUp } from 'lucide-react'
+import { Search, X, Plus, Pencil, PackageX, TrendingUp, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
@@ -7,6 +7,7 @@ import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
 import { TIPOS_PRODUTO, CLASSES_ABC } from '@/lib/constants'
+import { tbl } from './shared/tableStyles'
 import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -22,14 +23,11 @@ interface Props {
 }
 
 const ABC_BADGE: Record<string, string> = {
-  A:         'bg-primary/10 text-primary',
-  B:         'bg-muted text-foreground',
-  C:         'bg-muted/60 text-muted-foreground',
-  sem_dados: 'bg-muted text-muted-foreground italic',
+  A:         'bg-orange-100 text-orange-800',
+  B:         'bg-gray-800 text-white',
+  C:         'bg-gray-200 text-gray-700',
+  sem_dados: 'bg-gray-50 text-gray-400 italic border border-gray-200',
 }
-
-const COL_DIVIDER = 'border-l border-border/40'
-
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
   const [search, setSearch] = useState('')
@@ -67,139 +65,142 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-2">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-14 rounded-xl skeleton-shimmer" />
-        ))}
-      </div>
-    )
-  }
-
   return (
-    <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
-      {/* ── Toolbar ── */}
-      <div className="flex flex-col gap-3 border-b px-5 py-3.5">
-
-        {/* Linha 1 — busca + botão novo */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou SKU..."
-              className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-8 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={onNovoProduto}
-            className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            Novo Produto
-          </button>
-        </div>
-
-        {/* Linha 2 — filtros + toggle */}
-        <div className="flex flex-wrap items-center gap-4">
-
-          {/* Tipo */}
-          <div className="w-44">
-            <CustomSelect
-              value={tipoFilter}
-              onChange={(v) => setTipoFilter(v as TipoFilter)}
-              options={[
-                { value: 'todos',     label: 'Tipo: todos' },
-                { value: 'tecido',    label: 'Tecido' },
-                { value: 'ferragem',  label: 'Ferragem' },
-                { value: 'acessorio', label: 'Acessório' },
-              ]}
-            />
-          </div>
-
-          {/* Classe ABC */}
-          <div className="w-44">
-            <CustomSelect
-              value={abcFilter}
-              onChange={(v) => setAbcFilter(v as AbcFilter)}
-              options={[
-                { value: 'todas',     label: 'Classe: todas' },
-                { value: 'A',         label: 'Classe A' },
-                { value: 'B',         label: 'Classe B' },
-                { value: 'C',         label: 'Classe C' },
-                { value: 'sem_dados', label: 'Sem dados' },
-              ]}
-            />
-          </div>
-
-          {/* Localização */}
-          <div className="w-52">
-            <CustomSelect
-              value={localizacaoFilter}
-              onChange={setLocalizacaoFilter}
-              options={[
-                { value: 'todas', label: 'Localização: todas' },
-                { value: 'sem',   label: 'Sem localização' },
-                ...localizacoes.map((l) => ({ value: l.id, label: `${l.codigo} – ${l.setor}` })),
-              ]}
-            />
-          </div>
-
-          {/* Toggle inativos */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+    <div className={tbl.container}>
+      {/* ── Linha 1: busca + botão novo ── */}
+      <div className={tbl.toolbar}>
+        <div className={tbl.searchWrap}>
+          <Search className={tbl.searchIcon} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome ou SKU..."
+            className={cn(tbl.searchInput, 'pr-8')}
+          />
+          {search && (
             <button
-              type="button"
-              role="switch"
-              aria-checked={mostrarInativos}
-              onClick={() => setMostrarInativos((v) => !v)}
-              className={cn(
-                'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                mostrarInativos ? 'bg-primary' : 'bg-muted-foreground/30',
-              )}
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <span className={cn(
-                'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
-                mostrarInativos ? 'translate-x-[18px]' : 'translate-x-0.5',
-              )} />
+              <X className="h-3.5 w-3.5" />
             </button>
-            <span className="text-sm text-muted-foreground">Mostrar inativos</span>
-          </label>
+          )}
         </div>
+        <button onClick={onNovoProduto} className={tbl.addBtn}>
+          <Plus className="h-4 w-4" />
+          Novo Produto
+        </button>
+      </div>
+
+      {/* ── Linha 2: filtros ── */}
+      <div className={tbl.filterRow}>
+        {/* Tipo */}
+        <div className="w-44">
+          <CustomSelect
+            value={tipoFilter}
+            onChange={(v) => setTipoFilter(v as TipoFilter)}
+            options={[
+              { value: 'todos',     label: 'Tipo: todos' },
+              { value: 'tecido',    label: 'Tecido' },
+              { value: 'ferragem',  label: 'Ferragem' },
+              { value: 'acessorio', label: 'Acessório' },
+            ]}
+          />
+        </div>
+
+        {/* Classe ABC */}
+        <div className="w-44">
+          <CustomSelect
+            value={abcFilter}
+            onChange={(v) => setAbcFilter(v as AbcFilter)}
+            options={[
+              { value: 'todas',     label: 'Classe: todas' },
+              { value: 'A',         label: 'Classe A' },
+              { value: 'B',         label: 'Classe B' },
+              { value: 'C',         label: 'Classe C' },
+              { value: 'sem_dados', label: 'Sem dados' },
+            ]}
+          />
+        </div>
+
+        {/* Localização */}
+        <div className="w-52">
+          <CustomSelect
+            value={localizacaoFilter}
+            onChange={setLocalizacaoFilter}
+            options={[
+              { value: 'todas', label: 'Localização: todas' },
+              { value: 'sem',   label: 'Sem localização' },
+              ...localizacoes.map((l) => ({ value: l.id, label: `${l.codigo} – ${l.setor}` })),
+            ]}
+          />
+        </div>
+
+        {/* Toggle inativos */}
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={mostrarInativos}
+            onClick={() => setMostrarInativos((v) => !v)}
+            className={cn(
+              'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+              mostrarInativos ? 'bg-primary' : 'bg-muted-foreground/30',
+            )}
+          >
+            <span className={cn(
+              'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
+              mostrarInativos ? 'translate-x-[18px]' : 'translate-x-0.5',
+            )} />
+          </button>
+          <span className="text-sm text-gray-500">Mostrar inativos</span>
+        </label>
       </div>
 
       {/* ── Tabela ── */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm" style={{ minWidth: '960px' }}>
           <thead>
-            <tr className="border-b-2 border-border bg-muted/70">
-              <th className="pl-6 pr-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60">SKU</th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60', COL_DIVIDER)}>Nome</th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden md:table-cell', COL_DIVIDER)}>Tipo</th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden lg:table-cell', COL_DIVIDER)}>Unidade</th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60', COL_DIVIDER)}>Estoque atual</th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden lg:table-cell', COL_DIVIDER)}>Localização</th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden xl:table-cell', COL_DIVIDER)}>
+            <tr className={tbl.theadRow}>
+              <th className={cn(tbl.th, 'text-left pl-6')}>SKU</th>
+              <th className={cn(tbl.th, 'text-left')}>Nome</th>
+              <th className={cn(tbl.th, 'text-left hidden md:table-cell')}>Tipo</th>
+              <th className={cn(tbl.th, 'text-left hidden lg:table-cell')}>Unidade</th>
+              <th className={cn(tbl.th, 'text-right')}>Estoque atual</th>
+              <th className={cn(tbl.th, 'text-left hidden lg:table-cell')}>Localização</th>
+              <th className={cn(tbl.th, 'text-right hidden xl:table-cell')}>
                 <InfoTooltip label="Custo médio" tip="Custo Médio Ponderado. Custo médio de cada unidade considerando todas as compras anteriores com pesos diferentes. Atualizado automaticamente a cada nova entrada." />
               </th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden xl:table-cell', COL_DIVIDER)}>Preço venda</th>
-              <th className={cn('px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60 hidden sm:table-cell', COL_DIVIDER)}>
+              <th className={cn(tbl.th, 'text-right hidden xl:table-cell')}>Preço venda</th>
+              <th className={cn(tbl.th, 'text-center hidden sm:table-cell')}>
                 <InfoTooltip label="ABC" tip="Classifica produtos pelo quanto geram de receita. Classe A = 20% dos produtos que dão 80% do dinheiro. Princípio de Pareto." />
               </th>
-              <th className={cn('pl-4 pr-6 py-3.5 text-center text-[11px] font-semibold uppercase tracking-widest text-foreground/60', COL_DIVIDER)}>Ações</th>
+              <th className={cn(tbl.th, 'text-right pr-6')}>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {isLoading ? (
               <tr>
-                <td colSpan={10} className="px-6 py-10 text-center text-sm text-muted-foreground">
-                  Nenhum produto encontrado.
+                <td colSpan={10} className="px-4 py-4">
+                  <div className="flex flex-col gap-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="h-14 rounded-lg skeleton-shimmer" />
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={10} className="px-6 py-12 text-center">
+                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-gray-600">
+                    {search ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado ainda'}
+                  </p>
+                  {!search && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Clique em "Novo Produto" para começar
+                    </p>
+                  )}
                 </td>
               </tr>
             ) : (
@@ -209,67 +210,69 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                 return (
                   <tr
                     key={p.id}
-                    className={cn(
-                      'border-b last:border-0 hover:bg-muted/20 transition-colors',
-                      inativo && 'opacity-50'
-                    )}
+                    className={cn(tbl.tbodyRow, inativo && 'opacity-50')}
                   >
-                    <td className="pl-6 pr-4 py-3.5 text-center font-mono text-xs text-muted-foreground whitespace-nowrap">
+                    <td className={cn(tbl.td, 'pl-6 font-mono text-xs text-gray-500 whitespace-nowrap')}>
                       {p.codigo ?? '—'}
                     </td>
-                    <td className={cn('px-4 py-3.5', COL_DIVIDER)}>
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="font-medium">{p.nome}</span>
+                    <td className={tbl.td}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{p.nome}</span>
                         {inativo && (
-                          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">
                             Inativo
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className={cn('px-4 py-3.5 text-center text-sm text-muted-foreground hidden md:table-cell', COL_DIVIDER)}>
+                    <td className={cn(tbl.td, 'text-gray-500 hidden md:table-cell')}>
                       {TIPOS_PRODUTO[p.estoque_categorias?.tipo ?? ''] ?? '—'}
                     </td>
-                    <td className={cn('px-4 py-3.5 text-center text-sm text-muted-foreground hidden lg:table-cell uppercase', COL_DIVIDER)}>
+                    <td className={cn(tbl.td, 'text-gray-500 uppercase hidden lg:table-cell')}>
                       {p.unidade}
                     </td>
-                    <td className={cn('px-4 py-3.5 text-center font-semibold whitespace-nowrap', COL_DIVIDER)}>
+                    <td className={cn(tbl.td, 'text-right font-semibold whitespace-nowrap')}>
                       {p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">{p.unidade}</span>
+                      <span className="ml-1 text-xs font-normal text-gray-400">{p.unidade}</span>
                     </td>
-                    <td className={cn('px-4 py-3.5 text-center font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap', COL_DIVIDER)}>
-                      {p.localizacao?.codigo ?? <span className="text-muted-foreground/40">—</span>}
+                    <td className={cn(tbl.td, 'font-mono text-xs text-gray-500 hidden lg:table-cell whitespace-nowrap')}>
+                      {p.localizacao?.codigo ?? <span className="text-gray-300">—</span>}
                     </td>
-                    <td className={cn('px-4 py-3.5 text-center whitespace-nowrap hidden xl:table-cell', COL_DIVIDER)}>
-                      {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground">—</span>}
+                    <td className={cn(tbl.td, 'text-right whitespace-nowrap hidden xl:table-cell')}>
+                      {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className={cn('px-4 py-3.5 text-center whitespace-nowrap hidden xl:table-cell', COL_DIVIDER)}>
-                      {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground">—</span>}
+                    <td className={cn(tbl.td, 'text-right whitespace-nowrap hidden xl:table-cell')}>
+                      {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className={cn('px-4 py-3.5 text-center hidden sm:table-cell', COL_DIVIDER)}>
-                      <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold', ABC_BADGE[abc])}>
+                    <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
+                      <span className={cn(
+                        abc === 'sem_dados'
+                          ? 'inline-flex h-6 px-2 items-center justify-center rounded-full text-xs italic'
+                          : 'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
+                        ABC_BADGE[abc],
+                      )}>
                         {CLASSES_ABC[abc] ?? abc}
                       </span>
                     </td>
-                    <td className={cn('pl-4 pr-6 py-3.5', COL_DIVIDER)}>
-                      <div className="flex items-center justify-center gap-1">
+                    <td className={cn(tbl.actionTd, 'pr-6')}>
+                      <div className={tbl.actionGroup}>
                         <ActionBtn
-                          icon={<TrendingUp className="h-3.5 w-3.5" />}
+                          icon={<TrendingUp className="h-4 w-4" />}
                           label="Registrar entrada"
-                          className="text-primary hover:bg-primary/10"
+                          className="hover:text-primary hover:bg-primary/10"
                           onClick={() => onMovimentar(p, 'entrada')}
                         />
                         <ActionBtn
-                          icon={<Pencil className="h-3.5 w-3.5" />}
+                          icon={<Pencil className="h-4 w-4" />}
                           label="Editar"
-                          className="text-muted-foreground hover:bg-muted"
+                          className="hover:text-gray-700 hover:bg-gray-100"
                           onClick={() => onEditar(p)}
                         />
                         {p.ativo && (
                           <ActionBtn
-                            icon={<PackageX className="h-3.5 w-3.5" />}
+                            icon={<PackageX className="h-4 w-4" />}
                             label="Desativar"
-                            className="text-muted-foreground/60 hover:bg-muted hover:text-destructive"
+                            className="hover:text-red-600 hover:bg-red-50"
                             onClick={() => handleDesativar(p)}
                           />
                         )}
@@ -282,8 +285,8 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           </tbody>
           {filtered.length > 0 && (
             <tfoot>
-              <tr className="border-t border-border" style={{ backgroundColor: 'hsl(var(--muted))' }}>
-                <td colSpan={4} className="pl-6 pr-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr className={tbl.tfootRow}>
+                <td colSpan={4} className={cn(tbl.tfootCell, 'pl-6')}>
                   Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}
                 </td>
                 <td colSpan={6} />
@@ -308,7 +311,10 @@ function ActionBtn({
     <button
       title={label}
       onClick={onClick}
-      className={cn('rounded-lg p-1.5 transition-colors', className)}
+      className={cn(
+        'rounded-lg h-8 w-8 p-0 flex items-center justify-center text-gray-400 transition-colors',
+        className,
+      )}
     >
       {icon}
     </button>
