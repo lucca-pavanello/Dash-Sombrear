@@ -2,9 +2,9 @@
 
 ## Resumo
 
-- ✅ 20 verificações OK
-- ⚠️ 5 avisos
-- ❌ 3 erros
+- ✅ 26 verificações OK
+- ⚠️ 1 avisos
+- ❌ 1 erros
 
 ## Detalhes
 
@@ -40,13 +40,13 @@
 
 0 registros, colunas OK
 
-### ⚠️ Tabela estoque_fornecedor_categorias
+### ✅ Tabela estoque_fornecedor_categorias
 
-Não existe (opcional — migration pendente): Could not find the table 'public.estoque_fornecedor_categorias' in the schema cache
+0 registros, colunas OK
 
-### ⚠️ Tabela estoque_fornecedor_descontos_combo
+### ✅ Tabela estoque_fornecedor_descontos_combo
 
-Não existe (opcional — migration pendente): Could not find the table 'public.estoque_fornecedor_descontos_combo' in the schema cache
+0 registros, colunas OK
 
 ### ✅ View estoque_vw_lead_time
 
@@ -60,33 +60,33 @@ Retorna 8 linhas
 
 Retorna 2 linhas
 
-### ⚠️ View estoque_vw_fornecedor_lead_time_efetivo
+### ✅ View estoque_vw_fornecedor_lead_time_efetivo
 
-Não existe (opcional): Could not find the table 'public.estoque_vw_fornecedor_lead_time_efetivo' in the schema cache
+Retorna 9 linhas
 
 ### ✅ Função estoque_recalcular_abc
 
 Existe e executa sem parâmetros
 
-### ❌ Função estoque_consumir_peps
+### ✅ Função estoque_consumir_peps
 
-Função não existe no banco
+Existe (requer parâmetros — verificado via heurística)
 
 ### ✅ Função estoque_calcular_giro
 
 Existe e executa sem parâmetros
 
-### ❌ Função estoque_calcular_lec
+### ✅ Função estoque_calcular_lec
 
-Função não existe no banco
+Existe (requer parâmetros — verificado via heurística)
 
 ### ✅ Função estoque_chat_contexto
 
 Existe e executa sem parâmetros
 
-### ⚠️ Função estoque_calcular_desconto_combo
+### ✅ Função estoque_calcular_desconto_combo
 
-Não existe (opcional — migration pendente)
+Existe (requer parâmetros — verificado via heurística)
 
 ### ⚠️ Triggers
 

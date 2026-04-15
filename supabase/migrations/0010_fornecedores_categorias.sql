@@ -37,7 +37,7 @@ create or replace view estoque_vw_fornecedor_lead_time_efetivo as
 select
   f.id as fornecedor_id,
   f.nome as fornecedor_nome,
-  p.tipo as tipo_produto,
+  tipos.tipo as tipo_produto,
   coalesce(fc.lead_time_dias, f.prazo_entrega_dias, 7) as lead_time_efetivo_dias,
   coalesce(fc.prazo_pagamento_dias, null) as prazo_pagamento_dias,
   case
@@ -45,8 +45,13 @@ select
     else 'geral_fornecedor'
   end as origem_lead_time
 from estoque_fornecedores f
-cross join (select distinct tipo from estoque_produtos where ativo = true) p
-left join estoque_fornecedor_categorias fc on fc.fornecedor_id = f.id and fc.tipo_produto = p.tipo and fc.ativo = true
+cross join (
+  select distinct ec.tipo
+  from estoque_categorias ec
+  join estoque_produtos p on p.categoria_id = ec.id
+  where p.ativo = true
+) tipos
+left join estoque_fornecedor_categorias fc on fc.fornecedor_id = f.id and fc.tipo_produto = tipos.tipo and fc.ativo = true
 where f.ativo = true;
 
 -- Função utilitária pra calcular desconto aplicável num pedido

@@ -352,7 +352,7 @@ CREATE OR REPLACE VIEW estoque_vw_fornecedor_lead_time_efetivo AS
 SELECT
   f.id AS fornecedor_id,
   f.nome AS fornecedor_nome,
-  p.tipo AS tipo_produto,
+  tipos.tipo AS tipo_produto,
   COALESCE(fc.lead_time_dias, f.prazo_entrega_dias, 7) AS lead_time_efetivo_dias,
   COALESCE(fc.prazo_pagamento_dias, NULL) AS prazo_pagamento_dias,
   CASE
@@ -360,9 +360,14 @@ SELECT
     ELSE 'geral_fornecedor'
   END AS origem_lead_time
 FROM estoque_fornecedores f
-CROSS JOIN (SELECT DISTINCT tipo FROM estoque_produtos WHERE ativo = true) p
+CROSS JOIN (
+  SELECT DISTINCT ec.tipo
+  FROM estoque_categorias ec
+  JOIN estoque_produtos p ON p.categoria_id = ec.id
+  WHERE p.ativo = true
+) tipos
 LEFT JOIN estoque_fornecedor_categorias fc
-  ON fc.fornecedor_id = f.id AND fc.tipo_produto = p.tipo AND fc.ativo = true
+  ON fc.fornecedor_id = f.id AND fc.tipo_produto = tipos.tipo AND fc.ativo = true
 WHERE f.ativo = true;
 
 CREATE OR REPLACE FUNCTION estoque_calcular_desconto_combo(
