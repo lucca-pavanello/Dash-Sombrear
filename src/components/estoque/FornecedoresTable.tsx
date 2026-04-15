@@ -73,11 +73,11 @@ export default function FornecedoresTable({ toast }: Props) {
           <table className="w-full text-sm" style={{ minWidth: '640px' }}>
             <thead>
               <tr className={tbl.theadRow}>
-                <th className={cn(tbl.th, 'text-left')}>Fornecedor / Contato</th>
-                <th className={cn(tbl.th, 'text-left')}>Telefone</th>
-                <th className={cn(tbl.th, 'text-left')}>CNPJ</th>
-                <th className={cn(tbl.th, 'text-right')}>Prazo entrega</th>
-                <th className={cn(tbl.th, 'text-right border-r-0')}>Ações</th>
+                <th className={cn(tbl.th, 'text-center')}>Fornecedor / Contato</th>
+                <th className={cn(tbl.th, 'text-center')}>Telefone</th>
+                <th className={cn(tbl.th, 'text-center')}>CNPJ</th>
+                <th className={cn(tbl.th, 'text-center')}>Prazo entrega</th>
+                <th className={cn(tbl.th, 'text-center border-r-0')}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -130,7 +130,7 @@ export default function FornecedoresTable({ toast }: Props) {
                     </td>
 
                     {/* Prazo */}
-                    <td className={cn(tbl.td, 'text-right')}>
+                    <td className={cn(tbl.td, 'text-center')}>
                       {f.prazo_entrega_dias != null ? (
                         <span className="inline-flex items-center justify-end gap-1.5 text-sm text-muted-foreground">
                           <Clock className="h-3.5 w-3.5 shrink-0" />
