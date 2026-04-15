@@ -61,9 +61,9 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   }
 
   return (
-    <div className={tbl.container}>
+    <>
       {/* ── Linha 1: busca + botão novo ── */}
-      <div className={cn(tbl.toolbar, 'py-2')}>
+      <div className="flex items-center gap-3 pb-3">
         <div className={tbl.searchWrap}>
           <Search className={tbl.searchIcon} />
           <input
@@ -88,7 +88,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
       </div>
 
       {/* ── Linha 2: filtros ── */}
-      <div className={cn(tbl.filterRow, 'py-1.5 gap-3')}>
+      <div className="flex flex-wrap items-center gap-3 pb-3">
         {/* Tipo */}
         <div className="w-44">
           <CustomSelect
@@ -153,6 +153,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
       </div>
 
       {/* ── Tabela ── */}
+      <div className={tbl.container}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm" style={{ minWidth: '960px' }}>
           <thead>
@@ -283,7 +284,8 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           )}
         </table>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

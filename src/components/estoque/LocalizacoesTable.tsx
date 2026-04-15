@@ -52,9 +52,8 @@ export default function LocalizacoesTable({ toast }: Props) {
 
   return (
     <>
-      <div className={tbl.container}>
-        {/* Toolbar */}
-        <div className={tbl.toolbar}>
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 pb-3">
           <div className={tbl.searchWrap}>
             <Search className={tbl.searchIcon} />
             <input
@@ -70,7 +69,8 @@ export default function LocalizacoesTable({ toast }: Props) {
           </button>
         </div>
 
-        {/* Table */}
+      {/* Table */}
+      <div className={tbl.container}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ minWidth: '700px' }}>
             <thead>
