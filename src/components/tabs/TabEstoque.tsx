@@ -339,7 +339,7 @@ export default function TabEstoque({ toast }: Props) {
           ? <VendaDetalheView vendaId={vendaDetalheId} onVoltar={() => setVendaDetalheId(null)} />
           : (
             <div className="space-y-3">
-              <div>
+              <div className="text-center">
                 <h3 className="font-display text-base font-semibold">Vendas</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Registre vendas com um ou mais itens. O estoque desce automaticamente.
