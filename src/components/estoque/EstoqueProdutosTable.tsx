@@ -8,7 +8,6 @@ import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEsto
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
 import { TIPOS_PRODUTO } from '@/lib/constants'
 import { tbl } from './shared/tableStyles'
-import { ClasseABC } from './shared/ClasseABC'
 import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
 
@@ -241,7 +240,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                       {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground/60">—</span>}
                     </td>
                     <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
-                      <ClasseABC classe={abc === 'sem_dados' ? null : abc} />
+                      {abc === 'sem_dados' ? '—' : abc}
                     </td>
                     <td className={cn(tbl.actionTd, 'pr-6')}>
                       <div className={tbl.actionGroup}>
