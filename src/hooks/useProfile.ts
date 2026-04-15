@@ -7,6 +7,8 @@ export type Profile = {
   full_name: string
   approved: boolean | null  // null = pendente, true = aprovado, false = revogado
   is_admin: boolean
+  pode_orcamento: boolean | null
+  pode_estoque: boolean | null
   created_at: string
 }
 
