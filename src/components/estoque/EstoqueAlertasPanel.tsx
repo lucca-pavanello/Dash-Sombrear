@@ -16,7 +16,7 @@ export default function EstoqueAlertasPanel({ alertas, onMovimentar }: Props) {
   const baixos = alertas.filter((a) => a.quantidade_atual > 0)
 
   return (
-    <div className="rounded-xl border-2 border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+    <div className="rounded-xl border-2 border-primary/10 bg-primary/[0.02] shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors"
