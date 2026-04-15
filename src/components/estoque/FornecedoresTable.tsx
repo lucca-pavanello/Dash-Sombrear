@@ -143,7 +143,7 @@ export default function FornecedoresTable({ toast }: Props) {
 
                     {/* Ações */}
                     <td className={tbl.actionTd}>
-                      <div className={tbl.actionGroup}>
+                      <div className={cn(tbl.actionGroup, 'justify-center')}>
                         <button
                           onClick={() => handleEditar(f)}
                           title="Editar"
