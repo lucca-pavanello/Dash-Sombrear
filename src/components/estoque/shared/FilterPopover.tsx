@@ -60,14 +60,14 @@ function MultiSelectFilter({
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar opção..."
-          className="w-full rounded-lg border border-border bg-background h-8 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-2"
+          className="w-full rounded-lg border border-border bg-background h-8 px-3 text-sm text-center placeholder:text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-2"
         />
       )}
       <div className="space-y-0.5">
         {visible.map(opt => (
           <label
             key={opt.value}
-            className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted/60 cursor-pointer select-none"
+            className="flex items-center justify-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted/60 cursor-pointer select-none"
           >
             <input
               type="checkbox"
@@ -105,30 +105,30 @@ function RangeFilter({
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">De</label>
+          <label className="text-xs text-muted-foreground mb-1 block text-center">De</label>
           <input
             type="number"
             placeholder="Mín"
             value={pending.min ?? ''}
             onChange={e => update({ min: e.target.value === '' ? '' : Number(e.target.value) })}
-            className="w-full rounded-lg border border-border bg-background h-8 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full rounded-lg border border-border bg-background h-8 px-3 text-sm text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Até</label>
+          <label className="text-xs text-muted-foreground mb-1 block text-center">Até</label>
           <input
             type="number"
             placeholder="Máx"
             value={pending.max ?? ''}
             onChange={e => update({ max: e.target.value === '' ? '' : Number(e.target.value) })}
-            className="w-full rounded-lg border border-border bg-background h-8 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full rounded-lg border border-border bg-background h-8 px-3 text-sm text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
       </div>
       {(rangeOpts?.showApenasZerados || rangeOpts?.showIncluirVazios) && (
         <div className="border-t border-border pt-3 space-y-1.5">
           {rangeOpts?.showApenasZerados && (
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <label className="flex items-center justify-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={pending.apenasZerados ?? false}
@@ -141,7 +141,7 @@ function RangeFilter({
             </label>
           )}
           {rangeOpts?.showIncluirVazios && (
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <label className="flex items-center justify-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={pending.incluirVazios ?? false}
@@ -178,9 +178,9 @@ function TextFilter({
         onChange={e => setPending(e.target.value)}
         placeholder={`Buscar em ${label}...`}
         autoFocus
-        className="w-full rounded-lg border border-border bg-background h-9 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+        className="w-full rounded-lg border border-border bg-background h-9 px-3 text-sm text-center placeholder:text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary"
       />
-      <p className="text-xs text-muted-foreground mt-2">
+      <p className="text-xs text-muted-foreground mt-2 text-center">
         Filtra parcialmente — ex: "blackout" encontra "Tecido Blackout Branco"
       </p>
     </div>
@@ -270,7 +270,7 @@ export function FilterPopover({
       className="rounded-xl border border-border bg-popover shadow-xl overflow-hidden"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border bg-muted/40">
+      <div className="px-4 py-3 border-b border-border bg-muted/40 text-center">
         <h4 className="text-sm font-semibold text-foreground">Filtrar por {label}</h4>
         {hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
       </div>
@@ -304,13 +304,13 @@ export function FilterPopover({
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border bg-muted/40">
         <button
           onClick={clear}
-          className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          className="flex-1 h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
         >
           Limpar
         </button>
         <button
           onClick={apply}
-          className="h-8 px-4 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary/90 transition-colors"
+          className="flex-1 h-8 px-4 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary/90 transition-colors"
         >
           Aplicar
         </button>
