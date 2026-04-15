@@ -13,18 +13,18 @@ interface Props {
 
 const variantCls = {
   primary: {
-    card: 'bg-orange-100 border-orange-200 dark:bg-orange-950/30 dark:border-orange-900/40',
-    label: 'text-orange-700 dark:text-orange-300',
-    iconWrap: 'bg-orange-200/50 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400',
-    valueDef: 'text-orange-900 dark:text-orange-100',
-    sub: 'text-orange-600/80 dark:text-orange-400/70',
+    card: 'border-primary/35 bg-primary/10 dark:bg-primary/15',
+    label: 'text-muted-foreground/70',
+    iconWrap: 'bg-primary/15 text-primary',
+    valueDef: 'text-primary',
+    sub: 'text-muted-foreground/60',
   },
   secondary: {
-    card: 'bg-orange-50 border-orange-100 dark:bg-orange-950/15 dark:border-orange-900/25',
-    label: 'text-orange-600 dark:text-orange-400',
-    iconWrap: 'bg-orange-100/50 dark:bg-orange-950/20 text-orange-300 dark:text-orange-600',
-    valueDef: 'text-gray-900 dark:text-gray-100',
-    sub: 'text-gray-500 dark:text-gray-400',
+    card: 'border-primary/20 bg-primary/5 dark:bg-primary/8',
+    label: 'text-muted-foreground/70',
+    iconWrap: 'bg-primary/15 text-primary',
+    valueDef: 'text-foreground',
+    sub: 'text-muted-foreground/60',
   },
 }
 
@@ -43,20 +43,20 @@ export default function MetricCard({ title, value, subtitle, icon: Icon, variant
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border shadow-sm p-6 flex flex-col gap-3 transition-all',
+        'rounded-xl border-2 shadow-sm p-4 flex flex-col gap-3 transition-all',
         v ? v.card : 'bg-card',
         onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-px',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className={cn('text-xs font-semibold uppercase tracking-wide leading-tight', v ? v.label : 'text-muted-foreground')}>
+        <p className={cn('text-[10px] font-semibold uppercase tracking-[0.07em] leading-tight', v ? v.label : 'text-muted-foreground/70')}>
           {title}
         </p>
         <div className={cn('rounded-lg p-1.5 shrink-0', v ? v.iconWrap : 'bg-muted/50 text-muted-foreground')}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <p className={cn('text-3xl font-semibold leading-none', valueCls)}>
+      <p className={cn('text-2xl font-bold leading-none', valueCls)}>
         {value}
       </p>
       {subtitle && (
