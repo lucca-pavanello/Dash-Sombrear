@@ -15,7 +15,7 @@ export default function MetricCard({ title, value, subtitle, icon: Icon, valueCo
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border-2 border-primary/25 bg-primary/5 shadow-sm px-4 py-3 flex items-center gap-3 transition-all',
+        'rounded-xl border-2 border-primary/50 bg-primary/5 shadow-sm px-4 py-3 flex items-center gap-3 transition-all',
         onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-px',
       )}
     >

@@ -40,7 +40,7 @@ export function CardSugestoesCompra({ onClick }: Props) {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border-2 border-primary/25 bg-primary/5 shadow-sm px-4 py-3 animate-pulse">
+      <div className="rounded-xl border-2 border-primary/50 bg-primary/5 shadow-sm px-4 py-3 animate-pulse">
         <div className="h-3 w-32 bg-muted rounded mb-2" />
         <div className="h-7 w-8 bg-muted rounded mb-1.5" />
         <div className="h-3 w-20 bg-muted rounded" />
@@ -52,7 +52,7 @@ export function CardSugestoesCompra({ onClick }: Props) {
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border-2 border-primary/25 bg-primary/5 shadow-sm px-4 py-3 flex items-center gap-3 transition-all',
+        'rounded-xl border-2 border-primary/50 bg-primary/5 shadow-sm px-4 py-3 flex items-center gap-3 transition-all',
         onClick && 'cursor-pointer hover:shadow-md hover:-translate-y-px',
       )}
     >
