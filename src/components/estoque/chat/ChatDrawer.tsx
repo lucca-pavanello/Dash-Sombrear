@@ -6,15 +6,36 @@ import { ChatMensagem } from "./ChatMessage"
 import { ChatInput } from "./ChatInput"
 import { ChatSugestoes } from "./ChatSugestoes"
 
+const ONBOARDING_KEY = "estoque-ia-onboarding"
+
+const ONBOARDING_MSG =
+  "👋 Olá! Sou a IA do Estoque.\n\nPosso te ajudar a entender seu estoque, executar ações e dar insights. Algumas coisas que posso fazer:\n\n- Responder perguntas sobre seus produtos, vendas e fornecedores\n- Cadastrar produtos, fornecedores e localizações\n- Registrar entradas e vendas\n- Recalcular ABC, gerar pedidos de compra\n- Mover itens entre localizações\n\nÉ só me perguntar ou pedir uma ação. Quanto mais específico, melhor!"
+
 export function ChatDrawer() {
   const { aberto, fechar, mensagens, loading, limparMensagens } = useChatStore()
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Auto-scroll quando mensagens chegam
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [mensagens, loading])
+
+  // Mensagem de boas-vindas no primeiro uso
+  useEffect(() => {
+    if (aberto && useChatStore.getState().mensagens.length === 0) {
+      if (!localStorage.getItem(ONBOARDING_KEY)) {
+        useChatStore.getState().adicionarMensagem({
+          id: Math.random().toString(36).slice(2),
+          role: "assistant",
+          content: ONBOARDING_MSG,
+          timestamp: new Date(),
+        })
+        localStorage.setItem(ONBOARDING_KEY, "true")
+      }
+    }
+  }, [aberto])
 
   return (
     <Dialog.Root open={aberto} onOpenChange={(open) => !open && fechar()}>
