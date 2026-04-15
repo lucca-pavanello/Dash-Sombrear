@@ -225,7 +225,7 @@ export default function FornecedoresTable({ toast }: Props) {
             {filtered.length > 0 && (
               <tfoot>
                 <tr className={tbl.tfootRow}>
-                  <td colSpan={5} className={tbl.tfootCell}>
+                  <td colSpan={5} className={`${tbl.tfootCell} text-center`}>
                     Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}
                   </td>
                 </tr>

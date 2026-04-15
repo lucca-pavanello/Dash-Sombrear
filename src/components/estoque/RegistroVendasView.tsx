@@ -201,7 +201,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
       <div className="rounded-xl border border-gray-200 dark:border-border bg-card shadow-sm p-6">
 
         {/* Header interno */}
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center justify-center gap-2 mb-5">
           <div className="h-8 w-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
             <ShoppingCart className="h-4 w-4 text-orange-600" />
           </div>

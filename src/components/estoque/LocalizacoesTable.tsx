@@ -302,7 +302,7 @@ export default function LocalizacoesTable({ toast }: Props) {
             {filtered.length > 0 && (
               <tfoot>
                 <tr className={tbl.tfootRow}>
-                  <td colSpan={7} className={tbl.tfootCell}>
+                  <td colSpan={7} className={`${tbl.tfootCell} text-center`}>
                     Total — {filtered.length} {filtered.length === 1 ? 'localização' : 'localizações'}
                   </td>
                 </tr>

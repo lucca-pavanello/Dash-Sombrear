@@ -175,8 +175,8 @@ export default function TabEstoque({ toast }: Props) {
         <div className="hidden sm:block w-px h-8 bg-border self-center" />
 
         {/* Grupo Operação */}
-        <div className="flex flex-col gap-0.5">
-          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1 text-center">
             Operação
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
@@ -194,8 +194,8 @@ export default function TabEstoque({ toast }: Props) {
         </div>
 
         {/* Grupo Cadastros */}
-        <div className="flex flex-col gap-0.5">
-          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1 text-center">
             Cadastros
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
@@ -213,8 +213,8 @@ export default function TabEstoque({ toast }: Props) {
         </div>
 
         {/* Grupo Análises */}
-        <div className="flex flex-col gap-0.5">
-          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1">
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1 text-center">
             Análises
           </span>
           <div className="flex gap-1 rounded-xl bg-muted/60 p-1">

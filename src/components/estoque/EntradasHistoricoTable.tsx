@@ -125,7 +125,7 @@ export default function EntradasHistoricoTable() {
           {!isLoading && itens.length > 0 && (
             <tfoot>
               <tr className={tbl.tfootRow}>
-                <td colSpan={7} className={tbl.tfootCell}>
+                <td colSpan={7} className={`${tbl.tfootCell} text-center`}>
                   TOTAL — {itens.length} {itens.length === 1 ? 'entrada' : 'entradas'}
                 </td>
               </tr>
