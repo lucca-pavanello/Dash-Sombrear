@@ -58,7 +58,7 @@ export function CardGiro({ onClick }: Props) {
           <RefreshCw className="h-4 w-4" />
         </div>
       </div>
-      <p className="text-2xl font-bold leading-none text-primary">
+      <p className="text-2xl font-bold leading-none text-foreground">
         {fmtNum(data.giro_reais)}
         <span className="text-sm font-normal text-muted-foreground/60 ml-1">×</span>
       </p>

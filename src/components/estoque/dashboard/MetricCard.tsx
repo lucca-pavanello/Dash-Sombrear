@@ -16,7 +16,7 @@ const variantCls = {
     card: 'border-primary/35 bg-primary/10 dark:bg-primary/15',
     label: 'text-muted-foreground/70',
     iconWrap: 'bg-primary/15 text-primary',
-    valueDef: 'text-primary',
+    valueDef: 'text-foreground',
     sub: 'text-muted-foreground/60',
   },
   secondary: {

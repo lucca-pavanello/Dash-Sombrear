@@ -69,7 +69,7 @@ export function CardSugestoesCompra({ onClick }: Props) {
           <ShoppingCart className="h-4 w-4" />
         </div>
       </div>
-      <p className={cn('text-2xl font-bold leading-none', temCriticos ? 'text-red-700' : 'text-primary')}>
+      <p className={cn('text-2xl font-bold leading-none', temCriticos ? 'text-red-700' : 'text-foreground')}>
         {totalNaoOk}
       </p>
       <p className="text-xs text-muted-foreground/60">
