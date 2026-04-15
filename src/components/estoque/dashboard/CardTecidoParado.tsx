@@ -65,7 +65,7 @@ export function CardTecidoParado({ onClick }: Props) {
       <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 leading-tight">
         Parado &gt; {amarelo_max}d
       </p>
-      <p className={cn('text-2xl font-bold leading-none', critico ? 'text-red-700' : 'text-foreground')}>
+      <p className={cn('text-2xl font-bold leading-none', 'text-foreground')}>
         {count}
       </p>
       <p className="text-xs text-muted-foreground/60">

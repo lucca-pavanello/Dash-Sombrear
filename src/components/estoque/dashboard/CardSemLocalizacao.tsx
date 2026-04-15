@@ -39,7 +39,7 @@ export default function CardSemLocalizacao({ onClick }: Props) {
       <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 leading-tight">
         Sem localização
       </p>
-      <p className={cn('text-2xl font-bold leading-none', hasAlert ? 'text-red-700' : 'text-foreground')}>
+      <p className={cn('text-2xl font-bold leading-none', 'text-foreground')}>
         {isLoading ? '…' : (count ?? 0)}
       </p>
       <p className="text-xs text-muted-foreground/60">

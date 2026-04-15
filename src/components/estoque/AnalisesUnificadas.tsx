@@ -454,7 +454,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
       title="Como reorganizar a loja"
       subtitle="Sugestões pra deixar os produtos mais vendidos perto do balcão e os menos vendidos no fundo."
       badge={isLoading ? undefined : sugestoes.length > 0
-        ? { label: `${sugestoes.length} sugestão${sugestoes.length !== 1 ? 'ões' : ''}`, variant: 'info' }
+        ? { label: `${sugestoes.length} ${sugestoes.length === 1 ? 'sugestão' : 'sugestões'}`, variant: 'info' }
         : undefined
       }
     >
@@ -469,7 +469,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
             Todos os produtos estão bem alocados.
           </span>
         }
-        footerLeft={`${sugestoes.length} sugestão${sugestoes.length !== 1 ? 'ões' : ''}`}
+        footerLeft={`${sugestoes.length} ${sugestoes.length === 1 ? 'sugestão' : 'sugestões'}`}
         footerRight={
           <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
             Ver todos →
@@ -494,19 +494,26 @@ function SecaoGiroMensal() {
       title="Evolução do giro"
       subtitle="Quantas vezes seu estoque inteiro foi vendido e reposto em cada mês do último ano."
     >
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-4">
         {giro && (
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>
-              <InfoTooltip label="Giro anual" tip="Quantas vezes seu estoque inteiro é vendido e reposto num ano. Giro 6 = você 'troca' o estoque 6× por ano. Quanto maior, melhor." />
-              {': '}
-              <strong className="text-foreground">{fmtGiro(giro.giro_reais)}×</strong>
-            </span>
-            <span>
-              <InfoTooltip label="Estoque médio" tip="Quanto produto, em média, você tem parado no estoque ao longo do ano. Quanto menor, mais eficiente é seu capital." />
-              {': '}
-              <strong className="text-foreground">{fmtBRL(giro.estoque_atual_reais)}</strong>
-            </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4">
+              <p className="text-xs uppercase tracking-wide text-orange-600 font-medium">GIRO ANUAL</p>
+              <p className="text-3xl font-bold text-orange-900">
+                {fmtGiro(giro.giro_reais)}
+                <span className="text-base font-normal text-orange-700"> × ao ano</span>
+              </p>
+              <p className="text-xs text-orange-700/80 mt-1">
+                Quantas vezes seu estoque foi vendido e reposto nos últimos 12 meses
+              </p>
+            </div>
+            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4">
+              <p className="text-xs uppercase tracking-wide text-orange-600 font-medium">ESTOQUE MÉDIO</p>
+              <p className="text-3xl font-bold text-orange-900">{fmtBRL(giro.estoque_atual_reais)}</p>
+              <p className="text-xs text-orange-700/80 mt-1">
+                Valor médio mantido em estoque ao longo do ano
+              </p>
+            </div>
           </div>
         )}
         <GiroMensalChart />

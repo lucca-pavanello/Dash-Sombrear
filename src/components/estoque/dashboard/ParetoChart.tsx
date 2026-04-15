@@ -12,10 +12,10 @@ import {
 import type { ParetoItem } from '@/hooks/useEstoqueAnalytics'
 
 const CLASS_COLOR: Record<string, string> = {
-  A:         '#22c55e',
-  B:         '#eab308',
-  C:         '#94a3b8',
-  sem_dados: '#cbd5e1',
+  A:         '#f97316',  // orange-500
+  B:         '#fdba74',  // orange-300
+  C:         '#ffedd5',  // orange-100
+  sem_dados: '#e5e7eb',  // gray-200
 }
 
 const fmtBRL = (v: number) =>
@@ -34,27 +34,28 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
   return (
-    <div className="rounded-lg border bg-popover px-3 py-2.5 shadow-lg text-xs space-y-1 max-w-[200px]">
-      <p className="font-semibold text-sm leading-tight">{d.nome}</p>
-      <p className="text-muted-foreground">SKU: {d.codigo}</p>
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-md text-xs space-y-1 max-w-[200px]">
+      <p className="font-semibold text-sm leading-tight text-gray-900">{d.nome}</p>
+      <p className="text-gray-500">SKU: {d.codigo}</p>
+      <hr className="border-gray-100" />
       <p>
-        <span className="text-muted-foreground">Valor vendido: </span>
+        <span className="text-gray-500">Valor vendido: </span>
         <span className="font-medium">{fmtBRL(d.valor_total)}</span>
       </p>
       <p>
-        <span className="text-muted-foreground">% individual: </span>
-        <span className="font-medium">{d.percentual_individual.toFixed(1)}%</span>
+        <span className="text-gray-500">% individual: </span>
+        <span className="font-medium text-orange-700">{d.percentual_individual.toFixed(1)}%</span>
       </p>
       <p>
-        <span className="text-muted-foreground">% acumulado: </span>
-        <span className="font-medium">{d.percentual_acumulado.toFixed(1)}%</span>
+        <span className="text-gray-500">% acumulado: </span>
+        <span className="font-medium text-gray-700">{d.percentual_acumulado.toFixed(1)}%</span>
       </p>
       <div className="flex items-center gap-1.5 pt-0.5">
         <div
           className="h-2.5 w-2.5 rounded-sm shrink-0"
           style={{ background: CLASS_COLOR[d.classificacao_abc ?? 'sem_dados'] }}
         />
-        <span className="text-muted-foreground">
+        <span className="text-gray-500">
           Classe {d.classificacao_abc ?? 'sem dados'}
         </span>
       </div>
@@ -110,7 +111,7 @@ export default function ParetoChart({ items, isLoading }: Props) {
           tick={{ fontSize: 10 }}
           width={36}
           tickFormatter={(v: number) => `${v}%`}
-          label={{ value: '% acumulado', angle: 90, position: 'insideRight', fontSize: 9, fill: '#f97316', offset: 8 }}
+          label={{ value: '% acumulado', angle: 90, position: 'insideRight', fontSize: 9, fill: '#374151', offset: 8 }}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend
@@ -128,9 +129,9 @@ export default function ParetoChart({ items, isLoading }: Props) {
           yAxisId="right"
           dataKey="percentual_acumulado"
           type="monotone"
-          stroke="#f97316"
+          stroke="#374151"
           strokeWidth={2}
-          dot={{ r: 3, fill: '#f97316', strokeWidth: 0 }}
+          dot={{ r: 3, fill: '#374151', stroke: 'white', strokeWidth: 1 }}
           activeDot={{ r: 5 }}
         />
       </ComposedChart>
