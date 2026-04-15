@@ -1,7 +1,7 @@
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ShoppingCart, Plus, Trash2 } from 'lucide-react'
+import { ShoppingCart, Plus, Trash2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
@@ -9,12 +9,8 @@ import { useVendas, useRegistrarVenda, useVendedores } from '@/hooks/useEstoqueV
 import DatePicker from '@/components/ui/DatePicker'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { tbl } from './shared/tableStyles'
+import { INPUT_CLASSES, LABEL_CLASS } from './shared/inputStyles'
 import type { ToastType } from '@/hooks/useToast'
-
-const inputClass =
-  'w-full rounded-lg border border-gray-200 bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-orange-500 transition-all duration-150'
-const labelClass =
-  'mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-600'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -152,19 +148,20 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
         {/* Parte 1 — Dados da venda */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Cliente</label>
+            <label className={LABEL_CLASS}>Cliente</label>
             <input
               type="text"
               {...register('cliente')}
               placeholder="Nome do cliente (opcional)"
-              className={inputClass}
+              className={INPUT_CLASSES}
             />
           </div>
           <div>
-            <label className={labelClass}>Data *</label>
+            <label className={LABEL_CLASS}>Data <span className="text-orange-500 ml-0.5">*</span></label>
             <DatePicker
               value={dataValue}
               onChange={(v) => setValue('data', v, { shouldValidate: true })}
+              triggerClassName={INPUT_CLASSES}
             />
             {errors.data && <p className="mt-1 text-xs text-destructive">{errors.data.message}</p>}
           </div>
@@ -172,31 +169,31 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Vendedor</label>
+            <label className={LABEL_CLASS}>Vendedor</label>
             <input
               type="text"
               list="vendedores-list"
               {...register('vendedor')}
               placeholder={responsavel || 'Nome do vendedor'}
-              className={inputClass}
+              className={INPUT_CLASSES}
             />
             <datalist id="vendedores-list">
               {vendedores.map((v) => <option key={v} value={v} />)}
             </datalist>
           </div>
           <div>
-            <label className={labelClass}>Observação</label>
+            <label className={LABEL_CLASS}>Observação</label>
             <input
               type="text"
               {...register('observacao')}
               placeholder="Opcional"
-              className={inputClass}
+              className={INPUT_CLASSES}
             />
           </div>
         </div>
 
-        {/* Separador */}
-        <div className="border-t pt-4">
+        {/* Separador + Itens */}
+        <div className="border-t border-gray-200 pt-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold">Itens da venda</p>
             <button
@@ -212,7 +209,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
           {/* Cabeçalho da tabela (sm+) */}
           <div className="hidden sm:grid sm:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2 mb-1 px-1">
             {['Produto', 'Quantidade', 'Preço unit. (R$)', 'Desconto (R$)', 'Subtotal', ''].map((h) => (
-              <span key={h} className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{h}</span>
+              <span key={h} className="text-xs font-medium uppercase tracking-wide text-gray-600 text-center">{h}</span>
             ))}
           </div>
 
@@ -222,7 +219,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
               return (
                 <div
                   key={field.id}
-                  className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2 items-start rounded-lg bg-muted/30 p-2"
+                  className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] gap-2 items-start"
                 >
                   {/* Produto */}
                   <div>
@@ -235,6 +232,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       }}
                       options={produtoOptions}
                       placeholder="Selecione o produto..."
+                      className={cn(INPUT_CLASSES, "!font-normal")}
                     />
                     {errors.itens?.[index]?.produto_id && (
                       <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].produto_id?.message}</p>
@@ -250,7 +248,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       step="0.001"
                       placeholder="0"
                       {...register(`itens.${index}.quantidade`, { valueAsNumber: true })}
-                      className={cn(inputClass, 'py-2 text-right', errors.itens?.[index]?.quantidade && 'border-destructive')}
+                      className={cn(INPUT_CLASSES, errors.itens?.[index]?.quantidade && '!border-red-400')}
                     />
                     {errors.itens?.[index]?.quantidade && (
                       <p className="mt-0.5 text-xs text-destructive">{errors.itens[index].quantidade?.message}</p>
@@ -266,7 +264,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       step="0.01"
                       placeholder="0,00"
                       {...register(`itens.${index}.preco_unitario`, { valueAsNumber: true })}
-                      className={cn(inputClass, 'py-2 text-right', errors.itens?.[index]?.preco_unitario && 'border-destructive')}
+                      className={cn(INPUT_CLASSES, errors.itens?.[index]?.preco_unitario && '!border-red-400')}
                     />
                   </div>
 
@@ -279,19 +277,16 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                       step="0.01"
                       placeholder="0,00"
                       {...register(`itens.${index}.desconto`, { valueAsNumber: true })}
-                      className={cn(inputClass, 'py-2 text-right')}
+                      className={INPUT_CLASSES}
                     />
                   </div>
 
                   {/* Subtotal (readonly) */}
                   <div>
                     <label className="sm:hidden block mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Subtotal</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={formatCurrency(sub)}
-                      className={cn(inputClass, 'py-2 bg-muted/40 cursor-default text-right font-semibold text-orange-700')}
-                    />
+                    <div className={cn(INPUT_CLASSES, "!flex !items-center !justify-center !text-orange-700 !font-semibold !cursor-default")}>
+                      {formatCurrency(sub)}
+                    </div>
                   </div>
 
                   {/* Remover */}
@@ -317,27 +312,29 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
         </div>
 
         {/* Total */}
-        <div className="flex items-center justify-between bg-orange-50 rounded-lg px-4 py-3">
+        <div className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-4 py-3">
           <span className="text-sm font-medium text-gray-700">Total da venda</span>
           <span className="text-xl font-bold text-orange-700">{formatCurrency(totalVenda)}</span>
         </div>
 
         {/* Submit */}
-        <div className="flex">
+        <div className="flex justify-center mt-6">
           <button
             type="submit"
             disabled={!hasValidItem || registrar.isPending}
-            className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            className="flex items-center justify-center gap-2 rounded-lg bg-brand-gradient h-11 px-8 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
-            <ShoppingCart className="h-4 w-4" />
-            {registrar.isPending ? 'Registrando...' : 'Registrar venda'}
+            {registrar.isPending
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</>
+              : <><ShoppingCart className="h-4 w-4" /> Registrar venda</>
+            }
           </button>
         </div>
       </form>
 
       {/* Histórico */}
       <div className={tbl.container}>
-        <div className="px-5 py-3 border-b">
+        <div className="px-5 py-3 border-b text-center">
           <p className="text-sm font-semibold">Histórico de vendas</p>
           <p className="text-xs text-muted-foreground">Últimas 50 vendas registradas</p>
         </div>
