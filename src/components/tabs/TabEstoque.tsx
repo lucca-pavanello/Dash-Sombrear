@@ -1,9 +1,5 @@
 import { useState } from 'react'
-import {
-  LayoutDashboard, Package, Truck, PackagePlus, ShoppingCart, MapPin,
-  Settings, BarChart2, Zap,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useNavigate } from 'react-router-dom'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
 import { useProfile } from '@/hooks/useProfile'
 import EstoqueDashboard from '@/components/estoque/dashboard/EstoqueDashboard'
@@ -32,78 +28,21 @@ import type { ToastType } from '@/hooks/useToast'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-type SubTab =
-  | 'visao-geral'
-  | 'analises'
-  | 'acoes'
-  | 'produtos'
-  | 'fornecedores'
-  | 'localizacoes'
-  | 'entradas'
-  | 'vendas'
-  | 'configuracao'
-  // drill-downs (não aparecem na navbar, acessados via "Ver todos")
-  | 'lead-time'
-  | 'mover'
-  | 'sugestao'
-  | 'ponto-pedido'
-
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
-
-// ─── Grupos de navegação ──────────────────────────────────────────────────────
-
-const GROUP_CADASTROS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'produtos',     label: 'Produtos',     icon: <Package className="h-3.5 w-3.5" /> },
-  { id: 'fornecedores', label: 'Fornecedores', icon: <Truck className="h-3.5 w-3.5" /> },
-  { id: 'localizacoes', label: 'Localizações', icon: <MapPin className="h-3.5 w-3.5" /> },
-]
-
-const GROUP_OPERACAO: { id: SubTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'entradas', label: 'Entradas', icon: <PackagePlus className="h-3.5 w-3.5" /> },
-  { id: 'vendas',   label: 'Vendas',   icon: <ShoppingCart className="h-3.5 w-3.5" /> },
-]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   toast: (type: ToastType, message: string) => void
   resetKey?: number
-}
-
-// ─── Botão de sub-tab ─────────────────────────────────────────────────────────
-
-function TabBtn({
-  id, label, icon, active, badge, onClick,
-}: {
-  id: SubTab
-  label: string
-  icon: React.ReactNode
-  active: boolean
-  badge?: React.ReactNode
-  onClick: () => void
-}) {
-  return (
-    <button
-      key={id}
-      onClick={onClick}
-      className={cn(
-        'flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-150 whitespace-nowrap',
-        active
-          ? 'bg-card text-foreground shadow-sm'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-      )}
-    >
-      {icon}
-      {label}
-      {badge}
-    </button>
-  )
+  subTab: string
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function TabEstoque({ toast }: Props) {
-  const [subTab, setSubTab] = useState<SubTab>('visao-geral')
+export default function TabEstoque({ toast, subTab }: Props) {
+  const navigate = useNavigate()
+  function goTo(sub: string) { navigate(`/estoque/${sub}`) }
 
   // Modal states
   const [novoProdutoOpen, setNovoProdutoOpen] = useState(false)
@@ -137,124 +76,13 @@ export default function TabEstoque({ toast }: Props) {
     setMovOpen(true)
   }
 
-  const alertaBadge = alertas.length > 0 ? (
-    <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
-      {alertas.length > 9 ? '9+' : alertas.length}
-    </span>
-  ) : null
-
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center">
-        <div className="flex-1" />
-        <div className="text-center">
-          <h2 className="font-display text-base font-semibold">Estoque</h2>
-          <p className="text-xs text-muted-foreground">Gestão de materiais, entradas e vendas</p>
-        </div>
-        <div className="flex-1 flex justify-end">
-          <ChatTrigger />
-        </div>
-      </div>
-
-      {/* ── Navegação em grupos ── */}
-      <div className="flex flex-wrap items-end justify-center gap-2">
-        {/* Visão Geral — destaque no início */}
-        <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
-          <TabBtn
-            id="visao-geral"
-            label="Visão Geral"
-            icon={<LayoutDashboard className="h-3.5 w-3.5" />}
-            active={subTab === 'visao-geral'}
-            badge={alertaBadge}
-            onClick={() => setSubTab('visao-geral')}
-          />
-        </div>
-
-        {/* Separador */}
-        <div className="hidden sm:block w-px h-8 bg-border self-center" />
-
-        {/* Grupo Operação */}
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1 text-center">
-            Operação
-          </span>
-          <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
-            {GROUP_OPERACAO.map(({ id, label, icon }) => (
-              <TabBtn
-                key={id}
-                id={id}
-                label={label}
-                icon={icon}
-                active={subTab === id}
-                onClick={() => setSubTab(id)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Grupo Cadastros */}
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1 text-center">
-            Cadastros
-          </span>
-          <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
-            {GROUP_CADASTROS.map(({ id, label, icon }) => (
-              <TabBtn
-                key={id}
-                id={id}
-                label={label}
-                icon={icon}
-                active={subTab === id}
-                onClick={() => setSubTab(id)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Grupo Análises */}
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="hidden sm:block text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-1 text-center">
-            Análises
-          </span>
-          <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
-            <TabBtn
-              id="analises"
-              label="Análises"
-              icon={<BarChart2 className="h-3.5 w-3.5" />}
-              active={subTab === 'analises'}
-              onClick={() => setSubTab('analises')}
-            />
-            <TabBtn
-              id="acoes"
-              label="Ações"
-              icon={<Zap className="h-3.5 w-3.5" />}
-              active={subTab === 'acoes' || subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido'}
-              onClick={() => setSubTab('acoes')}
-            />
-          </div>
-        </div>
-
-        {/* Separador */}
-        <div className="hidden sm:block w-px h-8 bg-border self-center" />
-
-        {/* Configurações — isolado no final */}
-        <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
-          <TabBtn
-            id="configuracao"
-            label="Config."
-            icon={<Settings className="h-3.5 w-3.5" />}
-            active={subTab === 'configuracao'}
-            onClick={() => setSubTab('configuracao')}
-          />
-        </div>
-      </div>
-
       {/* ── Drill-down breadcrumb (para lead-time / mover / sugestao) ── */}
       {(subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido') && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <button
-            onClick={() => setSubTab('acoes')}
+            onClick={() => goTo('acoes')}
             className="hover:text-foreground hover:underline transition-colors"
           >
             Ações
@@ -277,16 +105,16 @@ export default function TabEstoque({ toast }: Props) {
           produtos={produtos}
           alertas={alertas}
           onMovimentar={handleMovimentar}
-          onNavigateToLeadTime={() => setSubTab('acoes')}
-          onNavigateToAnalises={() => setSubTab('analises')}
-          onNavigateToSugestao={() => setSubTab('acoes')}
-          onNavigateToLocalizacoes={() => setSubTab('localizacoes')}
+          onNavigateToLeadTime={() => goTo('acoes')}
+          onNavigateToAnalises={() => goTo('analises')}
+          onNavigateToSugestao={() => goTo('acoes')}
+          onNavigateToLocalizacoes={() => goTo('localizacoes')}
         />
       )}
 
       {subTab === 'analises' && <AnalisesView toast={toast} />}
 
-      {subTab === 'acoes' && <AcoesView onDrillDown={setSubTab} />}
+      {subTab === 'acoes' && <AcoesView onDrillDown={(st) => goTo(st)} />}
 
       {subTab === 'produtos' && (
         <div className="space-y-3">
@@ -397,6 +225,9 @@ export default function TabEstoque({ toast }: Props) {
 
       {isAIEstoqueEnabled() && (
         <>
+          <div className="flex justify-end">
+            <ChatTrigger />
+          </div>
           <ChatDrawer />
           <ConfirmacaoAcao />
         </>

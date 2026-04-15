@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -70,8 +70,11 @@ export default function Dashboard() {
   const uiSound = useUiSound()
 
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(() => {
-    const initial = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
-    return new Set([VALID_TABS.includes(initial) ? initial : DEFAULT_TAB])
+    const raw = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
+    const initial = (raw === 'estoque' || raw.startsWith('estoque/')) ? 'estoque'
+      : VALID_TABS.includes(raw) ? raw
+      : DEFAULT_TAB
+    return new Set([initial])
   })
 
   // — router —
@@ -101,7 +104,10 @@ export default function Dashboard() {
 
   const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
   const canEstoque = profile?.email === ESTOQUE_EMAIL || isAdmin
-  const tabFromUrl = location.pathname.replace(/^\//, '') || DEFAULT_TAB
+  const rawPath = location.pathname.replace(/^\//, '')
+  const isEstoquePath = rawPath === 'estoque' || rawPath.startsWith('estoque/')
+  const estoqueSub = isEstoquePath ? (rawPath.split('/')[1] || 'visao-geral') : 'visao-geral'
+  const tabFromUrl = isEstoquePath ? 'estoque' : (rawPath || DEFAULT_TAB)
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
@@ -344,7 +350,8 @@ export default function Dashboard() {
     const bar = tabBarRef.current
     if (!bar) return
     requestAnimationFrame(() => {
-      const activeBtn = bar.querySelector(`[data-tab="${activeTab}"]`) as HTMLButtonElement | null
+      const indicatorTab = isEstoquePath ? estoqueSub : activeTab
+      const activeBtn = bar.querySelector(`[data-tab="${indicatorTab}"]`) as HTMLButtonElement | null
       if (!activeBtn) return
       const barRect = bar.getBoundingClientRect()
       const btnRect = activeBtn.getBoundingClientRect()
@@ -353,7 +360,7 @@ export default function Dashboard() {
         width: btnRect.width,
       })
     })
-  }, [activeTab])
+  }, [activeTab, estoqueSub, isEstoquePath])
 
   const TABS = useMemo(() => [
     { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: Calculator, badge: 0 },
@@ -366,10 +373,20 @@ export default function Dashboard() {
     ...(isAdmin ? [{ id: 'admin', label: 'Usuários', icon: ShieldCheck, badge: pendingCount }] : []),
   ], [isAdmin, canEstoque, pendingCount, estoqueAlertas.length])
 
-  const isEstoqueArea = activeTab === 'estoque'
-  const visibleTabs = isEstoqueArea
-    ? TABS.filter(t => t.id === 'estoque')
-    : TABS.filter(t => t.id !== 'estoque')
+  const ESTOQUE_SUBTABS = useMemo(() => [
+    { id: 'visao-geral',  label: 'Visão Geral',  icon: LayoutDashboard, badge: estoqueAlertas.length },
+    { id: 'entradas',     label: 'Entradas',      icon: PackagePlus,     badge: 0 },
+    { id: 'vendas',       label: 'Vendas',        icon: ShoppingCart,    badge: 0 },
+    { id: 'produtos',     label: 'Produtos',      icon: Package,         badge: 0 },
+    { id: 'fornecedores', label: 'Fornecedores',  icon: Truck,           badge: 0 },
+    { id: 'localizacoes', label: 'Localizações',  icon: MapPin,          badge: 0 },
+    { id: 'analises',     label: 'Análises',      icon: BarChart2,       badge: 0 },
+    { id: 'acoes',        label: 'Ações',         icon: Zap,             badge: 0 },
+    { id: 'configuracao', label: 'Config.',        icon: Settings,        badge: 0 },
+  ], [estoqueAlertas.length])
+
+  const isEstoqueArea = isEstoquePath
+  const visibleTabs = TABS.filter(t => t.id !== 'estoque')
 
   function MagneticBtn({ children, style, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
     const [off, setOff] = useState({ x: 0, y: 0 })
@@ -657,40 +674,71 @@ export default function Dashboard() {
               style={{ left: tabIndicator.left + 6, width: tabIndicator.width - 12 }}
             />
           )}
-          {visibleTabs.map(({ id, label, icon: Icon, badge }) => (
-            <button
-              key={id}
-              data-tab={id}
-              onClick={() => handleTabChange(id)}
-              onMouseDown={handleTabRipple}
-              title={label}
-              className={cn(
-                'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95',
-                activeTab === id
-                  ? 'bg-card text-primary shadow-elevated'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">{label}</span>
-              {badge > 0 && (
-                <span className="flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
-                  {badge > 9 ? '9+' : badge}
-                </span>
-              )}
-              {/* Pulse ring quando novo orçamento chega */}
-              {id === 'orcamentos' && orcPulse && activeTab !== 'orcamentos' && (
-                <span className="badge-ping-once absolute inset-0 rounded-lg border-2 border-primary/60 pointer-events-none" />
-              )}
-              {/* Halo laranja quando UPDATE/DELETE realtime */}
-              {tabUpdatePulse.has(id) && (
-                <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
-              )}
-              {activeTab === id && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-primary sm:hidden" />
-              )}
-            </button>
-          ))}
+          {isEstoqueArea ? (
+            ESTOQUE_SUBTABS.map(({ id, label, icon: Icon, badge }) => (
+              <button
+                key={id}
+                data-tab={id}
+                onClick={() => {
+                  uiSound.play('tab')
+                  haptic('light')
+                  navigate(`/estoque/${id}`)
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+                onMouseDown={handleTabRipple}
+                title={label}
+                className={cn(
+                  'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95',
+                  estoqueSub === id
+                    ? 'bg-card text-primary shadow-elevated'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">{label}</span>
+                {badge > 0 && (
+                  <span className="flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
+              </button>
+            ))
+          ) : (
+            visibleTabs.map(({ id, label, icon: Icon, badge }) => (
+              <button
+                key={id}
+                data-tab={id}
+                onClick={() => handleTabChange(id)}
+                onMouseDown={handleTabRipple}
+                title={label}
+                className={cn(
+                  'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95',
+                  activeTab === id
+                    ? 'bg-card text-primary shadow-elevated'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">{label}</span>
+                {badge > 0 && (
+                  <span className="flex h-4 min-w-[1rem] px-1 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
+                {/* Pulse ring quando novo orçamento chega */}
+                {id === 'orcamentos' && orcPulse && activeTab !== 'orcamentos' && (
+                  <span className="badge-ping-once absolute inset-0 rounded-lg border-2 border-primary/60 pointer-events-none" />
+                )}
+                {/* Halo laranja quando UPDATE/DELETE realtime */}
+                {tabUpdatePulse.has(id) && (
+                  <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
+                )}
+                {activeTab === id && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-primary sm:hidden" />
+                )}
+              </button>
+            ))
+          )}
         </div>
 
         <div>
@@ -739,7 +787,7 @@ export default function Dashboard() {
           {mountedTabs.has('estoque') && canEstoque && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'estoque' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                <TabEstoque toast={toast} resetKey={tabVersions['estoque']} />
+                <TabEstoque toast={toast} resetKey={tabVersions['estoque']} subTab={estoqueSub} />
               </div>
             </Suspense>
           )}
