@@ -7,31 +7,29 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       {/* Logo + título */}
-      <div className="text-center mb-12">
-        <div className="inline-flex h-16 w-16 rounded-2xl bg-brand-gradient items-center justify-center mb-4 shadow-brand">
-          <span className="text-white text-2xl font-bold font-display">S</span>
+      <div className="text-center mb-16">
+        <div className="inline-flex h-24 w-24 rounded-3xl bg-brand-gradient items-center justify-center mb-6 shadow-brand">
+          <span className="text-white text-5xl font-bold font-display tracking-tight">S</span>
         </div>
-        <h1 className="font-display text-3xl font-bold text-foreground">Sombrear</h1>
-        <p className="text-base text-muted-foreground mt-2">Bem-vindo. O que vamos fazer hoje?</p>
+        <h1 className="font-display text-4xl font-bold text-foreground tracking-tight">Sombrear</h1>
+        <p className="text-base text-muted-foreground mt-3">Bem-vindo. O que vamos fazer hoje?</p>
       </div>
 
       {/* 2 cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl w-full">
         {/* Card Orçamento */}
         <button
           onClick={() => navigate('/calcular-orcamento')}
-          className="group bg-card border border-border rounded-2xl p-8 shadow-sm hover:shadow-xl hover:border-primary/40 transition-all text-left flex flex-col"
+          className="group bg-card border border-border rounded-3xl p-12 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center"
         >
-          <div className="flex-1">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary transition-colors">
-              <Calculator className="h-7 w-7 text-primary group-hover:text-white transition-colors" />
-            </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Orçamento</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Calcular preços, gerar propostas, gerenciar planilhas de orçamento e custos.
-            </p>
+          <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary group-hover:scale-105 transition-all">
+            <Calculator className="h-10 w-10 text-primary group-hover:text-white transition-colors" />
           </div>
-          <div className="mt-6 inline-flex items-center text-sm font-medium text-primary">
+          <h2 className="text-2xl font-bold text-foreground mb-3">Orçamento</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-xs mx-auto">
+            Calcular preços, gerar propostas, gerenciar planilhas de orçamento e custos.
+          </p>
+          <div className="mt-auto inline-flex items-center text-sm font-medium text-primary">
             Acessar
             <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
           </div>
@@ -40,18 +38,16 @@ export default function HomePage() {
         {/* Card Estoque */}
         <button
           onClick={() => navigate('/estoque')}
-          className="group bg-card border border-border rounded-2xl p-8 shadow-sm hover:shadow-xl hover:border-primary/40 transition-all text-left flex flex-col"
+          className="group bg-card border border-border rounded-3xl p-12 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center"
         >
-          <div className="flex-1">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary transition-colors">
-              <Package className="h-7 w-7 text-primary group-hover:text-white transition-colors" />
-            </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Estoque</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Gerenciar produtos, fornecedores, registrar entradas, vendas e analisar performance.
-            </p>
+          <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary group-hover:scale-105 transition-all">
+            <Package className="h-10 w-10 text-primary group-hover:text-white transition-colors" />
           </div>
-          <div className="mt-6 inline-flex items-center text-sm font-medium text-primary">
+          <h2 className="text-2xl font-bold text-foreground mb-3">Estoque</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-xs mx-auto">
+            Gerenciar produtos, fornecedores, registrar entradas, vendas e analisar performance.
+          </p>
+          <div className="mt-auto inline-flex items-center text-sm font-medium text-primary">
             Acessar
             <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
           </div>
