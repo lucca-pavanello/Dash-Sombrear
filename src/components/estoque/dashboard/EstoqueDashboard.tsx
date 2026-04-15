@@ -54,6 +54,7 @@ export default function EstoqueDashboard({
           value={fmtBRL(valorEmEstoque)}
           subtitle="custo médio × qtd"
           icon={DollarSign}
+          variant="primary"
           valueColor="primary"
         />
         <MetricCard
@@ -61,6 +62,7 @@ export default function EstoqueDashboard({
           value={totalAtivos}
           subtitle="em estoque"
           icon={Package}
+          variant="primary"
         />
         <CardGiro onClick={onNavigateToAnalises} />
         <CardSugestoesCompra onClick={onNavigateToSugestao} />
@@ -73,6 +75,7 @@ export default function EstoqueDashboard({
           value={classeACount}
           subtitle="top 80% do valor"
           icon={Star}
+          variant="secondary"
           onClick={onNavigateToAnalises}
         />
         <MetricCard
@@ -80,6 +83,7 @@ export default function EstoqueDashboard({
           value={semVenda90d}
           subtitle="sem classificação ABC"
           icon={Clock}
+          variant="secondary"
           valueColor={semVenda90d > 0 ? 'destructive' : undefined}
           onClick={onNavigateToAnalises}
         />
