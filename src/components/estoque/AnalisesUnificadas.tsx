@@ -105,7 +105,7 @@ function Section({
 
 interface Props {
   toast: (type: ToastType, message: string) => void
-  onDrillDown: (tab: 'lead-time' | 'mover' | 'sugestao') => void
+  onDrillDown: (tab: 'lead-time' | 'mover' | 'sugestao' | 'ponto-pedido') => void
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ export default function AnalisesUnificadas({ toast, onDrillDown }: Props) {
       <SecaoSugestaoCompra onVerTodos={() => onDrillDown('sugestao')} />
 
       {/* S2 — Quando comprar */}
-      <SecaoPontoPedido />
+      <SecaoPontoPedido onVerTodos={() => onDrillDown('ponto-pedido')} />
 
       {/* S3 — O que está parado */}
       <SecaoLeadTime onVerTodos={() => onDrillDown('lead-time')} />
@@ -239,7 +239,7 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
 
 // ─── S2: Ponto de Pedido ──────────────────────────────────────────────────────
 
-function SecaoPontoPedido() {
+function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
   const { data = [], isLoading } = useEstoquePontoPedido()
   const alertas = data.filter(r => r.nivel_alerta !== 'ok' && r.nivel_alerta !== 'sem_dados')
   const rupturas = alertas.filter(r => r.nivel_alerta === 'ruptura').length
@@ -307,12 +307,12 @@ function SecaoPontoPedido() {
               </tbody>
             </table>
           </div>
-          {data.length > 10 && (
-            <div className="flex items-center justify-between border-t px-4 py-2">
-              <span className="text-xs text-muted-foreground">{data.length} produtos analisados</span>
-              <span className="text-xs text-muted-foreground">Mostrando top 10</span>
-            </div>
-          )}
+          <div className="flex items-center justify-between border-t px-4 py-2">
+            <span className="text-xs text-muted-foreground">{data.length} produtos analisados</span>
+            <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
+              Ver todos →
+            </button>
+          </div>
         </>
       )}
     </Section>

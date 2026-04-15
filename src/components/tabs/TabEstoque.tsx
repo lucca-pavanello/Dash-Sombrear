@@ -19,6 +19,7 @@ import SugestaoCompraView from '@/components/estoque/sugestao/SugestaoCompraView
 import RegistroVendasView from '@/components/estoque/RegistroVendasView'
 import VendaDetalheView from '@/components/estoque/VendaDetalheView'
 import LeadTimeView from '@/components/estoque/LeadTimeView'
+import PontoPedidoView from '@/components/estoque/PontoPedidoView'
 import MoverItensView from '@/components/estoque/MoverItensView'
 import ConfiguracaoView from '@/components/estoque/ConfiguracaoView'
 import type { EstoqueProduto, EstoqueProdutoAlerta } from '@/lib/supabase'
@@ -39,6 +40,7 @@ type SubTab =
   | 'lead-time'
   | 'mover'
   | 'sugestao'
+  | 'ponto-pedido'
 
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
@@ -210,7 +212,7 @@ export default function TabEstoque({ toast }: Props) {
               id="analises"
               label="Análises"
               icon={<BarChart2 className="h-3.5 w-3.5" />}
-              active={subTab === 'analises' || subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao'}
+              active={subTab === 'analises' || subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido'}
               onClick={() => setSubTab('analises')}
             />
           </div>
@@ -232,7 +234,7 @@ export default function TabEstoque({ toast }: Props) {
       </div>
 
       {/* ── Drill-down breadcrumb (para lead-time / mover / sugestao) ── */}
-      {(subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao') && (
+      {(subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido') && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <button
             onClick={() => setSubTab('analises')}
@@ -242,7 +244,10 @@ export default function TabEstoque({ toast }: Props) {
           </button>
           <span>/</span>
           <span className="text-foreground font-medium">
-            {subTab === 'lead-time' ? 'O que está parado' : subTab === 'mover' ? 'Como reorganizar' : 'O que comprar agora'}
+            {subTab === 'lead-time' ? 'O que está parado' :
+             subTab === 'mover' ? 'Como reorganizar' :
+             subTab === 'ponto-pedido' ? 'Quando comprar' :
+             'O que comprar agora'}
           </span>
         </div>
       )}
@@ -337,9 +342,10 @@ export default function TabEstoque({ toast }: Props) {
       )}
 
       {/* Drill-downs de Análises */}
-      {subTab === 'lead-time' && <LeadTimeView toast={toast} />}
-      {subTab === 'mover'     && <MoverItensView toast={toast} />}
-      {subTab === 'sugestao'  && <SugestaoCompraView toast={toast} />}
+      {subTab === 'lead-time'    && <LeadTimeView toast={toast} />}
+      {subTab === 'mover'        && <MoverItensView toast={toast} />}
+      {subTab === 'sugestao'     && <SugestaoCompraView toast={toast} />}
+      {subTab === 'ponto-pedido' && <PontoPedidoView toast={toast} />}
 
       {subTab === 'configuracao' && (
         <div className="space-y-3">
