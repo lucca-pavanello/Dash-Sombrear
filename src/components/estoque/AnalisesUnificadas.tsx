@@ -12,10 +12,12 @@ import { useEstoquePontoPedido } from '@/hooks/useEstoquePontoPedido'
 import { useLeadTimeRows } from '@/hooks/useEstoqueLeadTime'
 import { useEstoqueSugestoesMover } from '@/hooks/useEstoqueSugestoesMover'
 import { useParetoData, useGiroAnual } from '@/hooks/useEstoqueAnalytics'
+import { NIVEIS_ACESSO } from '@/lib/constants'
 import ParetoChart from './dashboard/ParetoChart'
 import TopAClassTable from './dashboard/TopAClassTable'
 import RecalcularABCButton from './dashboard/RecalcularABCButton'
 import GiroMensalChart from './analises/GiroMensalChart'
+import EstoqueTable, { type EstoqueTableColumn } from './shared/EstoqueTable'
 import type { ToastType } from '@/hooks/useToast'
 import type { NivelAlerta } from './theme'
 
@@ -29,31 +31,41 @@ const fmtNum = (v: number) =>
 
 function AbcBadge({ cls }: { cls: string | null }) {
   const c = cls ?? 'sem_dados'
-  const style =
-    c === 'A' ? 'bg-primary/10 text-primary' :
-    c === 'B' ? 'bg-muted text-foreground' :
-    c === 'C' ? 'bg-muted/60 text-muted-foreground' :
-                'text-muted-foreground italic text-[10px]'
+  const colorMap: Record<string, string> = {
+    A:         'bg-orange-100 text-orange-800',
+    B:         'bg-gray-800 text-white',
+    C:         'bg-gray-200 text-gray-700',
+    sem_dados: 'bg-gray-50 text-gray-400 italic border border-gray-200',
+  }
+  const isSemDados = c === 'sem_dados'
   return (
-    <span className={cn('inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold', style)}>
-      {c === 'sem_dados' ? '—' : c}
+    <span className={cn(
+      'inline-flex items-center justify-center rounded-full text-[11px] font-bold',
+      isSemDados ? 'h-6 px-2' : 'h-6 w-6',
+      colorMap[c] ?? colorMap.sem_dados,
+    )}>
+      {isSemDados ? '—' : c}
     </span>
   )
 }
 
 function NivelBadge({ nivel }: { nivel: NivelAlerta }) {
-  const style =
-    nivel === 'ruptura' ? 'bg-destructive/10 text-destructive' :
-    nivel === 'critico' ? 'bg-destructive/10 text-destructive' :
-    nivel === 'atencao' ? 'bg-muted text-foreground' :
-    nivel === 'ok'      ? 'bg-muted text-muted-foreground' :
-                          'text-muted-foreground italic'
-  const labels: Record<NivelAlerta, string> = {
+  const colorMap: Record<string, string> = {
+    ruptura:   'bg-red-50 text-red-700 border border-red-200',
+    critico:   'bg-red-50 text-red-700 border border-red-200',
+    atencao:   'bg-amber-50 text-amber-700 border border-amber-200',
+    ok:        'bg-gray-50 text-gray-500 border border-gray-200',
+    sem_dados: 'bg-gray-50 text-gray-400 border border-gray-200',
+  }
+  const labels: Record<string, string> = {
     ruptura: 'Ruptura', critico: 'Crítico', atencao: 'Atenção', ok: 'OK', sem_dados: '—',
   }
   return (
-    <span className={cn('inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold', style)}>
-      {labels[nivel]}
+    <span className={cn(
+      'inline-flex h-6 px-2 items-center rounded-full text-xs font-medium',
+      colorMap[nivel] ?? colorMap.sem_dados,
+    )}>
+      {labels[nivel] ?? nivel}
     </span>
   )
 }
@@ -144,6 +156,16 @@ export default function AnalisesUnificadas({ toast, onDrillDown }: Props) {
 
 // ─── S1: Sugestão de Compra ───────────────────────────────────────────────────
 
+const urgencyColor: Record<string, string> = {
+  critico:       'bg-red-50 text-red-700 border border-red-200',
+  abaixo_minimo: 'bg-orange-50 text-orange-700 border border-orange-200',
+  atencao:       'bg-amber-50 text-amber-700 border border-amber-200',
+  ok:            'bg-gray-50 text-gray-500 border border-gray-200',
+}
+const urgencyLabel: Record<string, string> = {
+  critico: 'Crítico', abaixo_minimo: 'Ab. mínimo', atencao: 'Atenção', ok: 'OK',
+}
+
 function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
   const { data = [], isLoading } = useSugestaoCompra()
   const naoOk = data.filter(r => r.urgencia !== 'ok')
@@ -160,6 +182,51 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
     </span>
   )
 
+  type Row = typeof top10[number]
+  const columns: EstoqueTableColumn<Row>[] = [
+    {
+      key: 'urgencia',
+      header: 'Urgência',
+      cell: (r) => (
+        <span className={cn(
+          'inline-flex h-6 px-2 items-center rounded-full text-xs font-medium',
+          urgencyColor[r.urgencia] ?? urgencyColor.ok,
+        )}>
+          {urgencyLabel[r.urgencia] ?? r.urgencia}
+        </span>
+      ),
+    },
+    {
+      key: 'sku',
+      header: 'SKU',
+      cell: (r) => <span className="font-mono text-gray-500">{r.codigo ?? '—'}</span>,
+    },
+    {
+      key: 'nome',
+      header: 'Nome',
+      className: 'max-w-[140px]',
+      cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
+    },
+    {
+      key: 'estoque',
+      header: 'Estoque',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{fmtNum(r.quantidade_atual)}</span>,
+    },
+    {
+      key: 'lec',
+      header: <InfoTooltip label="LEC" tip="Lote Econômico de Compra. Quantidade ideal a comprar de cada vez pra gastar menos com pedidos e armazenagem. Calculado pelo sistema com base nas vendas dos últimos 12 meses." />,
+      align: 'right',
+      cell: (r) => <span className="tabular-nums font-medium text-primary">{fmtNum(r.lec_sugerido)}</span>,
+    },
+    {
+      key: 'fornecedor',
+      header: 'Fornecedor',
+      className: 'max-w-[120px]',
+      cell: (r) => <span className="block truncate text-gray-500">{r.fornecedor_nome ?? '—'}</span>,
+    },
+  ]
+
   return (
     <Section
       icon={<ShoppingBag className="h-4 w-4" />}
@@ -168,71 +235,24 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
       badge={badge}
       defaultOpen
     >
-      {isLoading ? (
-        <div className="p-4 space-y-2">
-          {[1,2,3].map(i => <div key={i} className="h-8 rounded-lg skeleton-shimmer" />)}
-        </div>
-      ) : top10.length === 0 ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-          <CircleCheck className="h-4 w-4" />
-          Nenhum produto abaixo do ideal.
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Urgência</th>
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">SKU</th>
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Nome</th>
-                  <th className="px-3 py-2 text-right font-semibold text-muted-foreground">Estoque</th>
-                  <th className="px-3 py-2 text-right font-semibold text-muted-foreground">
-                    <InfoTooltip label="LEC" tip="Lote Econômico de Compra. Quantidade ideal a comprar de cada vez pra gastar menos com pedidos e armazenagem. Calculado pelo sistema com base nas vendas dos últimos 12 meses." />
-                  </th>
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Fornecedor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {top10.map(r => {
-                  const ub: Record<string, string> = {
-                    critico:       'bg-destructive/10 text-destructive',
-                    abaixo_minimo: 'bg-muted text-foreground',
-                    atencao:       'bg-muted text-muted-foreground',
-                    ok:            'bg-muted text-muted-foreground',
-                  }
-                  const ul: Record<string, string> = {
-                    critico: 'Crítico', abaixo_minimo: 'Ab. mínimo', atencao: 'Atenção', ok: 'OK',
-                  }
-                  return (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-3 py-2">
-                        <span className={cn('inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-semibold', ub[r.urgencia] ?? '')}>
-                          {ul[r.urgencia] ?? r.urgencia}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-muted-foreground">{r.codigo ?? '—'}</td>
-                      <td className="px-3 py-2 font-medium max-w-[140px] truncate">{r.nome}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtNum(r.quantidade_atual)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums font-medium text-primary">{fmtNum(r.lec_sugerido)}</td>
-                      <td className="px-3 py-2 text-muted-foreground max-w-[120px] truncate">{r.fornecedor_nome ?? '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between border-t px-4 py-2">
-            <span className="text-xs text-muted-foreground">{data.length} produtos classe A analisados</span>
-            <button
-              onClick={onVerTodos}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Ver todos →
-            </button>
-          </div>
-        </>
-      )}
+      <EstoqueTable
+        columns={columns}
+        data={top10}
+        keyExtractor={(r) => r.id}
+        isLoading={isLoading}
+        emptyMessage={
+          <span className="flex items-center justify-center gap-2">
+            <CircleCheck className="h-4 w-4" />
+            Nenhum produto abaixo do ideal.
+          </span>
+        }
+        footerLeft={`${data.length} produtos classe A analisados`}
+        footerRight={
+          <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
+            Ver todos →
+          </button>
+        }
+      />
     </Section>
   )
 }
@@ -254,6 +274,53 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
     </span>
   )
 
+  type Row = typeof top10[number]
+  const columns: EstoqueTableColumn<Row>[] = [
+    {
+      key: 'alerta',
+      header: 'Alerta',
+      cell: (r) => <NivelBadge nivel={r.nivel_alerta} />,
+    },
+    {
+      key: 'sku',
+      header: 'SKU',
+      cell: (r) => <span className="font-mono text-gray-500">{r.sku ?? '—'}</span>,
+    },
+    {
+      key: 'nome',
+      header: 'Nome',
+      className: 'max-w-[140px]',
+      cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
+    },
+    {
+      key: 'classe',
+      header: 'Classe',
+      align: 'center',
+      cell: (r) => <AbcBadge cls={r.classe_abc} />,
+    },
+    {
+      key: 'estoque',
+      header: 'Estoque',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{fmtNum(r.estoque_atual)}</span>,
+    },
+    {
+      key: 'ponto_pedido',
+      header: <InfoTooltip label="Ponto de Pedido" tip="O nível de estoque em que o sistema avisa: 'compra agora!'. Se esperar mais, o produto vai faltar antes do pedido chegar." />,
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{fmtNum(r.ponto_pedido)}</span>,
+    },
+    {
+      key: 'cobertura',
+      header: 'Cobertura',
+      align: 'right',
+      cell: (r) =>
+        r.cobertura_dias > 0
+          ? <span className="tabular-nums text-gray-500">{r.cobertura_dias}d</span>
+          : <span className="text-red-700 font-semibold">Ruptura</span>,
+    },
+  ]
+
   return (
     <Section
       icon={<AlertTriangle className="h-4 w-4" />}
@@ -262,59 +329,24 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
       badge={badge}
       defaultOpen
     >
-      {isLoading ? (
-        <div className="p-4 space-y-2">
-          {[1,2,3].map(i => <div key={i} className="h-8 rounded-lg skeleton-shimmer" />)}
-        </div>
-      ) : top10.length === 0 ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-          <CircleCheck className="h-4 w-4" />
-          Todos os produtos estão acima do ponto de pedido.
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Alerta</th>
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">SKU</th>
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Nome</th>
-                  <th className="px-3 py-2 text-center font-semibold text-muted-foreground">Classe</th>
-                  <th className="px-3 py-2 text-right font-semibold text-muted-foreground">Estoque</th>
-                  <th className="px-3 py-2 text-right font-semibold text-muted-foreground">
-                    <InfoTooltip label="Ponto de Pedido" tip="O nível de estoque em que o sistema avisa: 'compra agora!'. Se esperar mais, o produto vai faltar antes do pedido chegar." />
-                  </th>
-                  <th className="px-3 py-2 text-right font-semibold text-muted-foreground">Cobertura</th>
-                </tr>
-              </thead>
-              <tbody>
-                {top10.map(r => (
-                  <tr key={r.produto_id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="px-3 py-2">
-                      <NivelBadge nivel={r.nivel_alerta} />
-                    </td>
-                    <td className="px-3 py-2 font-mono text-muted-foreground">{r.sku ?? '—'}</td>
-                    <td className="px-3 py-2 font-medium max-w-[140px] truncate">{r.nome}</td>
-                    <td className="px-3 py-2 text-center"><AbcBadge cls={r.classe_abc} /></td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtNum(r.estoque_atual)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtNum(r.ponto_pedido)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                      {r.cobertura_dias > 0 ? `${r.cobertura_dias}d` : <span className="text-destructive font-semibold">Ruptura</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between border-t px-4 py-2">
-            <span className="text-xs text-muted-foreground">{data.length} produtos analisados</span>
-            <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
-              Ver todos →
-            </button>
-          </div>
-        </>
-      )}
+      <EstoqueTable
+        columns={columns}
+        data={top10}
+        keyExtractor={(r) => r.produto_id}
+        isLoading={isLoading}
+        emptyMessage={
+          <span className="flex items-center justify-center gap-2">
+            <CircleCheck className="h-4 w-4" />
+            Todos os produtos estão acima do ponto de pedido.
+          </span>
+        }
+        footerLeft={`${data.length} produtos analisados`}
+        footerRight={
+          <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
+            Ver todos →
+          </button>
+        }
+      />
     </Section>
   )
 }
@@ -333,6 +365,49 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
     </span>
   )
 
+  type Row = typeof top10[number]
+  const columns: EstoqueTableColumn<Row>[] = [
+    {
+      key: 'nome',
+      header: 'Nome',
+      className: 'max-w-[180px]',
+      cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
+    },
+    {
+      key: 'classe',
+      header: 'Classe',
+      align: 'center',
+      cell: (r) => <AbcBadge cls={r.classificacao_abc} />,
+    },
+    {
+      key: 'dias',
+      header: 'Dias parado',
+      align: 'right',
+      cell: (r) => {
+        const dias = r.dias_em_estoque ?? 0
+        const cls = dias > 180
+          ? 'text-red-700 font-semibold'
+          : dias > 90
+            ? 'text-gray-900 font-semibold'
+            : 'text-gray-500'
+        return (
+          <span className={cn('tabular-nums', cls)}>
+            {r.dias_em_estoque !== null ? `${r.dias_em_estoque}d` : '—'}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'valor',
+      header: 'Valor parado',
+      align: 'right',
+      cell: (r) =>
+        r.valor_parado_reais !== null
+          ? <span className="tabular-nums">{formatCurrency(Number(r.valor_parado_reais))}</span>
+          : <span className="text-gray-400">—</span>,
+    },
+  ]
+
   return (
     <Section
       icon={<Clock className="h-4 w-4" />}
@@ -340,54 +415,19 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
       subtitle="Produtos sentados há mais tempo no estoque. Cada dia parado é dinheiro empatado."
       badge={badge}
     >
-      {isLoading ? (
-        <div className="p-4 space-y-2">
-          {[1,2,3].map(i => <div key={i} className="h-8 rounded-lg skeleton-shimmer" />)}
-        </div>
-      ) : top10.length === 0 ? (
-        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-          Nenhum produto com estoque ativo.
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Nome</th>
-                  <th className="px-3 py-2 text-center font-semibold text-muted-foreground">Classe</th>
-                  <th className="px-3 py-2 text-right font-semibold text-muted-foreground">Dias parado</th>
-                  <th className="px-3 py-2 text-right font-semibold text-muted-foreground">Valor parado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {top10.map(r => {
-                  const dias = r.dias_em_estoque ?? 0
-                  const diasCls = dias > 180 ? 'text-destructive font-semibold' : dias > 90 ? 'text-foreground font-semibold' : 'text-muted-foreground'
-                  return (
-                    <tr key={r.produto_id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-3 py-2 font-medium max-w-[180px] truncate">{r.nome}</td>
-                      <td className="px-3 py-2 text-center"><AbcBadge cls={r.classificacao_abc} /></td>
-                      <td className={cn('px-3 py-2 text-right tabular-nums', diasCls)}>
-                        {r.dias_em_estoque !== null ? `${r.dias_em_estoque}d` : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {r.valor_parado_reais !== null ? formatCurrency(Number(r.valor_parado_reais)) : '—'}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between border-t px-4 py-2">
-            <span className="text-xs text-muted-foreground">{comEstoque.length} produtos com estoque</span>
-            <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
-              Ver todos →
-            </button>
-          </div>
-        </>
-      )}
+      <EstoqueTable
+        columns={columns}
+        data={top10}
+        keyExtractor={(r) => r.produto_id}
+        isLoading={isLoading}
+        emptyMessage="Nenhum produto com estoque ativo."
+        footerLeft={`${comEstoque.length} produtos com estoque`}
+        footerRight={
+          <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
+            Ver todos →
+          </button>
+        }
+      />
     </Section>
   )
 }
@@ -439,6 +479,42 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
     </span>
   )
 
+  type Row = typeof top10[number]
+  const columns: EstoqueTableColumn<Row>[] = [
+    {
+      key: 'nome',
+      header: 'Nome',
+      className: 'max-w-[140px]',
+      cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
+    },
+    {
+      key: 'classe',
+      header: 'Classe',
+      align: 'center',
+      cell: (r) => <AbcBadge cls={r.classe_abc} />,
+    },
+    {
+      key: 'local_atual',
+      header: 'Local atual',
+      cell: (r) => (
+        <span className="text-gray-700">
+          {NIVEIS_ACESSO[r.nivel_atual] ?? r.nivel_atual}
+        </span>
+      ),
+    },
+    {
+      key: 'sugestao',
+      header: 'Sugestão',
+      cell: (r) => {
+        const translated = r.nivel_sugerido
+          .split(' ou ')
+          .map((part: string) => NIVEIS_ACESSO[part.trim()] ?? part.trim())
+          .join(' ou ')
+        return <span className="font-medium text-gray-900">{translated}</span>
+      },
+    },
+  ]
+
   return (
     <Section
       icon={<ArrowLeftRight className="h-4 w-4" />}
@@ -446,47 +522,24 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
       subtitle="Sugestões pra deixar os produtos mais vendidos perto do balcão."
       badge={badge}
     >
-      {isLoading ? (
-        <div className="p-4 space-y-2">
-          {[1,2,3].map(i => <div key={i} className="h-8 rounded-lg skeleton-shimmer" />)}
-        </div>
-      ) : top10.length === 0 ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-          <CircleCheck className="h-4 w-4" />
-          Todos os produtos estão bem alocados.
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Nome</th>
-                  <th className="px-3 py-2 text-center font-semibold text-muted-foreground">Classe</th>
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Local atual</th>
-                  <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Sugestão</th>
-                </tr>
-              </thead>
-              <tbody>
-                {top10.map(s => (
-                  <tr key={s.produto_id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="px-3 py-2 font-medium max-w-[140px] truncate">{s.nome}</td>
-                    <td className="px-3 py-2 text-center"><AbcBadge cls={s.classe_abc} /></td>
-                    <td className="px-3 py-2 font-mono text-muted-foreground">{s.localizacao_codigo}</td>
-                    <td className="px-3 py-2 text-foreground font-medium">{s.nivel_sugerido}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex items-center justify-between border-t px-4 py-2">
-            <span className="text-xs text-muted-foreground">{sugestoes.length} sugestão{sugestoes.length !== 1 ? 'ões' : ''}</span>
-            <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
-              Ver todos →
-            </button>
-          </div>
-        </>
-      )}
+      <EstoqueTable
+        columns={columns}
+        data={top10}
+        keyExtractor={(r) => r.produto_id}
+        isLoading={isLoading}
+        emptyMessage={
+          <span className="flex items-center justify-center gap-2">
+            <CircleCheck className="h-4 w-4" />
+            Todos os produtos estão bem alocados.
+          </span>
+        }
+        footerLeft={`${sugestoes.length} sugestão${sugestoes.length !== 1 ? 'ões' : ''}`}
+        footerRight={
+          <button onClick={onVerTodos} className="text-xs font-semibold text-primary hover:underline">
+            Ver todos →
+          </button>
+        }
+      />
     </Section>
   )
 }
