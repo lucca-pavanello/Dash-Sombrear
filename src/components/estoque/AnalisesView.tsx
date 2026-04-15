@@ -1,10 +1,25 @@
-import { BarChart2, Activity } from 'lucide-react'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from 'recharts'
+import {
+  BarChart2, Activity, Truck, Layers, MapPin, Calendar,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { useParetoData, useGiroAnual } from '@/hooks/useEstoqueAnalytics'
+import {
+  useEstoquePerformanceFornecedor,
+  useEstoquePerformanceCategoria,
+  useEstoquePerformanceLocalizacao,
+  useEstoqueSazonalidade,
+} from '@/hooks/useEstoqueAnalyticsDescritivo'
+import { NIVEIS_ACESSO } from '@/lib/constants'
 import ParetoChart from './dashboard/ParetoChart'
 import TopAClassTable from './dashboard/TopAClassTable'
 import RecalcularABCButton from './dashboard/RecalcularABCButton'
 import GiroMensalChart from './analises/GiroMensalChart'
 import SectionCard from './shared/SectionCard'
+import EstoqueTable, { type EstoqueTableColumn } from './shared/EstoqueTable'
 import type { ToastType } from '@/hooks/useToast'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -12,8 +27,11 @@ import type { ToastType } from '@/hooks/useToast'
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 
-const fmtGiro = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
+const fmtNum = (v: number, decimals = 2) =>
+  new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(v)
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -26,24 +44,17 @@ interface Props {
 export default function AnalisesView({ toast }: Props) {
   return (
     <div className="space-y-6">
-      {/* Header da página */}
-      <div>
-        <h3 className="font-display text-base font-semibold">Análises de Estoque</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Entenda como seu estoque está performando. Vendas, giros e tendências dos últimos meses.
-        </p>
-      </div>
-
-      {/* S4 — O que mais vende */}
       <SecaoCurvaAbc toast={toast} />
-
-      {/* S6 — Evolução do giro */}
       <SecaoGiroMensal />
+      <SecaoPerformanceFornecedor />
+      <SecaoPerformanceCategoria />
+      <SecaoPerformanceLocalizacao />
+      <SecaoSazonalidade />
     </div>
   )
 }
 
-// ─── S4: Curva ABC / Pareto ───────────────────────────────────────────────────
+// ─── S1: Curva ABC / O que mais vende ────────────────────────────────────────
 
 function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) => void }) {
   const { data: paretoData, isLoading } = useParetoData()
@@ -75,7 +86,7 @@ function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) =>
   )
 }
 
-// ─── S6: Giro Mensal ─────────────────────────────────────────────────────────
+// ─── S2: Evolução do giro ─────────────────────────────────────────────────────
 
 function SecaoGiroMensal() {
   const { data: giro } = useGiroAnual()
@@ -92,7 +103,7 @@ function SecaoGiroMensal() {
             <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-xl p-4">
               <p className="text-xs uppercase tracking-wide text-orange-600 dark:text-orange-400 font-medium">GIRO ANUAL</p>
               <p className="text-3xl font-bold text-orange-900 dark:text-orange-200">
-                {fmtGiro(giro.giro_reais)}
+                {fmtNum(giro.giro_reais)}
                 <span className="text-base font-normal text-orange-700 dark:text-orange-400"> × ao ano</span>
               </p>
               <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mt-1">
@@ -109,6 +120,450 @@ function SecaoGiroMensal() {
           </div>
         )}
         <GiroMensalChart />
+      </div>
+    </SectionCard>
+  )
+}
+
+// ─── S3: Performance por Fornecedor ──────────────────────────────────────────
+
+function SecaoPerformanceFornecedor() {
+  const { data = [], isLoading } = useEstoquePerformanceFornecedor()
+
+  type Row = typeof data[number]
+  const columns: EstoqueTableColumn<Row>[] = [
+    {
+      key: 'nome',
+      header: 'Fornecedor',
+      cell: (r) => <span className="text-sm font-medium">{r.nome}</span>,
+    },
+    {
+      key: 'lead_time',
+      header: 'Lead time',
+      align: 'right',
+      cell: (r) => (
+        <span className="tabular-nums text-gray-600 dark:text-muted-foreground">
+          {r.lead_time_medio_dias !== null ? r.lead_time_medio_dias + 'd' : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'entradas',
+      header: 'Entradas 90d',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{r.total_entradas}</span>,
+    },
+    {
+      key: 'valor_comprado',
+      header: 'Valor comprado 90d',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{fmtBRL(r.valor_total_comprado)}</span>,
+    },
+    {
+      key: 'custo_medio',
+      header: 'Custo unit. médio',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{fmtBRL(r.custo_unitario_medio)}</span>,
+    },
+    {
+      key: 'produtos',
+      header: 'Produtos',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{r.produtos_fornecidos}</span>,
+    },
+  ]
+
+  return (
+    <SectionCard
+      icon={Truck}
+      title="Performance por fornecedor"
+      subtitle="Quem te entrega mais, mais rápido e por que preço. Use pra negociar e priorizar."
+      badge={isLoading ? undefined : { label: data.length + (data.length !== 1 ? ' fornecedores' : ' fornecedor'), variant: 'neutral' }}
+      defaultOpen={false}
+    >
+      <EstoqueTable
+        columns={columns}
+        data={data}
+        keyExtractor={(r) => r.id}
+        isLoading={isLoading}
+        emptyMessage="Nenhum fornecedor ativo encontrado."
+      />
+    </SectionCard>
+  )
+}
+
+// ─── S4: Performance por Categoria ───────────────────────────────────────────
+
+const PIE_COLORS = ['#F97316', '#FB923C', '#FDBA74', '#FED7AA', '#FFF7ED']
+
+function SecaoPerformanceCategoria() {
+  const { data = [], isLoading } = useEstoquePerformanceCategoria()
+
+  const totalVendido = data.reduce((s, r) => s + r.valor_vendido_90d, 0)
+  const maxVendido = data.length > 0 ? Math.max(...data.map(r => r.valor_vendido_90d)) : 0
+
+  const pieData = data.map((r) => ({
+    name: r.categoria ?? 'Sem tipo',
+    value: r.valor_vendido_90d,
+  }))
+
+  return (
+    <SectionCard
+      icon={Layers}
+      title="Performance por categoria"
+      subtitle="Quanto cada tipo de produto contribui pro faturamento. Tecidos vs ferragens vs acessórios."
+      defaultOpen={false}
+    >
+      {isLoading ? (
+        <div className="p-4 space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-8 rounded bg-gray-100 dark:bg-muted/30 animate-pulse" />
+          ))}
+        </div>
+      ) : data.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted-foreground">
+          Nenhum dado disponível.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={90}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {pieData.map((_, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => [fmtBRL(value), 'Vendido 90d']}
+                  contentStyle={{
+                    backgroundColor: 'var(--background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-muted-foreground border-b border-gray-200 dark:border-border">
+                  <th className="text-left py-2 pr-3 font-medium">Categoria</th>
+                  <th className="text-right py-2 px-2 font-medium">Produtos</th>
+                  <th className="text-right py-2 px-2 font-medium">Em estoque</th>
+                  <th className="text-right py-2 px-2 font-medium">Vendido 90d</th>
+                  <th className="text-right py-2 pl-2 font-medium">% total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((r, i) => {
+                  const pct = totalVendido > 0
+                    ? Math.round((r.valor_vendido_90d / totalVendido) * 100)
+                    : 0
+                  const isMax = r.valor_vendido_90d === maxVendido && maxVendido > 0
+                  return (
+                    <tr
+                      key={r.categoria ?? i}
+                      className="border-b border-gray-100 dark:border-border/50 last:border-0"
+                    >
+                      <td className="py-2 pr-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                          />
+                          <span className="font-medium capitalize">{r.categoria ?? 'Sem tipo'}</span>
+                        </div>
+                      </td>
+                      <td className="text-right py-2 px-2 tabular-nums text-gray-600 dark:text-muted-foreground">
+                        {r.total_produtos}
+                      </td>
+                      <td className="text-right py-2 px-2 tabular-nums text-gray-600 dark:text-muted-foreground">
+                        {r.valor_em_estoque !== null ? fmtBRL(r.valor_em_estoque) : '—'}
+                      </td>
+                      <td className="text-right py-2 px-2 tabular-nums">
+                        {fmtBRL(r.valor_vendido_90d)}
+                      </td>
+                      <td className={cn(
+                        'text-right py-2 pl-2 tabular-nums font-semibold',
+                        isMax ? 'text-orange-700 dark:text-orange-400' : 'text-gray-500 dark:text-muted-foreground',
+                      )}>
+                        {pct}%
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
+// ─── S5: Performance por Localização ─────────────────────────────────────────
+
+function SecaoPerformanceLocalizacao() {
+  const { data = [], isLoading } = useEstoquePerformanceLocalizacao()
+
+  const avgVendido = data.length > 0
+    ? data.reduce((s, r) => s + r.valor_vendido_90d, 0) / data.length
+    : 0
+
+  const isOportunidade = (r: { nivel_acesso: string | null; valor_vendido_90d: number }) =>
+    (r.nivel_acesso === 'balcao' || r.nivel_acesso === 'acessivel') &&
+    r.valor_vendido_90d < avgVendido &&
+    avgVendido > 0
+
+  type Row = typeof data[number]
+  const columns: EstoqueTableColumn<Row>[] = [
+    {
+      key: 'codigo',
+      header: 'Local',
+      cell: (r) => <span className="font-mono font-medium">{r.codigo}</span>,
+    },
+    {
+      key: 'setor',
+      header: 'Setor',
+      cell: (r) => (
+        <span className="text-gray-600 dark:text-muted-foreground capitalize">
+          {r.setor ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'nivel',
+      header: 'Nível',
+      cell: (r) => (
+        <span className="inline-flex h-6 px-2 items-center rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200 dark:bg-muted/20 dark:text-muted-foreground dark:border-border">
+          {NIVEIS_ACESSO[r.nivel_acesso ?? ''] ?? r.nivel_acesso ?? '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'produtos',
+      header: 'Produtos',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{r.total_produtos}</span>,
+    },
+    {
+      key: 'estoque',
+      header: 'Estoque',
+      align: 'right',
+      cell: (r) => (
+        <span className="tabular-nums text-gray-600 dark:text-muted-foreground">
+          {r.valor_em_estoque !== null ? fmtBRL(r.valor_em_estoque) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'vendido',
+      header: 'Vendido 90d',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{fmtBRL(r.valor_vendido_90d)}</span>,
+    },
+  ]
+
+  const temOportunidade = data.some(isOportunidade)
+
+  return (
+    <SectionCard
+      icon={MapPin}
+      title="Performance por localização"
+      subtitle="Quais lugares da loja geram mais vendas. Útil pra decidir reorganizações ou aproveitar pontos quentes."
+      defaultOpen={false}
+    >
+      <EstoqueTable
+        columns={columns}
+        data={data}
+        keyExtractor={(r) => r.id}
+        isLoading={isLoading}
+        emptyMessage="Nenhuma localização ativa encontrada."
+        rowClassName={(r) => isOportunidade(r) ? 'bg-amber-50/30 dark:bg-amber-950/10' : undefined}
+        footerLeft={
+          temOportunidade ? (
+            <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+              <span className="h-2.5 w-2.5 rounded-sm bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700" />
+              Locais visíveis com vendas abaixo da média — considere reorganizar
+            </span>
+          ) : undefined
+        }
+      />
+    </SectionCard>
+  )
+}
+
+// ─── S6: Sazonalidade ─────────────────────────────────────────────────────────
+
+const MES_ABREV: Record<number, string> = {
+  1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
+  7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez',
+}
+
+function SecaoSazonalidade() {
+  const { data = [], isLoading } = useEstoqueSazonalidade()
+
+  const maxFaturamento = data.length > 0 ? Math.max(...data.map(r => r.faturamento)) : 0
+  const minFaturamento = data.length > 0 ? Math.min(...data.map(r => r.faturamento)) : 0
+
+  const mesPico = data.find(r => r.faturamento === maxFaturamento && maxFaturamento > 0)
+  const mesFraco = data.length > 1 ? data.find(r => r.faturamento === minFaturamento) : undefined
+  const variacao = minFaturamento > 0 ? maxFaturamento / minFaturamento : null
+
+  const barColor = (fat: number) => {
+    if (fat === maxFaturamento && maxFaturamento > 0) return '#C2570F'
+    if (data.length > 1 && fat === minFaturamento) return '#FDBA74'
+    return '#F97316'
+  }
+
+  const chartData = data.map(r => ({
+    mes: MES_ABREV[r.mes_numero] ?? String(r.mes_numero),
+    faturamento: r.faturamento,
+    fill: barColor(r.faturamento),
+  }))
+
+  type Row = typeof data[number]
+  const columns: EstoqueTableColumn<Row>[] = [
+    {
+      key: 'mes',
+      header: 'Mês',
+      cell: (r) => (
+        <span className="font-medium">
+          {MES_ABREV[r.mes_numero] ?? String(r.mes_numero)}/{r.ano}
+        </span>
+      ),
+    },
+    {
+      key: 'vendas',
+      header: 'Vendas',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{r.total_vendas}</span>,
+    },
+    {
+      key: 'faturamento',
+      header: 'Faturamento',
+      align: 'right',
+      cell: (r) => <span className="tabular-nums">{fmtBRL(r.faturamento)}</span>,
+    },
+    {
+      key: 'ticket',
+      header: 'Ticket médio',
+      align: 'right',
+      cell: (r) => (
+        <span className="tabular-nums text-gray-600 dark:text-muted-foreground">
+          {r.ticket_medio > 0 ? fmtBRL(r.ticket_medio) : '—'}
+        </span>
+      ),
+    },
+  ]
+
+  return (
+    <SectionCard
+      icon={Calendar}
+      title="Sazonalidade"
+      subtitle="Como suas vendas variam mês a mês. Identifique meses fortes e fracos pra planejar compras e promoções."
+      defaultOpen={false}
+    >
+      <div className="p-4 space-y-4">
+        {isLoading ? (
+          <div className="h-64 rounded bg-gray-100 dark:bg-muted/30 animate-pulse" />
+        ) : data.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+            Nenhuma venda registrada nos últimos 12 meses.
+          </div>
+        ) : (
+          <>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis
+                    dataKey="mes"
+                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(v: number) =>
+                      new Intl.NumberFormat('pt-BR', {
+                        notation: 'compact',
+                        style: 'currency',
+                        currency: 'BRL',
+                        maximumFractionDigits: 0,
+                      }).format(v)
+                    }
+                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={64}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [fmtBRL(value), 'Faturamento']}
+                    contentStyle={{
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Bar dataKey="faturamento" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={index} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {(mesPico || mesFraco) && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {mesPico && (
+                  <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-xl p-3">
+                    <p className="text-xs uppercase tracking-wide text-orange-600 dark:text-orange-400 font-medium">MÊS DE PICO</p>
+                    <p className="text-base font-bold text-orange-900 dark:text-orange-200 mt-0.5">
+                      {mesPico.mes_nome} {mesPico.ano}
+                    </p>
+                    <p className="text-xs text-orange-700/80 dark:text-orange-400/80">{fmtBRL(mesPico.faturamento)}</p>
+                  </div>
+                )}
+                {mesFraco && mesFraco !== mesPico && (
+                  <div className="bg-gray-50 dark:bg-muted/20 border border-gray-200 dark:border-border rounded-xl p-3">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">MÊS MAIS FRACO</p>
+                    <p className="text-base font-semibold text-foreground mt-0.5">
+                      {mesFraco.mes_nome} {mesFraco.ano}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{fmtBRL(mesFraco.faturamento)}</p>
+                  </div>
+                )}
+                {variacao !== null && variacao > 1 && (
+                  <div className="bg-gray-50 dark:bg-muted/20 border border-gray-200 dark:border-border rounded-xl p-3">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground font-medium">VARIAÇÃO</p>
+                    <p className="text-base font-semibold text-foreground mt-0.5">{fmtNum(variacao, 1)}×</p>
+                    <p className="text-xs text-muted-foreground">entre pico e vale</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <EstoqueTable
+              columns={columns}
+              data={data}
+              keyExtractor={(r) => r.ano + '-' + r.mes_numero}
+              isLoading={false}
+            />
+          </>
+        )}
       </div>
     </SectionCard>
   )

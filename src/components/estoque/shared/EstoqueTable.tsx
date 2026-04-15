@@ -17,6 +17,7 @@ export interface EstoqueTableProps<T> {
   emptyMessage?: React.ReactNode
   footerLeft?: React.ReactNode
   footerRight?: React.ReactNode
+  rowClassName?: (row: T, index: number) => string | undefined
 }
 
 export default function EstoqueTable<T>({
@@ -27,6 +28,7 @@ export default function EstoqueTable<T>({
   emptyMessage,
   footerLeft,
   footerRight,
+  rowClassName,
 }: EstoqueTableProps<T>) {
   const colCount = columns.length
 
@@ -76,7 +78,7 @@ export default function EstoqueTable<T>({
               </tr>
             ) : (
               data.map((row, ri) => (
-                <tr key={keyExtractor(row, ri)} className={tbl.tbodyRow}>
+                <tr key={keyExtractor(row, ri)} className={cn(tbl.tbodyRow, rowClassName?.(row, ri))}>
                   {columns.map((col, ci) => (
                     <td
                       key={col.key}
