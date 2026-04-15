@@ -12,9 +12,9 @@ const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-wi
 type TipoMov = 'entrada' | 'saida' | 'ajuste' | 'perda'
 
 const TIPO_CONFIG: Record<TipoMov, { label: string; icon: React.ReactNode; cor: string; descricao: string }> = {
-  entrada:  { label: 'Entrada',  icon: <TrendingUp className="h-4 w-4" />,      cor: 'text-emerald-600', descricao: 'Recebimento ou compra de material' },
+  entrada:  { label: 'Entrada',  icon: <TrendingUp className="h-4 w-4" />,      cor: 'text-primary',     descricao: 'Recebimento ou compra de material' },
   saida:    { label: 'Saída',    icon: <TrendingDown className="h-4 w-4" />,     cor: 'text-destructive', descricao: 'Uso em produção ou instalação' },
-  ajuste:   { label: 'Ajuste',   icon: <RefreshCw className="h-4 w-4" />,        cor: 'text-blue-600',    descricao: 'Correção de inventário (define novo total)' },
+  ajuste:   { label: 'Ajuste',   icon: <RefreshCw className="h-4 w-4" />,        cor: 'text-muted-foreground', descricao: 'Correção de inventário (define novo total)' },
   perda:    { label: 'Perda',    icon: <AlertOctagon className="h-4 w-4" />,     cor: 'text-amber-600',   descricao: 'Material inutilizado ou extraviado' },
 }
 

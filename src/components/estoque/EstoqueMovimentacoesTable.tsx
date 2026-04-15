@@ -6,9 +6,9 @@ import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import type { MovimentacaoFilters } from '@/hooks/useEstoqueMovimentacoes'
 
 const TIPO_BADGE: Record<string, string> = {
-  entrada: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  entrada: 'bg-primary/10 text-primary',
   saida:   'bg-destructive/10 text-destructive',
-  ajuste:  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  ajuste:  'bg-muted text-muted-foreground',
   perda:   'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 }
 const TIPO_LABEL: Record<string, string> = {
@@ -129,7 +129,7 @@ export default function EstoqueMovimentacoesTable({ defaultTipo = '', headerActi
                         {TIPO_LABEL[m.tipo] ?? m.tipo}
                       </span>
                     </td>
-                    <td className={cn('px-4 py-3 text-right font-semibold whitespace-nowrap tabular-nums', isNeg ? 'text-destructive' : m.tipo === 'ajuste' ? 'text-blue-600' : 'text-emerald-600')}>
+                    <td className={cn('px-4 py-3 text-right font-semibold whitespace-nowrap tabular-nums', isNeg ? 'text-destructive' : m.tipo === 'ajuste' ? 'text-muted-foreground' : 'text-primary')}>
                       {sinal}{m.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">{unidade}</span>
                     </td>

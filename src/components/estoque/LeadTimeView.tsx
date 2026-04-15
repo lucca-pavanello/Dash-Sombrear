@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Package, DollarSign, AlertTriangle, AlertOctagon, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { formatCurrency, formatCompact } from '@/lib/utils'
 import KpiCard from '@/components/shared/KpiCard'
 import { useLeadTimeRows, useLeadTimeConfig } from '@/hooks/useEstoqueLeadTime'
@@ -10,30 +11,30 @@ import type { ToastType } from '@/hooks/useToast'
 // ─── Constantes visuais ───────────────────────────────────────────────────────
 
 const ABC_BADGE: Record<string, string> = {
-  A:         'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  B:         'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  C:         'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  sem_dados: 'bg-muted text-muted-foreground',
+  A:         'bg-primary/10 text-primary',
+  B:         'bg-muted text-foreground',
+  C:         'bg-muted/60 text-muted-foreground',
+  sem_dados: 'bg-muted text-muted-foreground italic',
 }
 
 type Nivel = 'verde' | 'amarelo' | 'vermelho' | 'neutro'
 
 const ROW_BG: Record<Nivel, string> = {
-  verde:    'bg-emerald-50/60 dark:bg-emerald-900/10',
-  amarelo:  'bg-amber-50/60 dark:bg-amber-900/10',
-  vermelho: 'bg-red-50/60 dark:bg-red-900/10',
+  verde:    '',
+  amarelo:  'border-l-4 border-amber-500 bg-amber-50/40 dark:bg-amber-950/20',
+  vermelho: 'border-l-4 border-red-600 bg-red-50/40 dark:bg-red-950/20',
   neutro:   '',
 }
 
 const NIVEL_TEXT: Record<Nivel, string> = {
-  verde:    'text-emerald-700 dark:text-emerald-400',
+  verde:    'text-muted-foreground',
   amarelo:  'text-amber-700 dark:text-amber-500',
   vermelho: 'text-red-700 dark:text-red-400',
   neutro:   'text-muted-foreground',
 }
 
 const NIVEL_BADGE: Record<Nivel, string> = {
-  verde:    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  verde:    'bg-muted text-muted-foreground',
   amarelo:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   vermelho: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   neutro:   'bg-muted text-muted-foreground',
@@ -117,9 +118,11 @@ export default function LeadTimeView(_: Props) {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h3 className="font-display text-base font-semibold">Lead Time do Estoque</h3>
+        <h3 className="font-display text-base font-semibold">
+          <InfoTooltip label="O que está parado — detalhe completo" tip="Tempo médio que o produto fica parado em estoque entre a compra e a venda. Quanto maior, mais dinheiro empatado." />
+        </h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Produtos ordenados pelo tempo parados. Verde é saudável, amarelo é alerta, vermelho é crítico.
+          Produtos sentados há muito tempo no estoque. Cada dia parado é dinheiro empatado.
         </p>
       </div>
 
@@ -129,7 +132,7 @@ export default function LeadTimeView(_: Props) {
           title="Produtos com estoque"
           value={comEstoque}
           icon={<Package className="h-4 w-4" />}
-          variant="blue"
+          variant="default"
           subtitle="itens ativos"
         />
         <KpiCard

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertOctagon, CheckCircle } from 'lucide-react'
+import { AlertOctagon, CheckCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useEstoqueConfig } from '@/hooks/useEstoqueConfig'
 import { formatCurrency } from '@/lib/utils'
@@ -63,7 +63,7 @@ export function CardTecidoParado({ onClick }: Props) {
         onClick ? 'cursor-pointer hover:shadow-md' : '',
         critico
           ? 'border-l-red-500 bg-red-50/40 dark:bg-red-900/10'
-          : 'border-l-emerald-500',
+          : 'border-l-border',
       ].join(' ')}
     >
       {/* Ícone */}
@@ -72,13 +72,13 @@ export function CardTecidoParado({ onClick }: Props) {
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
           critico
             ? 'bg-red-100 dark:bg-red-900/30'
-            : 'bg-emerald-100 dark:bg-emerald-900/30',
+            : 'bg-muted/60',
         ].join(' ')}
       >
         {critico ? (
           <AlertOctagon className="h-4 w-4 text-red-600 dark:text-red-400" />
         ) : (
-          <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          <CheckCheck className="h-4 w-4 text-muted-foreground" />
         )}
       </div>
 
@@ -92,7 +92,7 @@ export function CardTecidoParado({ onClick }: Props) {
             'text-xl font-bold leading-tight',
             critico
               ? 'text-red-600 dark:text-red-400'
-              : 'text-emerald-600 dark:text-emerald-400',
+              : 'text-foreground',
           ].join(' ')}
         >
           {critico ? count : 'Tudo ok'}

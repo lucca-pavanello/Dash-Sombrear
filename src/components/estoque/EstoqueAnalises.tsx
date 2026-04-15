@@ -189,8 +189,8 @@ export default function EstoqueAnalises({ resetKey }: { resetKey?: number } = {}
           <div className="space-y-3">
             {diasEstoque.slice(0, 15).map(({ nome, dias }) => {
               const pct = maxDias > 0 ? Math.min((dias / maxDias) * 100, 100) : 0
-              const cor = dias < 7 ? 'bg-destructive' : dias < 30 ? 'bg-amber-500' : 'bg-emerald-500'
-              const textCor = dias < 7 ? 'text-destructive' : dias < 30 ? 'text-amber-600' : 'text-emerald-600'
+              const cor = dias < 7 ? 'bg-destructive' : dias < 30 ? 'bg-amber-500' : 'bg-primary/60'
+              const textCor = dias < 7 ? 'text-destructive' : dias < 30 ? 'text-amber-600' : 'text-muted-foreground'
               return (
                 <div key={nome}>
                   <div className="flex items-center justify-between mb-1">

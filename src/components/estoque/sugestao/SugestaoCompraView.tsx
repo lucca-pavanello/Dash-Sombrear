@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Package, AlertTriangle, AlertCircle, DollarSign, Download } from 'lucide-react'
 import KpiCard from '@/components/shared/KpiCard'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { useSugestaoCompra } from '@/hooks/useEstoqueSugestao'
 import type { SugestaoCompra } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
@@ -17,8 +18,8 @@ const fmtNum = (v: number) =>
 
 const ROW_BG: Record<string, string> = {
   critico:       'bg-red-50 dark:bg-red-950/20',
-  abaixo_minimo: 'bg-orange-50 dark:bg-orange-950/20',
-  atencao:       'bg-yellow-50 dark:bg-yellow-950/20',
+  abaixo_minimo: 'bg-amber-50 dark:bg-amber-950/20',
+  atencao:       'bg-amber-50/50 dark:bg-amber-950/10',
   ok:            '',
 }
 
@@ -31,9 +32,9 @@ const URGENCIA_LABEL: Record<string, string> = {
 
 const URGENCIA_BADGE: Record<string, string> = {
   critico:       'bg-red-100 text-red-700',
-  abaixo_minimo: 'bg-orange-100 text-orange-700',
-  atencao:       'bg-yellow-100 text-yellow-700',
-  ok:            'bg-slate-100 text-slate-600',
+  abaixo_minimo: 'bg-amber-100 text-amber-700',
+  atencao:       'bg-amber-50 text-amber-600',
+  ok:            'bg-muted text-muted-foreground',
 }
 
 export default function SugestaoCompraView({ toast }: Props) {
@@ -121,9 +122,11 @@ export default function SugestaoCompraView({ toast }: Props) {
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="font-display text-base font-semibold">Sugestão de Compra</h3>
+        <h3 className="font-display text-base font-semibold">O que comprar agora — detalhe completo</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Produtos classe A ranqueados por urgência. LEC baseado em demanda dos últimos 12 meses.
+          Produtos classe A ranqueados por urgência.{' '}
+          <InfoTooltip label="LEC" tip="Lote Econômico de Compra. Quantidade ideal a comprar de cada vez pra gastar menos com pedidos e armazenagem. Calculado pelo sistema com base nas vendas dos últimos 12 meses." />{' '}
+          baseado em demanda dos últimos 12 meses.
         </p>
       </div>
 
@@ -140,7 +143,7 @@ export default function SugestaoCompraView({ toast }: Props) {
             value={String(totalClasseA)}
             subtitle="produtos ativos"
             icon={<Package className="h-4 w-4" />}
-            variant="blue"
+            variant="default"
           />
           <KpiCard
             title="Sugestões ativas"
@@ -161,7 +164,7 @@ export default function SugestaoCompraView({ toast }: Props) {
             value={fmtBRL(compraEstimada)}
             subtitle="custo sugestões ativas"
             icon={<DollarSign className="h-4 w-4" />}
-            variant="emerald"
+            variant="default"
           />
         </div>
       )}
@@ -237,7 +240,9 @@ export default function SugestaoCompraView({ toast }: Props) {
                   <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Estoque</th>
                   <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Mínimo</th>
                   <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Déficit</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">LEC sugerido</th>
+                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">
+                    <InfoTooltip label="LEC sugerido" tip="Lote Econômico de Compra. Quantidade ideal a comprar de cada vez pra gastar menos com pedidos e armazenagem." />
+                  </th>
                   <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">Fornecedor</th>
                   <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Lead time</th>
                   <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Custo estimado</th>

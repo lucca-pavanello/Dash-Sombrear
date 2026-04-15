@@ -98,7 +98,7 @@ export default function EntradasHistoricoTable() {
                     <td className="px-4 py-3 text-right whitespace-nowrap hidden md:table-cell text-muted-foreground">
                       {formatCurrency(item.custo_unitario)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold whitespace-nowrap text-emerald-600 dark:text-emerald-400">
+                    <td className="px-4 py-3 text-right font-semibold whitespace-nowrap text-primary">
                       {formatCurrency(custo_total)}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">

@@ -49,14 +49,14 @@ export function CardGiro({ onClick }: Props) {
     <div
       onClick={onClick}
       className={[
-        'rounded-xl border-2 border-l-4 border-l-blue-500 bg-card shadow-sm px-4 py-3 flex items-center gap-3',
+        'rounded-xl border-2 border-l-4 border-l-primary bg-card shadow-sm px-4 py-3 flex items-center gap-3',
         'transition-shadow',
         onClick ? 'cursor-pointer hover:shadow-md' : '',
       ].join(' ')}
     >
       {/* Ícone */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-        <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <RefreshCw className="h-4 w-4 text-primary" />
       </div>
 
       {/* Conteúdo */}
@@ -64,7 +64,7 @@ export function CardGiro({ onClick }: Props) {
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
           Giro anual
         </p>
-        <p className="text-xl font-bold leading-tight text-blue-600 dark:text-blue-400">
+        <p className="text-xl font-bold leading-tight text-primary">
           {fmtNum(data.giro_reais)}
           <span className="text-sm font-normal text-muted-foreground ml-1">vezes ao ano</span>
         </p>

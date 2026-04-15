@@ -58,7 +58,7 @@ export default function EstoqueDashboard({ toast, produtos, alertas, onMovimenta
           value={fmtBRL(valorEmEstoque)}
           subtitle="custo médio × qtd"
           icon={DollarSign}
-          accent="blue"
+          accent="default"
         />
         <CardTecidoParado onClick={onNavigateToLeadTime} />
         <CardSemLocalizacao />
@@ -71,7 +71,7 @@ export default function EstoqueDashboard({ toast, produtos, alertas, onMovimenta
           value={classeACount}
           subtitle="top 80% do valor"
           icon={Star}
-          accent="emerald"
+          accent="primary"
         />
         <MetricCard
           title="Sem venda 90 dias"
