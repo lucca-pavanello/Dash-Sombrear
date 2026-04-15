@@ -8,6 +8,7 @@ interface DatePickerProps {
   min?: string
   max?: string
   className?: string
+  triggerClassName?: string
 }
 
 const MONTHS = [
@@ -16,7 +17,7 @@ const MONTHS = [
 ]
 const DAYS_SHORT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
 
-export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa', min, max, className = '' }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa', min, max, className = '', triggerClassName }: DatePickerProps) {
   const today = new Date()
 
   const parsed = value ? new Date(value + 'T00:00') : null
@@ -102,7 +103,7 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
       <div
         onClick={() => setOpen(v => !v)}
         className={`flex cursor-pointer items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-all duration-150 hover:border-primary/50 select-none
-          ${open ? 'border-primary ring-2 ring-primary/15' : 'border-border'}`}
+          ${open ? 'border-primary ring-2 ring-primary/15' : 'border-border'} ${triggerClassName ?? ''}`}
       >
         <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span className={`flex-1 tabular-nums ${value ? 'text-foreground font-medium' : 'text-muted-foreground/60'}`}>

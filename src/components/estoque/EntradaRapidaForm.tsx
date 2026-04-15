@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { PackagePlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import DatePicker from '@/components/ui/DatePicker'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueFornecedores } from '@/hooks/useEstoqueFornecedores'
 import { useAddLote } from '@/hooks/useEstoqueLotes'
@@ -78,6 +79,7 @@ export default function EntradaRapidaForm({ toast }: Props) {
 
   const produtoId = watch('produto_id')
   const fornecedorId = watch('fornecedor_id')
+  const dataEntrada = watch('data_entrada')
 
   const produtoOptions = produtos.map((p) => ({
     value: p.id,
@@ -147,10 +149,10 @@ export default function EntradaRapidaForm({ toast }: Props) {
             <label className={labelClass}>
               Data de entrada <span className="text-orange-500 ml-0.5">*</span>
             </label>
-            <input
-              type="date"
-              {...register('data_entrada')}
-              className={cn(INPUT_CLASSES, errors.data_entrada && '!border-red-400 focus:!border-red-500 focus:!ring-red-200')}
+            <DatePicker
+              value={dataEntrada ?? ''}
+              onChange={(v) => setValue('data_entrada', v, { shouldValidate: true })}
+              triggerClassName={cn(INPUT_CLASSES, errors.data_entrada && '!border-red-400')}
             />
             {errors.data_entrada && <p className="mt-1 text-xs text-red-600">{errors.data_entrada.message}</p>}
           </div>
