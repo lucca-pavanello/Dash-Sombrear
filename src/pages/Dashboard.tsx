@@ -56,16 +56,16 @@ function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLB
   )
 }
 
-const TAB_LABELS: Record<string, string> = {
-  'calcular-orcamento': 'Calcular Orçamento',
-  'planilha': 'Planilha Orçamento',
-  'calculo-custo': 'Planilha Custos',
-  'agente-ia': 'Agente IA',
+const SECTION_LABELS: Record<string, string> = {
+  'calcular-orcamento': 'Orçamentos',
+  'planilha': 'Orçamentos',
+  'calculo-custo': 'Orçamentos',
+  'agente-ia': 'Orçamentos',
   'orcamentos': 'Orçamentos',
-  'kanban': 'Funil',
-  'admin': 'Usuários',
-  'analises': 'Análises',
+  'analises': 'Orçamentos',
+  'kanban': 'Orçamentos',
   'estoque': 'Estoque',
+  'admin': 'Admin',
 }
 
 export default function Dashboard() {
@@ -134,7 +134,12 @@ export default function Dashboard() {
   const isAdminPath = rawPath === 'admin' || rawPath.startsWith('admin/')
   const estoqueSub = isEstoquePath ? (rawPath.split('/')[1] || 'visao-geral') : 'visao-geral'
   const adminSub = isAdminPath ? (rawPath.split('/')[1] || 'usuarios') : 'usuarios'
-  const tabFromUrl = isEstoquePath ? 'estoque' : isAdminPath ? 'admin' : (rawPath || DEFAULT_TAB)
+  const isOrcamentoPath = rawPath === 'orcamento' || rawPath.startsWith('orcamento/')
+  const orcamentoSub = isOrcamentoPath ? (rawPath.split('/')[1] || DEFAULT_TAB) : null
+  const tabFromUrl = isEstoquePath ? 'estoque'
+    : isAdminPath ? 'admin'
+    : isOrcamentoPath ? (orcamentoSub ?? DEFAULT_TAB)
+    : (rawPath || DEFAULT_TAB)
   const ORCAMENTO_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'analises', 'agente-ia', 'orcamentos', 'kanban']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
@@ -180,7 +185,7 @@ export default function Dashboard() {
     haptic('light')
     setUnreadCount(0)
     setTabVersions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
-    navigate(`/${id}`)
+    navigate(ORCAMENTO_TABS.includes(id) ? `/orcamento/${id}` : `/${id}`)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -212,8 +217,8 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    const tabLabel = TAB_LABELS[activeTab] ?? 'Sombrear'
-    document.title = unreadCount > 0 ? `(${unreadCount}) ${tabLabel} — Sombrear` : `${tabLabel} — Sombrear`
+    const section = SECTION_LABELS[activeTab] ?? 'Sombrear'
+    document.title = unreadCount > 0 ? `(${unreadCount}) Sombrear - ${section}` : `Sombrear - ${section}`
   }, [unreadCount, activeTab])
 
   useEffect(() => {
