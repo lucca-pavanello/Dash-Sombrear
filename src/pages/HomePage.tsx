@@ -39,7 +39,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-5xl w-full">
           {canOrcamento && (
             <button
-              onClick={() => navigate('/orcamento/calcular-orcamento')}
+              onClick={() => navigate('/orcamentos/calcular-orcamento')}
               className="group bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-12 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center"
             >
               <div className="h-14 w-14 md:h-20 md:w-20 rounded-2xl md:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 md:mb-6 group-hover:bg-primary group-hover:scale-105 transition-all">

@@ -97,7 +97,7 @@ export default function Dashboard() {
     const raw = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
     const initial = (raw === 'estoque' || raw.startsWith('estoque/')) ? 'estoque'
       : (raw === 'admin' || raw.startsWith('admin/')) ? 'admin'
-      : raw.startsWith('orcamento/') ? (raw.split('/')[1] || DEFAULT_TAB)
+      : raw.startsWith('orcamentos/') ? (raw.split('/')[1] || DEFAULT_TAB)
       : VALID_TABS.includes(raw) ? raw
       : DEFAULT_TAB
     return new Set([initial])
@@ -136,7 +136,7 @@ export default function Dashboard() {
   const isAdminPath = rawPath === 'admin' || rawPath.startsWith('admin/')
   const estoqueSub = isEstoquePath ? (rawPath.split('/')[1] || 'visao-geral') : 'visao-geral'
   const adminSub = isAdminPath ? (rawPath.split('/')[1] || 'usuarios') : 'usuarios'
-  const isOrcamentoPath = rawPath === 'orcamento' || rawPath.startsWith('orcamento/')
+  const isOrcamentoPath = rawPath === 'orcamentos' || rawPath.startsWith('orcamentos/')
   const orcamentoSub = isOrcamentoPath ? (rawPath.split('/')[1] || DEFAULT_TAB) : null
   const tabFromUrl = isEstoquePath ? 'estoque'
     : isAdminPath ? 'admin'
@@ -187,8 +187,8 @@ export default function Dashboard() {
     haptic('light')
     setUnreadCount(0)
     setTabVersions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
-    const path = id === 'orcamento' ? `/orcamento/${DEFAULT_TAB}`
-      : ORCAMENTO_TABS.includes(id) ? `/orcamento/${id}`
+    const path = id === 'orcamento' ? `/orcamentos/${DEFAULT_TAB}`
+      : ORCAMENTO_TABS.includes(id) ? `/orcamentos/${id}`
       : `/${id}`
     navigate(path)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -781,7 +781,7 @@ export default function Dashboard() {
               onClick={() => {
                 uiSound.play('tab')
                 haptic('light')
-                navigate(`/orcamento/${id}`)
+                navigate(`/orcamentos/${id}`)
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
               onMouseDown={handleTabRipple}
