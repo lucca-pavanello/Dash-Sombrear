@@ -6,7 +6,7 @@ export const tbl = {
   searchIcon:  'absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60',
   searchInput: 'w-full rounded-lg border border-border bg-background h-10 pl-10 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all',
   addBtn:      'flex items-center gap-1.5 rounded-xl bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 active:scale-95 transition-all shrink-0',
-  theadRow:    'border-b border-border bg-muted/40',
+  theadRow:    'sticky top-0 z-10 border-b border-border bg-muted/40',
   th:          'px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-r border-border text-center',
   tbodyRow:    'border-b border-border/60 last:border-0 hover:bg-muted/20 transition-colors duration-150',
   td:          'px-4 py-3 text-sm text-foreground border-r border-border/60 align-middle text-center',

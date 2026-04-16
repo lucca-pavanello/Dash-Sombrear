@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Search, Plus, Pencil, Truck, Clock, Filter, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueFornecedores, useUpdateFornecedor } from '@/hooks/useEstoqueFornecedores'
@@ -24,9 +24,14 @@ interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
+const FILTER_KEY = 'sombrear-estoque-fornecedores-filtros'
+function loadFornecedorFilters() {
+  try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
+}
+
 export default function FornecedoresTable({ toast }: Props) {
-  const [search, setSearch] = useState('')
-  const [filtros, setFiltros] = useState<Record<string, unknown>>({})
+  const [search, setSearch] = useState(() => { try { return localStorage.getItem(FILTER_KEY + '-search') ?? '' } catch { return '' } })
+  const [filtros, setFiltros] = useState<Record<string, unknown>>(loadFornecedorFilters)
   const [openFilter, setOpenFilter] = useState<{ key: string; rect: DOMRect } | null>(null)
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
@@ -88,6 +93,13 @@ export default function FornecedoresTable({ toast }: Props) {
       toast('error', 'Erro ao remover fornecedor.')
     }
   }
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify(filtros))
+      localStorage.setItem(FILTER_KEY + '-search', search)
+    } catch { /* noop */ }
+  }, [filtros, search])
 
   const hasFilters = Object.values(filtros).some(v => v && isFilterActive('range', v))
 
@@ -185,8 +197,13 @@ export default function FornecedoresTable({ toast }: Props) {
                     <p className="text-sm font-medium text-muted-foreground">
                       {search || hasFilters ? 'Nenhum fornecedor com esse filtro. Tente outra combinação.' : 'Nenhum fornecedor cadastrado'}
                     </p>
-                    {!search && (
-                      <p className="text-xs text-muted-foreground/60 mt-1">Clique em "Novo Fornecedor" para começar</p>
+                    {!search && !hasFilters && (
+                      <button
+                        onClick={handleNovo}
+                        className="mt-3 rounded-xl bg-brand-gradient px-4 py-2 text-sm font-semibold text-white shadow-brand hover:opacity-90 active:scale-95 transition-all"
+                      >
+                        + Novo Fornecedor
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -267,7 +284,10 @@ export default function FornecedoresTable({ toast }: Props) {
               <tfoot>
                 <tr className={tbl.tfootRow}>
                   <td colSpan={6} className={`${tbl.tfootCell} text-center`}>
-                    Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}
+                    {filtered.length < fornecedores.length
+                      ? <>{filtered.length} <span className="text-muted-foreground/50">de {fornecedores.length}</span> fornecedor{filtered.length !== 1 ? 'es' : ''}</>
+                      : <>Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}</>
+                    }
                   </td>
                 </tr>
               </tfoot>

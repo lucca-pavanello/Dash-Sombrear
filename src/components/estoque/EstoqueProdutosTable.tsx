@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Search, X, Plus, Pencil, PackageX, TrendingUp, Package, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
@@ -113,9 +113,14 @@ function applyFilter(key: string, p: EstoqueProduto, state: unknown): boolean {
   return true
 }
 
+const FILTER_KEY = 'sombrear-estoque-produtos-filtros'
+function loadProdutoFilters() {
+  try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
+}
+
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
-  const [search, setSearch] = useState('')
-  const [filtros, setFiltros] = useState<Record<string, unknown>>({})
+  const [search, setSearch] = useState(() => { try { return localStorage.getItem(FILTER_KEY + '-search') ?? '' } catch { return '' } })
+  const [filtros, setFiltros] = useState<Record<string, unknown>>(loadProdutoFilters)
   const [openFilter, setOpenFilter] = useState<{ key: string; rect: DOMRect } | null>(null)
   const [mostrarInativos, setMostrarInativos] = useState(false)
 
@@ -123,6 +128,13 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   const { data: localizacoes = [] } = useEstoqueLocalizacoes()
   const deactivate = useDeactivateEstoqueProduto()
   const { data: coberturaRows = [] } = useCoberturaEstoque()
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify(filtros))
+      localStorage.setItem(FILTER_KEY + '-search', search)
+    } catch { /* noop */ }
+  }, [filtros, search])
 
   const coberturaMap = useMemo(() => {
     const m = new Map<string, CoberturaMargemRow>()
@@ -365,8 +377,13 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                     <p className="text-sm font-medium text-muted-foreground">
                       {search ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado ainda'}
                     </p>
-                    {!search && (
-                      <p className="text-xs text-muted-foreground/60 mt-1">Clique em "Novo Produto" para começar</p>
+                    {!search && Object.keys(filtros).length === 0 && (
+                      <button
+                        onClick={onNovoProduto}
+                        className="mt-3 rounded-xl bg-brand-gradient px-4 py-2 text-sm font-semibold text-white shadow-brand hover:opacity-90 active:scale-95 transition-all"
+                      >
+                        + Novo Produto
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -452,7 +469,10 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
               <tfoot>
                 <tr className={tbl.tfootRow}>
                   <td colSpan={4} className={cn(tbl.tfootCell, 'pl-6')}>
-                    Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}
+                    {filtered.length < produtos.length
+                      ? <>{filtered.length} <span className="text-muted-foreground/50">de {produtos.length}</span> produto{filtered.length !== 1 ? 's' : ''}</>
+                      : <>Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}</>
+                    }
                   </td>
                   <td colSpan={8} />
                 </tr>

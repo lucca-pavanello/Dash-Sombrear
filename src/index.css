@@ -249,6 +249,15 @@
     100% { width: 100%; opacity: 0; }
   }
 
+  @keyframes top-bar-slide {
+    0%   { transform: translateX(-100%); }
+    60%  { transform: translateX(-15%); }
+    100% { transform: translateX(0%); }
+  }
+  .top-loading-bar {
+    animation: top-bar-slide 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
   @keyframes splash-fade {
     0%   { opacity: 1; }
     100% { opacity: 0; }

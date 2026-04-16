@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Search, Plus, Pencil, MapPin, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueLocalizacoes, useUpdateLocalizacao } from '@/hooks/useEstoqueLocalizacoes'
@@ -41,9 +41,14 @@ interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
+const FILTER_KEY = 'sombrear-estoque-localizacoes-filtros'
+function loadLocalizacaoFilters() {
+  try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
+}
+
 export default function LocalizacoesTable({ toast }: Props) {
-  const [search, setSearch] = useState('')
-  const [filtros, setFiltros] = useState<Record<string, unknown>>({})
+  const [search, setSearch] = useState(() => { try { return localStorage.getItem(FILTER_KEY + '-search') ?? '' } catch { return '' } })
+  const [filtros, setFiltros] = useState<Record<string, unknown>>(loadLocalizacaoFilters)
   const [openFilter, setOpenFilter] = useState<{ key: string; rect: DOMRect } | null>(null)
   const [mostrarInativas, setMostrarInativas] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
@@ -135,6 +140,13 @@ export default function LocalizacoesTable({ toast }: Props) {
       toast('error', 'Erro ao remover localização.')
     }
   }
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTER_KEY, JSON.stringify(filtros))
+      localStorage.setItem(FILTER_KEY + '-search', search)
+    } catch { /* noop */ }
+  }, [filtros, search])
 
   const hasFilters = Object.entries(filtros).some(([k, v]) =>
     isFilterActive(FILTER_TYPES[k] ?? 'multi', v),
@@ -260,8 +272,13 @@ export default function LocalizacoesTable({ toast }: Props) {
                     <p className="text-sm font-medium text-muted-foreground">
                       {search || hasFilters ? 'Nenhuma localização com esse filtro. Tente outra combinação.' : 'Nenhuma localização cadastrada'}
                     </p>
-                    {!search && (
-                      <p className="text-xs text-muted-foreground/60 mt-1">Clique em "Nova Localização" para começar</p>
+                    {!search && !hasFilters && (
+                      <button
+                        onClick={handleNovo}
+                        className="mt-3 rounded-xl bg-brand-gradient px-4 py-2 text-sm font-semibold text-white shadow-brand hover:opacity-90 active:scale-95 transition-all"
+                      >
+                        + Nova Localização
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -303,7 +320,10 @@ export default function LocalizacoesTable({ toast }: Props) {
               <tfoot>
                 <tr className={tbl.tfootRow}>
                   <td colSpan={7} className={`${tbl.tfootCell} text-center`}>
-                    Total — {filtered.length} {filtered.length === 1 ? 'localização' : 'localizações'}
+                    {filtered.length < localizacoes.length
+                      ? <>{filtered.length} <span className="text-muted-foreground/50">de {localizacoes.length}</span> {filtered.length === 1 ? 'localização' : 'localizações'}</>
+                      : <>Total — {filtered.length} {filtered.length === 1 ? 'localização' : 'localizações'}</>
+                    }
                   </td>
                 </tr>
               </tfoot>

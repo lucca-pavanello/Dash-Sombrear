@@ -13,6 +13,7 @@ import CommandPalette from '@/components/shared/CommandPalette'
 import EditProfileModal from '@/components/profile/EditProfileModal'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import SkeletonCard from '@/components/shared/SkeletonCard'
+import TopLoadingBar from '@/components/shared/TopLoadingBar'
 import { cn } from '@/lib/utils'
 import { ADMIN_EMAIL, ESTOQUE_EMAIL } from '@/lib/constants'
 import { useUiSound } from '@/hooks/useUiSound'
@@ -784,6 +785,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      <TopLoadingBar />
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
         <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none snap-x snap-mandatory md:snap-none">
