@@ -262,6 +262,7 @@ interface Props {
   search?: string
   onClearFilters?: () => void
   filterKey?: string
+  totalCount?: number
 }
 
 const ORC_COLS_KEY = 'sombrear-orcamentos-cols'
@@ -296,7 +297,7 @@ function loadColVis(): Record<ColId, boolean> {
   } catch { return { ...COL_DEFAULTS } }
 }
 
-export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, filterKey }: Props) {
+export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, filterKey, totalCount }: Props) {
   const [editing, setEditing] = useState<Orcamento | null>(null)
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' })
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
@@ -673,7 +674,10 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 <tfoot>
                   <tr className="border-t border-border" style={{ backgroundColor: 'hsl(var(--muted))' }}>
                     <td colSpan={visibleCols.findIndex(c => c.id === 'valor')} className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Total — {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}
+                      {isFiltered && totalCount != null && sorted.length < totalCount
+                        ? <>{sorted.length} <span className="text-muted-foreground/50">de {totalCount}</span> orçamento{sorted.length !== 1 ? 's' : ''}</>
+                        : <>Total — {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}</>
+                      }
                     </td>
                     <td className="px-4 py-2.5 text-sm font-bold text-primary text-right">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}

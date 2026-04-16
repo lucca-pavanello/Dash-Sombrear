@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Pencil, Truck, Clock, Filter, Tag } from 'lucide-react'
+import { Search, Plus, Pencil, Truck, Clock, Filter, Tag, Download } from 'lucide-react'
+import { exportCsv, exportXlsx } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 import { useEstoqueFornecedores, useUpdateFornecedor } from '@/hooks/useEstoqueFornecedores'
 import { useAllFornecedorCategorias } from '@/hooks/useFornecedorCategorias'
@@ -24,6 +25,8 @@ interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
+const PAGE_SIZE = 50
+
 const FILTER_KEY = 'sombrear-estoque-fornecedores-filtros'
 function loadFornecedorFilters() {
   try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
@@ -36,11 +39,14 @@ export default function FornecedoresTable({ toast }: Props) {
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editando, setEditando] = useState<EstoqueFornecedor | null>(null)
+  const [page, setPage] = useState(1)
 
   const { data: fornecedores = [], isLoading } = useEstoqueFornecedores({ includeInactive: mostrarInativos })
   const { data: categoriasMap = {} } = useAllFornecedorCategorias()
   const { data: descontosMap = {} } = useAllFornecedorDescontos()
   const updateMutation = useUpdateFornecedor()
+
+  useEffect(() => { setPage(1) }, [search, filtros])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -68,6 +74,21 @@ export default function FornecedoresTable({ toast }: Props) {
         return true
       })
   }, [fornecedores, search, filtros])
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function getExportRows() {
+    return filtered.map(f => ({
+      'Nome': f.nome,
+      'Contato': f.contato ?? '',
+      'Email': f.email ?? '',
+      'Telefone': f.telefone ?? '',
+      'CNPJ': f.cnpj ?? '',
+      'Prazo Entrega (dias)': f.prazo_entrega_dias ?? '',
+      'Ativo': f.ativo ? 'Sim' : 'Não',
+    }))
+  }
 
   function setFiltro(col: string, val: unknown) {
     setFiltros(prev => ({ ...prev, [col]: val }))
@@ -130,6 +151,20 @@ export default function FornecedoresTable({ toast }: Props) {
           </button>
           <span className="text-sm text-muted-foreground">Mostrar inativos</span>
         </label>
+        <div className="flex items-center gap-1">
+          <button onClick={() => exportCsv(`fornecedores-${Date.now()}.csv`, getExportRows())}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
+            title={`Exportar ${filtered.length} fornecedores como CSV`}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </button>
+          <button onClick={() => exportXlsx(`fornecedores-${Date.now()}.xlsx`, getExportRows())}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
+            title={`Exportar ${filtered.length} fornecedores como XLSX`}>
+            <Download className="h-3.5 w-3.5" /> XLSX
+          </button>
+        </div>
         <button onClick={handleNovo} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
           <Plus className="h-4 w-4" />
           Novo Fornecedor
@@ -208,7 +243,7 @@ export default function FornecedoresTable({ toast }: Props) {
                   </td>
                 </tr>
               ) : (
-                filtered.map(f => {
+                paginated.map(f => {
                   const catsFornec = categoriasMap[f.id] ?? []
                   const descontosFornec = descontosMap[f.id] ?? []
 
@@ -283,11 +318,26 @@ export default function FornecedoresTable({ toast }: Props) {
             {filtered.length > 0 && (
               <tfoot>
                 <tr className={tbl.tfootRow}>
-                  <td colSpan={6} className={`${tbl.tfootCell} text-center`}>
-                    {filtered.length < fornecedores.length
-                      ? <>{filtered.length} <span className="text-muted-foreground/50">de {fornecedores.length}</span> fornecedor{filtered.length !== 1 ? 'es' : ''}</>
-                      : <>Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}</>
-                    }
+                  <td colSpan={6} className={tbl.tfootCell}>
+                    <div className="flex items-center justify-between gap-4">
+                      <span>
+                        {filtered.length > PAGE_SIZE
+                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}{filtered.length < fornecedores.length ? <> <span className="text-muted-foreground/50">(de {fornecedores.length} total)</span></> : null}</>
+                          : filtered.length < fornecedores.length
+                            ? <>{filtered.length} <span className="text-muted-foreground/50">de {fornecedores.length}</span> fornecedor{filtered.length !== 1 ? 'es' : ''}</>
+                            : <>Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}</>
+                        }
+                      </span>
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                            className="rounded px-2 py-1 hover:bg-muted disabled:opacity-40 transition-colors">← Ant</button>
+                          <span className="text-muted-foreground">{page} / {totalPages}</span>
+                          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                            className="rounded px-2 py-1 hover:bg-muted disabled:opacity-40 transition-colors">Próx →</button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               </tfoot>

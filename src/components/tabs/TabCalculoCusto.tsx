@@ -29,6 +29,7 @@ const PERIODOS = [
 const FILTERS_OPEN_KEY = 'sombrear-custos-filters-open'
 const TABLE_OPEN_KEY = 'sombrear-custos-table-open'
 const COLS_KEY = 'sombrear-custos-cols'
+const CUSTO_FILTER_KEY = 'sombrear-custos-filtros'
 
 type CustoColId = 'data' | 'cliente' | 'responsavel' | 'modelo' | 'ambiente' | 'tecido' | 'lxa' | 'qtd' | 'custo_mat' | 'custo_m2' | 'custo_acab' | 'custo_inst' | 'total'
 
@@ -91,12 +92,12 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
   const vis = (id: CustoColId) => colVis[id] !== false
   const visibleCustoCols = CUSTO_COL_DEFS.filter(c => vis(c.id))
 
-  const [searchCI, setSearchCI] = useState('')
-  const [responsavelCI, setResponsavelCI] = useState('todos')
-  const [modeloCI, setModeloCI] = useState('todos')
-  const [periodoCI, setPeriodoCI] = useState('todos')
-  const [dateFromCI, setDateFromCI] = useState('')
-  const [dateToCI, setDateToCI] = useState('')
+  const [searchCI, setSearchCI]           = useState(() => { try { return localStorage.getItem(CUSTO_FILTER_KEY + '-search')      ?? ''      } catch { return ''      } })
+  const [responsavelCI, setResponsavelCI] = useState(() => { try { return localStorage.getItem(CUSTO_FILTER_KEY + '-responsavel') ?? 'todos' } catch { return 'todos' } })
+  const [modeloCI, setModeloCI]           = useState(() => { try { return localStorage.getItem(CUSTO_FILTER_KEY + '-modelo')       ?? 'todos' } catch { return 'todos' } })
+  const [periodoCI, setPeriodoCI]         = useState(() => { try { return localStorage.getItem(CUSTO_FILTER_KEY + '-periodo')      ?? 'todos' } catch { return 'todos' } })
+  const [dateFromCI, setDateFromCI]       = useState(() => { try { return localStorage.getItem(CUSTO_FILTER_KEY + '-dateFrom')    ?? ''      } catch { return ''      } })
+  const [dateToCI, setDateToCI]           = useState(() => { try { return localStorage.getItem(CUSTO_FILTER_KEY + '-dateTo')      ?? ''      } catch { return ''      } })
   const debouncedSearchCI = useDebounce(searchCI, 220)
 
   useEffect(() => {
@@ -108,6 +109,17 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
     try { localStorage.setItem(FILTERS_OPEN_KEY, String(filtersOpen)) }
     catch { /* noop */ }
   }, [filtersOpen])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CUSTO_FILTER_KEY + '-search',      searchCI)
+      localStorage.setItem(CUSTO_FILTER_KEY + '-responsavel', responsavelCI)
+      localStorage.setItem(CUSTO_FILTER_KEY + '-modelo',      modeloCI)
+      localStorage.setItem(CUSTO_FILTER_KEY + '-periodo',     periodoCI)
+      localStorage.setItem(CUSTO_FILTER_KEY + '-dateFrom',    dateFromCI)
+      localStorage.setItem(CUSTO_FILTER_KEY + '-dateTo',      dateToCI)
+    } catch { /* noop */ }
+  }, [searchCI, responsavelCI, modeloCI, periodoCI, dateFromCI, dateToCI])
 
   // Keyboard shortcut: "/" focuses search
   useEffect(() => {

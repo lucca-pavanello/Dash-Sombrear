@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Pencil, MapPin, Filter } from 'lucide-react'
+import { Search, Plus, Pencil, MapPin, Filter, Download } from 'lucide-react'
+import { exportCsv, exportXlsx } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 import { useEstoqueLocalizacoes, useUpdateLocalizacao } from '@/hooks/useEstoqueLocalizacoes'
 import { NIVEIS_ACESSO } from '@/lib/constants'
@@ -41,6 +42,8 @@ interface Props {
   toast: (type: ToastType, message: string) => void
 }
 
+const PAGE_SIZE = 50
+
 const FILTER_KEY = 'sombrear-estoque-localizacoes-filtros'
 function loadLocalizacaoFilters() {
   try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
@@ -53,6 +56,7 @@ export default function LocalizacoesTable({ toast }: Props) {
   const [mostrarInativas, setMostrarInativas] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editando, setEditando] = useState<EstoqueLocalizacao | null>(null)
+  const [page, setPage] = useState(1)
 
   const { data: localizacoes = [], isLoading } = useEstoqueLocalizacoes({ includeInactive: mostrarInativas })
   const updateMutation = useUpdateLocalizacao()
@@ -69,6 +73,8 @@ export default function LocalizacoesTable({ toast }: Props) {
     if (localizacoes.some(l => !l.prateleira)) opts.push({ value: 'sem', label: 'Sem prateleira' })
     return opts
   }, [localizacoes])
+
+  useEffect(() => { setPage(1) }, [search, filtros])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -110,6 +116,21 @@ export default function LocalizacoesTable({ toast }: Props) {
         return true
       })
   }, [localizacoes, search, filtros])
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function getExportRows() {
+    return filtered.map(l => ({
+      'Código': l.codigo,
+      'Setor': l.setor,
+      'Prateleira': l.prateleira ?? '',
+      'Posição': l.posicao ?? '',
+      'Nível de Acesso': NIVEIS_ACESSO[l.nivel_acesso] ?? l.nivel_acesso,
+      'Nº Produtos': l.estoque_produtos?.[0]?.count ?? 0,
+      'Ativo': l.ativo ? 'Sim' : 'Não',
+    }))
+  }
 
   function setFiltro(col: string, val: unknown) {
     setFiltros(prev => ({ ...prev, [col]: val }))
@@ -179,6 +200,20 @@ export default function LocalizacoesTable({ toast }: Props) {
           </button>
           <span className="text-sm text-muted-foreground">Mostrar inativas</span>
         </label>
+        <div className="flex items-center gap-1">
+          <button onClick={() => exportCsv(`localizacoes-${Date.now()}.csv`, getExportRows())}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
+            title={`Exportar ${filtered.length} localizações como CSV`}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </button>
+          <button onClick={() => exportXlsx(`localizacoes-${Date.now()}.xlsx`, getExportRows())}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
+            title={`Exportar ${filtered.length} localizações como XLSX`}>
+            <Download className="h-3.5 w-3.5" /> XLSX
+          </button>
+        </div>
         <button onClick={handleNovo} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
           <Plus className="h-4 w-4" />
           Nova Localização
@@ -283,7 +318,7 @@ export default function LocalizacoesTable({ toast }: Props) {
                   </td>
                 </tr>
               ) : (
-                filtered.map(l => {
+                paginated.map(l => {
                   const numProdutos = l.estoque_produtos?.[0]?.count ?? 0
                   return (
                     <tr key={l.id} className={tbl.tbodyRow}>
@@ -319,11 +354,26 @@ export default function LocalizacoesTable({ toast }: Props) {
             {filtered.length > 0 && (
               <tfoot>
                 <tr className={tbl.tfootRow}>
-                  <td colSpan={7} className={`${tbl.tfootCell} text-center`}>
-                    {filtered.length < localizacoes.length
-                      ? <>{filtered.length} <span className="text-muted-foreground/50">de {localizacoes.length}</span> {filtered.length === 1 ? 'localização' : 'localizações'}</>
-                      : <>Total — {filtered.length} {filtered.length === 1 ? 'localização' : 'localizações'}</>
-                    }
+                  <td colSpan={7} className={tbl.tfootCell}>
+                    <div className="flex items-center justify-between gap-4">
+                      <span>
+                        {filtered.length > PAGE_SIZE
+                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} {filtered.length !== 1 ? 'localizações' : 'localização'}{filtered.length < localizacoes.length ? <> <span className="text-muted-foreground/50">(de {localizacoes.length} total)</span></> : null}</>
+                          : filtered.length < localizacoes.length
+                            ? <>{filtered.length} <span className="text-muted-foreground/50">de {localizacoes.length}</span> {filtered.length === 1 ? 'localização' : 'localizações'}</>
+                            : <>Total — {filtered.length} {filtered.length === 1 ? 'localização' : 'localizações'}</>
+                        }
+                      </span>
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                            className="rounded px-2 py-1 hover:bg-muted disabled:opacity-40 transition-colors">← Ant</button>
+                          <span className="text-muted-foreground">{page} / {totalPages}</span>
+                          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                            className="rounded px-2 py-1 hover:bg-muted disabled:opacity-40 transition-colors">Próx →</button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               </tfoot>

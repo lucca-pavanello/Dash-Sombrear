@@ -83,12 +83,14 @@ export default function Dashboard() {
   const [presentationOpen, setPresentationOpen] = useState(false)
   const [tabVersions, setTabVersions] = useState<Record<string, number>>({})
   const [tabDir, setTabDir] = useState<'left' | 'right'>('right')
+  const [adminSubDir, setAdminSubDir] = useState<'right' | 'left'>('right')
   const [focusResponsavel, setFocusResponsavel] = useState<string | null>(
     () => { try { return localStorage.getItem('sombrear-focus-responsavel') ?? null } catch { return null } }
   )
   const [focusOpen, setFocusOpen] = useState(false)
   const [tabUpdatePulse, setTabUpdatePulse] = useState<Set<string>>(new Set())
   const prevUnreadRef = useRef(0)
+  const prevAdminSubRef = useRef(adminSub)
   const tabBarRef = useRef<HTMLDivElement>(null)
   const focusRef = useRef<HTMLDivElement>(null)
 
@@ -179,6 +181,15 @@ export default function Dashboard() {
     if (m < 60) return `há ${m}min`
     return `há ${Math.floor(m / 60)}h`
   }
+
+  useEffect(() => {
+    const ADMIN_ORDER = ['usuarios', 'permissoes']
+    const prev = prevAdminSubRef.current
+    if (prev !== adminSub) {
+      setAdminSubDir(ADMIN_ORDER.indexOf(adminSub) > ADMIN_ORDER.indexOf(prev) ? 'right' : 'left')
+      prevAdminSubRef.current = adminSub
+    }
+  }, [adminSub])
 
   function handleTabChange(id: string) {
     const nextIdx = TABS.findIndex(t => t.id === id)
@@ -969,8 +980,10 @@ export default function Dashboard() {
           {mountedTabs.has('admin') && isAdmin && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'admin' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                {adminSub === 'usuarios'   && <PainelAdmin toast={toast} />}
-                {adminSub === 'permissoes' && <PermissoesView toast={toast} />}
+                <div key={adminSub} className={adminSubDir === 'right' ? 'tab-active-right' : 'tab-active-left'}>
+                  {adminSub === 'usuarios'   && <PainelAdmin toast={toast} />}
+                  {adminSub === 'permissoes' && <PermissoesView toast={toast} />}
+                </div>
               </div>
             </Suspense>
           )}

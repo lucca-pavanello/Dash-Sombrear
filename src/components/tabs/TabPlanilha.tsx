@@ -146,6 +146,7 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
             isFiltered={isFiltered}
             search={debouncedSearch}
             onClearFilters={clearFilters}
+            totalCount={data.length}
             filterKey={[debouncedSearch, responsavel, modelo, fechadoFilter, periodo, dateFrom, dateTo].join('|')}
           />
         )}

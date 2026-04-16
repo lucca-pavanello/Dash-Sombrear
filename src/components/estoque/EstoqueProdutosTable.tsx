@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, X, Plus, Pencil, PackageX, TrendingUp, Package, Filter } from 'lucide-react'
+import { Search, X, Plus, Pencil, PackageX, TrendingUp, Package, Filter, Download } from 'lucide-react'
+import { exportCsv, exportXlsx } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
 import { useEstoqueProdutos, useDeactivateEstoqueProduto } from '@/hooks/useEstoqueProdutos'
@@ -113,6 +114,8 @@ function applyFilter(key: string, p: EstoqueProduto, state: unknown): boolean {
   return true
 }
 
+const PAGE_SIZE = 50
+
 const FILTER_KEY = 'sombrear-estoque-produtos-filtros'
 function loadProdutoFilters() {
   try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
@@ -123,6 +126,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   const [filtros, setFiltros] = useState<Record<string, unknown>>(loadProdutoFilters)
   const [openFilter, setOpenFilter] = useState<{ key: string; rect: DOMRect } | null>(null)
   const [mostrarInativos, setMostrarInativos] = useState(false)
+  const [page, setPage] = useState(1)
 
   const { data: produtos = [], isLoading } = useEstoqueProdutos({ includeInactive: mostrarInativos })
   const { data: localizacoes = [] } = useEstoqueLocalizacoes()
@@ -135,6 +139,8 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
       localStorage.setItem(FILTER_KEY + '-search', search)
     } catch { /* noop */ }
   }, [filtros, search])
+
+  useEffect(() => { setPage(1) }, [search, filtros])
 
   const coberturaMap = useMemo(() => {
     const m = new Map<string, CoberturaMargemRow>()
@@ -172,6 +178,26 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
       return true
     })
   }, [produtos, search, filtros])
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function getExportRows() {
+    return filtered.map(p => ({
+      'Nome': p.nome,
+      'SKU': p.codigo ?? '',
+      'Categoria': p.estoque_categorias?.nome ?? '',
+      'Tipo': p.estoque_categorias?.tipo ?? '',
+      'Localização': p.localizacao?.codigo ?? '',
+      'Estoque Atual': p.quantidade_atual,
+      'Estoque Mín': p.quantidade_minima ?? '',
+      'Custo Unitário': p.custo_unitario ?? '',
+      'Preço Venda': p.preco_venda ?? '',
+      'Unidade': p.unidade,
+      'ABC': p.classificacao_abc ?? '',
+      'Ativo': p.ativo ? 'Sim' : 'Não',
+    }))
+  }
 
   function setFiltro(col: string, val: unknown) {
     setFiltros(prev => ({ ...prev, [col]: val }))
@@ -244,6 +270,20 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           </button>
           <span className="text-sm text-muted-foreground">Mostrar inativos</span>
         </label>
+        <div className="flex items-center gap-1">
+          <button onClick={() => exportCsv(`produtos-${Date.now()}.csv`, getExportRows())}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
+            title={`Exportar ${filtered.length} produtos como CSV`}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </button>
+          <button onClick={() => exportXlsx(`produtos-${Date.now()}.xlsx`, getExportRows())}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
+            title={`Exportar ${filtered.length} produtos como XLSX`}>
+            <Download className="h-3.5 w-3.5" /> XLSX
+          </button>
+        </div>
         <button onClick={onNovoProduto} className={cn(tbl.addBtn, 'w-full sm:w-auto justify-center')}>
           <Plus className="h-4 w-4" />
           Novo Produto
@@ -388,7 +428,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                   </td>
                 </tr>
               ) : (
-                filtered.map(p => {
+                paginated.map(p => {
                   const abc = p.classificacao_abc ?? 'sem_dados'
                   const inativo = !p.ativo
                   return (
@@ -468,13 +508,27 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
             {filtered.length > 0 && (
               <tfoot>
                 <tr className={tbl.tfootRow}>
-                  <td colSpan={4} className={cn(tbl.tfootCell, 'pl-6')}>
-                    {filtered.length < produtos.length
-                      ? <>{filtered.length} <span className="text-muted-foreground/50">de {produtos.length}</span> produto{filtered.length !== 1 ? 's' : ''}</>
-                      : <>Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}</>
-                    }
+                  <td colSpan={12} className={cn(tbl.tfootCell, 'pl-6')}>
+                    <div className="flex items-center justify-between gap-4">
+                      <span>
+                        {filtered.length > PAGE_SIZE
+                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} produto{filtered.length !== 1 ? 's' : ''}{filtered.length < produtos.length ? <> <span className="text-muted-foreground/50">(de {produtos.length} total)</span></> : null}</>
+                          : filtered.length < produtos.length
+                            ? <>{filtered.length} <span className="text-muted-foreground/50">de {produtos.length}</span> produto{filtered.length !== 1 ? 's' : ''}</>
+                            : <>Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}</>
+                        }
+                      </span>
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                            className="rounded px-2 py-1 hover:bg-muted disabled:opacity-40 transition-colors">← Ant</button>
+                          <span className="text-muted-foreground">{page} / {totalPages}</span>
+                          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                            className="rounded px-2 py-1 hover:bg-muted disabled:opacity-40 transition-colors">Próx →</button>
+                        </div>
+                      )}
+                    </div>
                   </td>
-                  <td colSpan={8} />
                 </tr>
               </tfoot>
             )}
