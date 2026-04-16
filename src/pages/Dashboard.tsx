@@ -541,7 +541,7 @@ export default function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-foreground truncate">{u.name}</p>
                         <p className="text-[10px] text-muted-foreground truncate">
-                          {TAB_LABELS[u.tab] ?? u.tab}{u.at ? ` · ${timeAgo(u.at)}` : ''}
+                          {SECTION_LABELS[u.tab] ?? u.tab}{u.at ? ` · ${timeAgo(u.at)}` : ''}
                         </p>
                       </div>
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
