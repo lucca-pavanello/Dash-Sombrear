@@ -57,6 +57,7 @@ function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLB
 }
 
 const SECTION_LABELS: Record<string, string> = {
+  'orcamento': 'Orçamentos',
   'calcular-orcamento': 'Orçamentos',
   'planilha': 'Orçamentos',
   'calculo-custo': 'Orçamentos',
@@ -96,6 +97,7 @@ export default function Dashboard() {
     const raw = window.location.pathname.replace(/^\//, '') || DEFAULT_TAB
     const initial = (raw === 'estoque' || raw.startsWith('estoque/')) ? 'estoque'
       : (raw === 'admin' || raw.startsWith('admin/')) ? 'admin'
+      : raw.startsWith('orcamento/') ? (raw.split('/')[1] || DEFAULT_TAB)
       : VALID_TABS.includes(raw) ? raw
       : DEFAULT_TAB
     return new Set([initial])
@@ -185,7 +187,10 @@ export default function Dashboard() {
     haptic('light')
     setUnreadCount(0)
     setTabVersions(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
-    navigate(ORCAMENTO_TABS.includes(id) ? `/orcamento/${id}` : `/${id}`)
+    const path = id === 'orcamento' ? `/orcamento/${DEFAULT_TAB}`
+      : ORCAMENTO_TABS.includes(id) ? `/orcamento/${id}`
+      : `/${id}`
+    navigate(path)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -397,17 +402,10 @@ export default function Dashboard() {
   }, [activeTab, estoqueSub, isEstoquePath, adminSub, isAdminPath])
 
   const TABS = useMemo(() => [
-    ...(canOrcamento ? [
-      { id: 'calcular-orcamento', label: 'Calcular Orçamento', icon: Calculator, badge: 0 },
-      { id: 'planilha', label: 'Planilha Orçamento', icon: ClipboardList, badge: 0 },
-      { id: 'calculo-custo', label: 'Planilha Custos', icon: ClipboardList, badge: 0 },
-      { id: 'analises', label: 'Análises', icon: BarChart2, badge: 0 },
-      { id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 },
-      { id: 'orcamentos', label: 'Orçamentos', icon: FileText, badge: 0 },
-    ] : []),
+    ...(canOrcamento ? [{ id: 'orcamento', label: 'Orçamentos', icon: FileText, badge: unreadCount }] : []),
     ...(canEstoque ? [{ id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length }] : []),
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck, badge: pendingCount }] : []),
-  ], [isAdmin, canOrcamento, canEstoque, pendingCount, estoqueAlertas.length])
+  ], [isAdmin, canOrcamento, canEstoque, pendingCount, estoqueAlertas.length, unreadCount])
 
   const ADMIN_SUBTABS = useMemo(() => [
     { id: 'usuarios',   label: 'Usuários',   icon: Users },
@@ -426,9 +424,18 @@ export default function Dashboard() {
     { id: 'configuracao', label: 'Config.',        icon: Settings        },
   ], [])
 
+  const ORCAMENTO_SUBTABS = useMemo(() => [
+    { id: 'calcular-orcamento', label: 'Calcular',  icon: Calculator    },
+    { id: 'planilha',           label: 'Planilha',  icon: ClipboardList },
+    { id: 'calculo-custo',      label: 'Custos',    icon: ClipboardList },
+    { id: 'analises',           label: 'Análises',  icon: BarChart2     },
+    { id: 'agente-ia',          label: 'Agente IA', icon: Bot           },
+    { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
+  ], [])
+
   const isEstoqueArea = isEstoquePath
   const isAdminArea = isAdminPath && isAdmin
-  const visibleTabs = TABS.filter(t => t.id !== 'estoque')
+  const isOrcamentoArea = isOrcamentoPath || ORCAMENTO_TABS.includes(rawPath)
 
   function MagneticBtn({ children, style, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
     const [off, setOff] = useState({ x: 0, y: 0 })
@@ -766,8 +773,38 @@ export default function Dashboard() {
               <span className="hidden sm:inline truncate">{label}</span>
             </button>
           ))}
-          {!isEstoqueArea && !isAdminArea && (
-            visibleTabs.map(({ id, label, icon: Icon, badge }) => (
+          {/* ORÇAMENTO SUBTABS */}
+          {isOrcamentoArea && ORCAMENTO_SUBTABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              data-tab={id}
+              onClick={() => {
+                uiSound.play('tab')
+                haptic('light')
+                navigate(`/orcamento/${id}`)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onMouseDown={handleTabRipple}
+              title={label}
+              className={cn(
+                'relative flex shrink-0 min-w-[60px] md:flex-1 snap-start md:[snap-align:none] items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+                activeTab === id
+                  ? 'bg-card text-primary shadow-elevated'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline truncate">{label}</span>
+              {tabUpdatePulse.has(id) && (
+                <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
+              )}
+            </button>
+          ))}
+          {isOrcamentoArea && <ChatIATabBtn onMouseDown={handleTabRipple} />}
+
+          {/* SECTION TABS (fallback) */}
+          {!isOrcamentoArea && !isEstoqueArea && !isAdminArea && (
+            TABS.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
                 data-tab={id}
@@ -788,16 +825,8 @@ export default function Dashboard() {
                     {badge > 9 ? '9+' : badge}
                   </span>
                 )}
-                {/* Pulse ring quando novo orçamento chega */}
-                {id === 'orcamentos' && orcPulse && activeTab !== 'orcamentos' && (
+                {id === 'orcamento' && orcPulse && (
                   <span className="badge-ping-once absolute inset-0 rounded-lg border-2 border-primary/60 pointer-events-none" />
-                )}
-                {/* Halo laranja quando UPDATE/DELETE realtime */}
-                {tabUpdatePulse.has(id) && (
-                  <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
-                )}
-                {activeTab === id && (
-                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-primary sm:hidden" />
                 )}
               </button>
             ))
