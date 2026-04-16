@@ -352,7 +352,15 @@ export default function TabCotacao() {
 
     try {
       const { error: fnError } = await supabase.functions.invoke('n8n-cotacao', { body: payload })
-      if (fnError) throw new Error(fnError.message)
+      if (fnError) {
+        // Tenta extrair mensagem detalhada do body da Edge Function
+        let detail = fnError.message
+        try {
+          const ctx = (fnError as { context?: Response }).context
+          if (ctx) { const j = await ctx.json(); detail = j?.error ?? detail }
+        } catch { /* noop */ }
+        throw new Error(detail)
+      }
       setIsSuccess(true)
       toast('success', 'Orçamento enviado! Aguarde o resultado...')
       startResetCountdown()
@@ -393,7 +401,8 @@ export default function TabCotacao() {
       }
     } catch (err) {
       console.error('[TabCotacao] submit error:', err)
-      toast('error', 'Erro ao enviar. Tente novamente.')
+      const msg = err instanceof Error ? err.message : 'Erro ao enviar. Tente novamente.'
+      toast('error', msg)
     } finally {
       setIsLoading(false)
     }
