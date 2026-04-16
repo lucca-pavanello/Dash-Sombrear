@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAddLocalizacao, useUpdateLocalizacao } from '@/hooks/useEstoqueLocalizacoes'
 import { NIVEIS_ACESSO } from '@/lib/constants'
@@ -247,9 +247,9 @@ export default function NovaLocalizacaoForm({ open, onClose, toast, editando }: 
             type="button"
             onClick={handleSubmit}
             disabled={isPending}
-            className="rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
-            {isPending ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Cadastrar Localização'}
+            {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</> : isEditing ? 'Salvar Alterações' : 'Cadastrar Localização'}
           </button>
         </div>
       </div>

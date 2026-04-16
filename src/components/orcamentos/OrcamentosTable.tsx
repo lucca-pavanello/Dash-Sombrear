@@ -265,7 +265,8 @@ interface Props {
   totalCount?: number
 }
 
-const ORC_COLS_KEY = 'sombrear-orcamentos-cols'
+const ORC_COLS_KEY  = 'sombrear-orcamentos-cols'
+const ORC_SORT_KEY  = 'sombrear-orcamentos-sort'
 
 type ColId = 'num' | 'data' | 'cliente' | 'responsavel' | 'ambiente' | 'modelo' | 'tecido' | 'qtd' | 'valor' | 'margem' | 'status' | 'fechado'
 
@@ -299,7 +300,12 @@ function loadColVis(): Record<ColId, boolean> {
 
 export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, filterKey, totalCount }: Props) {
   const [editing, setEditing] = useState<Orcamento | null>(null)
-  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' })
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>(() => {
+    try {
+      const s = localStorage.getItem(ORC_SORT_KEY)
+      return s ? JSON.parse(s) : { key: 'created_at', dir: 'desc' }
+    } catch { return { key: 'created_at', dir: 'desc' } }
+  })
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null)
   const [colVis, setColVis] = useState<Record<ColId, boolean>>(loadColVis)
   const [colsOpen, setColsOpen] = useState(false)
@@ -311,6 +317,11 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     try { localStorage.setItem(ORC_COLS_KEY, JSON.stringify(colVis)) }
     catch { /* noop */ }
   }, [colVis])
+
+  useEffect(() => {
+    try { localStorage.setItem(ORC_SORT_KEY, JSON.stringify(sort)) }
+    catch { /* noop */ }
+  }, [sort])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

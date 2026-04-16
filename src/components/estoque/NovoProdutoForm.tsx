@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Check } from 'lucide-react'
+import { X, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueCategorias } from '@/hooks/useEstoqueCategorias'
 import { useEstoqueLocalizacoes } from '@/hooks/useEstoqueLocalizacoes'
@@ -393,9 +393,9 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
               type="button"
               onClick={handleSubmit}
               disabled={isPending}
-              className="rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+              className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
             >
-              {isPending ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Cadastrar Produto'}
+              {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</> : isEditing ? 'Salvar Alterações' : 'Cadastrar Produto'}
             </button>
           )}
         </div>

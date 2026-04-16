@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Pencil, Truck, Clock, Filter, Tag, Download } from 'lucide-react'
+import { Search, Plus, Pencil, Truck, Clock, Filter, Tag, Download, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { exportCsv, exportXlsx } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 import { useEstoqueFornecedores, useUpdateFornecedor } from '@/hooks/useEstoqueFornecedores'
@@ -32,6 +32,9 @@ function loadFornecedorFilters() {
   try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
 }
 
+const SORT_KEY_F = 'sombrear-estoque-fornecedores-sort'
+type SortKeyF = 'nome' | 'prazo_entrega_dias'
+
 export default function FornecedoresTable({ toast }: Props) {
   const [search, setSearch] = useState(() => { try { return localStorage.getItem(FILTER_KEY + '-search') ?? '' } catch { return '' } })
   const [filtros, setFiltros] = useState<Record<string, unknown>>(loadFornecedorFilters)
@@ -40,6 +43,12 @@ export default function FornecedoresTable({ toast }: Props) {
   const [formOpen, setFormOpen] = useState(false)
   const [editando, setEditando] = useState<EstoqueFornecedor | null>(null)
   const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<{ key: SortKeyF; dir: 'asc' | 'desc' }>(() => {
+    try {
+      const s = localStorage.getItem(SORT_KEY_F)
+      return s ? JSON.parse(s) : { key: 'nome', dir: 'asc' }
+    } catch { return { key: 'nome', dir: 'asc' } }
+  })
 
   const { data: fornecedores = [], isLoading } = useEstoqueFornecedores({ includeInactive: mostrarInativos })
   const { data: categoriasMap = {} } = useAllFornecedorCategorias()
@@ -47,6 +56,11 @@ export default function FornecedoresTable({ toast }: Props) {
   const updateMutation = useUpdateFornecedor()
 
   useEffect(() => { setPage(1) }, [search, filtros])
+
+  useEffect(() => {
+    try { localStorage.setItem(SORT_KEY_F, JSON.stringify(sort)) }
+    catch { /* noop */ }
+  }, [sort])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -75,8 +89,26 @@ export default function FornecedoresTable({ toast }: Props) {
       })
   }, [fornecedores, search, filtros])
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const sorted = useMemo(() => [...filtered].sort((a, b) => {
+    const dir = sort.dir === 'asc' ? 1 : -1
+    if (sort.key === 'nome') return a.nome.localeCompare(b.nome, 'pt-BR') * dir
+    return ((a.prazo_entrega_dias ?? -Infinity) - (b.prazo_entrega_dias ?? -Infinity)) * dir
+  }), [filtered, sort])
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
+  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function toggleSort(k: SortKeyF) {
+    setSort(s => s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: 'asc' })
+    setPage(1)
+  }
+
+  function sortIcon(k: SortKeyF) {
+    if (sort.key !== k) return <ChevronsUpDown className="h-3 w-3 opacity-40" />
+    return sort.dir === 'asc'
+      ? <ChevronUp className="h-3 w-3 text-primary" />
+      : <ChevronDown className="h-3 w-3 text-primary" />
+  }
 
   function getExportRows() {
     return filtered.map(f => ({
@@ -186,15 +218,28 @@ export default function FornecedoresTable({ toast }: Props) {
           <table className="w-full text-sm" style={{ minWidth: '720px' }}>
             <thead>
               <tr className={tbl.theadRow}>
-                <th className={tbl.th}>Fornecedor / Contato</th>
+                <th
+                  onClick={() => toggleSort('nome')}
+                  className={cn(tbl.th, 'cursor-pointer select-none hover:bg-muted/40 transition-colors')}
+                  title="Ordenar por nome"
+                >
+                  <span className="flex items-center gap-1">Fornecedor / Contato {sortIcon('nome')}</span>
+                </th>
                 <th className={tbl.th}>Telefone</th>
                 <th className={tbl.th}>CNPJ</th>
                 <th
                   className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group')}
                   onClick={e => toggleFilter('prazo_entrega', e)}
                 >
-                  <div className="flex items-center justify-between gap-1.5 w-full">
-                    <span>Prazo entrega</span>
+                  <div className="flex items-center justify-between gap-0.5 w-full">
+                    <span className="flex-1 text-left">Prazo entrega</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSort('prazo_entrega_dias') }}
+                      className="shrink-0 rounded p-0.5 hover:bg-primary/10 transition-colors"
+                      title="Ordenar por prazo"
+                    >
+                      {sortIcon('prazo_entrega_dias')}
+                    </button>
                     <Filter className={cn('h-3 w-3 shrink-0 transition-colors',
                       isFilterActive('range', filtros['prazo_entrega'])
                         ? 'text-primary fill-primary/30'
@@ -321,11 +366,11 @@ export default function FornecedoresTable({ toast }: Props) {
                   <td colSpan={6} className={tbl.tfootCell}>
                     <div className="flex items-center justify-between gap-4">
                       <span>
-                        {filtered.length > PAGE_SIZE
-                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}{filtered.length < fornecedores.length ? <> <span className="text-muted-foreground/50">(de {fornecedores.length} total)</span></> : null}</>
-                          : filtered.length < fornecedores.length
-                            ? <>{filtered.length} <span className="text-muted-foreground/50">de {fornecedores.length}</span> fornecedor{filtered.length !== 1 ? 'es' : ''}</>
-                            : <>Total — {filtered.length} fornecedor{filtered.length !== 1 ? 'es' : ''}</>
+                        {sorted.length > PAGE_SIZE
+                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} de {sorted.length} fornecedor{sorted.length !== 1 ? 'es' : ''}{sorted.length < fornecedores.length ? <> <span className="text-muted-foreground/50">(de {fornecedores.length} total)</span></> : null}</>
+                          : sorted.length < fornecedores.length
+                            ? <>{sorted.length} <span className="text-muted-foreground/50">de {fornecedores.length}</span> fornecedor{sorted.length !== 1 ? 'es' : ''}</>
+                            : <>Total — {sorted.length} fornecedor{sorted.length !== 1 ? 'es' : ''}</>
                         }
                       </span>
                       {totalPages > 1 && (

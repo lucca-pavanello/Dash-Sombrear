@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Search, X, Plus, Pencil, PackageX, TrendingUp, Package, Filter, Download } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Search, X, Plus, Pencil, PackageX, TrendingUp, Package, Filter, Download, ChevronUp, ChevronDown, ChevronsUpDown, Columns } from 'lucide-react'
 import { exportCsv, exportXlsx } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils'
@@ -114,11 +114,44 @@ function applyFilter(key: string, p: EstoqueProduto, state: unknown): boolean {
   return true
 }
 
+// ─── Pagination ───────────────────────────────────────────────────────────────
 const PAGE_SIZE = 50
 
+// ─── Filter persistence ───────────────────────────────────────────────────────
 const FILTER_KEY = 'sombrear-estoque-produtos-filtros'
 function loadProdutoFilters() {
   try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
+}
+
+// ─── Sort persistence ─────────────────────────────────────────────────────────
+const SORT_KEY_P = 'sombrear-estoque-produtos-sort'
+type SortKeyP = 'nome' | 'quantidade_atual' | 'custo_unitario' | 'preco_venda' | 'classificacao_abc'
+
+// ─── Column visibility ────────────────────────────────────────────────────────
+const PROD_COLS_KEY = 'sombrear-estoque-produtos-cols'
+const COL_DEFAULTS_P = {
+  localizacao: true,
+  custo: true,
+  preco: true,
+  abc: true,
+  cobertura: false,
+  margem: false,
+}
+type ColIdP = keyof typeof COL_DEFAULTS_P
+const COL_LABELS_P: Record<ColIdP, string> = {
+  localizacao: 'Localização',
+  custo: 'Custo Médio',
+  preco: 'Preço Venda',
+  abc: 'ABC',
+  cobertura: 'Cobertura',
+  margem: 'Margem',
+}
+
+function loadColVisP(): typeof COL_DEFAULTS_P {
+  try {
+    const s = localStorage.getItem(PROD_COLS_KEY)
+    return s ? { ...COL_DEFAULTS_P, ...JSON.parse(s) } : { ...COL_DEFAULTS_P }
+  } catch { return { ...COL_DEFAULTS_P } }
 }
 
 export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, onMovimentar }: Props) {
@@ -127,6 +160,15 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   const [openFilter, setOpenFilter] = useState<{ key: string; rect: DOMRect } | null>(null)
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<{ key: SortKeyP; dir: 'asc' | 'desc' }>(() => {
+    try {
+      const s = localStorage.getItem(SORT_KEY_P)
+      return s ? JSON.parse(s) : { key: 'nome', dir: 'asc' }
+    } catch { return { key: 'nome', dir: 'asc' } }
+  })
+  const [colVis, setColVis] = useState<typeof COL_DEFAULTS_P>(loadColVisP)
+  const [colMenuOpen, setColMenuOpen] = useState(false)
+  const colMenuRef = useRef<HTMLDivElement>(null)
 
   const { data: produtos = [], isLoading } = useEstoqueProdutos({ includeInactive: mostrarInativos })
   const { data: localizacoes = [] } = useEstoqueLocalizacoes()
@@ -141,6 +183,26 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   }, [filtros, search])
 
   useEffect(() => { setPage(1) }, [search, filtros])
+
+  useEffect(() => {
+    try { localStorage.setItem(SORT_KEY_P, JSON.stringify(sort)) }
+    catch { /* noop */ }
+  }, [sort])
+
+  useEffect(() => {
+    try { localStorage.setItem(PROD_COLS_KEY, JSON.stringify(colVis)) }
+    catch { /* noop */ }
+  }, [colVis])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) {
+        setColMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   const coberturaMap = useMemo(() => {
     const m = new Map<string, CoberturaMargemRow>()
@@ -179,11 +241,30 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
     })
   }, [produtos, search, filtros])
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const sorted = useMemo(() => [...filtered].sort((a, b) => {
+    const dir = sort.dir === 'asc' ? 1 : -1
+    switch (sort.key) {
+      case 'nome':
+        return a.nome.localeCompare(b.nome, 'pt-BR') * dir
+      case 'quantidade_atual':
+        return (a.quantidade_atual - b.quantidade_atual) * dir
+      case 'custo_unitario':
+        return ((a.custo_unitario ?? -Infinity) - (b.custo_unitario ?? -Infinity)) * dir
+      case 'preco_venda':
+        return ((a.preco_venda ?? -Infinity) - (b.preco_venda ?? -Infinity)) * dir
+      case 'classificacao_abc': {
+        const ord: Record<string, number> = { A: 0, B: 1, C: 2, sem_dados: 3 }
+        return ((ord[a.classificacao_abc ?? 'sem_dados'] ?? 3) - (ord[b.classificacao_abc ?? 'sem_dados'] ?? 3)) * dir
+      }
+      default: return 0
+    }
+  }), [filtered, sort])
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
+  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   function getExportRows() {
-    return filtered.map(p => ({
+    return sorted.map(p => ({
       'Nome': p.nome,
       'SKU': p.codigo ?? '',
       'Categoria': p.estoque_categorias?.nome ?? '',
@@ -219,6 +300,18 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
   function toggleFilter(key: string, e: React.MouseEvent<HTMLTableCellElement>) {
     const rect = e.currentTarget.getBoundingClientRect()
     setOpenFilter(prev => prev?.key === key ? null : { key, rect })
+  }
+
+  function toggleSort(k: SortKeyP) {
+    setSort(s => s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: 'asc' })
+    setPage(1)
+  }
+
+  function sortIcon(k: SortKeyP) {
+    if (sort.key !== k) return <ChevronsUpDown className="h-3 w-3 opacity-40" />
+    return sort.dir === 'asc'
+      ? <ChevronUp className="h-3 w-3 text-primary" />
+      : <ChevronDown className="h-3 w-3 text-primary" />
   }
 
   async function handleDesativar(p: EstoqueProduto) {
@@ -271,16 +364,47 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           <span className="text-sm text-muted-foreground">Mostrar inativos</span>
         </label>
         <div className="flex items-center gap-1">
+          {/* Column visibility */}
+          <div className="relative" ref={colMenuRef}>
+            <button
+              onClick={() => setColMenuOpen(v => !v)}
+              title="Colunas visíveis"
+              className={cn(
+                'flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all',
+                colMenuOpen
+                  ? 'bg-muted text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <Columns className="h-3.5 w-3.5" /> Colunas
+            </button>
+            {colMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 z-20 rounded-xl border bg-popover shadow-lg p-2 flex flex-col gap-0.5 min-w-[160px]">
+                {(Object.keys(COL_DEFAULTS_P) as ColIdP[]).map(id => (
+                  <label key={id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-muted cursor-pointer text-xs select-none">
+                    <input
+                      type="checkbox"
+                      checked={colVis[id]}
+                      onChange={() => setColVis(v => ({ ...v, [id]: !v[id] }))}
+                      className="rounded"
+                    />
+                    {COL_LABELS_P[id]}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Export */}
           <button onClick={() => exportCsv(`produtos-${Date.now()}.csv`, getExportRows())}
-            disabled={filtered.length === 0}
+            disabled={sorted.length === 0}
             className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
-            title={`Exportar ${filtered.length} produtos como CSV`}>
+            title={`Exportar ${sorted.length} produtos como CSV`}>
             <Download className="h-3.5 w-3.5" /> CSV
           </button>
           <button onClick={() => exportXlsx(`produtos-${Date.now()}.xlsx`, getExportRows())}
-            disabled={filtered.length === 0}
+            disabled={sorted.length === 0}
             className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all disabled:opacity-40"
-            title={`Exportar ${filtered.length} produtos como XLSX`}>
+            title={`Exportar ${sorted.length} produtos como XLSX`}>
             <Download className="h-3.5 w-3.5" /> XLSX
           </button>
         </div>
@@ -306,10 +430,17 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           <table className="w-full text-sm" style={{ minWidth: '960px' }}>
             <thead>
               <tr className={tbl.theadRow}>
-                {/* SKU — sem filtro */}
+                {/* SKU */}
                 <th className={cn(tbl.th, 'pl-6')}>SKU</th>
-                {/* Nome — sem filtro */}
-                <th className={tbl.th}>Nome</th>
+
+                {/* Nome — sortable */}
+                <th
+                  onClick={() => toggleSort('nome')}
+                  className={cn(tbl.th, 'cursor-pointer select-none hover:bg-muted/40 transition-colors')}
+                  title="Ordenar por nome"
+                >
+                  <span className="flex items-center gap-1">Nome {sortIcon('nome')}</span>
+                </th>
 
                 {/* Tipo */}
                 <th
@@ -333,71 +464,131 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                     value={filtros['unidade'] ?? []} onChange={(v) => setFiltro('unidade', v)} onClose={() => setOpenFilter(null)} />
                 </th>
 
-                {/* Estoque atual */}
+                {/* Estoque atual — filter + sort */}
                 <th
                   className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group')}
                   onClick={(e) => toggleFilter('estoque_atual', e)}
                 >
-                  <FiltroHeader label="Estoque atual" active={colIsActive('estoque_atual')} />
+                  <div className="flex items-center justify-between gap-0.5 w-full">
+                    <span className="flex-1 text-left">Estoque atual</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSort('quantidade_atual') }}
+                      className="shrink-0 rounded p-0.5 hover:bg-primary/10 transition-colors"
+                      title="Ordenar por estoque"
+                    >
+                      {sortIcon('quantidade_atual')}
+                    </button>
+                    <Filter className={cn('h-3 w-3 shrink-0 transition-colors',
+                      colIsActive('estoque_atual') ? 'text-primary fill-primary/30' : 'text-muted-foreground/30 group-hover:text-muted-foreground/60'
+                    )} />
+                  </div>
                   <FilterPopover open={openFilter?.key === 'estoque_atual'} anchorRect={openFilter?.key === 'estoque_atual' ? openFilter.rect : null}
                     label="Estoque atual" filterType="range"
                     rangeOpts={{ showApenasZerados: true, apenasZeradosLabel: 'Apenas valor zero' }}
                     value={filtros['estoque_atual'] ?? {}} onChange={(v) => setFiltro('estoque_atual', v)} onClose={() => setOpenFilter(null)} />
                 </th>
 
-                {/* Localização */}
-                <th
-                  className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden lg:table-cell')}
-                  onClick={(e) => toggleFilter('localizacao', e)}
-                >
-                  <FiltroHeader label="Localização" active={colIsActive('localizacao')} />
-                  <FilterPopover open={openFilter?.key === 'localizacao'} anchorRect={openFilter?.key === 'localizacao' ? openFilter.rect : null}
-                    label="Localização" filterType="multi" options={localizacaoOptions}
-                    value={filtros['localizacao'] ?? []} onChange={(v) => setFiltro('localizacao', v)} onClose={() => setOpenFilter(null)} />
-                </th>
+                {/* Localização — optional + filter */}
+                {colVis.localizacao && (
+                  <th
+                    className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden lg:table-cell')}
+                    onClick={(e) => toggleFilter('localizacao', e)}
+                  >
+                    <FiltroHeader label="Localização" active={colIsActive('localizacao')} />
+                    <FilterPopover open={openFilter?.key === 'localizacao'} anchorRect={openFilter?.key === 'localizacao' ? openFilter.rect : null}
+                      label="Localização" filterType="multi" options={localizacaoOptions}
+                      value={filtros['localizacao'] ?? []} onChange={(v) => setFiltro('localizacao', v)} onClose={() => setOpenFilter(null)} />
+                  </th>
+                )}
 
-                {/* Custo médio */}
-                <th
-                  className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden xl:table-cell')}
-                  onClick={(e) => toggleFilter('custo_medio', e)}
-                >
-                  <FiltroHeader label="Custo médio" active={colIsActive('custo_medio')} />
-                  <FilterPopover open={openFilter?.key === 'custo_medio'} anchorRect={openFilter?.key === 'custo_medio' ? openFilter.rect : null}
-                    label="Custo médio" hint="Custo Médio Ponderado — atualizado a cada nova entrada." filterType="range"
-                    rangeOpts={{ showIncluirVazios: true, incluirVaziosLabel: 'Incluir sem custo definido' }}
-                    value={filtros['custo_medio'] ?? {}} onChange={(v) => setFiltro('custo_medio', v)} onClose={() => setOpenFilter(null)} />
-                </th>
+                {/* Custo médio — optional + filter + sort */}
+                {colVis.custo && (
+                  <th
+                    className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden xl:table-cell')}
+                    onClick={(e) => toggleFilter('custo_medio', e)}
+                  >
+                    <div className="flex items-center justify-between gap-0.5 w-full">
+                      <span className="flex-1 text-left">Custo médio</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSort('custo_unitario') }}
+                        className="shrink-0 rounded p-0.5 hover:bg-primary/10 transition-colors"
+                        title="Ordenar por custo"
+                      >
+                        {sortIcon('custo_unitario')}
+                      </button>
+                      <Filter className={cn('h-3 w-3 shrink-0 transition-colors',
+                        colIsActive('custo_medio') ? 'text-primary fill-primary/30' : 'text-muted-foreground/30 group-hover:text-muted-foreground/60'
+                      )} />
+                    </div>
+                    <FilterPopover open={openFilter?.key === 'custo_medio'} anchorRect={openFilter?.key === 'custo_medio' ? openFilter.rect : null}
+                      label="Custo médio" hint="Custo Médio Ponderado — atualizado a cada nova entrada." filterType="range"
+                      rangeOpts={{ showIncluirVazios: true, incluirVaziosLabel: 'Incluir sem custo definido' }}
+                      value={filtros['custo_medio'] ?? {}} onChange={(v) => setFiltro('custo_medio', v)} onClose={() => setOpenFilter(null)} />
+                  </th>
+                )}
 
-                {/* Preço venda */}
-                <th
-                  className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden xl:table-cell')}
-                  onClick={(e) => toggleFilter('preco_venda', e)}
-                >
-                  <FiltroHeader label="Preço venda" active={colIsActive('preco_venda')} />
-                  <FilterPopover open={openFilter?.key === 'preco_venda'} anchorRect={openFilter?.key === 'preco_venda' ? openFilter.rect : null}
-                    label="Preço venda" filterType="range"
-                    rangeOpts={{ showIncluirVazios: true, incluirVaziosLabel: 'Incluir sem preço definido' }}
-                    value={filtros['preco_venda'] ?? {}} onChange={(v) => setFiltro('preco_venda', v)} onClose={() => setOpenFilter(null)} />
-                </th>
+                {/* Preço venda — optional + filter + sort */}
+                {colVis.preco && (
+                  <th
+                    className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden xl:table-cell')}
+                    onClick={(e) => toggleFilter('preco_venda', e)}
+                  >
+                    <div className="flex items-center justify-between gap-0.5 w-full">
+                      <span className="flex-1 text-left">Preço venda</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSort('preco_venda') }}
+                        className="shrink-0 rounded p-0.5 hover:bg-primary/10 transition-colors"
+                        title="Ordenar por preço"
+                      >
+                        {sortIcon('preco_venda')}
+                      </button>
+                      <Filter className={cn('h-3 w-3 shrink-0 transition-colors',
+                        colIsActive('preco_venda') ? 'text-primary fill-primary/30' : 'text-muted-foreground/30 group-hover:text-muted-foreground/60'
+                      )} />
+                    </div>
+                    <FilterPopover open={openFilter?.key === 'preco_venda'} anchorRect={openFilter?.key === 'preco_venda' ? openFilter.rect : null}
+                      label="Preço venda" filterType="range"
+                      rangeOpts={{ showIncluirVazios: true, incluirVaziosLabel: 'Incluir sem preço definido' }}
+                      value={filtros['preco_venda'] ?? {}} onChange={(v) => setFiltro('preco_venda', v)} onClose={() => setOpenFilter(null)} />
+                  </th>
+                )}
 
-                {/* ABC */}
-                <th
-                  className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden sm:table-cell')}
-                  onClick={(e) => toggleFilter('abc', e)}
-                >
-                  <FiltroHeader label="ABC" active={colIsActive('abc')} />
-                  <FilterPopover open={openFilter?.key === 'abc'} anchorRect={openFilter?.key === 'abc' ? openFilter.rect : null}
-                    label="ABC" hint="Classificação de Pareto — A=80% da receita, B=15%, C=5%." filterType="multi" options={ABC_OPTIONS}
-                    value={filtros['abc'] ?? []} onChange={(v) => setFiltro('abc', v)} onClose={() => setOpenFilter(null)} />
-                </th>
+                {/* ABC — optional + filter + sort */}
+                {colVis.abc && (
+                  <th
+                    className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group hidden sm:table-cell')}
+                    onClick={(e) => toggleFilter('abc', e)}
+                  >
+                    <div className="flex items-center justify-between gap-0.5 w-full">
+                      <span className="flex-1 text-left">ABC</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSort('classificacao_abc') }}
+                        className="shrink-0 rounded p-0.5 hover:bg-primary/10 transition-colors"
+                        title="Ordenar por classe ABC"
+                      >
+                        {sortIcon('classificacao_abc')}
+                      </button>
+                      <Filter className={cn('h-3 w-3 shrink-0 transition-colors',
+                        colIsActive('abc') ? 'text-primary fill-primary/30' : 'text-muted-foreground/30 group-hover:text-muted-foreground/60'
+                      )} />
+                    </div>
+                    <FilterPopover open={openFilter?.key === 'abc'} anchorRect={openFilter?.key === 'abc' ? openFilter.rect : null}
+                      label="ABC" hint="Classificação de Pareto — A=80% da receita, B=15%, C=5%." filterType="multi" options={ABC_OPTIONS}
+                      value={filtros['abc'] ?? []} onChange={(v) => setFiltro('abc', v)} onClose={() => setOpenFilter(null)} />
+                  </th>
+                )}
 
-                {/* Cobertura (dias) */}
-                <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Cobertura</th>
+                {/* Cobertura — optional */}
+                {colVis.cobertura && (
+                  <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Cobertura</th>
+                )}
 
-                {/* Margem % */}
-                <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Margem</th>
+                {/* Margem — optional */}
+                {colVis.margem && (
+                  <th className={cn(tbl.th, 'text-center hidden xl:table-cell')}>Margem</th>
+                )}
 
-                {/* Ações — sem filtro */}
+                {/* Ações */}
                 <th className={cn(tbl.th, 'pr-6 border-r-0')}>Ações</th>
               </tr>
             </thead>
@@ -456,38 +647,46 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                         {p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                         <span className="ml-1 text-xs font-normal text-muted-foreground/60">{p.unidade}</span>
                       </td>
-                      <td className={cn(tbl.td, 'font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap')}>
-                        {p.localizacao?.codigo ?? <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
-                        {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground/60">—</span>}
-                      </td>
-                      <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
-                        {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground/60">—</span>}
-                      </td>
-                      <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
-                        {abc === 'sem_dados' ? '—' : abc}
-                      </td>
-                      {/* Cobertura em dias */}
-                      <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
-                        {(() => {
-                          const dias = coberturaMap.get(p.id)?.cobertura_dias ?? null
-                          return dias !== null
-                            ? <span className="tabular-nums">{dias.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}<span className="ml-1 text-xs text-muted-foreground/60">d</span></span>
-                            : <span className="text-muted-foreground/40">—</span>
-                        })()}
-                      </td>
-
-                      {/* Margem de contribuição */}
-                      <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
-                        {(() => {
-                          const margem = coberturaMap.get(p.id)?.margem_percentual ?? null
-                          if (margem === null) return <span className="text-muted-foreground/40">—</span>
-                          const cor = margem < 0 ? 'text-red-600' : margem < 20 ? 'text-amber-600' : 'text-green-700 dark:text-green-400'
-                          return <span className={cn('tabular-nums font-medium', cor)}>{margem.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
-                        })()}
-                      </td>
-
+                      {colVis.localizacao && (
+                        <td className={cn(tbl.td, 'font-mono text-xs text-muted-foreground hidden lg:table-cell whitespace-nowrap')}>
+                          {p.localizacao?.codigo ?? <span className="text-muted-foreground/40">—</span>}
+                        </td>
+                      )}
+                      {colVis.custo && (
+                        <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
+                          {p.custo_unitario != null ? formatCurrency(p.custo_unitario) : <span className="text-muted-foreground/60">—</span>}
+                        </td>
+                      )}
+                      {colVis.preco && (
+                        <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
+                          {p.preco_venda != null ? formatCurrency(p.preco_venda) : <span className="text-muted-foreground/60">—</span>}
+                        </td>
+                      )}
+                      {colVis.abc && (
+                        <td className={cn(tbl.td, 'text-center hidden sm:table-cell')}>
+                          {abc === 'sem_dados' ? '—' : abc}
+                        </td>
+                      )}
+                      {colVis.cobertura && (
+                        <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
+                          {(() => {
+                            const dias = coberturaMap.get(p.id)?.cobertura_dias ?? null
+                            return dias !== null
+                              ? <span className="tabular-nums">{dias.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}<span className="ml-1 text-xs text-muted-foreground/60">d</span></span>
+                              : <span className="text-muted-foreground/40">—</span>
+                          })()}
+                        </td>
+                      )}
+                      {colVis.margem && (
+                        <td className={cn(tbl.td, 'text-center whitespace-nowrap hidden xl:table-cell')}>
+                          {(() => {
+                            const margem = coberturaMap.get(p.id)?.margem_percentual ?? null
+                            if (margem === null) return <span className="text-muted-foreground/40">—</span>
+                            const cor = margem < 0 ? 'text-red-600' : margem < 20 ? 'text-amber-600' : 'text-green-700 dark:text-green-400'
+                            return <span className={cn('tabular-nums font-medium', cor)}>{margem.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
+                          })()}
+                        </td>
+                      )}
                       <td className={cn(tbl.actionTd, 'pr-6')}>
                         <div className={cn(tbl.actionGroup, 'justify-center')}>
                           <ActionBtn icon={<TrendingUp className="h-4 w-4" />} label="Registrar entrada"
@@ -511,11 +710,11 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
                   <td colSpan={12} className={cn(tbl.tfootCell, 'pl-6')}>
                     <div className="flex items-center justify-between gap-4">
                       <span>
-                        {filtered.length > PAGE_SIZE
-                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} produto{filtered.length !== 1 ? 's' : ''}{filtered.length < produtos.length ? <> <span className="text-muted-foreground/50">(de {produtos.length} total)</span></> : null}</>
-                          : filtered.length < produtos.length
-                            ? <>{filtered.length} <span className="text-muted-foreground/50">de {produtos.length}</span> produto{filtered.length !== 1 ? 's' : ''}</>
-                            : <>Total — {filtered.length} produto{filtered.length !== 1 ? 's' : ''}</>
+                        {sorted.length > PAGE_SIZE
+                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} de {sorted.length} produto{sorted.length !== 1 ? 's' : ''}{sorted.length < produtos.length ? <> <span className="text-muted-foreground/50">(de {produtos.length} total)</span></> : null}</>
+                          : sorted.length < produtos.length
+                            ? <>{sorted.length} <span className="text-muted-foreground/50">de {produtos.length}</span> produto{sorted.length !== 1 ? 's' : ''}</>
+                            : <>Total — {sorted.length} produto{sorted.length !== 1 ? 's' : ''}</>
                         }
                       </span>
                       {totalPages > 1 && (

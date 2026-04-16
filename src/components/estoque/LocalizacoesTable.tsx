@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Pencil, MapPin, Filter, Download } from 'lucide-react'
+import { Search, Plus, Pencil, MapPin, Filter, Download, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { exportCsv, exportXlsx } from '@/lib/exportUtils'
 import { cn } from '@/lib/utils'
 import { useEstoqueLocalizacoes, useUpdateLocalizacao } from '@/hooks/useEstoqueLocalizacoes'
@@ -49,6 +49,9 @@ function loadLocalizacaoFilters() {
   try { const s = localStorage.getItem(FILTER_KEY); return s ? JSON.parse(s) : {} } catch { return {} }
 }
 
+const SORT_KEY_L = 'sombrear-estoque-localizacoes-sort'
+type SortKeyL = 'codigo' | 'setor'
+
 export default function LocalizacoesTable({ toast }: Props) {
   const [search, setSearch] = useState(() => { try { return localStorage.getItem(FILTER_KEY + '-search') ?? '' } catch { return '' } })
   const [filtros, setFiltros] = useState<Record<string, unknown>>(loadLocalizacaoFilters)
@@ -57,6 +60,12 @@ export default function LocalizacoesTable({ toast }: Props) {
   const [formOpen, setFormOpen] = useState(false)
   const [editando, setEditando] = useState<EstoqueLocalizacao | null>(null)
   const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<{ key: SortKeyL; dir: 'asc' | 'desc' }>(() => {
+    try {
+      const s = localStorage.getItem(SORT_KEY_L)
+      return s ? JSON.parse(s) : { key: 'codigo', dir: 'asc' }
+    } catch { return { key: 'codigo', dir: 'asc' } }
+  })
 
   const { data: localizacoes = [], isLoading } = useEstoqueLocalizacoes({ includeInactive: mostrarInativas })
   const updateMutation = useUpdateLocalizacao()
@@ -75,6 +84,11 @@ export default function LocalizacoesTable({ toast }: Props) {
   }, [localizacoes])
 
   useEffect(() => { setPage(1) }, [search, filtros])
+
+  useEffect(() => {
+    try { localStorage.setItem(SORT_KEY_L, JSON.stringify(sort)) }
+    catch { /* noop */ }
+  }, [sort])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -117,8 +131,26 @@ export default function LocalizacoesTable({ toast }: Props) {
       })
   }, [localizacoes, search, filtros])
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const sorted = useMemo(() => [...filtered].sort((a, b) => {
+    const dir = sort.dir === 'asc' ? 1 : -1
+    if (sort.key === 'codigo') return a.codigo.localeCompare(b.codigo, 'pt-BR') * dir
+    return a.setor.localeCompare(b.setor, 'pt-BR') * dir
+  }), [filtered, sort])
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
+  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function toggleSort(k: SortKeyL) {
+    setSort(s => s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: 'asc' })
+    setPage(1)
+  }
+
+  function sortIcon(k: SortKeyL) {
+    if (sort.key !== k) return <ChevronsUpDown className="h-3 w-3 opacity-40" />
+    return sort.dir === 'asc'
+      ? <ChevronUp className="h-3 w-3 text-primary" />
+      : <ChevronDown className="h-3 w-3 text-primary" />
+  }
 
   function getExportRows() {
     return filtered.map(l => ({
@@ -236,15 +268,33 @@ export default function LocalizacoesTable({ toast }: Props) {
           <table className="w-full text-sm" style={{ minWidth: '700px' }}>
             <thead>
               <tr className={tbl.theadRow}>
-                {/* Código — sem filtro */}
-                <th className={tbl.th}>Código</th>
+                {/* Código — sortable */}
+                <th
+                  onClick={() => toggleSort('codigo')}
+                  className={cn(tbl.th, 'cursor-pointer select-none hover:bg-muted/40 transition-colors')}
+                  title="Ordenar por código"
+                >
+                  <span className="flex items-center gap-1">Código {sortIcon('codigo')}</span>
+                </th>
 
-                {/* Setor */}
+                {/* Setor — filter + sort */}
                 <th
                   className={cn(tbl.th, 'cursor-pointer hover:bg-muted/60 select-none group')}
                   onClick={e => toggleFilter('setor', e)}
                 >
-                  <FiltroHeader label="Setor" active={isFilterActive('multi', filtros['setor'])} />
+                  <div className="flex items-center justify-between gap-0.5 w-full">
+                    <span className="flex-1 text-left">Setor</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSort('setor') }}
+                      className="shrink-0 rounded p-0.5 hover:bg-primary/10 transition-colors"
+                      title="Ordenar por setor"
+                    >
+                      {sortIcon('setor')}
+                    </button>
+                    <Filter className={cn('h-3 w-3 shrink-0 transition-colors',
+                      isFilterActive('multi', filtros['setor']) ? 'text-primary fill-primary/30' : 'text-muted-foreground/30 group-hover:text-muted-foreground/60'
+                    )} />
+                  </div>
                   <FilterPopover open={openFilter?.key === 'setor'} anchorRect={openFilter?.key === 'setor' ? openFilter.rect : null}
                     label="Setor" filterType="multi" options={setorOptions}
                     value={filtros['setor'] ?? []} onChange={v => setFiltro('setor', v)} onClose={() => setOpenFilter(null)} />
@@ -357,11 +407,11 @@ export default function LocalizacoesTable({ toast }: Props) {
                   <td colSpan={7} className={tbl.tfootCell}>
                     <div className="flex items-center justify-between gap-4">
                       <span>
-                        {filtered.length > PAGE_SIZE
-                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} {filtered.length !== 1 ? 'localizações' : 'localização'}{filtered.length < localizacoes.length ? <> <span className="text-muted-foreground/50">(de {localizacoes.length} total)</span></> : null}</>
-                          : filtered.length < localizacoes.length
-                            ? <>{filtered.length} <span className="text-muted-foreground/50">de {localizacoes.length}</span> {filtered.length === 1 ? 'localização' : 'localizações'}</>
-                            : <>Total — {filtered.length} {filtered.length === 1 ? 'localização' : 'localizações'}</>
+                        {sorted.length > PAGE_SIZE
+                          ? <>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} de {sorted.length} {sorted.length !== 1 ? 'localizações' : 'localização'}{sorted.length < localizacoes.length ? <> <span className="text-muted-foreground/50">(de {localizacoes.length} total)</span></> : null}</>
+                          : sorted.length < localizacoes.length
+                            ? <>{sorted.length} <span className="text-muted-foreground/50">de {localizacoes.length}</span> {sorted.length === 1 ? 'localização' : 'localizações'}</>
+                            : <>Total — {sorted.length} {sorted.length === 1 ? 'localização' : 'localizações'}</>
                         }
                       </span>
                       {totalPages > 1 && (

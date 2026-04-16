@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, TrendingUp, TrendingDown, RefreshCw, AlertOctagon } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, RefreshCw, AlertOctagon, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { useRegistrarMovimentacao } from '@/hooks/useEstoqueMovimentacoes'
@@ -280,9 +280,9 @@ export default function NovaMovimentacaoForm({
             type="button"
             onClick={handleSubmit}
             disabled={registrar.isPending}
-            className="rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
-            {registrar.isPending ? 'Registrando...' : `Registrar ${tipoConfig.label}`}
+            {registrar.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</> : `Registrar ${tipoConfig.label}`}
           </button>
         </div>
       </div>
