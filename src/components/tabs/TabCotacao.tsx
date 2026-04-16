@@ -1017,17 +1017,16 @@ function ResetBanner({ countdown, onCancel }: { countdown: number; onCancel: () 
   )
 }
 
-function SubmitButton({ isLoading, isSuccess, isValid }: { isLoading: boolean; isSuccess: boolean; isValid: boolean }) {
+function SubmitButton({ isLoading, isSuccess }: { isLoading: boolean; isSuccess: boolean; isValid: boolean }) {
   return (
     <button
       type="submit"
-      disabled={isLoading || isSuccess || !isValid}
+      disabled={isLoading || isSuccess}
       className={cn(
         'w-full flex items-center justify-center gap-2.5 rounded-xl px-4 py-4 text-sm font-bold text-white transition-all duration-200 touch-manipulation',
         isSuccess ? 'bg-emerald-500 cursor-default'
           : isLoading ? 'bg-primary/70 cursor-not-allowed'
-          : isValid ? 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98]'
-          : 'bg-brand-gradient shadow-brand opacity-50 cursor-not-allowed',
+          : 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98]',
       )}
     >
       {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
