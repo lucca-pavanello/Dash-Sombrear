@@ -49,7 +49,7 @@ export default function EntradasHistoricoTable() {
         <p className="text-xs text-muted-foreground mt-0.5">Últimas 50 entradas registradas</p>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[70vh]">
         <table className="w-full" style={{ minWidth: '700px' }}>
           <thead>
             <tr className={tbl.theadRow}>

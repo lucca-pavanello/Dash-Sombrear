@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEstoqueProdutos, useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
 import { useProfile } from '@/hooks/useProfile'
@@ -40,9 +40,23 @@ interface Props {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
+const SUBTAB_ORDER = ['visao-geral', 'entradas', 'vendas', 'produtos', 'fornecedores', 'localizacoes', 'analises', 'acoes', 'configuracao', 'lead-time', 'mover', 'sugestao', 'ponto-pedido']
+
 export default function TabEstoque({ toast, subTab }: Props) {
   const navigate = useNavigate()
   function goTo(sub: string) { navigate(`/estoque/${sub}`) }
+
+  // Subtab slide direction
+  const prevSubRef = useRef(subTab)
+  const [subDir, setSubDir] = useState<'right' | 'left'>('right')
+  useEffect(() => {
+    const prev = prevSubRef.current
+    if (prev === subTab) return
+    const prevIdx = SUBTAB_ORDER.indexOf(prev)
+    const nextIdx = SUBTAB_ORDER.indexOf(subTab)
+    setSubDir(nextIdx >= prevIdx ? 'right' : 'left')
+    prevSubRef.current = subTab
+  }, [subTab])
 
   // Modal states
   const [novoProdutoOpen, setNovoProdutoOpen] = useState(false)
@@ -78,6 +92,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
 
   return (
     <div className="space-y-5">
+      <div key={subTab} className={subDir === 'right' ? 'tab-active-right' : 'tab-active-left'}>
       {/* ── Drill-down breadcrumb (para lead-time / mover / sugestao) ── */}
       {(subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido') && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -203,6 +218,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
           <ConfiguracaoView toast={toast} />
         </div>
       )}
+      </div>
 
       {/* ── Modais ── */}
       <NovoProdutoForm

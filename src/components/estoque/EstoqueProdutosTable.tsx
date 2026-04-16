@@ -250,7 +250,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
 
       {/* ── Tabela ── */}
       <div className={tbl.container}>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <table className="w-full text-sm" style={{ minWidth: '960px' }}>
             <thead>
               <tr className={tbl.theadRow}>

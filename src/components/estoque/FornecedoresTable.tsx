@@ -135,7 +135,7 @@ export default function FornecedoresTable({ toast }: Props) {
 
       {/* Table */}
       <div className={tbl.container}>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <table className="w-full text-sm" style={{ minWidth: '720px' }}>
             <thead>
               <tr className={tbl.theadRow}>

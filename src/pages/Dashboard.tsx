@@ -466,6 +466,87 @@ export default function Dashboard() {
     )
   }
 
+  function SkeletonForm() {
+    return (
+      <div className="space-y-4">
+        <div className="h-7 w-48 rounded-lg skeleton-shimmer" />
+        {[1,2,3,4].map(i => (
+          <div key={i} className="rounded-xl border bg-card p-4 space-y-3">
+            <div className="h-2.5 w-24 rounded skeleton-shimmer" />
+            <div className="h-10 w-full rounded-lg skeleton-shimmer" />
+          </div>
+        ))}
+        <div className="rounded-xl border bg-card p-5 space-y-3">
+          <div className="h-2.5 w-32 rounded skeleton-shimmer" />
+          <div className="h-8 w-40 rounded-lg skeleton-shimmer" />
+        </div>
+      </div>
+    )
+  }
+
+  function SkeletonTable() {
+    return (
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 border-b px-4 py-3">
+          <div className="h-9 flex-1 max-w-xs rounded-lg skeleton-shimmer" />
+          <div className="h-9 w-32 rounded-xl skeleton-shimmer" />
+        </div>
+        <div className="divide-y divide-border">
+          {[1,2,3,4,5,6,7,8].map(i => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3">
+              <div className="h-3 w-12 rounded skeleton-shimmer shrink-0" />
+              <div className="h-3 flex-1 rounded skeleton-shimmer" />
+              <div className="h-3 w-20 rounded skeleton-shimmer shrink-0" />
+              <div className="h-3 w-16 rounded skeleton-shimmer shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  function SkeletonKPITable() {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard />
+          <SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </div>
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 border-b px-4 py-3">
+            <div className="h-9 flex-1 max-w-xs rounded-lg skeleton-shimmer" />
+            <div className="h-9 w-32 rounded-xl skeleton-shimmer" />
+          </div>
+          <div className="divide-y divide-border">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <div className="h-3 w-12 rounded skeleton-shimmer shrink-0" />
+                <div className="h-3 flex-1 rounded skeleton-shimmer" />
+                <div className="h-3 w-20 rounded skeleton-shimmer shrink-0" />
+                <div className="h-3 w-16 rounded skeleton-shimmer shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function SkeletonCharts() {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border bg-card shadow-sm p-4 h-64 skeleton-shimmer" />
+          <div className="rounded-xl border bg-card shadow-sm p-4 h-64 skeleton-shimmer" />
+        </div>
+        <div className="rounded-xl border bg-card shadow-sm p-4 h-48 skeleton-shimmer" />
+      </div>
+    )
+  }
+
   return (
     <>
     {/* ── Splash Screen ── */}
@@ -835,42 +916,42 @@ export default function Dashboard() {
 
         <div>
           {mountedTabs.has('calcular-orcamento') && (
-            <Suspense fallback={<TabSkeleton />}>
+            <Suspense fallback={<SkeletonForm />}>
               <div className={activeTab === 'calcular-orcamento' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabCotacao />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('planilha') && (
-            <Suspense fallback={<TabSkeleton />}>
+            <Suspense fallback={<SkeletonTable />}>
               <div className={activeTab === 'planilha' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabPlanilha data={focusedOrcamentos} loading={isLoading} toast={toast} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('agente-ia') && (
-            <Suspense fallback={<TabSkeleton />}>
+            <Suspense fallback={<SkeletonKPITable />}>
               <div className={activeTab === 'agente-ia' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabAgenteIA resetKey={tabVersions['agente-ia']} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('orcamentos') && (
-            <Suspense fallback={<TabSkeleton />}>
+            <Suspense fallback={<SkeletonKPITable />}>
               <div className={activeTab === 'orcamentos' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabOrcamentos data={focusedOrcamentos} loading={isLoading} resetKey={tabVersions['orcamentos']} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('calculo-custo') && (
-            <Suspense fallback={<TabSkeleton />}>
+            <Suspense fallback={<SkeletonTable />}>
               <div className={activeTab === 'calculo-custo' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabCalculoCusto isLoading={isLoading} error={isError} toast={toast} />
               </div>
             </Suspense>
           )}
           {mountedTabs.has('analises') && (
-            <Suspense fallback={<TabSkeleton />}>
+            <Suspense fallback={<SkeletonCharts />}>
               <div className={activeTab === 'analises' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabAnalises data={focusedOrcamentos} isLoading={isLoading} error={isError} resetKey={tabVersions['analises']} />
               </div>
