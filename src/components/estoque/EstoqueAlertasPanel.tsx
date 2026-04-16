@@ -19,7 +19,7 @@ export default function EstoqueAlertasPanel({ alertas, onMovimentar }: Props) {
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center px-4 py-3 hover:bg-muted/40 transition-colors"
+        className="w-full flex items-center px-5 py-4 hover:bg-muted/40 transition-colors"
       >
         <div className="w-4 shrink-0" />
         <div className="flex-1 flex items-center justify-center gap-2">

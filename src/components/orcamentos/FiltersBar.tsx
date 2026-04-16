@@ -140,15 +140,15 @@ export default function FiltersBar({
       {open && (
         <div className="border-t border-border/50 bg-muted/20 px-4 pb-4 pt-3 flex flex-col gap-3 rounded-b-xl">
           {/* Linha 1: Período */}
-          <div className="flex gap-0.5 rounded-lg bg-card border border-border p-1 shadow-sm w-fit">
+          <div className="flex gap-1 rounded-xl bg-muted/60 p-1 w-fit">
             {PERIODOS.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => onPeriodoChange(value)}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 whitespace-nowrap ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 whitespace-nowrap ${
                   periodo === value
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                    ? 'bg-card text-primary shadow-elevated'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
                 }`}
               >
                 {label}

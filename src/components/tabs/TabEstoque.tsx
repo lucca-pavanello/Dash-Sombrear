@@ -117,7 +117,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
       {subTab === 'acoes' && <AcoesView onDrillDown={(st) => goTo(st)} />}
 
       {subTab === 'produtos' && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           <div>
             <h3 className="font-display text-sm font-semibold">Produtos</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -134,7 +134,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
       )}
 
       {subTab === 'fornecedores' && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           <div>
             <h3 className="font-display text-sm font-semibold">Fornecedores</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -146,7 +146,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
       )}
 
       {subTab === 'localizacoes' && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           <div>
             <h3 className="font-display text-sm font-semibold">Localizações</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -158,7 +158,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
       )}
 
       {subTab === 'entradas' && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div>
             <h3 className="font-display text-base font-semibold">Entradas</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -174,7 +174,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
         vendaDetalheId
           ? <VendaDetalheView vendaId={vendaDetalheId} onVoltar={() => setVendaDetalheId(null)} />
           : (
-            <div className="space-y-3">
+            <div className="space-y-5">
               <div>
                 <h3 className="font-display text-base font-semibold">Vendas</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -193,7 +193,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
       {subTab === 'ponto-pedido' && <PontoPedidoView toast={toast} />}
 
       {subTab === 'configuracao' && (
-        <div className="space-y-3">
+        <div className="space-y-5">
           <div>
             <h3 className="font-display text-base font-semibold">Configurações</h3>
             <p className="text-xs text-muted-foreground mt-0.5">

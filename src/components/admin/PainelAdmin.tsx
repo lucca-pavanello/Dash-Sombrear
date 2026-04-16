@@ -96,7 +96,7 @@ export default function PainelAdmin({ toast }: Props) {
 
       {/* Pendentes */}
       {pendentes.length > 0 && (
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
           <div className="flex items-center gap-2.5 border-b px-5 py-4">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
@@ -132,7 +132,7 @@ export default function PainelAdmin({ toast }: Props) {
       )}
 
       {/* Aprovados */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
         <div className="flex items-center gap-2.5 border-b px-5 py-4">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
@@ -143,11 +143,19 @@ export default function PainelAdmin({ toast }: Props) {
           </span>
         </div>
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />Carregando...
+          <div className="divide-y">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                <div className="h-8 w-8 rounded-full skeleton-shimmer shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 w-40 rounded skeleton-shimmer" />
+                  <div className="h-2.5 w-56 rounded skeleton-shimmer" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : aprovados.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">Nenhum usuário aprovado ainda.</div>
+          <div className="py-12 text-center text-sm text-muted-foreground">Nenhum usuário aprovado ainda.</div>
         ) : (
           <div className="divide-y">
             {aprovados.map((p) => {
@@ -178,7 +186,7 @@ export default function PainelAdmin({ toast }: Props) {
 
       {/* Revogados */}
       {revogados.length > 0 && (
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
           <div className="flex items-center gap-2.5 border-b px-5 py-4">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
               <UserX className="h-3.5 w-3.5 text-muted-foreground" />
