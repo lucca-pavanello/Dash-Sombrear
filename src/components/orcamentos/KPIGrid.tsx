@@ -239,7 +239,7 @@ function KPIGrid({ data, resetKey }: Props) {
       {/* Faturamento — shimmer + tooltip + meta */}
       <div
         tabIndex={0}
-        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 border-primary/25 bg-primary/5 dark:bg-primary/10 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
+        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 border-primary/25 bg-primary/10 dark:bg-primary/15 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
         style={{ animationFillMode: 'both', animationDelay: '0ms' }}
       >
         <KpiTooltip lines={[
@@ -339,7 +339,7 @@ function KPIGrid({ data, resetKey }: Props) {
             onClick={() => setFlippedCard(isFlipped ? null : label)}
             className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer outline-none ${
               amber ? 'border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10'
-              : 'border-border bg-primary/5 dark:bg-primary/10'
+              : 'border-border bg-primary/10 dark:bg-primary/15'
             }`}
             style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms`, perspective: '800px' }}
           >

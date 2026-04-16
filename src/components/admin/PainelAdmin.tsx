@@ -62,7 +62,7 @@ export default function PainelAdmin({ toast }: Props) {
   const revogados = profiles.filter((p) => p.approved === false)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
@@ -87,7 +87,7 @@ export default function PainelAdmin({ toast }: Props) {
           { label: 'Pendentes', value: pendentes.length },
           { label: 'Revogados', value: revogados.length },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-sm flex flex-col items-center text-center gap-1">
+          <div key={label} className="rounded-xl border-2 border-primary/20 bg-primary/10 dark:bg-primary/15 p-4 shadow-sm flex flex-col items-center text-center gap-1">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</p>
             <p className="font-display text-2xl font-bold text-primary">{value}</p>
           </div>

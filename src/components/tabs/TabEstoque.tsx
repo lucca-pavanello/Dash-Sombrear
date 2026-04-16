@@ -77,7 +77,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* ── Drill-down breadcrumb (para lead-time / mover / sugestao) ── */}
       {(subTab === 'lead-time' || subTab === 'mover' || subTab === 'sugestao' || subTab === 'ponto-pedido') && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -118,7 +118,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
 
       {subTab === 'produtos' && (
         <div className="space-y-3">
-          <div className="text-center">
+          <div>
             <h3 className="font-display text-sm font-semibold">Produtos</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Cadastre tudo que você vende. Cada produto vira uma 'ficha' que o sistema usa pra todos os cálculos.
@@ -135,7 +135,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
 
       {subTab === 'fornecedores' && (
         <div className="space-y-3">
-          <div className="text-center">
+          <div>
             <h3 className="font-display text-sm font-semibold">Fornecedores</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Quem te vende as matérias-primas. O tempo de entrega de cada um afeta os cálculos de quando comprar.
@@ -147,7 +147,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
 
       {subTab === 'localizacoes' && (
         <div className="space-y-3">
-          <div className="text-center">
+          <div>
             <h3 className="font-display text-sm font-semibold">Localizações</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Os lugares físicos da sua loja. Use isso pra organizar onde cada produto fica.
@@ -159,7 +159,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
 
       {subTab === 'entradas' && (
         <div className="space-y-6">
-          <div className="text-center">
+          <div>
             <h3 className="font-display text-base font-semibold">Entradas</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Toda compra que chega na loja. O estoque sobe automaticamente.
@@ -175,7 +175,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
           ? <VendaDetalheView vendaId={vendaDetalheId} onVoltar={() => setVendaDetalheId(null)} />
           : (
             <div className="space-y-3">
-              <div className="text-center">
+              <div>
                 <h3 className="font-display text-base font-semibold">Vendas</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Registre vendas com um ou mais itens. O estoque desce automaticamente.
