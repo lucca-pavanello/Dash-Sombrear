@@ -90,7 +90,7 @@ export default function Dashboard() {
   const [focusOpen, setFocusOpen] = useState(false)
   const [tabUpdatePulse, setTabUpdatePulse] = useState<Set<string>>(new Set())
   const prevUnreadRef = useRef(0)
-  const prevAdminSubRef = useRef(adminSub)
+  const prevAdminSubRef = useRef('usuarios')
   const tabBarRef = useRef<HTMLDivElement>(null)
   const focusRef = useRef<HTMLDivElement>(null)
 
