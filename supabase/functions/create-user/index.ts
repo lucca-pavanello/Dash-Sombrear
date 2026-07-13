@@ -42,13 +42,15 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // Mesmo critério de admin do front (src/lib/constants.ts + Dashboard.tsx):
+    // email do admin OU is_admin=true no profiles. approved NÃO basta.
     const { data: callerProfile } = await adminClient
       .from('profiles')
-      .select('approved')
+      .select('is_admin')
       .eq('id', caller.id)
       .single()
 
-    const isAdmin = caller.email === 'luccapavanallo@gmail.com' || callerProfile?.approved === true
+    const isAdmin = caller.email === 'luccapavanallo@gmail.com' || callerProfile?.is_admin === true
 
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: 'Acesso negado: apenas admins podem criar usuários' }), {
