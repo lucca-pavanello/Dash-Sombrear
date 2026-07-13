@@ -6,3 +6,6 @@ venv/
 aios_link
 
 .vercel
+
+# Claude Code local (skills/hooks/settings da ferramenta)
+.claude/
