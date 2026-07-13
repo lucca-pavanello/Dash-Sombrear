@@ -1,7 +1,8 @@
 export const ADMIN_EMAIL = 'luccapavanallo@gmail.com';
 export const ESTOQUE_EMAIL = 'luccapavanallo@gmail.com';
 
-export const RESPONSAVEIS = ['Sombrear', 'Stella', 'Rogério', 'Thais', 'Gregório', 'Sueli', 'Teste'];
+// Nomes base — a lista completa (com perfis aprovados) vem de useResponsaveis()
+export const RESPONSAVEIS = ['Sombrear', 'Stella', 'Rogério', 'Thais', 'Gregório', 'Sueli'];
 
 export const META_KEY = 'sombrear-meta-mensal';
 
@@ -73,6 +74,9 @@ export const ORCS_PAGE_SIZE = 20;
 export const HORA_INICIO = 8;
 export const HORA_FIM = 18;
 export const ESPERA_HORAS = 2;
+
+// Chatwoot (host descoberto nos workflows do n8n) — link "Ver conversa" nos leads
+export const CHATWOOT_BASE_URL = 'https://n8n-chatwoot.yjlhot.easypanel.host';
 
 // Estoque — labels em português dos ENUMs
 export const TIPOS_PRODUTO: Record<string, string> = {

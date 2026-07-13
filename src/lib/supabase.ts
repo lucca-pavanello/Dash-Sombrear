@@ -32,6 +32,7 @@ export type Orcamento = {
   user_id?: string | null
   updated_at?: string | null
   share_enabled?: boolean | null
+  aceito_em?: string | null
 }
 
 export type CustoInterno = {

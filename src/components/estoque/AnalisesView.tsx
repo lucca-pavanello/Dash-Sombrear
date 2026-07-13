@@ -306,7 +306,7 @@ function SecaoMaisRentaveis() {
 
 // ─── S4: Performance por Categoria ───────────────────────────────────────────
 
-const PIE_COLORS = ['#F97316', '#FB923C', '#FDBA74', '#FED7AA', '#FFF7ED']
+const PIE_COLORS = ['#E8701A', '#FB923C', '#FDBA74', '#FED7AA', '#FFF7ED']
 
 function SecaoPerformanceCategoria() {
   const { data = [], isLoading } = useEstoquePerformanceCategoria()
@@ -536,7 +536,7 @@ function SecaoSazonalidade() {
   const barColor = (fat: number) => {
     if (fat === maxFaturamento && maxFaturamento > 0) return '#C2570F'
     if (data.length > 1 && fat === minFaturamento) return '#FDBA74'
-    return '#F97316'
+    return 'hsl(var(--primary))'
   }
 
   const chartData = data.map(r => ({

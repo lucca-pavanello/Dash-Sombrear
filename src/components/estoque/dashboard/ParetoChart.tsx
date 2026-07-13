@@ -13,7 +13,7 @@ import type { ParetoItem } from '@/hooks/useEstoqueAnalytics'
 import { useChartColors } from '../shared/useChartColors'
 
 const CLASS_COLOR: Record<string, string> = {
-  A:         '#f97316',  // orange-500
+  A:         'hsl(var(--primary))',  // laranja Sombrear
   B:         '#fdba74',  // orange-300
   C:         '#ffedd5',  // orange-100
   sem_dados: '#e5e7eb',  // gray-200

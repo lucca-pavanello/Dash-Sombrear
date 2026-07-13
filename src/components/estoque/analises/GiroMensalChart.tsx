@@ -57,8 +57,8 @@ export default function GiroMensalChart() {
       <ComposedChart data={dados} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
         <defs>
           <linearGradient id="giroGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#f97316" stopOpacity={0.2} />
-            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
@@ -87,10 +87,10 @@ export default function GiroMensalChart() {
         <Area
           dataKey="giro_reais"
           name="giro_reais"
-          stroke="#f97316"
+          stroke="hsl(var(--primary))"
           strokeWidth={2.5}
           fill="url(#giroGradient)"
-          dot={{ r: 4, fill: '#f97316', stroke: 'white', strokeWidth: 1.5 }}
+          dot={{ r: 4, fill: 'hsl(var(--primary))', stroke: 'white', strokeWidth: 1.5 }}
           activeDot={{ r: 6 }}
           type="monotone"
         />

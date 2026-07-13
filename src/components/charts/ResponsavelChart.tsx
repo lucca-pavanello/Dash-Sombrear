@@ -3,7 +3,7 @@ import type { Orcamento } from '@/lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import ChartTooltip from '@/components/shared/ChartTooltip'
 
-const CHART_COLORS = ['#E8701A', '#F59E0B', '#D97706', '#B45309', '#92400E', '#F97316', '#FB923C', '#FDBA74']
+const CHART_COLORS = ['#E8701A', '#F59E0B', '#D97706', '#B45309', '#92400E', '#C45E14', '#FB923C', '#FDBA74']
 
 interface Props { data: Orcamento[]; resetKey?: number }
 

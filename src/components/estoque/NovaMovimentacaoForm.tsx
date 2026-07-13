@@ -156,7 +156,7 @@ export default function NovaMovimentacaoForm({
           {/* Seletor de tipo */}
           <div>
             <label className={labelClass}>Tipo de Movimentação</label>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {(Object.keys(TIPO_CONFIG) as TipoMov[]).map((t) => {
                 const cfg = TIPO_CONFIG[t]
                 return (

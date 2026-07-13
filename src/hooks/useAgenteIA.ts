@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 // Status usado pelo n8n quando a IA passa o preço e o cliente quer atendimento humano
@@ -51,6 +52,38 @@ export type OrcamentoIA = {
   identificador_whats: string | null
 }
 
+// Realtime dos leads do agente (WhatsApp/n8n): novos registros aparecem sozinhos,
+// sem precisar remontar a aba. Espelha o padrão de useOrcamentos.
+export function useAgenteIARealtime({ enabled = true, onNewLead }: {
+  enabled?: boolean
+  onNewLead?: (lead: CrmLead) => void
+} = {}) {
+  const qc = useQueryClient()
+  const onNewLeadRef = useRef(onNewLead)
+  onNewLeadRef.current = onNewLead
+
+  useEffect(() => {
+    if (!enabled) return
+    const channel = supabase
+      .channel('agente-ia-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'crm_sombrear_ia' },
+        (payload) => {
+          qc.invalidateQueries({ queryKey: ['crm-sombrear-ia'] })
+          if (payload.eventType === 'INSERT') onNewLeadRef.current?.(payload.new as CrmLead)
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orcamentos_sombrear_ia' },
+        () => qc.invalidateQueries({ queryKey: ['orcamentos-sombrear-ia'] }),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [qc, enabled])
+}
+
 export function useCrmLeads() {
   return useQuery({
     queryKey: ['crm-sombrear-ia'],
@@ -66,6 +99,8 @@ export function useCrmLeads() {
     },
     retry: 1,
     refetchOnWindowFocus: false,
+    // Fallback caso o realtime caia — o canal agente-ia-realtime é o mecanismo primário
+    refetchInterval: 180000,
   })
 }
 
@@ -100,5 +135,6 @@ export function useOrcamentosIA() {
     },
     retry: 1,
     refetchOnWindowFocus: false,
+    refetchInterval: 180000,
   })
 }

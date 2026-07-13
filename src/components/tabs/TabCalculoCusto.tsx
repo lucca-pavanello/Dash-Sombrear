@@ -1,7 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import * as XLSX from 'xlsx'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatCurrency } from '@/lib/utils'
 import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown, Columns3 } from 'lucide-react'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
@@ -210,7 +207,8 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
     a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
   }
 
-  function exportXlsxCI() {
+  async function exportXlsxCI() {
+    const XLSX = await import('xlsx')
     const rows = filteredCI.map((c) => ({
       'Data': new Date(c.created_at).toLocaleDateString('pt-BR'),
       'Cliente': c.cliente ?? '', 'Responsável': c.responsavel ?? '',
@@ -226,7 +224,11 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
     XLSX.writeFile(wb, `custos-internos-${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
-  function exportPdfCI() {
+  async function exportPdfCI() {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ])
     const doc = new jsPDF({ orientation: 'landscape' })
     const now = new Date()
     const orange: [number, number, number] = [232, 112, 26]

@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { useModelosTecidos } from '@/hooks/useModelosTecidos'
-import { RESPONSAVEIS, SUGESTOES_AMBIENTE, DEFAULT_RESPONSAVEL } from '@/lib/constants'
+import { SUGESTOES_AMBIENTE, DEFAULT_RESPONSAVEL } from '@/lib/constants'
+import { useResponsaveis } from '@/hooks/useResponsaveis'
 import { supabase } from '@/lib/supabase'
 
 /* ─── Constants ─────────────────────────────────────────── */
@@ -98,7 +99,8 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
     if (draft?.ambientes) {
       draft.ambientes = draft.ambientes.map((a: Ambiente) => ({ ...a, collapsed: false }))
     }
-    if (!RESPONSAVEIS.includes(draft.form.responsavel)) {
+    // Aceita qualquer nome não-vazio — a lista agora é dinâmica (useResponsaveis)
+    if (!draft.form.responsavel) {
       draft.form.responsavel = DEFAULT_RESPONSAVEL
     }
     return draft
@@ -107,6 +109,7 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function TabCotacao() {
+  const responsaveis = useResponsaveis()
   const nextIdRef = useRef(1)
   const notifyChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const notifyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -425,7 +428,7 @@ export default function TabCotacao() {
           <span className="text-xs font-medium text-primary">Calcular Orçamento</span>
         </div>
         <div>
-          <h2 className="font-gotham text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Novo Orçamento</h2>
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Novo Orçamento</h2>
           <p className="mt-0.5 text-sm text-foreground/50">Preencha os dados e envie para gerar o orçamento.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -461,7 +464,7 @@ export default function TabCotacao() {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label className={labelCls}>Responsável <Req /></label>
-                      <CustomSelect value={form.responsavel} onChange={v => setField('responsavel', v)} options={RESPONSAVEIS} />
+                      <CustomSelect value={form.responsavel} onChange={v => setField('responsavel', v)} options={responsaveis} />
                     </div>
                     <div>
                       <label className={labelCls}>Cliente <Req /></label>
