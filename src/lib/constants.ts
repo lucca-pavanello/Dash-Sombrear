@@ -1,8 +1,10 @@
 export const ADMIN_EMAIL = 'luccapavanallo@gmail.com';
 export const ESTOQUE_EMAIL = 'luccapavanallo@gmail.com';
 
-// Nomes base — a lista completa (com perfis aprovados) vem de useResponsaveis()
-export const RESPONSAVEIS = ['Sombrear', 'Stella', 'Rogério', 'Thais', 'Gregório', 'Sueli'];
+// ESPELHA as rotas do switch Qual_Responsavel no n8n (Supervisor XTzhHWUmv0ewvhh4).
+// Responsável fora desta lista não tem rota de WhatsApp — não adicionar nomes
+// sem criar a rota correspondente no n8n. ('Teste' existe no n8n mas é só p/ QA.)
+export const RESPONSAVEIS = ['Sombrear', 'Stella', 'Rogério', 'Thais', 'Gregório', 'Sueli', 'Persianas de Fábrica'];
 
 export const META_KEY = 'sombrear-meta-mensal';
 
