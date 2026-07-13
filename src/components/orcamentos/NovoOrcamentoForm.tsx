@@ -5,6 +5,7 @@ import { cn, formatCurrency, calcularMargem } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 import { MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
+import { useSugestaoCustoTecido } from '@/hooks/useSugestaoCustoTecido'
 
 function ModeloHint({ modelo }: { modelo: string }) {
   const rule = MODELO_RULES[modelo]
@@ -125,6 +126,9 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
   }, [form.largura, form.altura, form.custo_m2, form.quantidade, form.custo_acabamento])
 
   const isAutocalc = calcCusto !== null && form.custo_tecido === calcCusto.toFixed(2)
+
+  const sugestaoCusto = useSugestaoCustoTecido(form.tecido)
+  const mostrarSugestaoCusto = sugestaoCusto && form.custo_m2 !== sugestaoCusto.custoM2.toFixed(2)
 
   const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instacao) || 0)
   const custoPreview = parseFloat(form.custo_tecido) || 0
@@ -359,6 +363,21 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
                   <span className="ml-1.5 text-xs font-normal text-muted-foreground">do tecido</span>
                 </label>
                 <input type="number" step="0.01" value={form.custo_m2} onChange={(e) => set('custo_m2', e.target.value)} className={inputClass} placeholder="0.00" />
+                {mostrarSugestaoCusto && (
+                  <p className="mt-1.5 flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground truncate">
+                      Estoque: {formatCurrency(sugestaoCusto.custoM2)}/m²
+                      <span className="ml-1 text-muted-foreground/60">({sugestaoCusto.nome})</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => set('custo_m2', sugestaoCusto.custoM2.toFixed(2))}
+                      className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-primary font-medium hover:bg-primary/20 transition-colors"
+                    >
+                      Usar
+                    </button>
+                  </p>
+                )}
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Custo Acabamento (R$)</label>

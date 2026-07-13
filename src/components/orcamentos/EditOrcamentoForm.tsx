@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react'
 import { useUpdateOrcamento, useDeleteOrcamento, useAddOrcamento, useOrcamentoHistorico, useAddHistorico, type HistoricoEntry } from '@/hooks/useOrcamentos'
 import { haptic } from '@/lib/haptic'
 import { useToggleShare } from '@/hooks/useKanban'
@@ -8,6 +8,7 @@ import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 import { MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
+import { useSugestaoCustoTecido } from '@/hooks/useSugestaoCustoTecido'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -257,6 +258,8 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
 
   const isAutocalc = calcCusto !== null && form.custo_tecido === calcCusto.toFixed(2)
 
+  const sugestaoCusto = useSugestaoCustoTecido(form.tecido)
+
   const previewMargem = (() => {
     const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instacao) || 0)
     const custo = parseFloat(form.custo_tecido) || 0
@@ -279,8 +282,8 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
     }).catch(() => toast('error', 'Falha ao copiar link.'))
   }
 
-  function handleCopy() {
-    const lines = [
+  function buildResumo(): string {
+    return [
       `*Orçamento Sombrear*`,
       form.cliente ? `Cliente: ${form.cliente}` : null,
       form.telefone ? `Telefone: ${form.telefone}` : null,
@@ -296,11 +299,36 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       form.instacao ? `Instalação: ${formatCurrency(Number(form.instacao))}` : null,
       form.observacoes ? `Obs: ${form.observacoes}` : null,
     ].filter(Boolean).join('\n')
+  }
 
-    navigator.clipboard.writeText(lines).then(() => {
+  function handleCopy() {
+    navigator.clipboard.writeText(buildResumo()).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     }).catch(() => { toast('error', 'Falha ao copiar para a área de transferência.') })
+  }
+
+  // Abre o WhatsApp com o resumo + link público do orçamento
+  async function handleWhatsApp() {
+    let texto = buildResumo()
+    let shareOk = orcamento.share_enabled === true
+    if (!shareOk) {
+      try {
+        await toggleShare({ id: orcamento.id, enabled: true })
+        shareOk = true
+      } catch {
+        toast('error', 'Não foi possível ativar o link público — enviando só o resumo.')
+      }
+    }
+    if (shareOk) {
+      texto += `\n\nVeja o orçamento completo: ${window.location.origin}/orcamento/${orcamento.id}`
+    }
+    const digits = form.telefone?.replace(/\D/g, '') ?? ''
+    const phone = digits ? (digits.startsWith('55') ? digits : `55${digits}`) : ''
+    const url = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(texto)}`
+      : `https://wa.me/?text=${encodeURIComponent(texto)}`
+    window.open(url, '_blank', 'noopener')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -432,10 +460,20 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
               type="button"
               onClick={handleCopy}
               className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title="Copiar para WhatsApp"
+              title="Copiar resumo"
             >
               {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? 'Copiado!' : 'Copiar'}
+            </button>
+            <button
+              type="button"
+              onClick={handleWhatsApp}
+              disabled={isTogglingShare}
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-60"
+              title="Enviar resumo + link público pelo WhatsApp"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              WhatsApp
             </button>
             <button onClick={handleClose} className="rounded-lg p-1.5 hover:bg-muted transition-colors">
               <X className="h-4 w-4" />
@@ -532,6 +570,21 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                 <span className="ml-1.5 text-xs font-normal text-muted-foreground">do tecido</span>
               </label>
               <input type="number" step="0.01" value={form.custo_m2} onChange={(e) => { userEditedDimensions.current = true; set('custo_m2', e.target.value) }} className={inputClass} placeholder="0.00" />
+              {sugestaoCusto && form.custo_m2 !== sugestaoCusto.custoM2.toFixed(2) && (
+                <p className="mt-1.5 flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground truncate">
+                    Estoque: {formatCurrency(sugestaoCusto.custoM2)}/m²
+                    <span className="ml-1 text-muted-foreground/60">({sugestaoCusto.nome})</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { userEditedDimensions.current = true; set('custo_m2', sugestaoCusto.custoM2.toFixed(2)) }}
+                    className="shrink-0 rounded bg-primary/10 px-2 py-0.5 text-primary font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    Usar
+                  </button>
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Custo Acabamento (R$)</label>
