@@ -9,3 +9,4 @@ aios_link
 
 # Claude Code local (skills/hooks/settings da ferramenta)
 .claude/
+supabase/.temp/
