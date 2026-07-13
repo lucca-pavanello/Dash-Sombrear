@@ -103,8 +103,10 @@ export function useOrcamentos(
     },
     // Polling de fallback: garante que rows inseridas pelo n8n aparecem
     // mesmo que o realtime falhe ou o user_id não tenha chegado a tempo.
-    // Realtime é o mecanismo primário — 3min evita refazer select('*') a cada 30s.
-    refetchInterval: 180000,
+    // ATENÇÃO: a publication supabase_realtime estava vazia em produção (2026-07-13),
+    // então este polling é o mecanismo real de atualização até a migration
+    // supabase/migration_realtime_publication.sql ser aplicada.
+    refetchInterval: 30000,
   })
   return { ...query, realtimeStatus }
 }

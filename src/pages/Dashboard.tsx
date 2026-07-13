@@ -4,6 +4,7 @@ import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, C
 import { supabase, type Orcamento } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
+import { useAgenteIARealtime } from '@/hooks/useAgenteIA'
 import { useProfile, usePendingCount } from '@/hooks/useProfile'
 import { useEstoqueProdutosAlerta } from '@/hooks/useEstoqueProdutos'
 import { useToast } from '@/hooks/useToast'
@@ -137,6 +138,17 @@ export default function Dashboard() {
       })
     }
   )
+
+  // Leads novos do WhatsApp aparecem sozinhos (toast + pulse na aba Agente IA)
+  useAgenteIARealtime({
+    enabled: canOrcamento,
+    onNewLead: (lead) => {
+      toast('info', `Novo lead do WhatsApp: ${lead.nome ?? lead.whatsapp ?? 'sem identificação'}`)
+      if (!document.hasFocus()) setUnreadCount((n) => n + 1)
+      setTabUpdatePulse(prev => new Set([...prev, 'agente-ia']))
+      setTimeout(() => setTabUpdatePulse(prev => { const n = new Set(prev); n.delete('agente-ia'); return n }), 800)
+    },
+  })
 
   const rawPath = location.pathname.replace(/^\//, '')
   const isEstoquePath = rawPath === 'estoque' || rawPath.startsWith('estoque/')
