@@ -1,26 +1,13 @@
-import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
 import { RESPONSAVEIS } from '@/lib/constants'
 
-// Lista de responsáveis viva: nomes base (equipe histórica + Stella/Sombrear)
-// unidos aos perfis aprovados no Admin — cadastrou gente nova, aparece no form.
+// Lista de responsáveis dos forms de orçamento.
+//
+// IMPORTANTE: esta lista deve espelhar as rotas do switch Qual_Responsavel
+// no n8n (Supervisor) — o nome do responsável decide para qual WhatsApp o
+// orçamento é enviado. Por isso ela é FIXA: perfis aprovados no Admin NÃO
+// entram aqui (um usuário do dash sem rota no n8n geraria orçamento sem
+// destino). Para adicionar alguém: criar a rota no n8n e incluir o nome
+// em RESPONSAVEIS (src/lib/constants.ts).
 export function useResponsaveis(): string[] {
-  const { data } = useQuery({
-    queryKey: ['responsaveis-profiles'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('approved', true)
-      if (error) throw error
-      return (data ?? []).map((p) => p.full_name).filter(Boolean) as string[]
-    },
-    staleTime: 5 * 60_000,
-  })
-
-  return useMemo(() => {
-    const extras = (data ?? []).filter((n) => !RESPONSAVEIS.includes(n)).sort()
-    return [...RESPONSAVEIS, ...extras]
-  }, [data])
+  return RESPONSAVEIS
 }
