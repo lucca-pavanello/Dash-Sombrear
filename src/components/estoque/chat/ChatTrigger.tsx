@@ -10,7 +10,7 @@ export function ChatTrigger() {
   return (
     <button
       onClick={abrir}
-      className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all"
+      className="inline-flex items-center gap-2 rounded-lg bg-brand-gradient hover:brightness-110 px-4 py-2 text-sm font-semibold text-white shadow-brand transition-all"
     >
       <Sparkles className="h-4 w-4" />
       Perguntar à IA

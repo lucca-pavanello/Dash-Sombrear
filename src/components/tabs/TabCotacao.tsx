@@ -425,7 +425,7 @@ export default function TabCotacao() {
           <span className="text-xs font-medium text-primary">Calcular Orçamento</span>
         </div>
         <div>
-          <h2 className="font-gotham text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Novo Orçamento</h2>
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Novo Orçamento</h2>
           <p className="mt-0.5 text-sm text-foreground/50">Preencha os dados e envie para gerar o orçamento.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-center">

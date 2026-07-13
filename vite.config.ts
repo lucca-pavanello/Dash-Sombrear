@@ -19,7 +19,6 @@ export default defineConfig({
           'vendor-charts':  ['recharts'],
           'vendor-xlsx':    ['xlsx'],
           'vendor-pdf':     ['jspdf', 'jspdf-autotable'],
-          'vendor-canvas':  ['html2canvas'],
         },
       },
     },

@@ -2,9 +2,6 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check, Columns3, Maximize2, Minimize2 } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import EmptyState from '@/components/shared/EmptyState'
-import * as XLSX from 'xlsx'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
 
@@ -156,7 +153,9 @@ function exportCSV(data: Orcamento[]) {
   URL.revokeObjectURL(url)
 }
 
-function exportXLSX(data: Orcamento[]) {
+async function exportXLSX(data: Orcamento[]) {
+  // Import dinâmico: vendor-xlsx só baixa quando o usuário exporta
+  const XLSX = await import('xlsx')
   const rows = data.map((o, i) => ({
     '#': i + 1,
     Data: formatDate(o.created_at),
@@ -180,7 +179,12 @@ function exportXLSX(data: Orcamento[]) {
   XLSX.writeFile(wb, `orcamentos-${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
-function exportPDF(data: Orcamento[], isFiltered: boolean) {
+async function exportPDF(data: Orcamento[], isFiltered: boolean) {
+  // Import dinâmico: vendor-pdf só baixa quando o usuário exporta
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
   const doc = new jsPDF({ orientation: 'landscape' })
   const now = new Date()
   const orange: [number, number, number] = [232, 112, 26]

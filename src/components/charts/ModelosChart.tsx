@@ -1,7 +1,7 @@
 import { useMemo, memo } from 'react'
 import type { Orcamento } from '@/lib/supabase'
 
-const COLORS = ['#E8701A', '#F59E0B', '#F97316', '#D97706', '#FB923C', '#B45309', '#FDBA74', '#92400E']
+const COLORS = ['#E8701A', '#F59E0B', '#C45E14', '#D97706', '#FB923C', '#B45309', '#FDBA74', '#92400E']
 
 interface Props { data: Orcamento[] }
 

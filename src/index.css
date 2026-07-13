@@ -12,8 +12,9 @@
     --card-foreground: 220 15% 10%;
     --border: 220 15% 78%;
     --input: 220 13% 88%;
-    --ring: 25 85% 52%;
-    --primary: 25 85% 52%;
+    /* Laranja Sombrear #E8701A exato — mesma cor do logo, brand e gráficos */
+    --ring: 25 82% 51%;
+    --primary: 25 82% 51%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 14% 93%;
     --secondary-foreground: 220 15% 20%;
@@ -33,8 +34,9 @@
     --card-foreground: 220 15% 92%;
     --border: 222 18% 28%;
     --input: 222 18% 20%;
-    --ring: 25 85% 52%;
-    --primary: 25 85% 52%;
+    /* Laranja Sombrear #E8701A exato — mesma cor do logo, brand e gráficos */
+    --ring: 25 82% 51%;
+    --primary: 25 82% 51%;
     --primary-foreground: 0 0% 100%;
     --secondary: 222 20% 18%;
     --secondary-foreground: 220 15% 80%;

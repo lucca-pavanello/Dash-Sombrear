@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { Search, X, Download, Receipt } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
-import * as XLSX from 'xlsx'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -145,7 +144,8 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  function exportXLSX() {
+  async function exportXLSX() {
+    const XLSX = await import('xlsx')
     const rows = filtered.map((o) => ({
       'Data': o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '',
       'Cliente': o.cliente ?? '',

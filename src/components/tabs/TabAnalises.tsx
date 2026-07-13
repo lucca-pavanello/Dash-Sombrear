@@ -3,8 +3,6 @@ import { useScrollReveal } from '@/hooks/useScrollReveal'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, CartesianGrid,
@@ -182,7 +180,12 @@ function Delta({ pct, suffix = '%' }: { pct: number | null; suffix?: string }) {
 }
 
 
-function exportPDF(data: Orcamento[]) {
+async function exportPDF(data: Orcamento[]) {
+  // Import dinâmico: vendor-pdf só baixa quando o usuário exporta
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
   const doc = new jsPDF()
   const now = new Date()
   const orange: [number, number, number] = [232, 112, 26]
@@ -247,7 +250,7 @@ function exportPDF(data: Orcamento[]) {
     .sort((a, b) => b.fat - a.fat)
     .map(({ name, total, feitos, fat }) => [name, String(total), String(feitos), `${total > 0 ? ((feitos / total) * 100).toFixed(0) : 0}%`, formatCurrency(fat)])
 
-  const afterKpi = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
+  const afterKpi = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
 
   doc.setFontSize(13)
   doc.setFont('helvetica', 'bold')
@@ -266,7 +269,7 @@ function exportPDF(data: Orcamento[]) {
   })
 
   // Tabela de orçamentos fechados
-  const afterRanking = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
+  const afterRanking = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
   const fechadosRows = fechados
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .map((o) => [
@@ -1095,8 +1098,8 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
             <AreaChart data={daily} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#fb923c" stopOpacity={0.28} />
-                  <stop offset="95%" stopColor="#fb923c" stopOpacity={0.03} />
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.28} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
