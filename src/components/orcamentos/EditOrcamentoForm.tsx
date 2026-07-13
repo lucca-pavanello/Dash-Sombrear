@@ -494,7 +494,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                 onChange={(e) => set('responsavel', e.target.value)}
                 className={inputClass}
               >
-                <option value="">Selecione...</option>
+                <option value="">Selecione…</option>
                 {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
@@ -515,7 +515,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                 value={form.ambiente}
                 onChange={(e) => set('ambiente', e.target.value)}
                 className={inputClass}
-                placeholder="Ex: Sala, Quarto, Escritório..."
+                placeholder="Ex: Sala, Quarto, Escritório…"
                 list="ambientes-list-edit"
               />
               <datalist id="ambientes-list-edit">
@@ -658,7 +658,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                 onChange={(e) => set('observacoes', e.target.value)}
                 className={cn(inputClass, 'resize-none')}
                 rows={3}
-                placeholder="Endereço de instalação, detalhes extras..."
+                placeholder="Endereço de instalação, detalhes extras…"
               />
             </div>
           </div>
@@ -676,7 +676,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                   Cancelar
                 </button>
                 <button type="button" onClick={handleDelete} disabled={isDeleting} className="flex-1 rounded-lg bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground hover:opacity-90 disabled:opacity-60 transition-opacity">
-                  {isDeleting ? 'Excluindo...' : 'Confirmar exclusão'}
+                  {isDeleting ? 'Excluindo…' : 'Confirmar exclusão'}
                 </button>
               </div>
             </div>
@@ -695,7 +695,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
-                    Salvando...
+                    Salvando…
                   </span>
                 ) : 'Salvar'}
               </button>

@@ -144,7 +144,7 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
     <SectionCard
       icon={ShoppingBag}
       title="O que comprar agora"
-      subtitle={isLoading ? 'Carregando...' : naoOk.length === 0 ? 'Nenhum produto precisa de reposição agora.' : `${naoOk.length} precisam de reposição · ${fmtBRL(totalEstimado)} estimado`}
+      subtitle={isLoading ? 'Carregando…' : naoOk.length === 0 ? 'Nenhum produto precisa de reposição agora.' : `${naoOk.length} precisam de reposição · ${fmtBRL(totalEstimado)} estimado`}
       badge={isLoading ? undefined : naoOk.length > 0
         ? { label: `${naoOk.length} produto${naoOk.length !== 1 ? 's' : ''}`, variant: 'info' }
         : { label: 'Tudo abastecido', variant: 'neutral' }

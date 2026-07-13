@@ -215,7 +215,7 @@ export default function OrcamentoPublico() {
               className="w-full rounded-2xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-70"
               style={{ background: 'linear-gradient(135deg, #E8701A 0%, #C45E14 100%)' }}
             >
-              {aceitando ? 'Registrando...' : 'Aceitar orçamento'}
+              {aceitando ? 'Registrando…' : 'Aceitar orçamento'}
             </button>
           )}
           {aceiteErro && (
@@ -241,7 +241,7 @@ export default function OrcamentoPublico() {
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-600 transition-all active:scale-[0.98] disabled:opacity-70"
             >
               <FileDown className="h-4 w-4" />
-              {gerandoPdf ? 'Gerando...' : 'Baixar PDF'}
+              {gerandoPdf ? 'Gerando…' : 'Baixar PDF'}
             </button>
           </div>
         </div>

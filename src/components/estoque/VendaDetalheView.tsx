@@ -13,7 +13,7 @@ export default function VendaDetalheView({ vendaId, onVoltar }: Props) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-        Carregando...
+        Carregando…
       </div>
     )
   }

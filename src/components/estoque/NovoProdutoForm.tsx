@@ -246,7 +246,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
                   onChange={(e) => set('categoria_id', e.target.value)}
                   className={cn(inputClass, errors.categoria_id && 'border-destructive')}
                 >
-                  <option value="">Selecione...</option>
+                  <option value="">Selecione…</option>
                   {categorias.map((c) => (
                     <option key={c.id} value={c.id}>{c.nome}</option>
                   ))}
@@ -363,7 +363,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
                   value={form.observacoes}
                   onChange={(e) => set('observacoes', e.target.value)}
                   rows={3}
-                  placeholder="Informações adicionais sobre o produto..."
+                  placeholder="Informações adicionais sobre o produto…"
                   className={cn(inputClass, 'resize-none')}
                 />
               </div>
@@ -395,7 +395,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
               disabled={isPending}
               className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
             >
-              {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</> : isEditing ? 'Salvar Alterações' : 'Cadastrar Produto'}
+              {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando…</> : isEditing ? 'Salvar Alterações' : 'Cadastrar Produto'}
             </button>
           )}
         </div>

@@ -216,7 +216,7 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
             id="planilha-custo-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar cliente, responsável, modelo..."
+            placeholder="Buscar cliente, responsável, modelo…"
             className={`w-full rounded-lg border border-border bg-background py-2.5 pl-9 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${search ? 'pr-8' : 'pr-10'}`}
           />
           {search ? (

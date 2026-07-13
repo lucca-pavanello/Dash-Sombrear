@@ -14,9 +14,9 @@ const fmtNum = (v: number) =>
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
 const NIVEL_ROW: Record<NivelAlerta, string> = {
-  ruptura:  'border-l-4 border-destructive/50',
-  critico:  'border-l-4 border-destructive/30',
-  atencao:  'border-l-4 border-border',
+  ruptura:  'bg-destructive/[0.07] dark:bg-destructive/[0.12]',
+  critico:  'bg-destructive/[0.04] dark:bg-destructive/[0.07]',
+  atencao:  'bg-muted/50',
   ok:       '',
   sem_dados:'',
 }
@@ -150,7 +150,7 @@ export default function PontoPedidoView(_: Props) {
         {/* Linhas */}
         {isLoading ? (
           <div className="flex items-center justify-center py-14 text-sm text-muted-foreground">
-            Carregando...
+            Carregando…
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-2">

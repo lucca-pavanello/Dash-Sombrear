@@ -2,10 +2,10 @@
 // Referência única de paleta — use aqui, não hardcode cores nos componentes
 export const estoqueTheme = {
   // Níveis de alerta (ponto de pedido, sugestão de compra, etc.)
-  // Sem backgrounds coloridos — apenas border-l indica o estado
-  ruptura:  'border-l-4 border-destructive/50',
-  critico:  'border-l-4 border-destructive/30',
-  atencao:  'border-l-4 border-border',
+  // Banho de fundo sutil no lugar da listra lateral (anti-padrão de design)
+  ruptura:  'bg-destructive/[0.07] dark:bg-destructive/[0.12]',
+  critico:  'bg-destructive/[0.04] dark:bg-destructive/[0.07]',
+  atencao:  'bg-muted/50',
   ok:       '',   // sem cor — ausência de cor já comunica "tudo bem"
   sem_dados: 'text-muted-foreground italic',
 

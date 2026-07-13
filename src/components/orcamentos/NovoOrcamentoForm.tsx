@@ -279,7 +279,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
                   onChange={(e) => set('responsavel', e.target.value)}
                   className={inputClass}
                 >
-                  <option value="">Selecione...</option>
+                  <option value="">Selecione…</option>
                   {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
@@ -297,7 +297,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
                   value={form.ambiente}
                   onChange={(e) => set('ambiente', e.target.value)}
                   className={inputClass}
-                  placeholder="Ex: Sala, Quarto, Escritório..."
+                  placeholder="Ex: Sala, Quarto, Escritório…"
                   list="ambientes-list-novo"
                 />
                 <datalist id="ambientes-list-novo">
@@ -332,11 +332,11 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
               </div>
               <div className="col-span-2">
                 <label className={labelClass}>Tecido <span className="text-destructive ml-0.5">*</span></label>
-                <input required value={form.tecido} onChange={(e) => set('tecido', e.target.value)} className={inputClass} placeholder="Ex: Blackout, Solar Screen..." />
+                <input required value={form.tecido} onChange={(e) => set('tecido', e.target.value)} className={inputClass} placeholder="Ex: Blackout, Solar Screen…" />
               </div>
               <div className="col-span-2">
                 <label className={labelClass}>Cor Ferragem / Motor</label>
-                <input value={form.cor_ferragem_motor} onChange={(e) => set('cor_ferragem_motor', e.target.value)} className={inputClass} placeholder="Ex: Branco, Preto, Motorizado..." />
+                <input value={form.cor_ferragem_motor} onChange={(e) => set('cor_ferragem_motor', e.target.value)} className={inputClass} placeholder="Ex: Branco, Preto, Motorizado…" />
               </div>
               <div className="col-span-2">
                 <label className={labelClass}>Acabamentos</label>
@@ -432,7 +432,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
                   onChange={(e) => set('observacoes', e.target.value)}
                   className={cn(inputClass, 'resize-none')}
                   rows={3}
-                  placeholder="Endereço de instalação, detalhes extras..."
+                  placeholder="Endereço de instalação, detalhes extras…"
                 />
               </div>
             </div>
@@ -467,7 +467,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
                 disabled={isPending}
                 className="flex-1 rounded-lg bg-brand-gradient px-4 py-3 text-sm font-semibold text-white shadow-brand hover:opacity-90 disabled:opacity-60 transition-opacity"
               >
-                {isPending ? 'Salvando...' : 'Salvar'}
+                {isPending ? 'Salvando…' : 'Salvar'}
               </button>
             )}
           </div>

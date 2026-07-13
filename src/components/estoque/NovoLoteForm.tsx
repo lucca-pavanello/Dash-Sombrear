@@ -243,7 +243,7 @@ export default function NovoLoteForm({ open, onClose, toast }: Props) {
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
                   rows={2}
-                  placeholder="Informações adicionais..."
+                  placeholder="Informações adicionais…"
                   className={cn(inputClass, 'resize-none')}
                 />
               </div>
@@ -280,7 +280,7 @@ export default function NovoLoteForm({ open, onClose, toast }: Props) {
                       onChange={(e) => updateItem(idx, 'produto_id', e.target.value)}
                       className={cn(inputClass, errors[`produto_${idx}`] && 'border-destructive')}
                     >
-                      <option value="">Selecione o produto...</option>
+                      <option value="">Selecione o produto…</option>
                       {produtos.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.nome}{p.codigo ? ` (${p.codigo})` : ''}
@@ -382,7 +382,7 @@ export default function NovoLoteForm({ open, onClose, toast }: Props) {
               disabled={isPending}
               className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
             >
-              {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</> : 'Confirmar Entrada'}
+              {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando…</> : 'Confirmar Entrada'}
             </button>
           )}
         </div>

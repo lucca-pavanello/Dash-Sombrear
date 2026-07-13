@@ -59,7 +59,7 @@ function MultiSelectFilter({
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar opção..."
+          placeholder="Buscar opção…"
           className="w-full rounded-lg border border-border bg-background h-8 px-3 text-sm text-center placeholder:text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-2"
         />
       )}

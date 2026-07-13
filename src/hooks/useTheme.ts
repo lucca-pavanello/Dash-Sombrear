@@ -9,6 +9,8 @@ export function useTheme() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
+    // color-scheme nativo: scrollbars, inputs e selects seguem o tema (Windows dark)
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
   }, [isDark])
 

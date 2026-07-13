@@ -23,8 +23,8 @@ function TypingIndicator() {
       {[0, 1, 2].map(i => (
         <span
           key={i}
-          className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce"
-          style={{ animationDelay: `${i * 150}ms`, animationDuration: '900ms' }}
+          className="typing-dot h-1.5 w-1.5 rounded-full bg-muted-foreground/50"
+          style={{ animationDelay: `${i * 150}ms` }}
         />
       ))}
     </div>
@@ -247,7 +247,7 @@ function AICopilot({ open, onClose, data }: Props) {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Pergunte algo... (Enter para enviar)"
+                  placeholder="Pergunte algo… (Enter para enviar)"
                   rows={1}
                   className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 max-h-24"
                   style={{ fieldSizing: 'content' } as React.CSSProperties}

@@ -224,7 +224,7 @@ export default function ConfiguracaoView({ toast }: Props) {
           className="flex items-center gap-2 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Save className="h-4 w-4" />
-          {isSubmitting || salvar.isPending ? 'Salvando...' : 'Salvar configurações'}
+          {isSubmitting || salvar.isPending ? 'Salvando…' : 'Salvar configurações'}
         </button>
       </div>
     </form>

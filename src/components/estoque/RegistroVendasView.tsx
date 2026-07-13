@@ -299,7 +299,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
                           handleProdutoChange(index, v)
                         }}
                         options={produtoOptions}
-                        placeholder="Selecione o produto..."
+                        placeholder="Selecione o produto…"
                         className={cn(INPUT_CLASSES, "!font-normal")}
                       />
                       {errors.itens?.[index]?.produto_id && (
@@ -393,7 +393,7 @@ export default function RegistroVendasView({ toast, responsavel, userId, onVerDe
               className="flex items-center justify-center gap-2 rounded-lg bg-brand-gradient h-11 px-8 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:!bg-gray-300 disabled:!text-gray-500 disabled:!opacity-100 disabled:!cursor-not-allowed disabled:!scale-100"
             >
               {registrar.isPending
-                ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</>
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando…</>
                 : <><ShoppingCart className="h-4 w-4" /> Registrar venda</>
               }
             </button>

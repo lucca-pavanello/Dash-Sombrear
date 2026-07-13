@@ -16,27 +16,29 @@ interface KpiCardProps {
   backContent?: ReactNode
 }
 
+// Acento da variante: borda inteira tingida + banho sutil de fundo
+// (sem listra lateral — anti-padrão; o chip do ícone já carrega a cor)
 const VARIANTS: Record<KpiVariant, { icon: string; border: string }> = {
   default: { icon: 'bg-muted text-muted-foreground', border: '' },
   emerald: {
     icon: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-    border: 'border-l-4 border-l-emerald-500',
+    border: 'border-emerald-500/25 bg-emerald-500/[0.04] dark:bg-emerald-500/[0.07]',
   },
   blue: {
     icon: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-    border: 'border-l-4 border-l-blue-500',
+    border: 'border-blue-500/25 bg-blue-500/[0.04] dark:bg-blue-500/[0.07]',
   },
   orange: {
     icon: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-    border: 'border-l-4 border-l-orange-500',
+    border: 'border-primary/25 bg-primary/[0.04] dark:bg-primary/[0.07]',
   },
   purple: {
     icon: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-    border: 'border-l-4 border-l-purple-500',
+    border: 'border-purple-500/25 bg-purple-500/[0.04] dark:bg-purple-500/[0.07]',
   },
   amber: {
     icon: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-    border: 'border-l-4 border-l-amber-500',
+    border: 'border-amber-500/25 bg-amber-500/[0.04] dark:bg-amber-500/[0.07]',
   },
 }
 
