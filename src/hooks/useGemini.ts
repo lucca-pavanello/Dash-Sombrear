@@ -78,7 +78,7 @@ export function useGemini() {
 export function buildGeminiContext(data: Orcamento[]): GeminiContext {
   const fechados = data.filter(o => o.fechado === true)
   const emAberto = data.filter(o => !o.fechado)
-  const faturamento = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const faturamento = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
   const ticketMedio = fechados.length > 0 ? faturamento / fechados.length : 0
   const comMargem = data.filter(o => o.margem != null)
   const margemMedia = comMargem.length > 0

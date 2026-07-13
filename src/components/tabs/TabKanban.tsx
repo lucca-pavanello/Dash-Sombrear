@@ -63,7 +63,7 @@ interface CardProps {
 
 function KanbanCard({ o, allData, isDragging, onDragStart, onDragEnd, onClick }: CardProps) {
   const score = calcPropensityScore(o, allData)
-  const total = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+  const total = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
   const diasAberto = o.fechado ? 0 : Math.floor((Date.now() - new Date(o.created_at).getTime()) / 86400000)
   const isAtRisk = !o.fechado && diasAberto > 7
 
@@ -144,7 +144,7 @@ interface ColProps {
 }
 
 function KanbanColumn({ col, cards, allData, draggingId, dragOverCol, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onCardClick }: ColProps) {
-  const total = cards.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const total = cards.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
   const isOver = dragOverCol === col.id
 
   return (
@@ -235,8 +235,8 @@ export default function TabKanban({ data, onOpenCard }: Props) {
       const dias = Math.floor((Date.now() - new Date(o.updated_at ?? o.created_at).getTime()) / 86400000)
       return dias > 7
     }).length,
-    faturamento: data.filter(o => o.fechado).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0),
-    pipeline: data.filter(o => !o.fechado && o.status !== 'PERDIDO').reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0),
+    faturamento: data.filter(o => o.fechado).reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0),
+    pipeline: data.filter(o => !o.fechado && o.status !== 'PERDIDO').reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0),
   }), [data])
 
   function handleDragStart(e: React.DragEvent, id: string) {

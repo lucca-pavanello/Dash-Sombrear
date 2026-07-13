@@ -45,7 +45,7 @@ const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-wi
 const EMPTY_FORM = {
   responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
   modelo: MODELOS[0], tecido: '', quantidade: '1',
-  cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
+  cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instalacao: '',
   custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
 }
 
@@ -130,7 +130,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
   const sugestaoCusto = useSugestaoCustoTecido(form.tecido)
   const mostrarSugestaoCusto = sugestaoCusto && form.custo_m2 !== sugestaoCusto.custoM2.toFixed(2)
 
-  const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instacao) || 0)
+  const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instalacao) || 0)
   const custoPreview = parseFloat(form.custo_tecido) || 0
   const previewMargem = receita > 0 && custoPreview > 0 ? calcularMargem(receita, custoPreview) : null
 
@@ -171,7 +171,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
       return
     }
     try {
-      const receitaFinal = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instacao ? Number(form.instacao) : 0)
+      const receitaFinal = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instalacao ? Number(form.instalacao) : 0)
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
       const margem = custoTotal != null ? calcularMargem(receitaFinal, custoTotal) : null
 
@@ -187,7 +187,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
         cor_ferragem_motor: form.cor_ferragem_motor || null,
         acabamentos: form.acabamentos || null,
         valor_venda: form.valor_venda ? Number(form.valor_venda) : null,
-        instacao: form.instacao ? Number(form.instacao) : null,
+        instalacao: form.instalacao ? Number(form.instalacao) : null,
         custo_m2: form.custo_m2 ? Number(form.custo_m2) : null,
         custo_tecido: form.custo_tecido ? Number(form.custo_tecido) : calcCusto ?? null,
         custo_acabamento: form.custo_acabamento ? Number(form.custo_acabamento) : null,
@@ -355,7 +355,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Valor Instalação (R$)</label>
-                <input type="number" step="0.01" value={form.instacao} onChange={(e) => set('instacao', e.target.value)} className={inputClass} placeholder="0.00" />
+                <input type="number" step="0.01" value={form.instalacao} onChange={(e) => set('instalacao', e.target.value)} className={inputClass} placeholder="0.00" />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>

@@ -122,7 +122,7 @@ function generateInsights(data: Orcamento[]): string[] {
       acc[o.responsavel].total++
       if (o.fechado === true) {
         acc[o.responsavel].feitos++
-        acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instacao ?? 0)
+        acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
       }
       return acc
     }, {})
@@ -139,7 +139,7 @@ function generateInsights(data: Orcamento[]): string[] {
   }
 
   // 5. Ticket médio este mês vs histórico geral
-  const fatGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const fatGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
   const ticketGeral = fechados.length > 0 ? fatGeral / fechados.length : 0
   const ticketMes = thisFechados.length > 0 ? thisFat / thisFechados.length : 0
   if (ticketGeral > 0 && ticketMes > 0 && thisFechados.length >= 2) {
@@ -208,7 +208,7 @@ async function exportPDF(data: Orcamento[]) {
   const thisMonth = filterOrcamentosPorMes(data, now.getFullYear(), now.getMonth())
   const thisConv = thisMonth.length > 0 ? (thisMonth.filter((o) => o.fechado === true).length / thisMonth.length) * 100 : 0
   const fechados = data.filter((o) => o.fechado === true)
-  const faturamentoTotal = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const faturamentoTotal = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
 
   doc.setTextColor(40, 40, 40)
   doc.setFontSize(13)
@@ -242,7 +242,7 @@ async function exportPDF(data: Orcamento[]) {
     data.reduce<Record<string, { total: number; feitos: number; fat: number }>>((acc, o) => {
       if (!acc[o.responsavel]) acc[o.responsavel] = { total: 0, feitos: 0, fat: 0 }
       acc[o.responsavel].total++
-      if (o.fechado === true) { acc[o.responsavel].feitos++; acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instacao ?? 0) }
+      if (o.fechado === true) { acc[o.responsavel].feitos++; acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0) }
       return acc
     }, {})
   )
@@ -360,7 +360,7 @@ function ConversaoPorResponsavel({ data }: { data: Orcamento[] }) {
       acc[o.responsavel].total++
       if (o.fechado === true) {
         acc[o.responsavel].fechados++
-        acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instacao ?? 0)
+        acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
       }
       return acc
     }, {})
@@ -411,7 +411,7 @@ function FaturamentoPreditivo({ data }: { data: Orcamento[] }) {
       const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1)
       const fat = filterOrcamentosPorMes(data, d.getFullYear(), d.getMonth())
         .filter(o => o.fechado === true)
-        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
       return {
         mes: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
         faturamento: fat,
@@ -793,7 +793,7 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
     const daily = getDailyTrend(data)
     const insights = generateInsights(data)
     const fechados = data.filter((o) => o.fechado === true)
-    const faturamentoGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    const faturamentoGeral = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
     const fechadosComMargem = fechados.filter((o) => o.margem != null)
     const margemMedia = fechadosComMargem.length > 0
       ? fechadosComMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / fechadosComMargem.length
@@ -823,7 +823,7 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
       if (!map[o.modelo]) map[o.modelo] = { count: 0, fat: 0, custo: 0, fechados: 0, tecidos: {} }
       map[o.modelo].count++
       if (o.fechado === true) {
-        map[o.modelo].fat += (o.valor_venda ?? 0) + (o.instacao ?? 0)
+        map[o.modelo].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
         map[o.modelo].fechados++
       }
       if (o.custo_tecido != null && o.custo_tecido > 0) map[o.modelo].custo += o.custo_tecido

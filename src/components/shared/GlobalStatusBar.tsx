@@ -22,7 +22,7 @@ export default function GlobalStatusBar({ orcamentos }: Props) {
     const doMes = orcamentos.filter((o) => new Date(o.created_at) >= firstOfMonth)
     const fechadosMes = doMes.filter((o) => o.fechado)
 
-    const faturamento = fechadosMes.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    const faturamento = fechadosMes.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
     const conversao = doMes.length > 0 ? (fechadosMes.length / doMes.length) * 100 : 0
     const total = doMes.length
     const meta = getMeta()

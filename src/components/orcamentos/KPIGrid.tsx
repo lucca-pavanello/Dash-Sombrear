@@ -90,12 +90,12 @@ function KPIGrid({ data, resetKey }: Props) {
     const fechados = data.filter((o) => o.fechado === true)
     const emAberto = data.filter((o) => !o.fechado)
     const totalVenda = fechados.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
-    const totalInst = fechados.reduce((s, o) => s + (o.instacao ?? 0), 0)
+    const totalInst = fechados.reduce((s, o) => s + (o.instalacao ?? 0), 0)
     const faturamento = totalVenda + totalInst
     const totalOrc = data.length
     const ticketMedio = fechados.length > 0 ? faturamento / fechados.length : 0
     const convRate = totalOrc > 0 ? (fechados.length / totalOrc) * 100 : 0
-    const valorEmAberto = emAberto.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    const valorEmAberto = emAberto.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
     const comMargem = data.filter((o) => o.margem != null)
     const margemMedia = comMargem.length > 0
       ? comMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / comMargem.length
@@ -106,7 +106,7 @@ function KPIGrid({ data, resetKey }: Props) {
       const dias = Math.floor((agora - new Date(o.updated_at ?? o.created_at).getTime()) / 86400000)
       return dias > 7
     })
-    const valorEmRisco = emRisco.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    const valorEmRisco = emRisco.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
     return { fechados, emAberto, totalVenda, totalInst, faturamento, totalOrc, ticketMedio, convRate, valorEmAberto, comMargem, margemMedia, emRisco, valorEmRisco }
   }, [data])
 

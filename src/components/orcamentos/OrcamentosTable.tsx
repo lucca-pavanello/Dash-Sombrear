@@ -69,7 +69,7 @@ function FechadoCheckbox({ orcamento, toast }: { orcamento: Orcamento; toast: To
     const novoEstado = !wasFechado
     if (novoEstado) {
       const rect = e.currentTarget.getBoundingClientRect()
-      const bigDeal = (orcamento.valor_venda ?? 0) + (orcamento.instacao ?? 0) >= BIG_DEAL_THRESHOLD
+      const bigDeal = (orcamento.valor_venda ?? 0) + (orcamento.instalacao ?? 0) >= BIG_DEAL_THRESHOLD
       fireConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2, bigDeal)
       haptic('success')
     }
@@ -135,7 +135,7 @@ function exportCSV(data: Orcamento[]) {
       o.tecido,
       o.quantidade,
       o.valor_venda ?? '',
-      o.instacao ?? '',
+      o.instalacao ?? '',
       o.custo_tecido ?? '',
       m != null ? m.toFixed(1) : '',
       o.fechado ? 'Sim' : 'Não',
@@ -167,7 +167,7 @@ async function exportXLSX(data: Orcamento[]) {
     Tecido: o.tecido,
     Quantidade: o.quantidade,
     'Valor Venda': o.valor_venda ?? '',
-    'Valor Instalação': o.instacao ?? '',
+    'Valor Instalação': o.instalacao ?? '',
     'Custo (R$)': o.custo_tecido ?? '',
     'Margem (%)': calcMargem(o) != null ? (calcMargem(o) as number).toFixed(1) : '',
     Fechado: o.fechado ? 'Sim' : 'Não',
@@ -203,7 +203,7 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
   )
 
   const totalVenda = data.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
-  const totalInst = data.reduce((s, o) => s + (o.instacao ?? 0), 0)
+  const totalInst = data.reduce((s, o) => s + (o.instalacao ?? 0), 0)
   const totalGeral = totalVenda + totalInst
   const fechados = data.filter((o) => o.fechado === true).length
 
@@ -222,8 +222,8 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
         o.tecido,
         String(o.quantidade),
         o.valor_venda ? formatCurrency(o.valor_venda) : '—',
-        o.instacao ? formatCurrency(o.instacao) : '—',
-        formatCurrency((o.valor_venda ?? 0) + (o.instacao ?? 0)),
+        o.instalacao ? formatCurrency(o.instalacao) : '—',
+        formatCurrency((o.valor_venda ?? 0) + (o.instalacao ?? 0)),
         o.custo_tecido ? formatCurrency(o.custo_tecido) : '—',
         m != null ? m.toFixed(1) + '%' : '—',
         o.fechado ? 'Sim' : 'Não',
@@ -251,7 +251,7 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
 
 function calcMargem(o: Orcamento) {
   if (o.margem != null) return o.margem
-  const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+  const receita = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
   return o.custo_tecido && o.custo_tecido > 0
     ? calcularMargem(receita, o.custo_tecido)
     : null
@@ -432,7 +432,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     const map = new Map<string, number[]>()
     ;[...data].reverse().forEach(o => {
       const key = (o.cliente ?? o.responsavel).toLowerCase().trim()
-      const v = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+      const v = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(v)
     })
@@ -563,7 +563,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 <tbody>
                   {paginated.map((o, i) => {
                     const diasAberto = !o.fechado ? Math.floor((now - new Date(o.created_at).getTime()) / 86400000) : 0
-                    const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+                    const receita = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
                     const margem = calcMargem(o)
                     const semCusto = receita > 0 && (!o.custo_tecido || o.custo_tecido === 0)
                     const temCustoSemReceita = (!o.valor_venda) && o.custo_tecido && o.custo_tecido > 0
@@ -645,8 +645,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                                 return hist.length >= 2 ? <Sparkline values={hist.slice(-6)} /> : null
                               })()}
                             </span>
-                            {o.instacao ? (
-                              <span className="text-xs text-primary/70">+{formatCurrency(o.instacao)} inst.</span>
+                            {o.instalacao ? (
+                              <span className="text-xs text-primary/70">+{formatCurrency(o.instalacao)} inst.</span>
                             ) : null}
                           </span>
                         </td>
@@ -695,7 +695,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                       }
                     </td>
                     <td className="px-4 py-2.5 text-sm font-bold text-primary text-right">
-                      {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0))}
+                      {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0))}
                     </td>
                     <td colSpan={visibleCols.length - visibleCols.findIndex(c => c.id === 'valor') - 1} />
                   </tr>

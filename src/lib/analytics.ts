@@ -11,7 +11,7 @@ export function calcPropensityScore(o: Orcamento, allData: Orcamento[]): number 
   const taxa = doResp.length >= 3 ? doResp.filter(x => x.fechado === true).length / doResp.length : 0.45
   score += Math.round((taxa - 0.45) * 40)
 
-  const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+  const receita = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
   if (receita > 30000) score -= 12
   else if (receita > 10000) score -= 6
 
@@ -34,7 +34,7 @@ export function filterOrcamentosPorMes(data: Orcamento[], year: number, month: n
 export function calcFaturamentoPorMes(data: Orcamento[], year: number, month: number): number {
   return filterOrcamentosPorMes(data, year, month)
     .filter(o => o.fechado === true)
-    .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
 }
 
 export function getMonthlyDataSeries(
@@ -49,7 +49,7 @@ export function getMonthlyDataSeries(
       mes: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
       faturamento: monthData
         .filter(o => o.fechado === true)
-        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0),
+        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0),
       total: monthData.length,
     }
   })

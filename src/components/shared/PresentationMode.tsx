@@ -49,7 +49,7 @@ function SlideKPIs({ data }: { data: Orcamento[] }) {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   })
   const fechados = thisMonth.filter(o => o.fechado === true)
-  const faturamento = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+  const faturamento = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
   const convRate = thisMonth.length > 0 ? (fechados.length / thisMonth.length) * 100 : 0
   const ticket = fechados.length > 0 ? faturamento / fechados.length : 0
   const mesLabel = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
@@ -94,7 +94,7 @@ function SlideRanking({ data }: { data: Orcamento[] }) {
       const e = map.get(o.responsavel) ?? { fechamentos: 0, faturamento: 0 }
       if (o.fechado) {
         e.fechamentos++
-        e.faturamento += (o.valor_venda ?? 0) + (o.instacao ?? 0)
+        e.faturamento += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
       }
       map.set(o.responsavel, e)
     })
@@ -151,7 +151,7 @@ function SlideRanking({ data }: { data: Orcamento[] }) {
 function SlidePipeline({ data }: { data: Orcamento[] }) {
   const cols = useMemo(() => {
     const aberto = data.filter(o => !o.fechado && o.status !== 'PERDIDO' && o.status !== 'FEITO')
-    const total = aberto.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+    const total = aberto.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
     const em_contato = aberto.filter(o => !o.status || (o.status !== 'PROPOSTA' && o.status !== 'ENVIADO' && o.status !== 'CALCULADO' && o.status !== 'NEGOCIANDO'))
     const proposta = aberto.filter(o => o.status === 'PROPOSTA' || o.status === 'ENVIADO' || o.status === 'CALCULADO')
     const negociando = aberto.filter(o => o.status === 'NEGOCIANDO')
@@ -198,7 +198,7 @@ function SlidePipeline({ data }: { data: Orcamento[] }) {
               <div key={o.id} className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 <span className="text-white/80 text-sm font-medium">{o.cliente ?? o.responsavel}</span>
-                {o.valor_venda && <span className="text-emerald-400 text-sm font-bold">{formatCurrency((o.valor_venda ?? 0) + (o.instacao ?? 0))}</span>}
+                {o.valor_venda && <span className="text-emerald-400 text-sm font-bold">{formatCurrency((o.valor_venda ?? 0) + (o.instalacao ?? 0))}</span>}
               </div>
             ))}
           </div>
@@ -222,7 +222,7 @@ function SlideDesempenho({ data }: { data: Orcamento[] }) {
       const fechados = monthData.filter(o => o.fechado === true)
       return {
         mes: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
-        faturamento: fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0),
+        faturamento: fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0),
         total: monthData.length,
         fechados: fechados.length,
       }

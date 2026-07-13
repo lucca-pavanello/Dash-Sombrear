@@ -82,7 +82,7 @@ export default function OrcamentoPublico() {
         14, 19
       )
 
-      const receita = (orcamento.valor_venda ?? 0) + (orcamento.instacao ?? 0)
+      const receita = (orcamento.valor_venda ?? 0) + (orcamento.instalacao ?? 0)
       const rows: [string, string][] = ([
         ['Cliente', orcamento.cliente],
         ['Telefone', orcamento.telefone],
@@ -94,7 +94,7 @@ export default function OrcamentoPublico() {
         ['Ferragem / Motor', orcamento.cor_ferragem_motor],
         ['Acabamentos', orcamento.acabamentos],
         ['Valor do Produto', orcamento.valor_venda ? formatCurrency(orcamento.valor_venda) : null],
-        ['Valor da Instalação', orcamento.instacao ? formatCurrency(orcamento.instacao) : null],
+        ['Valor da Instalação', orcamento.instalacao ? formatCurrency(orcamento.instalacao) : null],
         ['Valor Total', receita > 0 ? formatCurrency(receita) : null],
         ['Observações', orcamento.observacoes],
       ] as [string, string | number | null | undefined][])
@@ -140,7 +140,7 @@ export default function OrcamentoPublico() {
     )
   }
 
-  const receita = (orcamento.valor_venda ?? 0) + (orcamento.instacao ?? 0)
+  const receita = (orcamento.valor_venda ?? 0) + (orcamento.instalacao ?? 0)
   const aceito = !!orcamento.aceito_em
   const createdDate = new Date(orcamento.created_at).toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -188,11 +188,11 @@ export default function OrcamentoPublico() {
             <div className="p-5 text-center">
               <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Valor Total</p>
               <p className="text-3xl font-bold" style={{ color: BRAND }}>{formatCurrency(receita)}</p>
-              {orcamento.valor_venda && orcamento.instacao ? (
+              {orcamento.valor_venda && orcamento.instalacao ? (
                 <div className="mt-2 flex items-center justify-center gap-3 text-xs text-gray-400">
                   <span>Produto: {formatCurrency(orcamento.valor_venda)}</span>
                   <span className="text-gray-200">|</span>
-                  <span>Instalação: {formatCurrency(orcamento.instacao)}</span>
+                  <span>Instalação: {formatCurrency(orcamento.instalacao)}</span>
                 </div>
               ) : null}
             </div>
@@ -270,10 +270,10 @@ export default function OrcamentoPublico() {
         </Section>
 
         {/* Financeiro */}
-        {(orcamento.valor_venda || orcamento.instacao) && (
+        {(orcamento.valor_venda || orcamento.instalacao) && (
           <Section title="Financeiro">
             <Row label="Valor do Produto"   value={orcamento.valor_venda ? formatCurrency(orcamento.valor_venda) : null} icon={DollarSign} />
-            <Row label="Valor da Instalação" value={orcamento.instacao ? formatCurrency(orcamento.instacao) : null}     icon={DollarSign} />
+            <Row label="Valor da Instalação" value={orcamento.instalacao ? formatCurrency(orcamento.instalacao) : null}     icon={DollarSign} />
           </Section>
         )}
 

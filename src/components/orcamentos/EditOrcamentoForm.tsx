@@ -194,7 +194,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
     cor_ferragem_motor: orcamento.cor_ferragem_motor ?? '',
     acabamentos: orcamento.acabamentos ?? '',
     valor_venda: orcamento.valor_venda?.toString() ?? '',
-    instacao: orcamento.instacao?.toString() ?? '',
+    instalacao: orcamento.instalacao?.toString() ?? '',
     custo_m2: orcamento.custo_m2?.toString() ?? '',
     custo_tecido: orcamento.custo_tecido?.toString() ?? '',
     custo_acabamento: orcamento.custo_acabamento?.toString() ?? '',
@@ -261,7 +261,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   const sugestaoCusto = useSugestaoCustoTecido(form.tecido)
 
   const previewMargem = (() => {
-    const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instacao) || 0)
+    const receita = (parseFloat(form.valor_venda) || 0) + (parseFloat(form.instalacao) || 0)
     const custo = parseFloat(form.custo_tecido) || 0
     return receita > 0 && custo > 0 ? calcularMargem(receita, custo) : null
   })()
@@ -296,7 +296,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       form.cor_ferragem_motor ? `Ferragem/Motor: ${form.cor_ferragem_motor}` : null,
       form.acabamentos ? `Acabamentos: ${form.acabamentos}` : null,
       form.valor_venda ? `Valor: ${formatCurrency(Number(form.valor_venda))}` : null,
-      form.instacao ? `Instalação: ${formatCurrency(Number(form.instacao))}` : null,
+      form.instalacao ? `Instalação: ${formatCurrency(Number(form.instalacao))}` : null,
       form.observacoes ? `Obs: ${form.observacoes}` : null,
     ].filter(Boolean).join('\n')
   }
@@ -348,7 +348,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       return
     }
     try {
-      const receita = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instacao ? Number(form.instacao) : 0)
+      const receita = (form.valor_venda ? Number(form.valor_venda) : 0) + (form.instalacao ? Number(form.instalacao) : 0)
       const custoTotal = form.custo_tecido ? Number(form.custo_tecido) : (calcCusto ?? null)
       const margem = custoTotal != null ? calcularMargem(receita, custoTotal) : null
 
@@ -365,7 +365,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
         cor_ferragem_motor: form.cor_ferragem_motor || null,
         acabamentos: form.acabamentos || null,
         valor_venda: form.valor_venda ? Number(form.valor_venda) : null,
-        instacao: form.instacao ? Number(form.instacao) : null,
+        instalacao: form.instalacao ? Number(form.instalacao) : null,
         custo_m2: form.custo_m2 ? Number(form.custo_m2) : null,
         custo_tecido: form.custo_tecido ? Number(form.custo_tecido) : calcCusto ?? null,
         custo_acabamento: form.custo_acabamento ? Number(form.custo_acabamento) : null,
@@ -562,7 +562,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             </div>
             <div>
               <label className={labelClass}>Valor Instalação (R$)</label>
-              <input type="number" step="0.01" value={form.instacao} onChange={(e) => set('instacao', e.target.value)} className={inputClass} placeholder="0.00" />
+              <input type="number" step="0.01" value={form.instalacao} onChange={(e) => set('instalacao', e.target.value)} className={inputClass} placeholder="0.00" />
             </div>
             <div>
               <label className={labelClass}>
@@ -627,7 +627,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                   Margem estimada: {previewMargem.toFixed(1)}%
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {formatCurrency((parseFloat(form.valor_venda) || 0) + (parseFloat(form.instacao) || 0))} − {formatCurrency(parseFloat(form.custo_tecido) || 0)}
+                  {formatCurrency((parseFloat(form.valor_venda) || 0) + (parseFloat(form.instalacao) || 0))} − {formatCurrency(parseFloat(form.custo_tecido) || 0)}
                 </span>
               </div>
             )}

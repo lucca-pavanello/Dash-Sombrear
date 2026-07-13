@@ -123,17 +123,17 @@ export function useMonthlyComparison() {
 
       const { data } = await supabase
         .from('orcamentos')
-        .select('valor_venda, instacao, created_at')
+        .select('valor_venda, instalacao, created_at')
         .eq('fechado', true)
         .gte('created_at', firstOfLastMonth)
 
       const currentMonth = (data ?? [])
         .filter((o) => new Date(o.created_at) >= new Date(firstOfThisMonth))
-        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
 
       const previousMonth = (data ?? [])
         .filter((o) => new Date(o.created_at) < new Date(firstOfThisMonth))
-        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instacao ?? 0), 0)
+        .reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
 
       return { currentMonth, previousMonth }
     },

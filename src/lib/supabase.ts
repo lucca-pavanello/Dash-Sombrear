@@ -23,7 +23,7 @@ export type Orcamento = {
   fechado?: boolean | null
   telefone?: string | null
   valor_venda?: number | null
-  instacao?: number | null
+  instalacao?: number | null
   margem?: number | null
   observacoes?: string | null
   fonte?: string | null

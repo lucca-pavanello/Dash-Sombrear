@@ -34,7 +34,7 @@ function OrcamentosFechadosCard({ data }: Props) {
         ) : (
           <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
             {fechados.map((o) => {
-              const receita = (o.valor_venda ?? 0) + (o.instacao ?? 0)
+              const receita = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
               const margem = o.margem ?? (o.custo_tecido && o.custo_tecido > 0 ? calcularMargem(receita, o.custo_tecido) : null)
               return (
                 <div
@@ -87,17 +87,17 @@ function OrcamentosFechadosCard({ data }: Props) {
                         <span className="font-medium">{formatCurrency(o.custo_acabamento)}</span>
                       </div>
                     )}
-                    {o.instacao && (
+                    {o.instalacao && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Instalação</span>
-                        <span className="font-medium">{formatCurrency(o.instacao)}</span>
+                        <span className="font-medium">{formatCurrency(o.instalacao)}</span>
                       </div>
                     )}
-                    {(o.valor_venda || o.instacao) && (
+                    {(o.valor_venda || o.instalacao) && (
                       <div className="flex justify-between border-t pt-1 mt-1">
                         <span className="font-semibold">Total</span>
                         <span className="font-bold text-primary">
-                          {formatCurrency((o.valor_venda ?? 0) + (o.instacao ?? 0))}
+                          {formatCurrency((o.valor_venda ?? 0) + (o.instalacao ?? 0))}
                         </span>
                       </div>
                     )}
