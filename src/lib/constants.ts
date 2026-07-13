@@ -1,7 +1,8 @@
 export const ADMIN_EMAIL = 'luccapavanallo@gmail.com';
 export const ESTOQUE_EMAIL = 'luccapavanallo@gmail.com';
 
-export const RESPONSAVEIS = ['Sombrear', 'Stella', 'Rogério', 'Thais', 'Gregório', 'Sueli', 'Teste'];
+// Nomes base — a lista completa (com perfis aprovados) vem de useResponsaveis()
+export const RESPONSAVEIS = ['Sombrear', 'Stella', 'Rogério', 'Thais', 'Gregório', 'Sueli'];
 
 export const META_KEY = 'sombrear-meta-mensal';
 

@@ -6,7 +6,8 @@ import { useToggleShare } from '@/hooks/useKanban'
 import type { Orcamento } from '@/lib/supabase'
 import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
-import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
+import { MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
+import { useResponsaveis } from '@/hooks/useResponsaveis'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -166,6 +167,7 @@ function TimeMachine({ historico }: { historico: HistoricoEntry[] }) {
 }
 
 export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) {
+  const responsaveis = useResponsaveis()
   const { mutateAsync: update, isPending: isUpdating } = useUpdateOrcamento()
   const { mutateAsync: remove, isPending: isDeleting } = useDeleteOrcamento()
   const { mutateAsync: add } = useAddOrcamento()
@@ -455,7 +457,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                 className={inputClass}
               >
                 <option value="">Selecione...</option>
-                {RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}
+                {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -491,13 +493,13 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
               <label className={labelClass}>Altura (m)</label>
               <input type="text" inputMode="decimal" value={form.altura} onChange={(e) => { userEditedDimensions.current = true; set('altura', e.target.value.replace(',', '.')) }} className={inputClass} placeholder="0.00" />
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Modelo <span className="text-destructive ml-0.5">*</span></label>
               <select required value={form.modelo} onChange={(e) => set('modelo', e.target.value)} className={cn(inputClass, 'cursor-pointer')}>
                 {MODELOS.map((m) => <option key={m}>{m}</option>)}
               </select>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Quantidade <span className="text-destructive ml-0.5">*</span></label>
               <input required type="number" min="1" value={form.quantidade} onChange={(e) => { userEditedDimensions.current = true; set('quantidade', e.target.value) }} className={inputClass} />
             </div>

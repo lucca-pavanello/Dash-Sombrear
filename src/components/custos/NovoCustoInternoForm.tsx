@@ -2,7 +2,8 @@ import { X } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAddCustoInterno } from '@/hooks/useAddCustoInterno'
 import { formatCurrency } from '@/lib/utils'
-import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
+import { MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
+import { useResponsaveis } from '@/hooks/useResponsaveis'
 
 function ModeloHint({ modelo }: { modelo: string }) {
   const rule = MODELO_RULES[modelo]
@@ -47,6 +48,7 @@ interface Props {
 }
 
 export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
+  const responsaveis = useResponsaveis()
   const { mutateAsync, isPending } = useAddCustoInterno()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -195,7 +197,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
                 className={inputClass}
               >
                 <option value="">Selecione...</option>
-                {RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}
+                {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
 

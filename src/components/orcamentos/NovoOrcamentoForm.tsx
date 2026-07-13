@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useAddOrcamento } from '@/hooks/useOrcamentos'
 import { cn, formatCurrency, calcularMargem } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
-import { RESPONSAVEIS, MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
+import { MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
+import { useResponsaveis } from '@/hooks/useResponsaveis'
 
 function ModeloHint({ modelo }: { modelo: string }) {
   const rule = MODELO_RULES[modelo]
@@ -53,6 +54,7 @@ const STEPS = [
 ]
 
 export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
+  const responsaveis = useResponsaveis()
   const { mutateAsync, isPending } = useAddOrcamento()
   const panelRef = useRef<HTMLDivElement>(null)
   const [step, setStep] = useState(1)
@@ -271,7 +273,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
                   className={inputClass}
                 >
                   <option value="">Selecione...</option>
-                  {RESPONSAVEIS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -302,14 +304,14 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
           {step === 2 && (
             <div className="grid grid-cols-2 gap-4">
               <SectionDivider label="Produto" />
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Modelo <span className="text-destructive ml-0.5">*</span></label>
                 <select required value={form.modelo} onChange={(e) => set('modelo', e.target.value)} className={cn(inputClass, 'cursor-pointer')}>
                   {MODELOS.map((m) => <option key={m}>{m}</option>)}
                 </select>
               </div>
               <ModeloHint modelo={form.modelo} />
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Quantidade <span className="text-destructive ml-0.5">*</span></label>
                 <input required type="number" min="1" value={form.quantidade} onChange={(e) => set('quantidade', e.target.value)} className={inputClass} />
               </div>
@@ -340,22 +342,22 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
           {step === 3 && (
             <div className="grid grid-cols-2 gap-4">
               <SectionDivider label="Financeiro" />
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Valor de Venda (R$)</label>
                 <input type="number" step="0.01" value={form.valor_venda} onChange={(e) => set('valor_venda', e.target.value)} className={inputClass} placeholder="0.00" />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Valor Instalação (R$)</label>
                 <input type="number" step="0.01" value={form.instacao} onChange={(e) => set('instacao', e.target.value)} className={inputClass} placeholder="0.00" />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>
                   Custo por m² (R$)
                   <span className="ml-1.5 text-xs font-normal text-muted-foreground">do tecido</span>
                 </label>
                 <input type="number" step="0.01" value={form.custo_m2} onChange={(e) => set('custo_m2', e.target.value)} className={inputClass} placeholder="0.00" />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Custo Acabamento (R$)</label>
                 <input type="number" step="0.01" value={form.custo_acabamento} onChange={(e) => set('custo_acabamento', e.target.value)} className={inputClass} placeholder="0.00" />
               </div>
