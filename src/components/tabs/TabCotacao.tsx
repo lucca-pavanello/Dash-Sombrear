@@ -611,7 +611,12 @@ export default function TabCotacao() {
                           {/* Persianas */}
                           <div className="space-y-5">
                             {a.persianas.map((p, persianaIndex) => {
-                              const tecidoOpcoes = tecidosPorModelo[p.modelo] ?? []
+                              const tecidoBase = tecidosPorModelo[p.modelo] ?? []
+                              // Opção especial: o n8n detecta "MAIS BARATO" e resolve o tecido
+                              // mais barato do modelo ao vivo na planilha (orçamento "a partir de")
+                              const tecidoOpcoes = tecidoBase.length > 0
+                                ? ['MAIS BARATO (a partir de)', ...tecidoBase]
+                                : tecidoBase
                               const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
                               const isLastPersiana = persianaIndex === a.persianas.length - 1
                               const isPH50 = p.modelo === MODEL_PH50
