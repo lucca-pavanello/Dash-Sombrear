@@ -41,10 +41,23 @@ function ModeloHint({ modelo }: { modelo: string }) {
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
+const EMPTY_FORM = {
+  responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
+  modelo: MODELOS[0], tecido: '', quantidade: '1',
+  cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
+  custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
+}
+
+export type OrcamentoFormState = typeof EMPTY_FORM
+
 interface Props {
   toast: (type: 'success' | 'error', message: string) => void
   open: boolean
   onClose: () => void
+  /** Pré-preenche o form (ex.: criar orçamento a partir de um lead do Agente IA) */
+  initial?: Partial<OrcamentoFormState>
+  /** Valor gravado na coluna fonte (default: 'manual') */
+  fonte?: string
 }
 
 const STEPS = [
@@ -53,7 +66,7 @@ const STEPS = [
   { number: 3, label: 'Financeiro' },
 ]
 
-export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
+export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte = 'manual' }: Props) {
   const responsaveis = useResponsaveis()
   const { mutateAsync, isPending } = useAddOrcamento()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -80,21 +93,11 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
   useEffect(() => {
     if (open) {
       setStep(1)
-      setForm({
-        responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
-        modelo: MODELOS[0], tecido: '', quantidade: '1',
-        cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
-        custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
-      })
+      setForm({ ...EMPTY_FORM, ...initial })
     }
-  }, [open])
+  }, [open, initial])
 
-  const [form, setForm] = useState({
-    responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',
-    modelo: MODELOS[0], tecido: '', quantidade: '1',
-    cor_ferragem_motor: '', acabamentos: '', valor_venda: '', instacao: '',
-    custo_m2: '', custo_tecido: '', custo_acabamento: '', observacoes: '',
-  })
+  const [form, setForm] = useState({ ...EMPTY_FORM, ...initial })
 
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -188,7 +191,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose }: Props) {
         observacoes: form.observacoes || null,
         ambiente: form.ambiente || null,
         margem,
-        fonte: 'manual',
+        fonte,
       })
       toast('success', 'Orçamento salvo com sucesso!')
       onClose()

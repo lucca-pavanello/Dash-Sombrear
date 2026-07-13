@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, STATUS_AGUARDANDO, STATUS_CONVERTIDO } from '@/hooks/useAgenteIA'
+import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, STATUS_AGUARDANDO, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
 import { formatCurrency } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import {
@@ -7,20 +7,53 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
   Clock, MessageCircle, XCircle, Circle, ChevronLeft,
-  AlertCircle, Minimize2, Maximize2,
+  AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter,
 } from 'lucide-react'
 import DatePicker from '@/components/ui/DatePicker'
 import SkeletonCard from '@/components/shared/SkeletonCard'
+import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
-import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE } from '@/lib/constants'
+import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE, MODELOS, CHATWOOT_BASE_URL } from '@/lib/constants'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 
 function formatWaNumber(whatsapp: string): string {
   const digits = whatsapp.replace(/\D/g, '')
   return digits.startsWith('55') ? digits : `55${digits}`
+}
+
+function chatwootUrl(lead: CrmLead): string | null {
+  if (!lead.id_conta_chatwoot || !lead.id_conversa_chatwoot) return null
+  return `${CHATWOOT_BASE_URL}/app/accounts/${lead.id_conta_chatwoot}/conversations/${lead.id_conversa_chatwoot}`
+}
+
+// Monta o pré-preenchimento do NovoOrcamentoForm a partir de um lead do agente
+function leadToOrcamentoInitial(l: CrmLead) {
+  const medidas = l.medidas_coletadas?.match(/(\d+[.,]?\d*)\s*[x×]\s*(\d+[.,]?\d*)/i)
+  const modeloMatch = MODELOS.find((m) => l.modelo_interesse?.toLowerCase().includes(m.toLowerCase()))
+  const qtd = parseInt(l.quantidade ?? '', 10)
+  return {
+    responsavel: 'Stella',
+    cliente: l.nome ?? '',
+    telefone: l.whatsapp ?? '',
+    ambiente: l.ambiente ?? '',
+    modelo: modeloMatch ?? MODELOS[0],
+    tecido: l.tecido_cor ?? '',
+    quantidade: Number.isInteger(qtd) && qtd >= 1 ? String(qtd) : '1',
+    largura: medidas ? medidas[1].replace(',', '.') : '',
+    altura: medidas ? medidas[2].replace(',', '.') : '',
+    acabamentos: l.acabamento_desejado ?? '',
+    observacoes: [
+      'Criado a partir de lead do Agente IA (WhatsApp).',
+      l.modelo_interesse && !modeloMatch ? `Modelo de interesse: ${l.modelo_interesse}` : null,
+      l.medidas_coletadas && !medidas ? `Medidas coletadas: ${l.medidas_coletadas}` : null,
+      l.ultimo_valor_cotado ? `Último valor cotado pela IA: ${l.ultimo_valor_cotado}` : null,
+      l.precisa_instalacao ? `Instalação: ${l.precisa_instalacao}` : null,
+      l.endereco_cep ? `CEP: ${l.endereco_cep}` : null,
+    ].filter(Boolean).join('\n'),
+  }
 }
 
 function isForaDoHorario(dateStr: string | null) {
@@ -162,6 +195,41 @@ function KpiCard({ label, value, icon: Icon, alcance, sub, attention, delay }: {
   )
 }
 
+// ── Funil de conversão ───────────────────────────────────────────────────────
+function FunnelChart({ stages }: { stages: { label: string; value: number; hint: string }[] }) {
+  const max = stages[0]?.value ?? 0
+  return (
+    <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <Filter className="h-4 w-4 text-primary" />
+        <h2 className="font-display text-sm font-semibold tracking-wide">Funil de conversão</h2>
+        <span className="text-xs text-muted-foreground">no período selecionado</span>
+      </div>
+      <div className="space-y-2.5">
+        {stages.map((s, i) => {
+          const pct = max > 0 ? (s.value / max) * 100 : 0
+          const pctLabel = max > 0 ? `${Math.round(pct)}%` : '—'
+          return (
+            <div key={s.label} className="flex items-center gap-3">
+              <span className="w-40 shrink-0 text-xs font-medium text-muted-foreground truncate" title={s.hint}>{s.label}</span>
+              <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-muted/50">
+                <div
+                  className="h-full rounded-lg bg-primary transition-all duration-500"
+                  style={{ width: `${Math.max(pct, s.value > 0 ? 4 : 0)}%`, opacity: 1 - i * 0.16 }}
+                />
+                <span className="absolute inset-y-0 left-2.5 flex items-center text-xs font-bold tabular-nums text-foreground mix-blend-luminosity">
+                  {s.value}
+                </span>
+              </div>
+              <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{i === 0 ? '100%' : pctLabel}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 type LeadSort = { key: 'created_at' | 'nome' | 'timestamp_ultima_msg'; dir: 'asc' | 'desc' }
 type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
@@ -184,6 +252,36 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const [orcsPage, setOrcsPage] = useState(1)
   const [leadsCollapsed, setLeadsCollapsed] = useState(false)
   const [orcsCollapsed, setOrcsCollapsed] = useState(false)
+  const [leadOrcamento, setLeadOrcamento] = useState<CrmLead | null>(null)
+
+  // Orçamentos da IA indexados por lead (cliente_id FK + identificador_whats)
+  const orcsPorLead = useMemo(() => {
+    const map = new Map<string, OrcamentoIA[]>()
+    const add = (key: string, o: OrcamentoIA) => {
+      const arr = map.get(key)
+      if (arr) { if (!arr.some(x => x.id === o.id)) arr.push(o) }
+      else map.set(key, [o])
+    }
+    for (const o of orcamentosIA) {
+      if (o.cliente_id) add(`id:${o.cliente_id}`, o)
+      const wa = o.identificador_whats?.replace(/\D/g, '')
+      if (wa) add(`wa:${wa}`, o)
+    }
+    return map
+  }, [orcamentosIA])
+
+  function orcsDoLead(lead: CrmLead): OrcamentoIA[] {
+    const byId = orcsPorLead.get(`id:${lead.id}`) ?? []
+    const wa = (lead.whatsapp ?? lead.identificador_usuario ?? '').replace(/\D/g, '')
+    const byWa = wa ? (orcsPorLead.get(`wa:${wa}`) ?? []) : []
+    const seen = new Set<string>()
+    return [...byId, ...byWa].filter(o => (seen.has(o.id) ? false : (seen.add(o.id), true)))
+  }
+
+  const initialOrcamento = useMemo(
+    () => (leadOrcamento ? leadToOrcamentoInitial(leadOrcamento) : undefined),
+    [leadOrcamento]
+  )
 
   // Reset pages when filters or sort changes
   useEffect(() => { setLeadsPage(1) }, [periodo, leadSort, customFrom, customTo])
@@ -228,6 +326,19 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       const convertido = status === 'convertido' || status === 'fechado'
       return !convertido && horasDecorridas(l.timestamp_ultima_msg) > ESPERA_HORAS
     }), [filtrados])
+
+  // Funil: respondidos → cotados → pediram humano → convertidos
+  const cotados = useMemo(
+    () => filtrados.filter(l => !!l.ultimo_valor_cotado?.trim() || orcsDoLead(l).length > 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtrados, orcsPorLead]
+  )
+  const funnelStages = useMemo(() => [
+    { label: 'Respondidos pelo agente', value: filtrados.length,   hint: 'Leads atendidos pela IA no período' },
+    { label: 'Receberam cotação',       value: cotados.length,     hint: 'Leads com valor cotado ou orçamento gerado' },
+    { label: 'Pediram atendimento',     value: aguardando.length,  hint: 'Querem falar com um humano' },
+    { label: 'Convertidos',             value: convertidos.length, hint: 'Marcados como convertidos' },
+  ], [filtrados.length, cotados.length, aguardando.length, convertidos.length])
 
   const animLeads      = useCountUp(filtrados.length, 700, hasLoaded, resetKey)
   const animAguard     = useCountUp(aguardando.length, 700, hasLoaded, resetKey)
@@ -360,6 +471,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           ))}
         </div>
       </div>
+
+      {/* ── Funil de conversão ── */}
+      <FunnelChart stages={funnelStages} />
 
       {/* ── Banner: aguardando atendimento ── */}
       {aguardando.length > 0 && (
@@ -584,6 +698,56 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                   {lead.data_medicao_instalacao && <div><p className="text-xs text-muted-foreground mb-0.5">Data medição</p><p className="font-medium text-primary">{lead.data_medicao_instalacao}</p></div>}
                                   {lead.endereco_cep         && <div><p className="text-xs text-muted-foreground mb-0.5">CEP</p><p className="font-medium">{lead.endereco_cep}</p></div>}
                                 </div>
+
+                                {/* Orçamentos da IA vinculados a este lead */}
+                                {(() => {
+                                  const orcs = orcsDoLead(lead)
+                                  if (orcs.length === 0) return null
+                                  return (
+                                    <div className="mt-4 border-t border-border/40 pt-3">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                                        Orçamentos da IA deste lead ({orcs.length})
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {orcs.map(o => {
+                                          const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
+                                          return (
+                                            <span key={o.id} className="inline-flex items-center gap-2 rounded-lg border bg-background px-2.5 py-1.5 text-xs">
+                                              <FileText className="h-3 w-3 text-primary shrink-0" />
+                                              <span className="font-medium">{o.modelo ?? '—'}</span>
+                                              {o.largura && o.altura && <span className="text-muted-foreground">{o.largura}×{o.altura}m</span>}
+                                              {total > 0 && <span className="font-bold text-primary tabular-nums">{formatCurrency(total)}</span>}
+                                              <span className="text-muted-foreground/60">{fmtDate(o.created_at)}</span>
+                                            </span>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* Ações do lead */}
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setLeadOrcamento(lead) }}
+                                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 transition-colors active:scale-95"
+                                  >
+                                    <FilePlus2 className="h-3.5 w-3.5" />
+                                    Criar orçamento com estes dados
+                                  </button>
+                                  {chatwootUrl(lead) && (
+                                    <a
+                                      href={chatwootUrl(lead)!}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                      Ver conversa no Chatwoot
+                                    </a>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           )}
@@ -692,6 +856,27 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             {lead.tecido_cor              && <div><p className="text-xs text-muted-foreground">Tecido/Cor</p><p className="font-medium">{lead.tecido_cor}</p></div>}
                             {lead.medidas_coletadas       && <div><p className="text-xs text-muted-foreground">Medidas</p><p className="font-medium">{lead.medidas_coletadas}</p></div>}
                             {lead.data_medicao_instalacao && <div><p className="text-xs text-muted-foreground">Data medição</p><p className="font-medium text-primary">{lead.data_medicao_instalacao}</p></div>}
+                          </div>
+                          <div className="flex flex-wrap gap-2 pt-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setLeadOrcamento(lead) }}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 transition-colors active:scale-95"
+                            >
+                              <FilePlus2 className="h-3.5 w-3.5" />
+                              Criar orçamento
+                            </button>
+                            {chatwootUrl(lead) && (
+                              <a
+                                href={chatwootUrl(lead)!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Conversa
+                              </a>
+                            )}
                           </div>
                         </div>
                       )}
@@ -880,6 +1065,15 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           )
         )}
       </div>
+      {/* Lead → orçamento em 1 clique */}
+      <NovoOrcamentoForm
+        open={!!leadOrcamento}
+        onClose={() => setLeadOrcamento(null)}
+        toast={toast}
+        initial={initialOrcamento}
+        fonte="agente-ia"
+      />
+
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
   )
