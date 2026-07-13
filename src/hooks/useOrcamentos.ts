@@ -102,8 +102,9 @@ export function useOrcamentos(
       return data as Orcamento[]
     },
     // Polling de fallback: garante que rows inseridas pelo n8n aparecem
-    // mesmo que o realtime falhe ou o user_id não tenha chegado a tempo
-    refetchInterval: 30000,
+    // mesmo que o realtime falhe ou o user_id não tenha chegado a tempo.
+    // Realtime é o mecanismo primário — 3min evita refazer select('*') a cada 30s.
+    refetchInterval: 180000,
   })
   return { ...query, realtimeStatus }
 }

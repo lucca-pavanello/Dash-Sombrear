@@ -15,12 +15,13 @@ export const estoqueTheme = {
   classeC:  'bg-muted/60 text-muted-foreground text-xs',
   semDados: 'text-muted-foreground italic text-xs',
 
-  // Níveis de localização (cinza escalonado: escuro = mais acessível)
-  balcao:    'text-gray-800 font-semibold',
-  acessivel: 'text-gray-700',
-  medio:     'text-gray-500',
-  fundo:     'text-gray-400',
-  deposito:  'text-gray-300',
+  // Níveis de localização (escala de contraste: mais forte = mais acessível)
+  // Tokens do tema em vez de gray-N fixo — gray-800 sumia sobre o card no dark mode
+  balcao:    'text-foreground font-semibold',
+  acessivel: 'text-foreground/80',
+  medio:     'text-muted-foreground',
+  fundo:     'text-muted-foreground/75',
+  deposito:  'text-muted-foreground/55',
 } as const
 
 export type NivelAlerta = 'ruptura' | 'critico' | 'atencao' | 'ok' | 'sem_dados'

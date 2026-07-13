@@ -20,9 +20,10 @@ export function useEstoqueProdutos({ includeInactive = false }: { includeInactiv
   })
 }
 
-export function useEstoqueProdutosAlerta() {
+export function useEstoqueProdutosAlerta({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['estoque-produtos-alerta'],
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('estoque_produtos_alerta')

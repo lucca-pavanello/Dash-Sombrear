@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, Kanban, AlertTriangle } from 'lucide-react'
+import { supabase, type Orcamento } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useProfile, usePendingCount } from '@/hooks/useProfile'
@@ -31,9 +31,11 @@ const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
 const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
 
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
+const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
 const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 const PermissoesView  = lazy(() => import('@/components/admin/PermissoesView'))
+const EditOrcamentoForm = lazy(() => import('@/components/orcamentos/EditOrcamentoForm'))
 
 const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban']
 const DEFAULT_TAB = 'calcular-orcamento'
@@ -47,8 +49,8 @@ function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLB
       type="button"
       className={cn(
         'flex-[1.5] min-w-0 relative flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
-        'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md',
-        aberto && 'ring-2 ring-orange-300 ring-offset-1',
+        'bg-brand-gradient hover:brightness-110 text-white shadow-brand',
+        aberto && 'ring-2 ring-primary/40 ring-offset-1',
       )}
     >
       <Sparkles className="h-4 w-4 shrink-0" />
@@ -89,6 +91,7 @@ export default function Dashboard() {
   )
   const [focusOpen, setFocusOpen] = useState(false)
   const [tabUpdatePulse, setTabUpdatePulse] = useState<Set<string>>(new Set())
+  const [kanbanEditOrc, setKanbanEditOrc] = useState<Orcamento | null>(null)
   const prevUnreadRef = useRef(0)
   const prevAdminSubRef = useRef('usuarios')
   const tabBarRef = useRef<HTMLDivElement>(null)
@@ -116,8 +119,12 @@ export default function Dashboard() {
   const { open: paletteOpen, close: closePalette } = useCommandPalette()
   const { data: profile, isLoading: profileLoading } = useProfile()
   const { data: pendingCount = 0 } = usePendingCount()
-  const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta()
-  const { data: orcamentos = [], isLoading, isError } = useOrcamentos(
+  const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
+  const canOrcamento = isAdmin || profile?.pode_orcamento === true
+  const canEstoque = isAdmin || profile?.pode_estoque === true || profile?.email === ESTOQUE_EMAIL
+  // Badge de alertas só para quem tem acesso ao módulo — evita query desperdiçada
+  const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta({ enabled: canEstoque })
+  const { data: orcamentos = [], isLoading, isError, refetch } = useOrcamentos(
     (novo) => {
       toast('success', `Novo orçamento: ${novo.cliente ?? novo.responsavel ?? 'sem identificação'}`)
       if (!document.hasFocus()) setUnreadCount((n) => n + 1)
@@ -131,9 +138,6 @@ export default function Dashboard() {
     }
   )
 
-  const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
-  const canOrcamento = isAdmin || profile?.pode_orcamento === true
-  const canEstoque = isAdmin || profile?.pode_estoque === true || profile?.email === ESTOQUE_EMAIL
   const rawPath = location.pathname.replace(/^\//, '')
   const isEstoquePath = rawPath === 'estoque' || rawPath.startsWith('estoque/')
   const isAdminPath = rawPath === 'admin' || rawPath.startsWith('admin/')
@@ -244,6 +248,16 @@ export default function Dashboard() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
+  // Toasts emitidos fora da árvore React (ex.: QueryCache onError em main.tsx)
+  useEffect(() => {
+    function onAppToast(e: Event) {
+      const d = (e as CustomEvent<{ type?: 'success' | 'error' | 'info'; message?: string }>).detail
+      if (d?.message) toast(d.type ?? 'info', d.message)
+    }
+    window.addEventListener('app-toast', onAppToast)
+    return () => window.removeEventListener('app-toast', onAppToast)
+  }, [toast])
+
   // Atalhos de teclado globais
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -304,17 +318,21 @@ export default function Dashboard() {
   }, [activeTab, isAdmin, canEstoque, profileLoading])
 
   useEffect(() => {
+    // Preload apenas dos chunks que o perfil do usuário pode realmente abrir —
+    // evita baixar Estoque/Admin (e suas libs) para quem só usa orçamentos
+    if (profileLoading) return
     const preload = () => {
-      // Força o download dos chunks lazy das abas mais usadas
-      import('@/components/tabs/TabOrcamentos')
-      import('@/components/tabs/TabPlanilha')
-      import('@/components/tabs/TabCotacao')
-      import('@/components/tabs/TabAgenteIA')
-      import('@/components/tabs/TabAnalises')
-      import('@/components/tabs/TabCalculoCusto')
-
-      import('@/components/admin/PainelAdmin')
-      import('@/components/tabs/TabEstoque')
+      if (canOrcamento) {
+        import('@/components/tabs/TabOrcamentos')
+        import('@/components/tabs/TabPlanilha')
+        import('@/components/tabs/TabCotacao')
+        import('@/components/tabs/TabAgenteIA')
+        import('@/components/tabs/TabAnalises')
+        import('@/components/tabs/TabCalculoCusto')
+        import('@/components/tabs/TabKanban')
+      }
+      if (isAdmin) import('@/components/admin/PainelAdmin')
+      if (canEstoque) import('@/components/tabs/TabEstoque')
     }
     if ('requestIdleCallback' in window) {
       const id = (window as Window & { requestIdleCallback: (cb: () => void, opts?: object) => number })
@@ -324,7 +342,7 @@ export default function Dashboard() {
       const t = setTimeout(preload, 2000)
       return () => clearTimeout(t)
     }
-  }, [])
+  }, [profileLoading, canOrcamento, canEstoque, isAdmin])
 
   // ── Splash screen: some quando dados carregam ──
   useEffect(() => {
@@ -443,6 +461,7 @@ export default function Dashboard() {
     { id: 'analises',           label: 'Análises',  icon: BarChart2     },
     { id: 'agente-ia',          label: 'Agente IA', icon: Bot           },
     { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
+    { id: 'kanban',             label: 'Funil',     icon: Kanban        },
   ], [])
 
   const isEstoqueArea = isEstoquePath
@@ -520,8 +539,8 @@ export default function Dashboard() {
   function SkeletonKPITable() {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-          <SkeletonCard /><SkeletonCard /><SkeletonCard />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-7">
+          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -797,6 +816,23 @@ export default function Dashboard() {
       )}
 
       <TopLoadingBar />
+
+      {/* Banner de erro: sem ele, uma falha na query principal renderizava o dash vazio em silêncio */}
+      {isError && (
+        <div className="mx-auto max-w-[1600px] px-4 pt-4 md:px-6">
+          <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="flex-1 text-sm text-foreground">Não foi possível carregar os orçamentos. Verifique sua conexão.</p>
+            <button
+              onClick={() => refetch()}
+              className="rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-6 md:py-6">
         {/* Tabs */}
         <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none snap-x snap-mandatory md:snap-none">
@@ -956,6 +992,13 @@ export default function Dashboard() {
               </div>
             </Suspense>
           )}
+          {mountedTabs.has('kanban') && (
+            <Suspense fallback={<SkeletonKPITable />}>
+              <div className={activeTab === 'kanban' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
+                <TabKanban data={focusedOrcamentos} onOpenCard={setKanbanEditOrc} />
+              </div>
+            </Suspense>
+          )}
           {mountedTabs.has('calculo-custo') && (
             <Suspense fallback={<SkeletonTable />}>
               <div className={activeTab === 'calculo-custo' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
@@ -989,6 +1032,16 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+
+      {kanbanEditOrc && (
+        <Suspense fallback={null}>
+          <EditOrcamentoForm
+            orcamento={kanbanEditOrc}
+            onClose={() => setKanbanEditOrc(null)}
+            toast={toast}
+          />
+        </Suspense>
+      )}
 
       {profileModalOpen && profile && (
         <EditProfileModal
