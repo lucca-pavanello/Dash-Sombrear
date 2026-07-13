@@ -329,7 +329,7 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
               id="custos-search"
               value={searchCI}
               onChange={(e) => setSearchCI(e.target.value)}
-              placeholder="Buscar cliente, responsável, modelo, ambiente..."
+              placeholder="Buscar cliente, responsável, modelo, ambiente…"
               className={`w-full rounded-lg border border-border bg-background py-2 pl-9 text-sm text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${searchCI ? 'pr-8' : 'pr-10'}`}
             />
             {searchCI ? (

@@ -49,7 +49,7 @@ function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLB
       title="Perguntar à IA"
       type="button"
       className={cn(
-        'flex-[1.5] min-w-0 relative flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+        'flex-[1.5] min-w-0 relative flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
         'bg-brand-gradient hover:brightness-110 text-white shadow-brand',
         aberto && 'ring-2 ring-primary/40 ring-offset-1',
       )}
@@ -604,7 +604,7 @@ export default function Dashboard() {
           <span className="font-display text-3xl font-bold text-white">S</span>
         </div>
         <h2 className="mt-5 font-display text-xl font-bold text-foreground">Sombrear</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Carregando dados...</p>
+        <p className="mt-1 text-sm text-muted-foreground">Carregando dados…</p>
         <div className="mt-6 h-1 w-48 overflow-hidden rounded-full bg-muted">
           <div className="splash-progress-bar h-1 rounded-full bg-primary" />
         </div>
@@ -680,7 +680,7 @@ export default function Dashboard() {
               <MagneticBtn
                 onClick={() => setFocusOpen(v => !v)}
                 className={cn(
-                  'rounded-lg p-2 transition-colors duration-150 active:scale-95',
+                  'rounded-lg p-2 transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                   focusResponsavel
                     ? 'bg-primary/15 text-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -724,7 +724,7 @@ export default function Dashboard() {
             {/* ── Grupo 3: Ferramentas — Apresentação, Copilot, Som, Tema ── */}
             <MagneticBtn
               onClick={() => setPresentationOpen(true)}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               aria-label="Modo Apresentação"
               title="Modo Apresentação (P)"
             >
@@ -734,7 +734,7 @@ export default function Dashboard() {
             <MagneticBtn
               onClick={() => setCopilotOpen(v => !v)}
               className={cn(
-                'rounded-lg p-2 transition-colors duration-150 active:scale-95',
+                'rounded-lg p-2 transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                 copilotOpen
                   ? 'bg-primary/15 text-primary'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -747,7 +747,7 @@ export default function Dashboard() {
 
             <MagneticBtn
               onClick={uiSound.toggle}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               aria-label={uiSound.enabled ? 'Desativar sons' : 'Ativar sons'}
               title={uiSound.enabled ? 'Sons ativos' : 'Sons desativados'}
             >
@@ -756,7 +756,7 @@ export default function Dashboard() {
 
             <MagneticBtn
               onClick={handleThemeToggle}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -768,7 +768,7 @@ export default function Dashboard() {
             {isAdmin && pendingCount > 0 && (
               <button
                 onClick={() => handleTabChange('admin')}
-                className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95"
+                className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-110 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 title="Aprovações pendentes"
                 aria-label="Aprovações pendentes"
               >
@@ -782,7 +782,7 @@ export default function Dashboard() {
             {profile && (
               <button
                 onClick={() => setProfileModalOpen(true)}
-                className="relative rounded-full hover:ring-2 hover:ring-primary/60 hover:ring-offset-2 hover:ring-offset-background transition-all duration-150 active:scale-95"
+                className="relative rounded-full hover:ring-2 hover:ring-primary/60 hover:ring-offset-2 hover:ring-offset-background transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 title="Meu perfil"
                 aria-label="Meu perfil"
               >
@@ -797,7 +797,7 @@ export default function Dashboard() {
 
             <MagneticBtn
               onClick={() => supabase.auth.signOut()}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               title="Sair"
               aria-label="Sair"
             >
@@ -837,7 +837,7 @@ export default function Dashboard() {
             <p className="flex-1 text-sm text-foreground">Não foi possível carregar os orçamentos. Verifique sua conexão.</p>
             <button
               onClick={() => refetch()}
-              className="rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
+              className="rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             >
               Tentar novamente
             </button>
@@ -851,7 +851,7 @@ export default function Dashboard() {
           {/* Botão Início */}
           <button
             onClick={() => navigate('/')}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all duration-100 whitespace-nowrap active:scale-95"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all duration-100 whitespace-nowrap active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             title="Voltar ao início"
           >
             <span className="hidden sm:inline">← Início</span>
@@ -861,8 +861,11 @@ export default function Dashboard() {
           {/* Sliding underline indicator */}
           {tabIndicator.width > 0 && (
             <div
-              className="tab-indicator pointer-events-none absolute bottom-1.5 h-0.5 rounded-full bg-primary/70"
-              style={{ left: tabIndicator.left + 6, width: tabIndicator.width - 12 }}
+              className="tab-indicator pointer-events-none absolute bottom-1.5 left-0 h-0.5 w-24 rounded-full bg-primary/70"
+              style={{
+                transform: `translateX(${tabIndicator.left + 6}px) scaleX(${Math.max(tabIndicator.width - 12, 0) / 96})`,
+                transformOrigin: 'left center',
+              }}
             />
           )}
           {isEstoqueArea && ESTOQUE_SUBTABS.map(({ id, label, icon: Icon }) => (
@@ -878,7 +881,7 @@ export default function Dashboard() {
                 onMouseDown={handleTabRipple}
                 title={label}
                 className={cn(
-                  'relative flex shrink-0 min-w-[60px] md:flex-1 snap-start md:[snap-align:none] items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+                  'relative flex shrink-0 min-w-[60px] md:flex-1 snap-start md:[snap-align:none] items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                   estoqueSub === id
                     ? 'bg-card text-primary shadow-elevated'
                     : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
@@ -905,7 +908,7 @@ export default function Dashboard() {
               onMouseDown={handleTabRipple}
               title={label}
               className={cn(
-                'relative flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+                'relative flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                 adminSub === id
                   ? 'bg-card text-primary shadow-elevated'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
@@ -929,7 +932,7 @@ export default function Dashboard() {
               onMouseDown={handleTabRipple}
               title={label}
               className={cn(
-                'relative flex shrink-0 min-w-[60px] md:flex-1 snap-start md:[snap-align:none] items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95',
+                'relative flex shrink-0 min-w-[60px] md:flex-1 snap-start md:[snap-align:none] items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                 activeTab === id
                   ? 'bg-card text-primary shadow-elevated'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
@@ -954,7 +957,7 @@ export default function Dashboard() {
                 onMouseDown={handleTabRipple}
                 title={label}
                 className={cn(
-                  'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95',
+                  'relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 whitespace-nowrap active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                   activeTab === id
                     ? 'bg-card text-primary shadow-elevated'
                     : 'text-muted-foreground hover:text-foreground hover:bg-card/50',

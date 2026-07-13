@@ -365,7 +365,7 @@ export default function TabCotacao() {
         throw new Error(detail)
       }
       setIsSuccess(true)
-      toast('success', 'Orçamento enviado! Aguarde o resultado...')
+      toast('success', 'Orçamento enviado! Aguarde o resultado…')
       startResetCountdown()
 
       // Escuta o Supabase para notificar quando o n8n terminar de processar
@@ -435,7 +435,7 @@ export default function TabCotacao() {
           {catalogoLoading && (
             <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5">
               <Loader2 className="h-3 w-3 animate-spin text-primary" />
-              <span className="text-xs font-medium text-primary">Carregando catálogo...</span>
+              <span className="text-xs font-medium text-primary">Carregando catálogo…</span>
             </div>
           )}
           {catalogoError && (
@@ -606,7 +606,7 @@ export default function TabCotacao() {
                               type="text" value={a.ambiente}
                               onChange={e => setAmbienteNome(a.id, e.target.value)}
                               className={inputCls}
-                              placeholder="Sala, Quarto, Escritório..."
+                              placeholder="Sala, Quarto, Escritório…"
                               list="sugestoes-ambiente"
                             />
                           </div>
@@ -680,7 +680,7 @@ export default function TabCotacao() {
                                           value={p.modelo}
                                           onChange={v => setPersianaModelo(a.id, p.id, v)}
                                           options={modelos}
-                                          placeholder={catalogoLoading ? 'Carregando...' : modelos.length === 0 ? 'Nenhum modelo' : 'Selecione...'}
+                                          placeholder={catalogoLoading ? 'Carregando…' : modelos.length === 0 ? 'Nenhum modelo' : 'Selecione…'}
                                           disabled={catalogoLoading}
                                         />
                                       </div>
@@ -700,7 +700,7 @@ export default function TabCotacao() {
                                             value={p.tecido}
                                             onChange={v => setPersianaField(a.id, p.id, 'tecido', v)}
                                             options={tecidoOpcoes}
-                                            placeholder="Selecione o tecido..."
+                                            placeholder="Selecione o tecido…"
                                             disabled={!p.modelo}
                                           />
                                         ) : (
@@ -709,7 +709,7 @@ export default function TabCotacao() {
                                             value={p.tecido}
                                             onChange={e => setPersianaField(a.id, p.id, 'tecido', e.target.value)}
                                             className={inputCls}
-                                            placeholder={!p.modelo ? 'Selecione um modelo primeiro' : 'Ex: Blackout, Solar Screen...'}
+                                            placeholder={!p.modelo ? 'Selecione um modelo primeiro' : 'Ex: Blackout, Solar Screen…'}
                                           />
                                         )}
                                       </div>
@@ -734,7 +734,7 @@ export default function TabCotacao() {
                                           value={p.acabamento}
                                           onChange={v => setPersianaField(a.id, p.id, 'acabamento', v)}
                                           options={isPH50 ? PH50_ACABAMENTOS : ACABAMENTOS}
-                                          placeholder={isPH50 ? 'Selecione Cadarço ou Fita...' : undefined}
+                                          placeholder={isPH50 ? 'Selecione Cadarço ou Fita…' : undefined}
                                         />
                                       </div>
                                     </div>
@@ -919,7 +919,7 @@ export default function TabCotacao() {
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-border px-4 py-3">
-                    <p className="text-xs text-foreground/40 italic">Aguardando dados do cliente...</p>
+                    <p className="text-xs text-foreground/40 italic">Aguardando dados do cliente…</p>
                   </div>
                 )}
 
@@ -1046,7 +1046,7 @@ function SubmitButton({ isLoading, isSuccess }: { isLoading: boolean; isSuccess:
           : 'bg-brand-gradient shadow-brand hover:opacity-95 active:scale-[0.98]',
       )}
     >
-      {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+      {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando…</>
         : isSuccess ? <><CheckCircle2 className="h-4 w-4" /> Orçamento enviado!</>
         : <><Send className="h-4 w-4" /> Gerar Orçamento</>}
     </button>

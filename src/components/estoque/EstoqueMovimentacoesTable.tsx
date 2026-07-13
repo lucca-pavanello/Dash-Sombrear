@@ -53,7 +53,7 @@ export default function EstoqueMovimentacoesTable({ defaultTipo = '', headerActi
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar responsável..."
+            placeholder="Buscar responsável…"
             className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-8 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
           />
           {search && (
@@ -102,7 +102,7 @@ export default function EstoqueMovimentacoesTable({ defaultTipo = '', headerActi
             {isLoading ? (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  Carregando...
+                  Carregando…
                 </td>
               </tr>
             ) : rows.length === 0 ? (

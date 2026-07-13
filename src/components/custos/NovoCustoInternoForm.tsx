@@ -196,7 +196,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
                 onChange={(e) => set('responsavel', e.target.value)}
                 className={inputClass}
               >
-                <option value="">Selecione...</option>
+                <option value="">Selecione…</option>
                 {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
@@ -214,7 +214,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
                 value={form.ambiente}
                 onChange={(e) => set('ambiente', e.target.value)}
                 className={inputClass}
-                placeholder="Ex: Sala, Quarto, Escritório..."
+                placeholder="Ex: Sala, Quarto, Escritório…"
                 list="ambientes-list-custo"
               />
               <datalist id="ambientes-list-custo">
@@ -241,7 +241,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
             {/* Tecido */}
             <div className="col-span-2">
               <label className={labelClass}>Tecido <span className="text-destructive ml-0.5">*</span></label>
-              <input required value={form.tecido} onChange={(e) => set('tecido', e.target.value)} className={inputClass} placeholder="Ex: Blackout, Solar Screen..." />
+              <input required value={form.tecido} onChange={(e) => set('tecido', e.target.value)} className={inputClass} placeholder="Ex: Blackout, Solar Screen…" />
             </div>
 
             {/* Largura / Altura */}
@@ -314,7 +314,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
               disabled={isPending}
               className="flex-1 rounded-lg bg-brand-gradient px-4 py-3 text-sm font-semibold text-white shadow-brand hover:opacity-90 disabled:opacity-60 transition-opacity"
             >
-              {isPending ? 'Salvando...' : 'Salvar'}
+              {isPending ? 'Salvando…' : 'Salvar'}
             </button>
           </div>
         </form>

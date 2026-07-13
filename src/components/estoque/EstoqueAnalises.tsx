@@ -135,7 +135,7 @@ export default function EstoqueAnalises({ resetKey }: { resetKey?: number } = {}
           </div>
         </div>
         {loadingMensal ? (
-          <div className="h-52 flex items-center justify-center text-sm text-muted-foreground">Carregando...</div>
+          <div className="h-52 flex items-center justify-center text-sm text-muted-foreground">Carregando…</div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart key={resetKey} data={consumoMensal} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
@@ -155,7 +155,7 @@ export default function EstoqueAnalises({ resetKey }: { resetKey?: number } = {}
       <div className="rounded-xl border-2 bg-card shadow-sm p-4">
         <h3 className="text-sm font-semibold mb-4">Top 10 Produtos Mais Consumidos (90 dias)</h3>
         {loadingTop ? (
-          <div className="h-52 flex items-center justify-center text-sm text-muted-foreground">Carregando...</div>
+          <div className="h-52 flex items-center justify-center text-sm text-muted-foreground">Carregando…</div>
         ) : topProdutos.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">Sem dados de movimentação nos últimos 90 dias.</p>
         ) : (

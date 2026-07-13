@@ -136,7 +136,7 @@ export default function Login() {
               disabled={loading}
               className="w-full rounded-lg bg-brand-gradient py-3 text-sm font-semibold text-white shadow-brand transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : 'Enviar email'}
+              {loading ? 'Aguarde…' : mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : 'Enviar email'}
             </button>
           </form>
 

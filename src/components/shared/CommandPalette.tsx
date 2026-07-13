@@ -65,7 +65,7 @@ export default function CommandPalette({ open, onClose, orcamentos }: Props) {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar orçamento por cliente, responsável, modelo..."
+              placeholder="Buscar orçamento por cliente, responsável, modelo…"
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
             />
             <div className="flex items-center gap-1.5">

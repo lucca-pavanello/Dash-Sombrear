@@ -96,7 +96,7 @@ export default function ResetPassword() {
               disabled={loading}
               className="w-full rounded-lg bg-brand-gradient py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 disabled:opacity-60 transition-opacity"
             >
-              {loading ? 'Salvando...' : 'Redefinir senha'}
+              {loading ? 'Salvando…' : 'Redefinir senha'}
             </button>
           </form>
         </div>

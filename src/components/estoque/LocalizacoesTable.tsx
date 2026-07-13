@@ -214,7 +214,7 @@ export default function LocalizacoesTable({ toast }: Props) {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar localização por código ou setor..."
+            placeholder="Buscar localização por código ou setor…"
             className={tbl.searchInput}
           />
         </div>

@@ -242,7 +242,7 @@ export default function MoverItensView({ toast }: Props) {
                   className="w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all"
                   autoFocus
                 >
-                  <option value="">Selecione uma localização...</option>
+                  <option value="">Selecione uma localização…</option>
                   {localizacoes.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.codigo} – {l.setor} ({NIVEIS_ACESSO[l.nivel_acesso] ?? l.nivel_acesso})
@@ -267,7 +267,7 @@ export default function MoverItensView({ toast }: Props) {
                 disabled={!novaLocalizacaoId || moverMutation.isPending}
                 className="rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
               >
-                {moverMutation.isPending ? 'Movendo...' : 'Confirmar'}
+                {moverMutation.isPending ? 'Movendo…' : 'Confirmar'}
               </button>
             </div>
           </div>
@@ -287,13 +287,13 @@ function KpiCard({
   accent?: 'default' | 'amber' | 'red'
 }) {
   const borderCls = {
-    default: 'border-l-border',
-    amber:   'border-l-amber-500',
-    red:     'border-l-red-500',
+    default: '',
+    amber:   'border-amber-500/30 bg-amber-500/[0.05] dark:bg-amber-500/[0.08]',
+    red:     'border-red-500/30 bg-red-500/[0.05] dark:bg-red-500/[0.08]',
   }[accent]
 
   return (
-    <div className={`rounded-xl border-2 border-l-4 bg-card shadow-sm px-4 py-3 flex items-center gap-3 ${borderCls}`}>
+    <div className={`rounded-xl border-2 bg-card shadow-sm px-4 py-3 flex items-center gap-3 ${borderCls}`}>
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
         {icon}
       </div>

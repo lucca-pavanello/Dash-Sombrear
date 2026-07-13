@@ -17,7 +17,7 @@ interface Props {
   className?: string
 }
 
-export function CustomSelect({ value, onChange, options, placeholder = 'Selecione...', disabled, className }: Props) {
+export function CustomSelect({ value, onChange, options, placeholder = 'Selecione…', disabled, className }: Props) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [focusedIdx, setFocusedIdx] = useState(-1)
@@ -181,7 +181,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Selecion
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   onClick={e => e.stopPropagation()}
-                  placeholder="Buscar..."
+                  placeholder="Buscar…"
                   className="w-full rounded-md border border-border bg-background pl-8 pr-3 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                 />
               </div>

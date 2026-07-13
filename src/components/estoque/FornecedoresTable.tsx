@@ -165,7 +165,7 @@ export default function FornecedoresTable({ toast }: Props) {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar fornecedor por nome, contato ou CNPJ..."
+            placeholder="Buscar fornecedor por nome, contato ou CNPJ…"
             className={tbl.searchInput}
           />
         </div>

@@ -67,7 +67,7 @@ export function ChatDrawer() {
                 <button
                   onClick={limparMensagens}
                   title="Limpar conversa"
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -91,19 +91,19 @@ export function ChatDrawer() {
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <div className="flex gap-1">
                       <div
-                        className="h-2 w-2 rounded-full bg-orange-500 animate-bounce"
+                        className="typing-dot h-2 w-2 rounded-full bg-orange-500"
                         style={{ animationDelay: "0ms" }}
                       />
                       <div
-                        className="h-2 w-2 rounded-full bg-orange-500 animate-bounce"
+                        className="typing-dot h-2 w-2 rounded-full bg-orange-500"
                         style={{ animationDelay: "150ms" }}
                       />
                       <div
-                        className="h-2 w-2 rounded-full bg-orange-500 animate-bounce"
+                        className="typing-dot h-2 w-2 rounded-full bg-orange-500"
                         style={{ animationDelay: "300ms" }}
                       />
                     </div>
-                    <span>Pensando...</span>
+                    <span>Pensando…</span>
                   </div>
                 )}
               </div>

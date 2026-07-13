@@ -124,7 +124,7 @@ export default function EntradaRapidaForm({ toast }: Props) {
               value={produtoId ?? ''}
               onChange={(v) => setValue('produto_id', v, { shouldValidate: true })}
               options={produtoOptions}
-              placeholder="Selecione o produto..."
+              placeholder="Selecione o produto…"
               className={cn(INPUT_CLASSES, "!font-normal")}
             />
             {errors.produto_id && <p className="mt-1 text-xs text-red-600">{errors.produto_id.message}</p>}
@@ -225,7 +225,7 @@ export default function EntradaRapidaForm({ toast }: Props) {
             className="flex items-center justify-center gap-2 rounded-lg bg-brand-gradient h-11 px-8 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
             {addLote.isPending
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</>
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando…</>
               : <><PackagePlus className="h-4 w-4" /> Registrar entrada</>
             }
           </button>

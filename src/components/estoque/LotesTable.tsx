@@ -18,7 +18,7 @@ function formatDate(dateStr: string) {
 
 function LoteItensRow({ loteId }: { loteId: string }) {
   const { data: itens = [], isLoading } = useEstoqueLoteItens(loteId)
-  if (isLoading) return <p className="px-4 py-3 text-xs text-muted-foreground">Carregando itens...</p>
+  if (isLoading) return <p className="px-4 py-3 text-xs text-muted-foreground">Carregando itens…</p>
   if (!itens.length) return <p className="px-4 py-3 text-xs text-muted-foreground">Sem itens</p>
   return (
     <div className="px-4 pb-3">

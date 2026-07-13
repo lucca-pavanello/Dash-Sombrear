@@ -16,8 +16,8 @@ type Nivel = 'verde' | 'amarelo' | 'vermelho' | 'neutro'
 
 const ROW_BG: Record<Nivel, string> = {
   verde:    '',
-  amarelo:  'border-l-4 border-border',
-  vermelho: 'border-l-4 border-destructive/40',
+  amarelo:  'bg-amber-500/[0.06] dark:bg-amber-500/[0.09]',
+  vermelho: 'bg-destructive/[0.06] dark:bg-destructive/[0.10]',
   neutro:   '',
 }
 
@@ -211,7 +211,7 @@ export default function LeadTimeView(_: Props) {
         {/* Linhas */}
         {isLoading ? (
           <div className="flex items-center justify-center py-14 text-sm text-muted-foreground">
-            Carregando...
+            Carregando…
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-2">

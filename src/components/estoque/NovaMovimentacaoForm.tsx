@@ -188,7 +188,7 @@ export default function NovaMovimentacaoForm({
               onChange={(e) => { setProdutoId(e.target.value); setErrors((er) => { const n = {...er}; delete n.produto; return n }) }}
               className={cn(inputClass, errors.produto && 'border-destructive')}
             >
-              <option value="">Selecione o produto...</option>
+              <option value="">Selecione o produto…</option>
               {produtos.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nome} ({p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {p.unidade} em estoque)
@@ -282,7 +282,7 @@ export default function NovaMovimentacaoForm({
             disabled={registrar.isPending}
             className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
-            {registrar.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando...</> : `Registrar ${tipoConfig.label}`}
+            {registrar.isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Registrando…</> : `Registrar ${tipoConfig.label}`}
           </button>
         </div>
       </div>

@@ -188,7 +188,7 @@ export default function NovaLocalizacaoForm({ open, onClose, toast, editando }: 
               onChange={(e) => set('nivel_acesso', e.target.value)}
               className={cn(inputClass, errors.nivel_acesso && 'border-destructive')}
             >
-              <option value="">Selecione...</option>
+              <option value="">Selecione…</option>
               {Object.entries(NIVEIS_ACESSO).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -202,7 +202,7 @@ export default function NovaLocalizacaoForm({ open, onClose, toast, editando }: 
               value={form.descricao}
               onChange={(e) => set('descricao', e.target.value)}
               rows={3}
-              placeholder="Informações adicionais sobre esta localização..."
+              placeholder="Informações adicionais sobre esta localização…"
               className={cn(inputClass, 'resize-none')}
             />
           </div>
@@ -249,7 +249,7 @@ export default function NovaLocalizacaoForm({ open, onClose, toast, editando }: 
             disabled={isPending}
             className="flex items-center gap-2 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
-            {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</> : isEditing ? 'Salvar Alterações' : 'Cadastrar Localização'}
+            {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando…</> : isEditing ? 'Salvar Alterações' : 'Cadastrar Localização'}
           </button>
         </div>
       </div>

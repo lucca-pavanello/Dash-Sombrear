@@ -333,7 +333,7 @@ export default function EstoqueProdutosTable({ toast, onNovoProduto, onEditar, o
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome ou SKU..."
+            placeholder="Buscar por nome ou SKU…"
             className={cn(tbl.searchInput, 'pr-8')}
           />
           {search && (

@@ -300,7 +300,7 @@ export default function EditProfileModal({ mode, targetProfile, onClose, toast }
               disabled={isLoading || !isDirty}
               className="flex-1 rounded-lg bg-brand-gradient px-4 py-3 text-sm font-semibold text-white shadow-brand hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
-              {isLoading ? 'Salvando...' : 'Salvar'}
+              {isLoading ? 'Salvando…' : 'Salvar'}
             </button>
           </div>
         </form>
