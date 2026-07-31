@@ -83,7 +83,7 @@ export default function PrecosIA({ toast }: Props) {
       queryClient.invalidateQueries({ queryKey: ['precos'] })
       toast('success', `${acoes.length} mudança${acoes.length > 1 ? 's' : ''} aplicada${acoes.length > 1 ? 's' : ''}!`)
     } catch {
-      toast('error', 'Erro ao aplicar — nada foi alterado')
+      toast('error', 'Erro ao aplicar — confira o histórico ao lado para ver o que entrou')
     } finally {
       setAplicando(false)
     }

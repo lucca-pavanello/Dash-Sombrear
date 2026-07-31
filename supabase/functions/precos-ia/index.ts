@@ -101,20 +101,25 @@ ARTIGOS: ${JSON.stringify(artigos)}`
       ]
 
       const apiKey = Deno.env.get('GEMINI_API_KEY')!
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: sistema }] },
-            contents,
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
-          }),
-        },
-      )
-      const data = await res.json()
-      if (!res.ok) return resposta(res.status, { error: data })
+      const corpo = JSON.stringify({
+        systemInstruction: { parts: [{ text: sistema }] },
+        contents,
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+      })
+      // modelos em ordem de preferência (1.5 foi aposentado; mantém fallback)
+      let data: Record<string, unknown> | null = null
+      let ultimoErro: unknown = null
+      for (const modelo of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpo },
+        )
+        const json = await res.json()
+        if (res.ok) { data = json; break }
+        ultimoErro = json
+        console.error(`precos-ia: modelo ${modelo} falhou`, JSON.stringify(json).slice(0, 300))
+      }
+      if (!data) return resposta(502, { error: 'Nenhum modelo Gemini respondeu', detalhe: ultimoErro })
 
       const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
       let parsed: { resposta?: string; acoes?: unknown[] }
@@ -131,17 +136,44 @@ ARTIGOS: ${JSON.stringify(artigos)}`
       if (acoes.length === 0) return resposta(400, { error: 'Nenhuma ação para aplicar' })
       if (acoes.length > 20) return resposta(400, { error: 'Máximo de 20 ações por vez' })
 
+      // FASE 1: validar TODAS as ações antes de aplicar qualquer uma
+      // (evita aplicação parcial: ou entra tudo, ou nada entra)
+      for (const acao of acoes) {
+        const tipo = String(acao.tipo ?? '')
+        if (!TIPOS_VALIDOS.has(tipo)) return resposta(400, { error: `Ação desconhecida: ${tipo}` })
+        if (tipo === 'criar_promocao') {
+          const pct = Number(acao.desconto_pct)
+          if (!(pct > 0 && pct < 100)) return resposta(400, { error: `Desconto inválido em ${acao.tecido}` })
+          if (!acao.inicio || !acao.fim || String(acao.fim) < String(acao.inicio)) return resposta(400, { error: `Período inválido em ${acao.tecido}` })
+          const { count } = await db.from('precos_tecidos').select('id', { count: 'exact', head: true }).eq('nome', acao.tecido)
+          if (!count) return resposta(400, { error: `Tecido não encontrado: ${acao.tecido}` })
+        } else if (tipo === 'remover_promocao') {
+          const { count } = await db.from('precos_promocoes').select('id', { count: 'exact', head: true }).eq('id', Number(acao.id))
+          if (!count) return resposta(400, { error: `Promoção #${acao.id} não existe` })
+        } else if (tipo === 'atualizar_preco_tecido') {
+          if (!(Number(acao.preco) > 0)) return resposta(400, { error: `Preço inválido em ${acao.nome}` })
+          let qv = db.from('precos_tecidos').select('id', { count: 'exact', head: true }).eq('nome', acao.nome)
+          if (acao.largura != null) qv = qv.eq('largura', Number(acao.largura))
+          const { count } = await qv
+          if (!count) return resposta(400, { error: `Tecido não encontrado: ${acao.nome}` })
+        } else if (tipo === 'atualizar_parametro') {
+          const { count } = await db.from('precos_parametros').select('chave', { count: 'exact', head: true }).eq('chave', String(acao.chave))
+          if (!count) return resposta(400, { error: `Parâmetro não encontrado: ${acao.chave}` })
+        } else if (tipo === 'atualizar_preco_artigo') {
+          if (!(Number(acao.preco) > 0)) return resposta(400, { error: `Preço inválido em ${acao.nome}` })
+          const { count } = await db.from('precos_artigos').select('id', { count: 'exact', head: true })
+            .eq('categoria', String(acao.categoria)).eq('nome', String(acao.nome))
+          if (!count) return resposta(400, { error: `Artigo não encontrado: ${acao.nome}` })
+        }
+      }
+
+      // FASE 2: aplicar (tudo já validado)
       const aplicadas: string[] = []
       for (const acao of acoes) {
         const tipo = String(acao.tipo ?? '')
-        if (!TIPOS_VALIDOS.has(tipo)) throw new Error(`Ação desconhecida: ${tipo}`)
 
         if (tipo === 'criar_promocao') {
           const pct = Number(acao.desconto_pct)
-          if (!(pct > 0 && pct < 100)) throw new Error('Desconto inválido')
-          if (!acao.inicio || !acao.fim || String(acao.fim) < String(acao.inicio)) throw new Error('Período inválido')
-          const { count } = await db.from('precos_tecidos').select('id', { count: 'exact', head: true }).eq('nome', acao.tecido)
-          if (!count) throw new Error(`Tecido não encontrado: ${acao.tecido}`)
           const { error } = await db.from('precos_promocoes').insert({
             alvo_tipo: 'tecido', alvo_nome: acao.tecido, desconto_pct: pct, inicio: acao.inicio, fim: acao.fim,
           })
@@ -153,7 +185,6 @@ ARTIGOS: ${JSON.stringify(artigos)}`
           aplicadas.push(`Promoção #${acao.id} removida`)
         } else if (tipo === 'atualizar_preco_tecido') {
           const preco = Number(acao.preco)
-          if (!(preco > 0)) throw new Error('Preço inválido')
           let q = db.from('precos_tecidos').update({ preco }).eq('nome', acao.nome)
           if (acao.largura != null) q = q.eq('largura', Number(acao.largura))
           const { error, count } = await q.select('id', { count: 'exact' })
@@ -168,7 +199,6 @@ ARTIGOS: ${JSON.stringify(artigos)}`
           aplicadas.push(`Parâmetro: ${acao.chave} → ${acao.valor}`)
         } else if (tipo === 'atualizar_preco_artigo') {
           const preco = Number(acao.preco)
-          if (!(preco > 0)) throw new Error('Preço inválido')
           const { error, count } = await db.from('precos_artigos')
             .update({ preco }).eq('categoria', String(acao.categoria)).eq('nome', String(acao.nome))
             .select('id', { count: 'exact' })
