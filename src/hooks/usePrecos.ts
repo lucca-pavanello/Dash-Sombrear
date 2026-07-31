@@ -29,6 +29,9 @@ export interface PrecoPromocao {
   desconto_pct: number; inicio: string; fim: string
 }
 export interface PrecoBarraFaixa { largura_min: number; qtd_presilhas: number }
+export interface PrecoTecidoModelo { tecido_nome: string; modelo: string }
+
+export const MODELOS_PERSIANA = ['Rolo', 'Double', 'Romana', 'PH_Aluminio', 'PV', 'PH_50', 'Rolo Motorizado'] as const
 
 /* ─── Fetch genérico ─────────────────────────────────────── */
 function usePrecosTable<T>(table: string, orderBy: string[]) {
@@ -58,6 +61,7 @@ export const usePrecosMotorComponentes = () => usePrecosTable<PrecoMotorComponen
 export const usePrecosParametros = () => usePrecosTable<PrecoParametro>('precos_parametros', ['chave'])
 export const usePrecosPromocoes = () => usePrecosTable<PrecoPromocao>('precos_promocoes', ['inicio'])
 export const usePrecosBarraFaixas = () => usePrecosTable<PrecoBarraFaixa>('precos_barra_faixas', ['largura_min'])
+export const usePrecosTecidoModelos = () => usePrecosTable<PrecoTecidoModelo>('precos_tecido_modelos', ['tecido_nome', 'modelo'])
 
 /* ─── Mutações ───────────────────────────────────────────── */
 export function usePrecosMutations() {

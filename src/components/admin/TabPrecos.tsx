@@ -8,7 +8,8 @@ import {
   statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBarraFaixas, usePrecosColocacao,
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
   usePrecosMotorComponentes, usePrecosMotorEstrutura, usePrecosMutations, usePrecosParametros,
-  usePrecosPh50, usePrecosPromocoes, usePrecosTecidos,
+  usePrecosPh50, usePrecosPromocoes, usePrecosTecidoModelos, usePrecosTecidos,
+  MODELOS_PERSIANA,
 } from '@/hooks/usePrecos'
 
 interface Props { toast: (type: 'success' | 'error', message: string) => void }
@@ -48,27 +49,46 @@ export default function TabPrecos({ toast }: Props) {
     catch { toast('error', 'Erro ao adicionar — confira os dados') }
   }
 
+  const { data: kpiTecidos } = usePrecosTecidos()
+  const { data: kpiPromos } = usePrecosPromocoes()
+  const { data: kpiParams } = usePrecosParametros()
+  const { data: kpiFamilias } = usePrecosFerragemFamilias()
+  const promosAtivas = (kpiPromos ?? []).filter(p => statusPromocao(p) === 'ativa').length
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Tabela de Preços</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Fonte central de preços, promoções e parâmetros. A planilha-espelho se atualiza sozinha a
-            cada 30 min — ou na hora, pelo botão.
+          <h2 className="font-display text-base font-semibold">Tabela de Preços</h2>
+          <p className="text-xs text-muted-foreground">
+            Fonte central de preços e promoções — a planilha-espelho se atualiza a cada 30 min ou pelo botão.
           </p>
         </div>
         <BotaoSincronizar toast={toast} />
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: 'Tecidos', value: new Set((kpiTecidos ?? []).map(t => t.nome)).size },
+          { label: 'Promoções ativas', value: promosAtivas },
+          { label: 'Famílias de ferragem', value: (kpiFamilias ?? []).length },
+          { label: 'Parâmetros', value: (kpiParams ?? []).length },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-xl border-2 border-primary/20 bg-primary/10 dark:bg-primary/15 p-4 shadow-sm flex flex-col items-center text-center gap-1">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</p>
+            <p className="font-display text-2xl font-bold text-primary">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1 rounded-xl bg-muted/50 p-1">
         {SECOES.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setSecao(id)}
+          <button key={id} onClick={() => setSecao(id)} title={label}
             className={cn(
-              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors',
-              secao === id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground',
+              'relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              secao === id ? 'bg-card text-primary shadow-elevated' : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
             )}>
-            <Icon className="h-3.5 w-3.5" />{label}
+            <Icon className="h-4 w-4 shrink-0" />{label}
           </button>
         ))}
       </div>
@@ -116,6 +136,54 @@ function SecaoTecidos({ salvar, excluir, adicionar }: SecaoProps) {
       <PrecosGrid colunas={colunas} linhas={data ?? []} chave={r => ({ id: r.id })}
         onSalvar={salvar('precos_tecidos')} onExcluir={excluir!('precos_tecidos')}
         onAdicionar={adicionar!('precos_tecidos')} />
+      <VinculoModelos tecidos={data ?? []} />
+    </div>
+  )
+}
+
+function VinculoModelos({ tecidos }: { tecidos: { nome: string }[] }) {
+  const { data: vinculos, isLoading } = usePrecosTecidoModelos()
+  const { insertRow, deleteRow } = usePrecosMutations()
+  const [tecido, setTecido] = useState('')
+  const [mexendo, setMexendo] = useState<string | null>(null)
+  const nomes = useMemo(() => [...new Set(tecidos.map(t => t.nome))], [tecidos])
+  const meus = useMemo(() => new Set((vinculos ?? []).filter(v => v.tecido_nome === tecido).map(v => v.modelo)), [vinculos, tecido])
+
+  async function alternar(modelo: string) {
+    if (!tecido) return
+    setMexendo(modelo)
+    try {
+      if (meus.has(modelo)) await deleteRow('precos_tecido_modelos', { tecido_nome: tecido, modelo })
+      else await insertRow('precos_tecido_modelos', { tecido_nome: tecido, modelo })
+    } finally { setMexendo(null) }
+  }
+
+  return (
+    <div className="rounded-xl border-2 bg-card shadow-sm p-4">
+      <p className="font-display text-sm font-semibold tracking-wide">Em quais modelos cada tecido entra</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Um tecido só aparece nos orçamentos dos modelos marcados aqui (é o que gera a aba DADOS_TECIDOS).
+      </p>
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <select value={tecido} onChange={e => setTecido(e.target.value)}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary sm:w-64">
+          <option value="">Escolha o tecido…</option>
+          {nomes.map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+        {tecido && !isLoading && (
+          <div className="flex flex-wrap gap-1.5">
+            {MODELOS_PERSIANA.map(m => (
+              <button key={m} onClick={() => alternar(m)} disabled={mexendo === m}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-semibold transition-colors active:scale-95',
+                  meus.has(m) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground',
+                )}>
+                {mexendo === m ? '…' : m.replace('_', ' ')}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -131,6 +199,9 @@ function SecaoPromocoes({ toast }: { toast: Props['toast'] }) {
   async function criar() {
     if (!form.alvo_nome || !form.desconto_pct || !form.inicio || !form.fim) {
       toast('error', 'Preencha tecido, desconto e o período'); return
+    }
+    if (form.fim < form.inicio) {
+      toast('error', 'A data final precisa ser depois da inicial'); return
     }
     setSalvando(true)
     try {
@@ -150,8 +221,8 @@ function SecaoPromocoes({ toast }: { toast: Props['toast'] }) {
   if (isLoading) return <Carregando />
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="mb-3 text-sm font-semibold text-foreground">Nova promoção de tecido</p>
+      <div className="rounded-xl border-2 bg-card shadow-sm p-4">
+        <p className="mb-3 font-display text-sm font-semibold tracking-wide">Nova promoção de tecido</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
           <select className={cn(inputCls, 'sm:col-span-2')} value={form.alvo_nome}
             onChange={e => setForm(f => ({ ...f, alvo_nome: e.target.value }))}>
@@ -171,7 +242,7 @@ function SecaoPromocoes({ toast }: { toast: Props['toast'] }) {
         </button>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-border bg-muted/40">
             <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">Tecido</th>
@@ -430,7 +501,7 @@ function BotaoSincronizar({ toast }: { toast: Props['toast'] }) {
   }
   return (
     <button onClick={sincronizar} disabled={sincronizando}
-      className="flex shrink-0 items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-50">
+      className="flex shrink-0 items-center gap-2 rounded-xl bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 transition-opacity active:scale-95 disabled:opacity-50">
       {sincronizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
       {sincronizando ? 'Sincronizando…' : 'Sincronizar planilha'}
     </button>
