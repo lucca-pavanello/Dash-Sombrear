@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import {
-  Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, RefreshCw, Ruler, Settings2, Tag, Wrench,
+  Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, RefreshCw, Ruler, Settings2, Sparkles, Tag, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
+import PrecosIA from './PrecosIA'
 import {
   statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBarraFaixas, usePrecosColocacao,
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
@@ -18,6 +19,7 @@ const fmtBRL = (v: unknown) => `R$ ${Number(v ?? 0).toLocaleString('pt-BR', { mi
 const fmtNum = (v: unknown) => Number(v ?? 0).toLocaleString('pt-BR')
 
 const SECOES = [
+  { id: 'ia',         label: 'Assistente',     icon: Sparkles },
   { id: 'tecidos',    label: 'Tecidos',        icon: Layers },
   { id: 'promocoes',  label: 'Promoções',      icon: Percent },
   { id: 'artigos',    label: 'PV / PH Alumínio', icon: Blinds },
@@ -33,7 +35,7 @@ const SECOES = [
 type SecaoId = typeof SECOES[number]['id']
 
 export default function TabPrecos({ toast }: Props) {
-  const [secao, setSecao] = useState<SecaoId>('tecidos')
+  const [secao, setSecao] = useState<SecaoId>('ia')
   const { updateRow, insertRow, deleteRow } = usePrecosMutations()
 
   const salvar = (table: string) => async (match: Record<string, unknown>, patch: Record<string, unknown>) => {
@@ -93,6 +95,7 @@ export default function TabPrecos({ toast }: Props) {
         ))}
       </div>
 
+      {secao === 'ia' && <PrecosIA toast={toast} />}
       {secao === 'tecidos' && <SecaoTecidos salvar={salvar} excluir={excluir} adicionar={adicionar} />}
       {secao === 'promocoes' && <SecaoPromocoes toast={toast} />}
       {secao === 'artigos' && <SecaoArtigos salvar={salvar} excluir={excluir} adicionar={adicionar} />}
