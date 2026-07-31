@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, Kanban, AlertTriangle } from 'lucide-react'
+import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, Kanban, AlertTriangle, CircleDollarSign } from 'lucide-react'
 import { supabase, type Orcamento } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -36,6 +36,7 @@ const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
 const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
 const PermissoesView  = lazy(() => import('@/components/admin/PermissoesView'))
+const TabPrecos       = lazy(() => import('@/components/admin/TabPrecos'))
 const EditOrcamentoForm = lazy(() => import('@/components/orcamentos/EditOrcamentoForm'))
 
 const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban']
@@ -452,6 +453,7 @@ export default function Dashboard() {
   const ADMIN_SUBTABS = useMemo(() => [
     { id: 'usuarios',   label: 'Usuários',   icon: Users },
     { id: 'permissoes', label: 'Permissões', icon: ShieldCheck },
+    { id: 'precos',     label: 'Tabela de Preços', icon: CircleDollarSign },
   ], [])
 
   const ESTOQUE_SUBTABS = useMemo(() => [
@@ -1041,6 +1043,7 @@ export default function Dashboard() {
                 <div key={adminSub} className={adminSubDir === 'right' ? 'tab-active-right' : 'tab-active-left'}>
                   {adminSub === 'usuarios'   && <PainelAdmin toast={toast} />}
                   {adminSub === 'permissoes' && <PermissoesView toast={toast} />}
+                  {adminSub === 'precos'     && <TabPrecos toast={toast} />}
                 </div>
               </div>
             </Suspense>
