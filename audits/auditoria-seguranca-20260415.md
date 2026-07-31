@@ -24,7 +24,7 @@
 
 ### ❌ CRÍTICO #1 — `VITE_GEMINI_API_KEY` exposta no bundle do browser
 
-**Variável:** `VITE_GEMINI_API_KEY=AIzaSyDNI7oUO_zZXRd4PKxB9vDn-XycsEUr5Kc`
+**Variável:** `VITE_GEMINI_API_KEY=AIzaSy***REDACTED***`
 
 Em Vite, **qualquer variável com prefixo `VITE_` é compilada no JavaScript final** e visível em DevTools → Sources → bundle.js. A chave do Google Gemini é carregada diretamente no navegador:
 
@@ -43,7 +43,7 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY)
 
 ### ❌ CRÍTICO #2 — `VITE_GOOGLE_SHEETS_API_KEY` exposta
 
-**Variável:** `VITE_GOOGLE_SHEETS_API_KEY=AIzaSyAk0_fAiphIR3g0c-AtUTuQ8c2FOJ9d4UU`
+**Variável:** `VITE_GOOGLE_SHEETS_API_KEY=AIzaSy***REDACTED***`
 
 Usada em `src/hooks/useModelosTecidos.ts` para buscar dados de planilhas Google.
 
