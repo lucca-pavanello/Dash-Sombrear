@@ -16,10 +16,11 @@ export interface PrecoFerragemFamilia {
 }
 export interface PrecoFerragemComponente {
   id: number; familia: string; cor: string; espessura: number
-  item: string; tipo_custo: 'por_metro' | 'fixo'; valor: number
+  item: string; tipo_custo: 'por_metro' | 'fixo' | 'opcional_ml' | 'opcional_par'; valor: number
 }
 export interface PrecoFerragemEscada { familia: string; cor: string; espessura: number; largura: number; custo: number }
-export interface PrecoBando { id: number; cor: string; largura: number; preco: number }
+export interface PrecoBando { id: number; cor: string; largura: number; qtd_cd: number; qtd_par: number | null }
+export interface PrecoBandoParams { cor: string; preco_metro: number; par: number; cd1: number; cd2: number }
 export interface PrecoColocacao { id: number; ml_min: number; ml_max: number; preco: number }
 export interface PrecoMotorEstrutura { id: number; largura: number; alt_faixa: string; valor: number; obs: string | null; grupo: string | null }
 export interface PrecoMotorComponente { id: number; item: string; custo: number }
@@ -55,6 +56,7 @@ export const usePrecosFerragemFamilias = () => usePrecosTable<PrecoFerragemFamil
 export const usePrecosFerragemComponentes = () => usePrecosTable<PrecoFerragemComponente>('precos_ferragem_componentes', ['familia', 'cor', 'espessura', 'tipo_custo', 'item'])
 export const usePrecosFerragemEscada = () => usePrecosTable<PrecoFerragemEscada>('precos_ferragem_escada', ['familia', 'cor', 'espessura', 'largura'])
 export const usePrecosBandos = () => usePrecosTable<PrecoBando>('precos_bandos', ['cor', 'largura'])
+export const usePrecosBandosParams = () => usePrecosTable<PrecoBandoParams>('precos_bandos_params', ['cor'])
 export const usePrecosColocacao = () => usePrecosTable<PrecoColocacao>('precos_colocacao', ['ml_min'])
 export const usePrecosMotorEstrutura = () => usePrecosTable<PrecoMotorEstrutura>('precos_motor_estrutura', ['largura'])
 export const usePrecosMotorComponentes = () => usePrecosTable<PrecoMotorComponente>('precos_motor_componentes', ['item'])

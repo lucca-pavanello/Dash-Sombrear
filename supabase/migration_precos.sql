@@ -30,6 +30,12 @@ create table if not exists precos_ferragem_componentes (
 create table if not exists precos_bandos (
   id bigint generated always as identity primary key,
   cor text not null, largura numeric not null, preco numeric not null, unique (cor, largura));
+-- 2026-07-31 (fórmulas, não valores): bandô virou fórmula igual à planilha.
+--   preço = largura × preco_metro + qtd_cd × (cd1 + cd2) + par
+--   alter table precos_bandos add column qtd_cd int; add column qtd_par int; drop column preco;
+create table if not exists precos_bandos_params (
+  cor text primary key, preco_metro numeric not null, par numeric not null,
+  cd1 numeric not null, cd2 numeric not null, atualizado_em timestamptz default now());
 create table if not exists precos_barra_faixas (largura_min numeric primary key, qtd_presilhas int not null);
 create table if not exists precos_colocacao (
   id bigint generated always as identity primary key, ml_min numeric not null, ml_max numeric not null, preco numeric not null);
@@ -58,3 +64,7 @@ select t.id, t.nome, t.tipo, t.largura,
 
 -- RLS: acesso total apenas para admins (funcao eh_admin_precos + policy *_admin em cada tabela)
 -- Aplicado em producao 2026-07-31 via Management API. Seed importado da planilha (455 registros).
+-- 2026-07-31 (fórmulas): precos_ferragem_componentes.tipo_custo agora aceita
+--   'opcional_ml'/'opcional_par' (itens à parte, fora da soma da escada — ex.: guias da ROLO BRANCA 50).
+--   ROLO BRANCA 50 reimportada por componentes (ml 42,59 + fixo 37,70 — o import antigo lia o bloco
+--   de guias como componente e caía pra tabela de valores); precos_ferragem_escada esvaziada.

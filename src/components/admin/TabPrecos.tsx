@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
 import {
-  statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBarraFaixas, usePrecosColocacao,
+  statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas, usePrecosColocacao,
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
   usePrecosMotorComponentes, usePrecosMotorEstrutura, usePrecosMutations, usePrecosParametros,
   usePrecosPh50, usePrecosPromocoes, usePrecosTecidoModelos, usePrecosTecidos,
@@ -333,7 +333,8 @@ function SecaoFerragens({ salvar }: SecaoProps) {
   const colunas: ColunaDef[] = [
     { key: 'item', label: 'Componente', tipo: 'texto' },
     { key: 'tipo_custo', label: 'Cobrança', tipo: 'select', options: [
-      { value: 'por_metro', label: 'Por metro' }, { value: 'fixo', label: 'Fixo' }] },
+      { value: 'por_metro', label: 'Por metro' }, { value: 'fixo', label: 'Fixo' },
+      { value: 'opcional_ml', label: 'Opcional (por metro)' }, { value: 'opcional_par', label: 'Opcional (por par)' }] },
     { key: 'valor', label: 'Valor', tipo: 'numero', formato: fmtBRL },
   ]
   return (
@@ -370,6 +371,7 @@ function SecaoFerragens({ salvar }: SecaoProps) {
           <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
             Custo calculado: <b className="tabular-nums">{fmtBRL(somaMl)}</b> por metro + <b className="tabular-nums">{fmtBRL(somaFixo)}</b> fixo.
             Ex.: 2,00m → <b className="tabular-nums">{fmtBRL(somaMl * 2 + somaFixo)}</b>. Edite os componentes que a escada inteira se recalcula.
+            Itens marcados como “Opcional” são cobrados à parte e ficam fora dessa soma.
           </div>
           <PrecosGrid colunas={colunas} linhas={comps} chave={r => ({ id: r.id })}
             onSalvar={salvar('precos_ferragem_componentes')} />
@@ -381,15 +383,50 @@ function SecaoFerragens({ salvar }: SecaoProps) {
 
 function SecaoBandos({ salvar, excluir, adicionar }: SecaoProps) {
   const { data, isLoading } = usePrecosBandos()
-  const colunas: ColunaDef[] = [
-    { key: 'cor', label: 'Cor', tipo: 'select', options: [
-      { value: 'BRANCO', label: 'Branco' }, { value: 'PRETO', label: 'Preto' }] },
-    { key: 'largura', label: 'Largura (m)', tipo: 'numero', formato: fmtNum },
-    { key: 'preco', label: 'Preço', tipo: 'numero', formato: fmtBRL },
-  ]
-  if (isLoading) return <Carregando />
-  return <PrecosGrid colunas={colunas} linhas={data ?? []} chave={r => ({ id: r.id })}
-    onSalvar={salvar('precos_bandos')} onExcluir={excluir!('precos_bandos')} onAdicionar={adicionar!('precos_bandos')} />
+  const { data: params } = usePrecosBandosParams()
+  if (isLoading || !params) return <Carregando />
+
+  const precoDe = (cor: string, largura: number, qtdCd: number) => {
+    const p = params.find(x => x.cor === cor)
+    if (!p) return 0
+    return largura * Number(p.preco_metro) + qtdCd * (Number(p.cd1) + Number(p.cd2)) + Number(p.par)
+  }
+  const linhas = (data ?? []).map(b => ({ ...b, preco_calc: precoDe(b.cor, Number(b.largura), Number(b.qtd_cd)) }))
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+        Preço calculado por fórmula (igual à planilha): <b>largura × base + cadarços × (cd1 + cd2) + par</b>.
+        Mude a base aqui em cima que a escada inteira se recalcula.
+      </div>
+      <PrecosGrid
+        colunas={[
+          { key: 'cor', label: 'Cor', tipo: 'texto', readonly: true },
+          { key: 'preco_metro', label: 'Base (R$/m)', tipo: 'numero', formato: fmtBRL },
+          { key: 'par', label: 'Par (fixo)', tipo: 'numero', formato: fmtBRL },
+          { key: 'cd1', label: 'Cadarço 1', tipo: 'numero', formato: fmtBRL },
+          { key: 'cd2', label: 'Cadarço 2', tipo: 'numero', formato: fmtBRL },
+        ]}
+        linhas={params} chave={r => ({ cor: r.cor })} onSalvar={salvar('precos_bandos_params')} />
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Escada por largura — edite a quantidade de cadarços; o preço sai da fórmula:
+        </p>
+        <PrecosGrid
+          colunas={[
+            { key: 'cor', label: 'Cor', tipo: 'select', options: [
+              { value: 'BRANCO', label: 'Branco' }, { value: 'PRETO', label: 'Preto' }] },
+            { key: 'largura', label: 'Largura (m)', tipo: 'numero', formato: fmtNum },
+            { key: 'qtd_cd', label: 'Cadarços', tipo: 'numero', formato: fmtNum },
+            { key: 'qtd_par', label: 'Pares', tipo: 'numero', formato: fmtNum },
+            { key: 'preco_calc', label: 'Preço (calculado)', tipo: 'numero', readonly: true, formato: fmtBRL },
+          ]}
+          linhas={linhas} chave={r => ({ id: r.id })}
+          onSalvar={salvar('precos_bandos')} onExcluir={excluir!('precos_bandos')}
+          onAdicionar={adicionar!('precos_bandos')} />
+      </div>
+    </div>
+  )
 }
 
 function SecaoBarra({ salvar }: SecaoProps) {
