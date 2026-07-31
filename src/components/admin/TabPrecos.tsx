@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, Ruler, Settings2, Tag, Wrench,
+  Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, RefreshCw, Ruler, Settings2, Tag, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
@@ -50,12 +50,15 @@ export default function TabPrecos({ toast }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Tabela de Preços</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Fonte central de preços, promoções e parâmetros. As mudanças feitas aqui alimentarão os
-          orçamentos automáticos (a virada da planilha será feita quando tudo estiver validado).
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Tabela de Preços</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Fonte central de preços, promoções e parâmetros. A planilha-espelho se atualiza sozinha a
+            cada 30 min — ou na hora, pelo botão.
+          </p>
+        </div>
+        <BotaoSincronizar toast={toast} />
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -406,5 +409,30 @@ function SecaoParametros({ salvar }: SecaoProps) {
         ]}
         linhas={gerais} chave={r => ({ chave: r.chave })} onSalvar={salvar('precos_parametros')} />
     </div>
+  )
+}
+
+
+function BotaoSincronizar({ toast }: { toast: Props['toast'] }) {
+  const [sincronizando, setSincronizando] = useState(false)
+  async function sincronizar() {
+    setSincronizando(true)
+    try {
+      const r = await fetch('https://n8n-n8n.yjlhot.easypanel.host/webhook/sincronizar-precos', { method: 'POST' })
+      const j = await r.json()
+      if (j?.ok) toast('success', `Planilha sincronizada (${j.abas_sincronizadas} abas)`)
+      else toast('error', 'A sincronização retornou erro — tente de novo em 1 min')
+    } catch {
+      toast('error', 'Não consegui falar com o sincronizador')
+    } finally {
+      setSincronizando(false)
+    }
+  }
+  return (
+    <button onClick={sincronizar} disabled={sincronizando}
+      className="flex shrink-0 items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-50">
+      {sincronizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+      {sincronizando ? 'Sincronizando…' : 'Sincronizar planilha'}
+    </button>
   )
 }
