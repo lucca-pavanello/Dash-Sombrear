@@ -31,6 +31,10 @@ export interface PrecoPromocao {
 }
 export interface PrecoBarraFaixa { largura_min: number; qtd_presilhas: number }
 export interface PrecoTecidoModelo { tecido_nome: string; modelo: string }
+export interface PrecoTecidoVigente {
+  id: number; nome: string; tipo: string; largura: number
+  preco: number; preco_cheio: number; desconto_pct: number | null; em_promocao: boolean
+}
 
 export const MODELOS_PERSIANA = ['Rolo', 'Double', 'Romana', 'PH_Aluminio', 'PV', 'PH_50', 'Rolo Motorizado'] as const
 
@@ -64,30 +68,47 @@ export const usePrecosParametros = () => usePrecosTable<PrecoParametro>('precos_
 export const usePrecosPromocoes = () => usePrecosTable<PrecoPromocao>('precos_promocoes', ['inicio'])
 export const usePrecosBarraFaixas = () => usePrecosTable<PrecoBarraFaixa>('precos_barra_faixas', ['largura_min'])
 export const usePrecosTecidoModelos = () => usePrecosTable<PrecoTecidoModelo>('precos_tecido_modelos', ['tecido_nome', 'modelo'])
+export const usePrecosTecidosVigentes = () => usePrecosTable<PrecoTecidoVigente>('precos_tecidos_vigentes', ['nome', 'largura'])
 
 /* ─── Mutações ───────────────────────────────────────────── */
 export function usePrecosMutations() {
   const queryClient = useQueryClient()
   const invalidate = (table: string) => queryClient.invalidateQueries({ queryKey: ['precos', table] })
 
-  async function updateRow(table: string, match: Record<string, unknown>, patch: Record<string, unknown>) {
+  // auditoria das edições manuais — habilita o histórico e o Desfazer; falha não bloqueia a edição
+  async function auditar(acao: string, detalhe: Record<string, unknown>) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('precos_auditoria').insert({
+        usuario: user?.email ?? 'admin', origem: 'grade', acao, detalhe,
+      })
+      queryClient.invalidateQueries({ queryKey: ['precos', 'auditoria'] })
+    } catch { /* histórico é rede de segurança, não trava o fluxo */ }
+  }
+
+  async function updateRow(
+    table: string, match: Record<string, unknown>, patch: Record<string, unknown>,
+    antes?: Record<string, unknown>,
+  ) {
     let q = supabase.from(table).update(patch)
     for (const [k, v] of Object.entries(match)) q = q.eq(k, v as never)
     const { error } = await q
     if (error) throw error
     invalidate(table)
+    if (antes) void auditar('editar_grade', { tabela: table, match, antes, depois: patch })
   }
   async function insertRow(table: string, row: Record<string, unknown>) {
     const { error } = await supabase.from(table).insert(row)
     if (error) throw error
     invalidate(table)
   }
-  async function deleteRow(table: string, match: Record<string, unknown>) {
+  async function deleteRow(table: string, match: Record<string, unknown>, antes?: Record<string, unknown>) {
     let q = supabase.from(table).delete()
     for (const [k, v] of Object.entries(match)) q = q.eq(k, v as never)
     const { error } = await q
     if (error) throw error
     invalidate(table)
+    if (antes) void auditar('excluir_grade', { tabela: table, match, antes })
   }
   return { updateRow, insertRow, deleteRow }
 }

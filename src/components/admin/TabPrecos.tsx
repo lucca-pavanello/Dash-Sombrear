@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import {
-  Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, RefreshCw, Ruler, Settings2, Sparkles, Tag, Wrench,
+  Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
+import SimuladorPreco from './SimuladorPreco'
 import {
   statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas, usePrecosColocacao,
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
@@ -36,14 +37,17 @@ type SecaoId = typeof SECOES[number]['id']
 
 export default function TabPrecos({ toast }: Props) {
   const [secao, setSecao] = useState<SecaoId>('ia')
+  const [promoPrefill, setPromoPrefill] = useState<string | null>(null)
   const { updateRow, insertRow, deleteRow } = usePrecosMutations()
 
-  const salvar = (table: string) => async (match: Record<string, unknown>, patch: Record<string, unknown>) => {
-    try { await updateRow(table, match, patch); toast('success', 'Salvo!') }
+  const salvar = (table: string) => async (
+    match: Record<string, unknown>, patch: Record<string, unknown>, antes?: Record<string, unknown>,
+  ) => {
+    try { await updateRow(table, match, patch, antes); toast('success', 'Salvo!') }
     catch { toast('error', 'Erro ao salvar — confira os dados') }
   }
-  const excluir = (table: string) => async (match: Record<string, unknown>) => {
-    try { await deleteRow(table, match); toast('success', 'Excluído') }
+  const excluir = (table: string) => async (match: Record<string, unknown>, antes?: Record<string, unknown>) => {
+    try { await deleteRow(table, match, antes); toast('success', 'Excluído') }
     catch { toast('error', 'Erro ao excluir') }
   }
   const adicionar = (table: string) => async (row: Record<string, unknown>) => {
@@ -83,6 +87,8 @@ export default function TabPrecos({ toast }: Props) {
         ))}
       </div>
 
+      <SimuladorPreco />
+
       <div className="flex flex-wrap gap-1 rounded-xl bg-muted/50 p-1">
         {SECOES.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setSecao(id)} title={label}
@@ -96,8 +102,11 @@ export default function TabPrecos({ toast }: Props) {
       </div>
 
       {secao === 'ia' && <PrecosIA toast={toast} />}
-      {secao === 'tecidos' && <SecaoTecidos salvar={salvar} excluir={excluir} adicionar={adicionar} />}
-      {secao === 'promocoes' && <SecaoPromocoes toast={toast} />}
+      {secao === 'tecidos' && (
+        <SecaoTecidos salvar={salvar} excluir={excluir} adicionar={adicionar}
+          onCriarPromocao={nome => { setPromoPrefill(nome); setSecao('promocoes') }} />
+      )}
+      {secao === 'promocoes' && <SecaoPromocoes toast={toast} prefill={promoPrefill} />}
       {secao === 'artigos' && <SecaoArtigos salvar={salvar} excluir={excluir} adicionar={adicionar} />}
       {secao === 'ph50' && <SecaoPh50 salvar={salvar} excluir={excluir} adicionar={adicionar} />}
       {secao === 'ferragens' && <SecaoFerragens salvar={salvar} />}
@@ -120,25 +129,77 @@ function Carregando() {
   return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
 }
 
-function SecaoTecidos({ salvar, excluir, adicionar }: SecaoProps) {
+const CATEGORIAS_TECIDO = [
+  { value: 'blackout', label: 'Blackout' }, { value: 'tela_solar', label: 'Tela Solar' },
+  { value: 'decorativo', label: 'Decorativo' }, { value: 'outro', label: 'Outro' },
+] as const
+
+function SecaoTecidos({ salvar, excluir, adicionar, onCriarPromocao }: SecaoProps & { onCriarPromocao: (nome: string) => void }) {
   const { data, isLoading } = usePrecosTecidos()
+  const { data: promocoes } = usePrecosPromocoes()
+  const [busca, setBusca] = useState('')
+  const [categoria, setCategoria] = useState('')
+
+  const promoAtiva = useMemo(() => {
+    const mapa = new Map<string, number>()
+    for (const p of promocoes ?? []) {
+      if (statusPromocao(p) === 'ativa') mapa.set(p.alvo_nome, Math.max(mapa.get(p.alvo_nome) ?? 0, Number(p.desconto_pct)))
+    }
+    return mapa
+  }, [promocoes])
+
+  const linhas = useMemo(() => (data ?? [])
+    .filter(t => !categoria || t.tipo === categoria)
+    .filter(t => !busca || t.nome.toLowerCase().includes(busca.toLowerCase()))
+    .map(t => ({ ...t, promo: promoAtiva.has(t.nome) ? `🏷️ −${fmtNum(promoAtiva.get(t.nome))}%` : '' })),
+  [data, categoria, busca, promoAtiva])
+
   const colunas: ColunaDef[] = [
     { key: 'nome', label: 'Tecido', tipo: 'texto' },
-    { key: 'tipo', label: 'Categoria', tipo: 'select', options: [
-      { value: 'blackout', label: 'Blackout' }, { value: 'tela_solar', label: 'Tela Solar' },
-      { value: 'decorativo', label: 'Decorativo' }, { value: 'outro', label: 'Outro' }] },
+    { key: 'tipo', label: 'Categoria', tipo: 'select', options: [...CATEGORIAS_TECIDO] },
     { key: 'largura', label: 'Largura (m)', tipo: 'numero', formato: fmtNum },
     { key: 'preco', label: 'Preço/m²', tipo: 'numero', formato: fmtBRL },
+    { key: 'promo', label: 'Promoção', tipo: 'texto', readonly: true },
   ]
   if (isLoading) return <Carregando />
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar tecido…"
+            className="w-56 rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {[{ value: '', label: 'Todos' }, ...CATEGORIAS_TECIDO].map(c => {
+            const n = c.value === ''
+              ? new Set((data ?? []).map(t => t.nome)).size
+              : new Set((data ?? []).filter(t => t.tipo === c.value).map(t => t.nome)).size
+            return (
+              <button key={c.value} onClick={() => setCategoria(c.value)}
+                className={cn('rounded-full px-3 py-1 text-xs font-semibold transition-colors active:scale-95',
+                  categoria === c.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground')}>
+                {c.label} · {n}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <p className="text-xs text-muted-foreground">
         A categoria alimenta buscas como “blackout mais barato”. Cada largura de rolo é uma linha.
+        O ícone <Percent className="inline h-3 w-3" /> cria uma promoção já com o tecido escolhido.
       </p>
-      <PrecosGrid colunas={colunas} linhas={data ?? []} chave={r => ({ id: r.id })}
+      <PrecosGrid colunas={colunas} linhas={linhas} chave={r => ({ id: r.id })}
         onSalvar={salvar('precos_tecidos')} onExcluir={excluir!('precos_tecidos')}
-        onAdicionar={adicionar!('precos_tecidos')} />
+        onAdicionar={adicionar!('precos_tecidos')}
+        acaoLinha={{ titulo: 'Criar promoção deste tecido', icone: <Percent className="h-3.5 w-3.5" />, onClick: r => onCriarPromocao(r.nome) }}
+        conferirMudanca={(row, patch) => {
+          const antes = Number(row.preco), depois = Number(patch.preco)
+          if (antes > 0 && depois > 0 && (depois > antes * 2 || depois < antes / 2)) {
+            return `Preço muito diferente do atual (${fmtBRL(antes)} → ${fmtBRL(depois)}). Confere se não foi erro de digitação.`
+          }
+          return null
+        }} />
       <VinculoModelos tecidos={data ?? []} />
     </div>
   )
@@ -191,11 +252,17 @@ function VinculoModelos({ tecidos }: { tecidos: { nome: string }[] }) {
   )
 }
 
-function SecaoPromocoes({ toast }: { toast: Props['toast'] }) {
+function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: string | null }) {
   const { data: promocoes, isLoading } = usePrecosPromocoes()
   const { data: tecidos } = usePrecosTecidos()
   const { insertRow, deleteRow } = usePrecosMutations()
-  const [form, setForm] = useState({ alvo_nome: '', desconto_pct: '', inicio: '', fim: '' })
+  const [form, setForm] = useState(() => {
+    const hoje = new Date().toISOString().slice(0, 10)
+    const semana = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
+    return prefill
+      ? { alvo_nome: prefill, desconto_pct: '', inicio: hoje, fim: semana }
+      : { alvo_nome: '', desconto_pct: '', inicio: '', fim: '' }
+  })
   const [salvando, setSalvando] = useState(false)
   const nomes = useMemo(() => [...new Set((tecidos ?? []).map(t => t.nome))], [tecidos])
 
@@ -260,6 +327,8 @@ function SecaoPromocoes({ toast }: { toast: Props['toast'] }) {
             )}
             {(promocoes ?? []).map(p => {
               const st = statusPromocao(p)
+              const diasPraVencer = Math.ceil((new Date(p.fim + 'T23:59:59').getTime() - Date.now()) / 86400000)
+              const vencendo = st === 'ativa' && diasPraVencer <= 3
               return (
                 <tr key={p.id} className="border-b border-border/50 last:border-0">
                   <td className="px-4 py-2.5 font-medium">{p.alvo_nome}</td>
@@ -269,6 +338,11 @@ function SecaoPromocoes({ toast }: { toast: Props['toast'] }) {
                   </td>
                   <td className="px-4 py-2.5">
                     <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', badge[st])}>{st}</span>
+                    {vencendo && (
+                      <span className="ml-1.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-600">
+                        {diasPraVencer <= 0 ? 'vence hoje' : diasPraVencer === 1 ? 'vence amanhã' : `vence em ${diasPraVencer} dias`}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <button onClick={async () => {
@@ -297,7 +371,14 @@ function SecaoArtigos({ salvar, excluir, adicionar }: SecaoProps) {
   ]
   if (isLoading) return <Carregando />
   return <PrecosGrid colunas={colunas} linhas={data ?? []} chave={r => ({ id: r.id })}
-    onSalvar={salvar('precos_artigos')} onExcluir={excluir!('precos_artigos')} onAdicionar={adicionar!('precos_artigos')} />
+    onSalvar={salvar('precos_artigos')} onExcluir={excluir!('precos_artigos')} onAdicionar={adicionar!('precos_artigos')}
+    conferirMudanca={(row, patch) => {
+      const antes = Number(row.preco), depois = Number(patch.preco)
+      if (antes > 0 && depois > 0 && (depois > antes * 2 || depois < antes / 2)) {
+        return `Preço muito diferente do atual (${fmtBRL(antes)} → ${fmtBRL(depois)}). Confere se não foi erro de digitação.`
+      }
+      return null
+    }} />
 }
 
 function SecaoPh50({ salvar, excluir, adicionar }: SecaoProps) {

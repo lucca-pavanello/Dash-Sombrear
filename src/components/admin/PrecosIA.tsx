@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, History, Loader2, Send, Sparkles, X } from 'lucide-react'
+import { Check, History, Loader2, Send, Sparkles, Undo2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { usePrecosMutations } from '@/hooks/usePrecos'
 
 interface Props { toast: (type: 'success' | 'error', message: string) => void }
 
@@ -22,9 +23,26 @@ function descreverAcao(a: Acao): string {
       return `Parâmetro ${a.chave} → ${a.valor}`
     case 'atualizar_preco_artigo':
       return `Artigo ${a.nome} (${a.categoria}) → R$ ${Number(a.preco).toFixed(2)}`
+    case 'editar_grade': {
+      const depois = (a.depois ?? {}) as Record<string, unknown>
+      const campos = Object.entries(depois).map(([k, v]) => `${k} → ${v}`).join(', ')
+      return `Edição manual (${String(a.tabela ?? '').replace('precos_', '')}): ${campos}`
+    }
+    case 'excluir_grade':
+      return `Exclusão manual (${String(a.tabela ?? '').replace('precos_', '')})`
     default:
       return JSON.stringify(a)
   }
+}
+
+const TIPOS_REVERSIVEIS = new Set([
+  'editar_grade', 'excluir_grade', 'criar_promocao', 'remover_promocao',
+  'atualizar_preco_tecido', 'atualizar_parametro', 'atualizar_preco_artigo',
+])
+
+const semId = (row: Record<string, unknown>) => {
+  const { id: _id, ...resto } = row
+  return resto
 }
 
 export default function PrecosIA({ toast }: Props) {
@@ -35,8 +53,46 @@ export default function PrecosIA({ toast }: Props) {
   const [texto, setTexto] = useState('')
   const [pensando, setPensando] = useState(false)
   const [aplicando, setAplicando] = useState(false)
+  const [desfazendo, setDesfazendo] = useState<number | null>(null)
   const fimRef = useRef<HTMLDivElement>(null)
   const queryClient = useQueryClient()
+  const { updateRow, insertRow, deleteRow } = usePrecosMutations()
+
+  async function desfazer(a: Auditoria) {
+    const d = a.detalhe
+    setDesfazendo(a.id)
+    try {
+      if (a.acao === 'editar_grade') {
+        await updateRow(String(d.tabela), d.match as Record<string, unknown>,
+          d.antes as Record<string, unknown>, d.depois as Record<string, unknown>)
+      } else if (a.acao === 'excluir_grade') {
+        await insertRow(String(d.tabela), semId(d.antes as Record<string, unknown>))
+      } else if (a.acao === 'criar_promocao' && d.promo_id != null) {
+        await deleteRow('precos_promocoes', { id: d.promo_id })
+      } else if (a.acao === 'remover_promocao' && d.antes) {
+        await insertRow('precos_promocoes', semId(d.antes as Record<string, unknown>))
+      } else if (a.acao === 'atualizar_preco_tecido' && Array.isArray(d.antes)) {
+        for (const linha of d.antes as { id: number; preco: number }[]) {
+          await updateRow('precos_tecidos', { id: linha.id }, { preco: linha.preco }, { preco: d.preco })
+        }
+      } else if (a.acao === 'atualizar_parametro' && d.antes) {
+        await updateRow('precos_parametros', { chave: d.chave },
+          { valor: (d.antes as { valor: number }).valor }, { valor: d.valor })
+      } else if (a.acao === 'atualizar_preco_artigo' && d.antes) {
+        await updateRow('precos_artigos', { categoria: d.categoria, nome: d.nome },
+          { preco: (d.antes as { preco: number }).preco }, { preco: d.preco })
+      } else {
+        toast('error', 'Essa alteração não tem dados suficientes para desfazer')
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: ['precos'] })
+      toast('success', 'Alteração desfeita!')
+    } catch {
+      toast('error', 'Não consegui desfazer — confira a tabela')
+    } finally {
+      setDesfazendo(null)
+    }
+  }
 
   const { data: auditoria } = useQuery<Auditoria[]>({
     queryKey: ['precos', 'auditoria'],
@@ -182,11 +238,21 @@ export default function PrecosIA({ toast }: Props) {
             <p className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma alteração pela IA ainda.</p>
           )}
           {(auditoria ?? []).map(a => (
-            <div key={a.id} className="px-5 py-3">
-              <p className="text-xs font-medium text-foreground">{descreverAcao({ tipo: a.acao, ...a.detalhe })}</p>
-              <p className="mt-0.5 text-[10px] text-muted-foreground">
-                {a.usuario} · {new Date(a.criado_em).toLocaleString('pt-BR')}
-              </p>
+            <div key={a.id} className="flex items-start gap-2 px-5 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-foreground">{descreverAcao({ tipo: a.acao, ...a.detalhe })}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  {a.usuario} · {new Date(a.criado_em).toLocaleString('pt-BR')}
+                </p>
+              </div>
+              {TIPOS_REVERSIVEIS.has(a.acao) && (
+                <button onClick={() => desfazer(a)} disabled={desfazendo != null}
+                  title="Desfazer esta alteração"
+                  className="mt-0.5 flex shrink-0 items-center gap-1 rounded-lg bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground active:scale-95 disabled:opacity-50">
+                  {desfazendo === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Undo2 className="h-3 w-3" />}
+                  Desfazer
+                </button>
+              )}
             </div>
           ))}
         </div>

@@ -167,48 +167,61 @@ ARTIGOS: ${JSON.stringify(artigos)}`
         }
       }
 
-      // FASE 2: aplicar (tudo já validado)
+      // FASE 2: aplicar (tudo já validado) — guarda o "antes" no detalhe pra permitir o Desfazer
       const aplicadas: string[] = []
       for (const acao of acoes) {
         const tipo = String(acao.tipo ?? '')
+        let detalhe: Record<string, unknown> = { ...acao }
 
         if (tipo === 'criar_promocao') {
           const pct = Number(acao.desconto_pct)
-          const { error } = await db.from('precos_promocoes').insert({
+          const { data: nova, error } = await db.from('precos_promocoes').insert({
             alvo_tipo: 'tecido', alvo_nome: acao.tecido, desconto_pct: pct, inicio: acao.inicio, fim: acao.fim,
-          })
+          }).select('id').single()
           if (error) throw error
+          detalhe = { ...detalhe, promo_id: nova?.id }
           aplicadas.push(`Promoção: ${acao.tecido} −${pct}% (${acao.inicio} → ${acao.fim})`)
         } else if (tipo === 'remover_promocao') {
+          const { data: antes } = await db.from('precos_promocoes').select('*').eq('id', Number(acao.id)).single()
           const { error } = await db.from('precos_promocoes').delete().eq('id', Number(acao.id))
           if (error) throw error
+          detalhe = { ...detalhe, antes }
           aplicadas.push(`Promoção #${acao.id} removida`)
         } else if (tipo === 'atualizar_preco_tecido') {
           const preco = Number(acao.preco)
+          let qa = db.from('precos_tecidos').select('id, largura, preco').eq('nome', acao.nome)
+          if (acao.largura != null) qa = qa.eq('largura', Number(acao.largura))
+          const { data: antes } = await qa
           let q = db.from('precos_tecidos').update({ preco }).eq('nome', acao.nome)
           if (acao.largura != null) q = q.eq('largura', Number(acao.largura))
           const { error, count } = await q.select('id', { count: 'exact' })
           if (error) throw error
           if (!count) throw new Error(`Tecido não encontrado: ${acao.nome}`)
+          detalhe = { ...detalhe, antes }
           aplicadas.push(`Preço: ${acao.nome}${acao.largura != null ? ` (${acao.largura}m)` : ''} → R$ ${preco.toFixed(2)}`)
         } else if (tipo === 'atualizar_parametro') {
+          const { data: antes } = await db.from('precos_parametros').select('valor').eq('chave', String(acao.chave)).single()
           const { error, count } = await db.from('precos_parametros')
             .update({ valor: Number(acao.valor) }).eq('chave', String(acao.chave)).select('chave', { count: 'exact' })
           if (error) throw error
           if (!count) throw new Error(`Parâmetro não encontrado: ${acao.chave}`)
+          detalhe = { ...detalhe, antes }
           aplicadas.push(`Parâmetro: ${acao.chave} → ${acao.valor}`)
         } else if (tipo === 'atualizar_preco_artigo') {
           const preco = Number(acao.preco)
+          const { data: antes } = await db.from('precos_artigos').select('preco')
+            .eq('categoria', String(acao.categoria)).eq('nome', String(acao.nome)).single()
           const { error, count } = await db.from('precos_artigos')
             .update({ preco }).eq('categoria', String(acao.categoria)).eq('nome', String(acao.nome))
             .select('id', { count: 'exact' })
           if (error) throw error
           if (!count) throw new Error(`Artigo não encontrado: ${acao.nome}`)
+          detalhe = { ...detalhe, antes }
           aplicadas.push(`Artigo: ${acao.nome} → R$ ${preco.toFixed(2)}`)
         }
 
         await db.from('precos_auditoria').insert({
-          usuario: caller.email ?? caller.id, origem: 'ia', acao: tipo, detalhe: acao,
+          usuario: caller.email ?? caller.id, origem: 'ia', acao: tipo, detalhe,
         })
       }
 
