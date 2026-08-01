@@ -5,10 +5,10 @@
  */
 import type {
   PrecoArtigo, PrecoBando, PrecoBandoParams, PrecoBarraFaixa, PrecoColocacao,
-  PrecoFerragemComponente, PrecoParametro, PrecoPh50, PrecoTecidoVigente,
+  PrecoFerragemComponente, PrecoParametro, PrecoPh50, PrecoRomanaMatriz, PrecoTecidoVigente,
 } from '@/hooks/usePrecos'
 
-export type ModeloSim = 'Rolo' | 'Double' | 'PV' | 'PH_Aluminio' | 'PH_50'
+export type ModeloSim = 'Rolo' | 'Double' | 'Romana' | 'PV' | 'PH_Aluminio' | 'PH_50'
 export type AcabamentoSim = 'nenhum' | 'bando_branco' | 'bando_preto' | 'barra' | 'kit_box'
 
 export interface EntradaSim {
@@ -35,6 +35,7 @@ export interface DadosSim {
   artigos: PrecoArtigo[]
   ph50: PrecoPh50[]
   parametros: PrecoParametro[]
+  romana: PrecoRomanaMatriz[]
 }
 
 export interface ResultadoSim {
@@ -90,8 +91,8 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     return param('barra_preco_metro', 14.4) * L + param('barra_preco_presilha', 0.45) * presilhas
   }
 
-  /* ── modelos com tecido: Rolo e Double ── */
-  if (e.modelo === 'Rolo' || e.modelo === 'Double') {
+  /* ── modelos com tecido: Rolo, Double e Romana ── */
+  if (e.modelo === 'Rolo' || e.modelo === 'Double' || e.modelo === 'Romana') {
     if (!e.tecido) return { erro: 'Escolha o tecido' }
     const rolos = d.tecidos.filter(t => t.nome === e.tecido).sort((a, b) => a.largura - b.largura)
     if (rolos.length === 0) return { erro: `Tecido ${e.tecido} não encontrado` }
@@ -103,20 +104,37 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     const alturaUsada = e.modelo === 'Double' ? A * 2 + 0.5 : A + 0.2
     const custoTecido = Number(rolo.largura) * alturaUsada * Number(rolo.preco)
 
-    // ferragem: Rolo escolhe o tubo pela medida; Double é família única
-    let familia = 'DOUBLE', espessura = 0
-    if (e.modelo === 'Rolo') {
-      familia = 'ROLO'
-      espessura = (L >= 2.51 || A >= 3.01) ? 50 : (L >= 1.71 || A >= 1.41) ? 38 : 32
+    let custoFerragem: number
+    if (e.modelo === 'Romana') {
+      // matriz L×A: coluna e linha mais próximas PARA CIMA
+      const largs = [...new Set(d.romana.map(r => Number(r.largura)))].sort((a, b) => a - b)
+      const alts = [...new Set(d.romana.map(r => Number(r.altura)))].sort((a, b) => a - b)
+      if (largs.length === 0) return { erro: 'Matriz da Romana vazia no banco' }
+      const Lm = largs.find(x => x >= L - 1e-9)
+      const Am = alts.find(x => x >= A - 1e-9)
+      if (Lm == null || Am == null) {
+        return { erro: `Romana: matriz vai até ${largs[largs.length - 1]}×${alts[alts.length - 1]}m` }
+      }
+      const cel = d.romana.find(r => Number(r.largura) === Lm && Number(r.altura) === Am)
+      if (!cel) return { erro: 'Célula da matriz Romana não encontrada' }
+      custoFerragem = Number(cel.custo)
+      obs.push(`Ferragem Romana na célula ${Lm.toFixed(2).replace('.', ',')} × ${Am.toFixed(2).replace('.', ',')}m`)
+    } else {
+      // ferragem: Rolo escolhe o tubo pela medida; Double é família única
+      let familia = 'DOUBLE', espessura = 0
+      if (e.modelo === 'Rolo') {
+        familia = 'ROLO'
+        espessura = (L >= 2.51 || A >= 3.01) ? 50 : (L >= 1.71 || A >= 1.41) ? 38 : 32
+      }
+      const comps = d.componentes.filter(c =>
+        c.familia === familia && c.cor === e.corFerragem && Number(c.espessura) === espessura)
+      if (comps.length === 0) return { erro: `Ferragem ${familia} ${e.corFerragem} ${espessura || ''} sem componentes` }
+      const ml = comps.filter(c => c.tipo_custo === 'por_metro').reduce((s, c) => s + Number(c.valor), 0)
+      const fixo = comps.filter(c => c.tipo_custo === 'fixo').reduce((s, c) => s + Number(c.valor), 0)
+      const largFerragem = Math.ceil(L * 10 - 1e-9) / 10
+      custoFerragem = ml * largFerragem + fixo
+      if (e.modelo === 'Rolo') obs.push(`Tubo ${espessura}mm · ferragem em ${largFerragem.toFixed(2).replace('.', ',')}m`)
     }
-    const comps = d.componentes.filter(c =>
-      c.familia === familia && c.cor === e.corFerragem && Number(c.espessura) === espessura)
-    if (comps.length === 0) return { erro: `Ferragem ${familia} ${e.corFerragem} ${espessura || ''} sem componentes` }
-    const ml = comps.filter(c => c.tipo_custo === 'por_metro').reduce((s, c) => s + Number(c.valor), 0)
-    const fixo = comps.filter(c => c.tipo_custo === 'fixo').reduce((s, c) => s + Number(c.valor), 0)
-    const largFerragem = Math.ceil(L * 10 - 1e-9) / 10
-    const custoFerragem = ml * largFerragem + fixo
-    if (e.modelo === 'Rolo') obs.push(`Tubo ${espessura}mm · ferragem em ${largFerragem.toFixed(2).replace('.', ',')}m`)
 
     custoProduto = (custoTecido + custoFerragem) * qtd
 

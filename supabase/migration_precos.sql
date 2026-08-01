@@ -64,6 +64,15 @@ select t.id, t.nome, t.tipo, t.largura,
 
 -- RLS: acesso total apenas para admins (funcao eh_admin_precos + policy *_admin em cada tabela)
 -- Aplicado em producao 2026-07-31 via Management API. Seed importado da planilha (455 registros).
+-- 2026-07-31 (Romana + espelho completo):
+--   create table precos_romana_matriz (largura, altura, custo, pk(largura,altura)) — matriz 31×31
+--     importada da planilha "Romana - Sombrear" (doc 1LIgHXggHjiIut5P8xcMt6a0eiMJFm5FLHtqBw-D_jBM,
+--     aba Custo M2; as abas "Teste larg. X" são a bancada de trabalho que gera a matriz lá).
+--   alter table precos_motor_componentes add column quantidade int;
+--   alter table precos_motor_estrutura add column valor_extra numeric; add column ordem int;
+create table if not exists precos_romana_matriz (
+  largura numeric not null, altura numeric not null, custo numeric not null,
+  atualizado_em timestamptz default now(), primary key (largura, altura));
 -- 2026-07-31 (fórmulas): precos_ferragem_componentes.tipo_custo agora aceita
 --   'opcional_ml'/'opcional_par' (itens à parte, fora da soma da escada — ex.: guias da ROLO BRANCA 50).
 --   ROLO BRANCA 50 reimportada por componentes (ml 42,59 + fixo 37,70 — o import antigo lia o bloco

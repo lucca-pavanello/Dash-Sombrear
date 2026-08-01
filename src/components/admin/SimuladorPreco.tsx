@@ -5,7 +5,7 @@ import { simular, AcabamentoSim, EntradaSim, ModeloSim } from '@/lib/simulador'
 import {
   usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas,
   usePrecosColocacao, usePrecosFerragemComponentes, usePrecosParametros, usePrecosPh50,
-  usePrecosTecidosVigentes,
+  usePrecosRomanaMatriz, usePrecosTecidosVigentes,
 } from '@/hooks/usePrecos'
 
 const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -13,6 +13,7 @@ const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigi
 const MODELOS: { id: ModeloSim; label: string }[] = [
   { id: 'Rolo', label: 'Rolô' },
   { id: 'Double', label: 'Double' },
+  { id: 'Romana', label: 'Romana' },
   { id: 'PV', label: 'PV' },
   { id: 'PH_Aluminio', label: 'PH Alumínio' },
   { id: 'PH_50', label: 'PH 50mm' },
@@ -44,6 +45,7 @@ export default function SimuladorPreco() {
   const { data: artigos } = usePrecosArtigos()
   const { data: ph50 } = usePrecosPh50()
   const { data: parametros } = usePrecosParametros()
+  const { data: romana } = usePrecosRomanaMatriz()
 
   const num = (s: string) => parseFloat(s.replace(',', '.')) || 0
   const nomesTecidos = useMemo(() => [...new Set((tecidos ?? []).map(t => t.nome))].sort(), [tecidos])
@@ -53,7 +55,7 @@ export default function SimuladorPreco() {
   }, [artigos, modelo])
   const itensPh50 = useMemo(() => (ph50 ?? []).map(p => ({ valor: `${p.modelo}|${p.cor}`, label: `${p.modelo.trim()} · ${p.cor}` })), [ph50])
 
-  const carregado = tecidos && componentes && bandos && bandoParams && barraFaixas && colocacao && artigos && ph50 && parametros
+  const carregado = tecidos && componentes && bandos && bandoParams && barraFaixas && colocacao && artigos && ph50 && parametros && romana
 
   const resultado = useMemo(() => {
     if (!carregado) return null
@@ -66,11 +68,12 @@ export default function SimuladorPreco() {
     return simular(entrada, {
       tecidos: tecidos!, componentes: componentes!, bandos: bandos!, bandoParams: bandoParams!,
       barraFaixas: barraFaixas!, colocacao: colocacao!, artigos: artigos!, ph50: ph50!, parametros: parametros!,
+      romana: romana!,
     })
   }, [carregado, modelo, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
-    acabamento, instalacao, tecidos, componentes, bandos, bandoParams, barraFaixas, colocacao, artigos, ph50, parametros])
+    acabamento, instalacao, tecidos, componentes, bandos, bandoParams, barraFaixas, colocacao, artigos, ph50, parametros, romana])
 
-  const comTecido = modelo === 'Rolo' || modelo === 'Double'
+  const comTecido = modelo === 'Rolo' || modelo === 'Double' || modelo === 'Romana'
   const ok = resultado && !('erro' in resultado) ? resultado : null
 
   return (
@@ -99,10 +102,12 @@ export default function SimuladorPreco() {
                   <option value="">Tecido…</option>
                   {nomesTecidos.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
-                <select className={selectCls} value={corFerragem} onChange={e => setCorFerragem(e.target.value as 'BRANCA' | 'PRETA')}>
-                  <option value="BRANCA">Ferragem branca</option>
-                  <option value="PRETA">Ferragem preta</option>
-                </select>
+                {modelo !== 'Romana' && (
+                  <select className={selectCls} value={corFerragem} onChange={e => setCorFerragem(e.target.value as 'BRANCA' | 'PRETA')}>
+                    <option value="BRANCA">Ferragem branca</option>
+                    <option value="PRETA">Ferragem preta</option>
+                  </select>
+                )}
                 <select className={selectCls} value={acabamento} onChange={e => setAcabamento(e.target.value as AcabamentoSim)}>
                   <option value="nenhum">Sem acabamento</option>
                   <option value="bando_branco">Bandô branco</option>

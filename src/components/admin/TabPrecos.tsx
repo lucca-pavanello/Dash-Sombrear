@@ -10,7 +10,7 @@ import {
   statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas, usePrecosColocacao,
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
   usePrecosMotorComponentes, usePrecosMotorEstrutura, usePrecosMutations, usePrecosParametros,
-  usePrecosPh50, usePrecosPromocoes, usePrecosTecidoModelos, usePrecosTecidos,
+  usePrecosPh50, usePrecosPromocoes, usePrecosRomanaMatriz, usePrecosTecidoModelos, usePrecosTecidos,
   MODELOS_PERSIANA,
 } from '@/hooks/usePrecos'
 
@@ -120,8 +120,8 @@ export default function TabPrecos({ toast }: Props) {
 }
 
 /* ─── helpers de seção ───────────────────────────────────── */
-type SalvarFn = (table: string) => (match: Record<string, unknown>, patch: Record<string, unknown>) => Promise<void>
-type ExcluirFn = (table: string) => (match: Record<string, unknown>) => Promise<void>
+type SalvarFn = (table: string) => (match: Record<string, unknown>, patch: Record<string, unknown>, antes?: Record<string, unknown>) => Promise<void>
+type ExcluirFn = (table: string) => (match: Record<string, unknown>, antes?: Record<string, unknown>) => Promise<void>
 type AdicionarFn = (table: string) => (row: Record<string, unknown>) => Promise<void>
 interface SecaoProps { salvar: SalvarFn; excluir?: ExcluirFn; adicionar?: AdicionarFn }
 
@@ -421,9 +421,9 @@ function SecaoFerragens({ salvar }: SecaoProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5">
-        {chaves.map(c => {
+        {[...chaves, 'ROMANA'].map(c => {
           const [f, cor, esp] = c.split('|')
-          const label = `${f} ${cor}${esp !== '0' ? ` ${esp}mm` : ''}`
+          const label = c === 'ROMANA' ? 'ROMANA (matriz)' : `${f} ${cor}${esp !== '0' ? ` ${esp}mm` : ''}`
           return (
             <button key={c} onClick={() => setFam(c)}
               className={cn('rounded-full px-3 py-1 text-xs font-semibold',
@@ -433,7 +433,9 @@ function SecaoFerragens({ salvar }: SecaoProps) {
           )
         })}
       </div>
-      {escadaFam.length > 0 ? (
+      {atual === 'ROMANA' ? (
+        <MatrizRomana salvar={salvar} />
+      ) : escadaFam.length > 0 ? (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
             Esta família usa tabela de valores direta (os componentes da planilha não batiam com a escada).
@@ -458,6 +460,82 @@ function SecaoFerragens({ salvar }: SecaoProps) {
             onSalvar={salvar('precos_ferragem_componentes')} />
         </div>
       )}
+    </div>
+  )
+}
+
+function MatrizRomana({ salvar }: { salvar: SalvarFn }) {
+  const { data, isLoading } = usePrecosRomanaMatriz()
+  const [editando, setEditando] = useState<string | null>(null)
+  const [valor, setValor] = useState('')
+  const [salvandoCel, setSalvandoCel] = useState(false)
+
+  const { largs, alts, porChave } = useMemo(() => {
+    const largs = [...new Set((data ?? []).map(r => Number(r.largura)))].sort((a, b) => a - b)
+    const alts = [...new Set((data ?? []).map(r => Number(r.altura)))].sort((a, b) => a - b)
+    const porChave = new Map((data ?? []).map(r => [`${Number(r.largura)}|${Number(r.altura)}`, Number(r.custo)]))
+    return { largs, alts, porChave }
+  }, [data])
+
+  if (isLoading) return <Carregando />
+
+  async function salvarCelula(L: number, A: number) {
+    const novo = parseFloat(valor.replace(',', '.'))
+    const antes = porChave.get(`${L}|${A}`)
+    if (!(novo > 0) || novo === antes) { setEditando(null); return }
+    setSalvandoCel(true)
+    try {
+      await salvar('precos_romana_matriz')({ largura: L, altura: A }, { custo: novo }, { custo: antes })
+      setEditando(null)
+    } finally { setSalvandoCel(false) }
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        Custo da ferragem Romana por largura × altura (célula usada: a mais próxima <i>para cima</i> da medida).
+        Clique numa célula para editar. Espelhada na aba SYNC_Custo M2 da planilha “Romana - Sombrear”.
+      </p>
+      <div className="rounded-xl border-2 bg-card shadow-sm overflow-x-auto" style={{ maxHeight: 480, overflowY: 'auto' }}>
+        <table className="text-xs tabular-nums" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <thead>
+            <tr>
+              <th className="sticky left-0 top-0 z-20 bg-muted px-2 py-1.5 text-left font-semibold text-muted-foreground">A \ L</th>
+              {largs.map(l => (
+                <th key={l} className="sticky top-0 z-10 bg-muted px-2 py-1.5 font-semibold text-muted-foreground">{fmtNum(l)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {alts.map(a => (
+              <tr key={a}>
+                <td className="sticky left-0 z-10 bg-muted px-2 py-1 font-semibold text-muted-foreground">{fmtNum(a)}</td>
+                {largs.map(l => {
+                  const chave = `${l}|${a}`
+                  const em = editando === chave
+                  return (
+                    <td key={l} className="border-b border-l border-border/40 p-0 text-right">
+                      {em ? (
+                        <input autoFocus value={valor} disabled={salvandoCel}
+                          onChange={e => setValor(e.target.value)}
+                          onBlur={() => salvarCelula(l, a)}
+                          onKeyDown={e => { if (e.key === 'Enter') salvarCelula(l, a); if (e.key === 'Escape') setEditando(null) }}
+                          className="w-16 bg-primary/10 px-1.5 py-1 text-right text-xs outline-none ring-2 ring-primary/40" />
+                      ) : (
+                        <button
+                          onClick={() => { setEditando(chave); setValor(String(porChave.get(chave) ?? '')) }}
+                          className="w-full px-1.5 py-1 text-right hover:bg-primary/10">
+                          {(porChave.get(chave) ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </button>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -576,6 +654,7 @@ function SecaoMotor({ salvar }: SecaoProps) {
           colunas={[
             { key: 'item', label: 'Item', tipo: 'texto', readonly: true },
             { key: 'custo', label: 'Custo', tipo: 'numero', formato: fmtBRL },
+            { key: 'quantidade', label: 'Qtd', tipo: 'numero', formato: v => v == null ? '—' : fmtNum(v) },
           ]}
           linhas={comps ?? []} chave={r => ({ id: r.id })} onSalvar={salvar('precos_motor_componentes')} />
       </div>

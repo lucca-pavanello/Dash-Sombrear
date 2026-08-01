@@ -22,8 +22,12 @@ export interface PrecoFerragemEscada { familia: string; cor: string; espessura: 
 export interface PrecoBando { id: number; cor: string; largura: number; qtd_cd: number; qtd_par: number | null }
 export interface PrecoBandoParams { cor: string; preco_metro: number; par: number; cd1: number; cd2: number }
 export interface PrecoColocacao { id: number; ml_min: number; ml_max: number; preco: number }
-export interface PrecoMotorEstrutura { id: number; largura: number; alt_faixa: string; valor: number; obs: string | null; grupo: string | null }
-export interface PrecoMotorComponente { id: number; item: string; custo: number }
+export interface PrecoMotorEstrutura {
+  id: number; largura: number; alt_faixa: string; valor: number
+  obs: string | null; grupo: string | null; valor_extra: number | null; ordem: number | null
+}
+export interface PrecoMotorComponente { id: number; item: string; custo: number; quantidade: number | null }
+export interface PrecoRomanaMatriz { largura: number; altura: number; custo: number }
 export interface PrecoParametro { chave: string; valor: number; descricao: string | null }
 export interface PrecoPromocao {
   id: number; alvo_tipo: 'tecido' | 'artigo' | 'modelo'; alvo_nome: string
@@ -69,6 +73,7 @@ export const usePrecosPromocoes = () => usePrecosTable<PrecoPromocao>('precos_pr
 export const usePrecosBarraFaixas = () => usePrecosTable<PrecoBarraFaixa>('precos_barra_faixas', ['largura_min'])
 export const usePrecosTecidoModelos = () => usePrecosTable<PrecoTecidoModelo>('precos_tecido_modelos', ['tecido_nome', 'modelo'])
 export const usePrecosTecidosVigentes = () => usePrecosTable<PrecoTecidoVigente>('precos_tecidos_vigentes', ['nome', 'largura'])
+export const usePrecosRomanaMatriz = () => usePrecosTable<PrecoRomanaMatriz>('precos_romana_matriz', ['altura', 'largura'])
 
 /* ─── Mutações ───────────────────────────────────────────── */
 export function usePrecosMutations() {
