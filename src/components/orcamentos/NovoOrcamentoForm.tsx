@@ -59,6 +59,8 @@ interface Props {
   initial?: Partial<OrcamentoFormState>
   /** Valor gravado na coluna fonte (default: 'manual') */
   fonte?: string
+  /** Salva o orçamento já fechado (ex.: lead convertido do Agente IA) */
+  fechado?: boolean
 }
 
 const STEPS = [
@@ -67,7 +69,7 @@ const STEPS = [
   { number: 3, label: 'Financeiro' },
 ]
 
-export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte = 'manual' }: Props) {
+export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte = 'manual', fechado = false }: Props) {
   const responsaveis = useResponsaveis()
   const { mutateAsync, isPending } = useAddOrcamento()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -191,7 +193,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
         custo_m2: form.custo_m2 ? Number(form.custo_m2) : null,
         custo_tecido: form.custo_tecido ? Number(form.custo_tecido) : calcCusto ?? null,
         custo_acabamento: form.custo_acabamento ? Number(form.custo_acabamento) : null,
-        fechado: false,
+        fechado,
         observacoes: form.observacoes || null,
         ambiente: form.ambiente || null,
         margem,

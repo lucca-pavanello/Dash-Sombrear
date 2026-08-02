@@ -30,6 +30,9 @@ export type CrmLead = {
   tecido_cor: string | null
   acabamento_desejado: string | null
   precisa_instalacao: string | null
+  cidade: string | null
+  tipo_imovel: string | null
+  orcamento_aceito: boolean | null
 }
 
 export type OrcamentoIA = {

@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import {
-  Blinds, ChevronDown, CircleDollarSign, Cog, Layers, Loader2, Pencil, Percent, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, Wrench,
+  Blinds, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
@@ -63,6 +63,12 @@ export default function TabPrecos({ toast }: Props) {
   const { data: kpiParams } = usePrecosParametros()
   const { data: kpiFamilias } = usePrecosFerragemFamilias()
   const promosAtivas = (kpiPromos ?? []).filter(p => statusPromocao(p) === 'ativa').length
+  const promosVencendo = (kpiPromos ?? []).filter(p => statusPromocao(p) === 'ativa'
+    && (new Date(p.fim + 'T23:59:59').getTime() - Date.now()) / 86400000 <= 3).length
+  const syncEpoch = Number((kpiParams ?? []).find(p => p.chave === 'ultimo_sync_epoch')?.valor ?? 0)
+  const minSync = syncEpoch > 0 ? Math.max(0, Math.round((Date.now() - syncEpoch) / 60000)) : null
+  const syncOk = minSync != null && minSync <= 45
+  const parametrosVisiveis = (kpiParams ?? []).filter(p => p.chave !== 'ultimo_sync_epoch').length
 
   return (
     <div className="space-y-5">
@@ -76,12 +82,40 @@ export default function TabPrecos({ toast }: Props) {
         <BotaoSincronizar toast={toast} />
       </div>
 
+      {/* Saúde do sistema: a cliente bate o olho e sabe que está tudo em ordem */}
+      <div className={cn(
+        'flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border-2 px-4 py-2.5 text-sm',
+        syncOk ? 'border-emerald-500/25 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5',
+      )}>
+        {syncOk
+          ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+          : <TriangleAlert className="h-4 w-4 shrink-0 text-amber-600" />}
+        <span className="font-semibold">
+          {minSync == null ? 'Planilha ainda não sincronizada'
+            : syncOk ? 'Tudo em ordem'
+            : 'Sincronização atrasada'}
+        </span>
+        {minSync != null && (
+          <span className="text-muted-foreground">
+            planilha sincronizada {minSync === 0 ? 'agora mesmo' : `há ${minSync >= 60 ? `${Math.floor(minSync / 60)}h${minSync % 60 ? ` ${minSync % 60}min` : ''}` : `${minSync} min`}`}
+          </span>
+        )}
+        <span className="text-muted-foreground">
+          {promosAtivas === 0 ? 'nenhuma promoção ativa' : `${promosAtivas} promoção${promosAtivas > 1 ? 'ões' : ''} ativa${promosAtivas > 1 ? 's' : ''}`}
+        </span>
+        {promosVencendo > 0 && (
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-600">
+            {promosVencendo} vence{promosVencendo > 1 ? 'm' : ''} em breve
+          </span>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'Tecidos', value: new Set((kpiTecidos ?? []).map(t => t.nome)).size },
           { label: 'Promoções ativas', value: promosAtivas },
           { label: 'Famílias de ferragem', value: (kpiFamilias ?? []).length },
-          { label: 'Parâmetros', value: (kpiParams ?? []).length },
+          { label: 'Parâmetros', value: parametrosVisiveis },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border-2 border-primary/20 bg-primary/10 dark:bg-primary/15 p-4 shadow-sm flex flex-col items-center text-center gap-1">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</p>
@@ -500,6 +534,30 @@ function PainelAjustes({ titulo, children }: { titulo: string; children: React.R
   )
 }
 
+function imprimirTabela(
+  titulo: string, colunasExtras: string[] | undefined,
+  linhas: { largura: number; valor: number; extras?: (string | number)[] }[],
+) {
+  const w = window.open('', '_blank', 'width=760,height=900')
+  if (!w) return
+  const head = ['Largura', ...(colunasExtras ?? []), 'Preço']
+  const rows = linhas.map(l => [fmtNum(l.largura), ...(l.extras ?? []).map(String), fmtBRL(l.valor)])
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title><style>
+    body{font-family:system-ui,sans-serif;padding:28px;color:#1a1a1a}
+    h1{font-size:15px;text-transform:uppercase;letter-spacing:.12em;text-align:center;margin:0 0 4px}
+    p{font-size:11px;color:#888;text-align:center;margin:0 0 14px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #bbb;padding:5px 10px;text-align:center;font-size:12.5px}
+    th{background:#f3f3f3;font-weight:600}td:first-child{font-weight:600}
+  </style></head><body>
+    <h1>${titulo} — Sombrear</h1>
+    <p>Gerado em ${new Date().toLocaleString('pt-BR')}</p>
+    <table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    <script>window.print()</script></body></html>`)
+  w.document.close()
+}
+
 function EscadaCalculada({ titulo, linhas, colunasExtras, altura = 480 }: {
   titulo: string
   linhas: { largura: number; valor: number; extras?: (string | number)[] }[]
@@ -508,9 +566,16 @@ function EscadaCalculada({ titulo, linhas, colunasExtras, altura = 480 }: {
 }) {
   return (
     <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden self-start">
-      <p className="border-b bg-muted/40 px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        {titulo}
-      </p>
+      <div className="flex items-center border-b bg-muted/40 px-4 py-2">
+        <p className="flex-1 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {titulo}
+        </p>
+        <button onClick={() => imprimirTabela(titulo, colunasExtras, linhas)}
+          title="Imprimir / salvar PDF"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors active:scale-95">
+          <Printer className="h-3.5 w-3.5" />
+        </button>
+      </div>
       <div className="overflow-y-auto" style={{ maxHeight: altura }}>
         <table className="w-full text-sm">
           <thead>

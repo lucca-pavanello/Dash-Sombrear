@@ -34,7 +34,12 @@ function leadToOrcamentoInitial(l: CrmLead) {
   const medidas = l.medidas_coletadas?.match(/(\d+[.,]?\d*)\s*[x×]\s*(\d+[.,]?\d*)/i)
   const modeloMatch = MODELOS.find((m) => l.modelo_interesse?.toLowerCase().includes(m.toLowerCase()))
   const qtd = parseInt(l.quantidade ?? '', 10)
+  // "R$ 1.234,56" → "1234.56" (pré-preenche o valor de venda com o último valor cotado pela IA)
+  const valorCotado = l.ultimo_valor_cotado
+    ? parseFloat(l.ultimo_valor_cotado.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'))
+    : NaN
   return {
+    valor_venda: Number.isFinite(valorCotado) && valorCotado > 0 ? String(valorCotado) : '',
     responsavel: 'Stella',
     cliente: l.nome ?? '',
     telefone: l.whatsapp ?? '',
@@ -253,6 +258,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const [leadsCollapsed, setLeadsCollapsed] = useState(false)
   const [orcsCollapsed, setOrcsCollapsed] = useState(false)
   const [leadOrcamento, setLeadOrcamento] = useState<CrmLead | null>(null)
+  const [orcFechado, setOrcFechado] = useState(false)
 
   // Orçamentos da IA indexados por lead (cliente_id FK + identificador_whats)
   const orcsPorLead = useMemo(() => {
@@ -645,7 +651,15 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation()
-                                          marcarConvertido(lead.id, { onError: () => toast('error', 'Erro ao marcar como convertido.') })
+                                          marcarConvertido(lead.id, {
+                                            onError: () => toast('error', 'Erro ao marcar como convertido.'),
+                                            onSuccess: () => {
+                                              // já emenda o fechamento: form pré-preenchido salvando direto como fechado
+                                              setOrcFechado(true)
+                                              setLeadOrcamento(lead)
+                                              toast('success', 'Convertido! Confira os dados e salve o orçamento fechado.')
+                                            },
+                                          })
                                           setConfirmId(null)
                                         }}
                                         disabled={marcando}
@@ -670,6 +684,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                       Converteu
                                     </button>
                                   )
+                                )}
+                                {chatwootUrl(lead) && (
+                                  <a
+                                    href={chatwootUrl(lead)!}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="Abrir conversa no Chatwoot"
+                                    className="rounded-lg border p-1.5 text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-colors"
+                                  >
+                                    <MessageSquare className="h-3.5 w-3.5" />
+                                  </a>
                                 )}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setExpandedId(expanded ? null : lead.id) }}
@@ -697,6 +723,10 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                   {lead.precisa_instalacao   && <div><p className="text-xs text-muted-foreground mb-0.5">Instalação</p><p className="font-medium">{lead.precisa_instalacao}</p></div>}
                                   {lead.data_medicao_instalacao && <div><p className="text-xs text-muted-foreground mb-0.5">Data medição</p><p className="font-medium text-primary">{lead.data_medicao_instalacao}</p></div>}
                                   {lead.endereco_cep         && <div><p className="text-xs text-muted-foreground mb-0.5">CEP</p><p className="font-medium">{lead.endereco_cep}</p></div>}
+                                  {lead.cidade               && <div><p className="text-xs text-muted-foreground mb-0.5">Cidade</p><p className="font-medium">{lead.cidade}</p></div>}
+                                  {lead.tipo_imovel          && <div><p className="text-xs text-muted-foreground mb-0.5">Tipo de imóvel</p><p className="font-medium">{lead.tipo_imovel}</p></div>}
+                                  {lead.quantidade           && <div><p className="text-xs text-muted-foreground mb-0.5">Quantidade</p><p className="font-medium">{lead.quantidade}</p></div>}
+                                  {lead.ultimo_valor_cotado  && <div><p className="text-xs text-muted-foreground mb-0.5">Último valor cotado</p><p className="font-bold text-primary tabular-nums">{lead.ultimo_valor_cotado}</p></div>}
                                 </div>
 
                                 {/* Orçamentos da IA vinculados a este lead */}
@@ -729,7 +759,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                 {/* Ações do lead */}
                                 <div className="mt-4 flex flex-wrap gap-2">
                                   <button
-                                    onClick={(e) => { e.stopPropagation(); setLeadOrcamento(lead) }}
+                                    onClick={(e) => { e.stopPropagation(); setOrcFechado(false); setLeadOrcamento(lead) }}
                                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 transition-colors active:scale-95"
                                   >
                                     <FilePlus2 className="h-3.5 w-3.5" />
@@ -813,7 +843,14 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      marcarConvertido(lead.id, { onError: () => toast('error', 'Erro ao marcar como convertido.') })
+                                      marcarConvertido(lead.id, {
+                                        onError: () => toast('error', 'Erro ao marcar como convertido.'),
+                                        onSuccess: () => {
+                                          setOrcFechado(true)
+                                          setLeadOrcamento(lead)
+                                          toast('success', 'Convertido! Confira os dados e salve o orçamento fechado.')
+                                        },
+                                      })
                                       setMobileConfirmId(null)
                                     }}
                                     disabled={marcando}
@@ -859,7 +896,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                           </div>
                           <div className="flex flex-wrap gap-2 pt-3">
                             <button
-                              onClick={(e) => { e.stopPropagation(); setLeadOrcamento(lead) }}
+                              onClick={(e) => { e.stopPropagation(); setOrcFechado(false); setLeadOrcamento(lead) }}
                               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 transition-colors active:scale-95"
                             >
                               <FilePlus2 className="h-3.5 w-3.5" />
@@ -1065,13 +1102,14 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           )
         )}
       </div>
-      {/* Lead → orçamento em 1 clique */}
+      {/* Lead → orçamento em 1 clique (fechado=true quando vem do botão Converteu) */}
       <NovoOrcamentoForm
         open={!!leadOrcamento}
-        onClose={() => setLeadOrcamento(null)}
+        onClose={() => { setLeadOrcamento(null); setOrcFechado(false) }}
         toast={toast}
         initial={initialOrcamento}
         fonte="agente-ia"
+        fechado={orcFechado}
       />
 
       <Toaster toasts={toasts} onDismiss={dismiss} />
