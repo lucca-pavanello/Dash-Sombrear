@@ -249,10 +249,10 @@ function SlideDesempenho({ data }: { data: Orcamento[] }) {
               </span>
               <div
                 className={cn(
-                  'w-full rounded-t-xl transition-all duration-1000',
+                  'w-full origin-bottom rounded-t-xl animate-[tv-bar-in_800ms_cubic-bezier(0.22,1,0.36,1)_both]',
                   isLast ? 'bg-gradient-to-t from-primary to-amber-400' : 'bg-white/15'
                 )}
-                style={{ height: `${barH}px`, minHeight: '8px', animationDelay: `${i * 200}ms` }}
+                style={{ height: `${barH}px`, minHeight: '8px', animationDelay: `${i * 150}ms` }}
               />
               <div className="text-center">
                 <p className={cn('font-bold capitalize text-lg', isLast ? 'text-white' : 'text-white/50')}>{s.mes}</p>
@@ -378,8 +378,10 @@ export default function PresentationMode({ open, onClose, data }: Props) {
           <button
             key={s.id}
             onClick={(e) => { e.stopPropagation(); setPaused(true); setSlide(i) }}
+            aria-label={`Ir para o slide ${s.label}`}
+            title={s.label}
             className={cn(
-              'h-1.5 rounded-full transition-all duration-300',
+              'h-1.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
               i === slide ? 'w-8 bg-primary' : 'w-1.5 bg-white/20 hover:bg-white/40'
             )}
           />
@@ -387,7 +389,7 @@ export default function PresentationMode({ open, onClose, data }: Props) {
 
         {/* Progress bar for current slide */}
         {!paused && (
-          <div className="absolute bottom-0 left-0 h-0.5 bg-primary/60 animate-[grow_6s_linear_forwards]"
+          <div className="absolute bottom-0 left-0 h-0.5 w-full origin-left bg-primary/60 animate-[grow_6s_linear_forwards]"
             key={`${slide}-progress`}
             style={{ animationDuration: `${SLIDE_DURATION}ms` }}
           />
@@ -399,8 +401,9 @@ export default function PresentationMode({ open, onClose, data }: Props) {
         <span className="text-white/20 text-xs">← → navegar · espaço pausar · ESC sair</span>
         <button
           onClick={(e) => { e.stopPropagation(); setPaused(v => !v) }}
-          className="rounded-lg border border-white/15 bg-white/10 p-2 text-white/50 hover:bg-white/20 hover:text-white transition-colors"
+          className="rounded-lg border border-white/15 bg-white/10 p-2 text-white/50 hover:bg-white/20 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           title={paused ? 'Continuar' : 'Pausar'}
+          aria-label={paused ? 'Continuar apresentação' : 'Pausar apresentação'}
         >
           {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
         </button>

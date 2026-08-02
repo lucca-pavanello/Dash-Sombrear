@@ -4,7 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useOrcamentoPublico } from '@/hooks/useKanban'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { MapPin, User, Package, Ruler, Layers, Wrench, DollarSign, CalendarDays, CheckCircle2, Clock, MessageCircle, FileDown } from 'lucide-react'
+import { MapPin, User, Package, Ruler, Layers, Wrench, DollarSign, CalendarDays, CheckCircle2, Clock, MessageCircle, FileDown, Mail } from 'lucide-react'
+import { Button } from '@/components/ui/primitives'
 
 // Página pública standalone (sempre clara) — cores fixas no laranja oficial #E8701A
 const BRAND = '#E8701A'
@@ -195,6 +196,9 @@ export default function OrcamentoPublico() {
                   <span>Instalação: {formatCurrency(orcamento.instalacao)}</span>
                 </div>
               ) : null}
+              <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500">
+                Em até 4× sem juros no cartão · <span className="font-semibold text-gray-700">5% de desconto à vista</span>
+              </p>
             </div>
           </div>
         )}
@@ -209,14 +213,16 @@ export default function OrcamentoPublico() {
               </p>
             </div>
           ) : (
-            <button
+            <Button
+              variant="brand"
+              size="lg"
+              fullWidth
+              loading={aceitando}
               onClick={handleAceitar}
-              disabled={aceitando}
-              className="w-full rounded-2xl px-4 py-3.5 text-sm font-bold text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-70"
-              style={{ background: 'linear-gradient(135deg, #E8701A 0%, #C45E14 100%)' }}
+              className="rounded-2xl py-3.5 text-sm font-bold shadow-lg"
             >
               {aceitando ? 'Registrando…' : 'Aceitar orçamento'}
-            </button>
+            </Button>
           )}
           {aceiteErro && (
             <p className="text-center text-xs text-red-500">
@@ -235,14 +241,16 @@ export default function OrcamentoPublico() {
                 Falar com atendente
               </a>
             )}
-            <button
+            <Button
+              variant="outline"
+              size="lg"
+              loading={gerandoPdf}
               onClick={handlePdf}
-              disabled={gerandoPdf}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-600 transition-all active:scale-[0.98] disabled:opacity-70"
+              className="flex-1 rounded-2xl border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 hover:border-gray-300"
             >
-              <FileDown className="h-4 w-4" />
+              {!gerandoPdf && <FileDown className="h-4 w-4" aria-hidden="true" />}
               {gerandoPdf ? 'Gerando…' : 'Baixar PDF'}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -286,15 +294,27 @@ export default function OrcamentoPublico() {
           </Section>
         )}
 
-        {/* Rodapé */}
+        {/* Rodapé com contato real */}
         <div className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 text-xs text-gray-400">
-            <CalendarDays className="h-3.5 w-3.5" />
+            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Orçamento gerado em {createdDate}</span>
           </div>
-          <p className="mt-2 text-[11px] text-gray-300">
-            Sombrear — Cortinas e Persianas
-          </p>
+
+          <div className="mx-auto mt-4 max-w-xs rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+            <p className="text-sm font-semibold text-gray-800">Sombrear — Cortinas e Persianas</p>
+            <a
+              href="mailto:sombrear@ig.com.br"
+              className="mt-2 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#E8701A] transition-colors"
+            >
+              <Mail className="h-3 w-3" aria-hidden="true" />
+              sombrear@ig.com.br
+            </a>
+            <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-gray-500">
+              <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+              Av. Dr. Fernando Costa, 984 · São José do Rio Preto/SP
+            </p>
+          </div>
         </div>
       </main>
     </div>
