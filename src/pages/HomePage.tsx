@@ -117,11 +117,46 @@ export default function HomePage() {
   }, [orcamentos, leads])
 
   const recentes = useMemo(
-    () => [...orcamentos]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 4),
+    () => {
+      // Um pedido multi-item vira várias rows no banco (1 por persiana) — agrupa
+      // por cliente+responsável em janela de 15min pra lista não ecoar o mesmo pedido
+      const ordenados = [...orcamentos]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      type Grupo = {
+        id: string; cliente: string; responsavel: string; modelos: string[]
+        itens: number; total: number; fechado: boolean; created_at: string
+      }
+      const grupos: Grupo[] = []
+      for (const o of ordenados) {
+        const t = new Date(o.created_at).getTime()
+        const g = grupos.find(g =>
+          g.cliente === (o.cliente ?? o.responsavel) &&
+          g.responsavel === o.responsavel &&
+          Math.abs(new Date(g.created_at).getTime() - t) < 15 * 60 * 1000
+        )
+        const total = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
+        if (g) {
+          g.itens += 1
+          g.total += total
+          if (o.modelo && !g.modelos.includes(o.modelo)) g.modelos.push(o.modelo)
+          g.fechado = g.fechado || o.fechado === true
+        } else {
+          grupos.push({
+            id: o.id, cliente: o.cliente ?? o.responsavel, responsavel: o.responsavel,
+            modelos: o.modelo ? [o.modelo] : [], itens: 1, total,
+            fechado: o.fechado === true, created_at: o.created_at,
+          })
+        }
+        if (grupos.length >= 8) break
+      }
+      return grupos.slice(0, 4)
+    },
     [orcamentos]
   )
+
+  // Só é "atividade" se aconteceu hoje — senão a seção assume que é histórico
+  const temAtividadeHoje = recentes.length > 0 &&
+    (Date.now() - new Date(recentes[0].created_at).getTime()) < 24 * 60 * 60 * 1000
 
   const nome = primeiroNome(profile)
   const dataLonga = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -213,39 +248,44 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Atividade recente */}
+      {/* Últimos orçamentos (rótulo honesto: só pulsa se houver algo de hoje) */}
       {canOrcamento && !noAccess && recentes.length > 0 && (
         <div className="mt-8 md:mt-10 w-full max-w-5xl">
           <div className="rounded-2xl border border-border bg-card/60 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 border-b border-border/60 px-4 py-2.5">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-50 animate-ping" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-              </span>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Atividade recente</p>
+              {temAtividadeHoje ? (
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                </span>
+              ) : (
+                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+              )}
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                {temAtividadeHoje ? 'Atividade de hoje' : 'Últimos orçamentos'}
+              </p>
             </div>
             <div className="divide-y divide-border/50">
-              {recentes.map(o => {
-                const total = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
-                return (
-                  <button
-                    key={o.id}
-                    onClick={() => navigate('/orcamentos/orcamentos')}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
-                  >
-                    <AvatarInitials name={o.responsavel} size="xs" />
-                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                      <span className="font-medium">{o.cliente ?? o.responsavel}</span>
-                      <span className="text-muted-foreground"> · {o.modelo}</span>
+              {recentes.map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => navigate('/orcamentos/orcamentos')}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
+                >
+                  <AvatarInitials name={g.responsavel} size="xs" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                    <span className="font-medium">{g.cliente}</span>
+                    <span className="text-muted-foreground">
+                      {' · '}{g.modelos.join(' + ') || '—'}{g.itens > 1 ? ` · ${g.itens} itens` : ''}
                     </span>
-                    {o.fechado && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />}
-                    {total > 0 && (
-                      <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">{formatCurrency(total)}</span>
-                    )}
-                    <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{tempoAtras(o.created_at)}</span>
-                  </button>
-                )
-              })}
+                  </span>
+                  {g.fechado && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />}
+                  {g.total > 0 && (
+                    <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">{formatCurrency(g.total)}</span>
+                  )}
+                  <span className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{tempoAtras(g.created_at)}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
