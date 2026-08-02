@@ -667,7 +667,7 @@ const GRUPOS_PARAMETROS: {
 }[] = [
   {
     titulo: 'Markups de venda', hint: 'Quanto o custo é multiplicado para virar preço de venda.',
-    chaves: ['markup_venda', 'markup_acabamento', 'markup_venda_pv_ph', 'markup_venda_ph50', 'markup_bando_ph50'],
+    chaves: ['markup_venda', 'markup_acabamento', 'markup_venda_pv_ph', 'markup_venda_ph50', 'markup_bando_ph50', 'markup_motorizacao'],
     formato: v => `× ${fmtNum(v)}`,
   },
   {
