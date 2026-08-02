@@ -149,8 +149,8 @@ export default function TabOrcamentos({ data, loading, resetKey }: Props) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <RankingResponsavel data={filtered} />
-        <ResponsavelChart data={filtered} resetKey={resetKey} />
-        <ModelosChart data={filtered} />
+        <ResponsavelChart data={filtered} resetKey={resetKey} loading={loading} />
+        <ModelosChart data={filtered} loading={loading} />
       </div>
 
       <hr className="border-border/25" />

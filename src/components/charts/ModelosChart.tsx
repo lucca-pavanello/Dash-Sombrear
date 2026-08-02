@@ -3,9 +3,9 @@ import type { Orcamento } from '@/lib/supabase'
 
 const COLORS = ['#E8701A', '#F59E0B', '#C45E14', '#D97706', '#FB923C', '#B45309', '#FDBA74', '#92400E']
 
-interface Props { data: Orcamento[] }
+interface Props { data: Orcamento[]; loading?: boolean }
 
-function ModelosChart({ data }: Props) {
+function ModelosChart({ data, loading }: Props) {
   const chartData = useMemo(() => {
     const grouped = data.reduce<Record<string, number>>((acc, o) => {
       if (o.modelo) acc[o.modelo] = (acc[o.modelo] ?? 0) + 1
@@ -20,11 +20,18 @@ function ModelosChart({ data }: Props) {
   return (
     <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-display text-sm font-medium tracking-wide">Orçamentos por Modelo</h3>
-        <span className="text-xs text-muted-foreground">{data.length} total</span>
+        <h3 className="font-display text-sm font-semibold tracking-wide text-foreground">Orçamentos por Modelo</h3>
+        {!loading && <span className="text-xs text-muted-foreground">{data.length} total</span>}
       </div>
-      {chartData.length === 0 ? (
-        <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados</div>
+      {loading ? (
+        <div className="space-y-2.5">
+          {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-7 rounded-lg skeleton-shimmer" />)}
+        </div>
+      ) : chartData.length === 0 ? (
+        <div className="flex h-48 flex-col items-center justify-center gap-1 text-center">
+          <p className="text-sm font-medium text-foreground">Nenhum orçamento no filtro</p>
+          <p className="text-xs text-muted-foreground">Ajuste o período ou os filtros para ver a distribuição</p>
+        </div>
       ) : (
         <div className="space-y-2.5">
           {chartData.map(({ name, count, pct }, i) => (
