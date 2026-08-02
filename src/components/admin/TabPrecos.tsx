@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import {
-  Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, Wrench,
+  Blinds, ChevronDown, CircleDollarSign, Cog, Layers, Loader2, Pencil, Percent, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
@@ -451,21 +451,20 @@ function SecaoFerragens({ salvar }: SecaoProps) {
             onSalvar={salvar('precos_ferragem_escada')} />
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
             Custo calculado: <b className="tabular-nums">{fmtBRL(somaMl)}</b> por metro + <b className="tabular-nums">{fmtBRL(somaFixo)}</b> fixo.
-            Ex.: 2,00m → <b className="tabular-nums">{fmtBRL(somaMl * 2 + somaFixo)}</b>. Edite os componentes que a escada inteira se recalcula.
-            Itens marcados como “Opcional” são cobrados à parte e ficam fora dessa soma.
+            Ex.: 2,00m → <b className="tabular-nums">{fmtBRL(somaMl * 2 + somaFixo)}</b>.
           </div>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <EscadaCalculada
-              titulo="Tabela gerada (igual à planilha)"
-              linhas={escadaCalculada(familias?.find(f => `${f.familia}|${f.cor}|${f.espessura}` === atual), somaMl, somaFixo)} />
-            <div className="lg:col-span-2">
-              <PrecosGrid colunas={colunas} linhas={comps} chave={r => ({ id: r.id })}
-                onSalvar={salvar('precos_ferragem_componentes')} />
-            </div>
-          </div>
+          <EscadaCalculada titulo="Tabela gerada"
+            linhas={escadaCalculada(familias?.find(f => `${f.familia}|${f.cor}|${f.espessura}` === atual), somaMl, somaFixo)} />
+          <PainelAjustes titulo="Ajustar componentes do custo">
+            <p className="text-xs text-muted-foreground">
+              Edite um componente e a tabela inteira se recalcula. Itens “Opcional” são cobrados à parte e ficam fora da soma.
+            </p>
+            <PrecosGrid colunas={colunas} linhas={comps} chave={r => ({ id: r.id })}
+              onSalvar={salvar('precos_ferragem_componentes')} />
+          </PainelAjustes>
         </div>
       )}
     </div>
@@ -484,17 +483,35 @@ function escadaCalculada(
   return out
 }
 
-function EscadaCalculada({ titulo, linhas, colunasExtras }: {
+/** Painel recolhido por padrão — a edição só aparece pra quem quer mexer */
+function PainelAjustes({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  const [aberto, setAberto] = useState(false)
+  return (
+    <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
+      <button onClick={() => setAberto(a => !a)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-muted/30 transition-colors">
+        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-sm font-semibold">{titulo}</span>
+        <span className="text-xs text-muted-foreground">— só mexa aqui se quiser mudar os valores</span>
+        <ChevronDown className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', aberto && 'rotate-180')} />
+      </button>
+      {aberto && <div className="border-t p-4 space-y-4">{children}</div>}
+    </div>
+  )
+}
+
+function EscadaCalculada({ titulo, linhas, colunasExtras, altura = 480 }: {
   titulo: string
   linhas: { largura: number; valor: number; extras?: (string | number)[] }[]
   colunasExtras?: string[]
+  altura?: number
 }) {
   return (
     <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden self-start">
       <p className="border-b bg-muted/40 px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         {titulo}
       </p>
-      <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
+      <div className="overflow-y-auto" style={{ maxHeight: altura }}>
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/40">
@@ -620,44 +637,42 @@ function SecaoBandos({ salvar, excluir, adicionar }: SecaoProps) {
     .map(b => ({ largura: Number(b.largura), valor: precoDe(cor, Number(b.largura), Number(b.qtd_cd)) }))
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
-        Preço calculado por fórmula (igual à planilha): <b>largura × base + cadarços × (cd1 + cd2) + par</b>.
-        Mude a base aqui em cima que as tabelas ao lado se recalculam.
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <EscadaCalculada titulo="Bandô branco — tabela gerada" linhas={escadaDe('BRANCO')} />
+        <EscadaCalculada titulo="Bandô preto — tabela gerada" linhas={escadaDe('PRETO')} />
       </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="space-y-4">
-          <EscadaCalculada titulo="Bandô branco — tabela gerada" linhas={escadaDe('BRANCO')} />
-          <EscadaCalculada titulo="Bandô preto — tabela gerada" linhas={escadaDe('PRETO')} />
-        </div>
-        <div className="space-y-4 lg:col-span-2">
+      <PainelAjustes titulo="Ajustar preços e cadarços">
+        <p className="text-xs text-muted-foreground">
+          Preço calculado por fórmula: <b>largura × base + cadarços × (cd1 + cd2) + par</b>.
+          Mude a base que as tabelas se recalculam.
+        </p>
+        <PrecosGrid
+          colunas={[
+            { key: 'cor', label: 'Cor', tipo: 'texto', readonly: true },
+            { key: 'preco_metro', label: 'Base (R$/m)', tipo: 'numero', formato: fmtBRL },
+            { key: 'par', label: 'Par (fixo)', tipo: 'numero', formato: fmtBRL },
+            { key: 'cd1', label: 'Cadarço 1', tipo: 'numero', formato: fmtBRL },
+            { key: 'cd2', label: 'Cadarço 2', tipo: 'numero', formato: fmtBRL },
+          ]}
+          linhas={params} chave={r => ({ cor: r.cor })} onSalvar={salvar('precos_bandos_params')} />
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Escada por largura — edite a quantidade de cadarços; o preço sai da fórmula:
+          </p>
           <PrecosGrid
             colunas={[
-              { key: 'cor', label: 'Cor', tipo: 'texto', readonly: true },
-              { key: 'preco_metro', label: 'Base (R$/m)', tipo: 'numero', formato: fmtBRL },
-              { key: 'par', label: 'Par (fixo)', tipo: 'numero', formato: fmtBRL },
-              { key: 'cd1', label: 'Cadarço 1', tipo: 'numero', formato: fmtBRL },
-              { key: 'cd2', label: 'Cadarço 2', tipo: 'numero', formato: fmtBRL },
+              { key: 'cor', label: 'Cor', tipo: 'select', options: [
+                { value: 'BRANCO', label: 'Branco' }, { value: 'PRETO', label: 'Preto' }] },
+              { key: 'largura', label: 'Largura (m)', tipo: 'numero', formato: fmtNum },
+              { key: 'qtd_cd', label: 'Cadarços', tipo: 'numero', formato: fmtNum },
+              { key: 'qtd_par', label: 'Pares', tipo: 'numero', formato: fmtNum },
             ]}
-            linhas={params} chave={r => ({ cor: r.cor })} onSalvar={salvar('precos_bandos_params')} />
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              Escada por largura — edite a quantidade de cadarços; o preço sai da fórmula:
-            </p>
-            <PrecosGrid
-              colunas={[
-                { key: 'cor', label: 'Cor', tipo: 'select', options: [
-                  { value: 'BRANCO', label: 'Branco' }, { value: 'PRETO', label: 'Preto' }] },
-                { key: 'largura', label: 'Largura (m)', tipo: 'numero', formato: fmtNum },
-                { key: 'qtd_cd', label: 'Cadarços', tipo: 'numero', formato: fmtNum },
-                { key: 'qtd_par', label: 'Pares', tipo: 'numero', formato: fmtNum },
-              ]}
-              linhas={data ?? []} chave={r => ({ id: r.id })}
-              onSalvar={salvar('precos_bandos')} onExcluir={excluir!('precos_bandos')}
-              onAdicionar={adicionar!('precos_bandos')} />
-          </div>
+            linhas={data ?? []} chave={r => ({ id: r.id })}
+            onSalvar={salvar('precos_bandos')} onExcluir={excluir!('precos_bandos')}
+            onAdicionar={adicionar!('precos_bandos')} />
         </div>
-      </div>
+      </PainelAjustes>
     </div>
   )
 }
@@ -681,10 +696,10 @@ function SecaoBarra({ salvar }: SecaoProps) {
     })
   }
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <EscadaCalculada titulo="Tabela gerada (igual à planilha)"
+    <div className="space-y-3">
+      <EscadaCalculada titulo="Tabela gerada"
         colunasExtras={['Presilhas', 'Valor presilhas', 'Valor barra']} linhas={escada} />
-      <div className="space-y-4 lg:col-span-2">
+      <PainelAjustes titulo="Ajustar preços e presilhas">
         <PrecosGrid
           colunas={[
             { key: 'descricao', label: 'Parâmetro', tipo: 'texto', readonly: true },
@@ -700,7 +715,7 @@ function SecaoBarra({ salvar }: SecaoProps) {
             ]}
             linhas={faixas ?? []} chave={r => ({ largura_min: r.largura_min })} onSalvar={salvar('precos_barra_faixas')} />
         </div>
-      </div>
+      </PainelAjustes>
     </div>
   )
 }
