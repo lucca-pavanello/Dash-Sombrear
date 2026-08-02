@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import {
   Blinds, CircleDollarSign, Cog, Layers, Loader2, Percent, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, Wrench,
 } from 'lucide-react'
@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
 import SimuladorPreco from './SimuladorPreco'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import {
   statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas, usePrecosColocacao,
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
@@ -19,18 +20,19 @@ interface Props { toast: (type: 'success' | 'error', message: string) => void }
 const fmtBRL = (v: unknown) => `R$ ${Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 const fmtNum = (v: unknown) => Number(v ?? 0).toLocaleString('pt-BR')
 
+// ordem lógica: IA + promoções | produtos (tecidos e modelos) | estrutura (ferragem, acabamento, motor) | markups
 const SECOES = [
-  { id: 'ia',         label: 'Assistente',     icon: Sparkles },
-  { id: 'tecidos',    label: 'Tecidos',        icon: Layers },
-  { id: 'promocoes',  label: 'Promoções',      icon: Percent },
-  { id: 'artigos',    label: 'PV / PH Alumínio', icon: Blinds },
-  { id: 'ph50',       label: 'PH 50mm',        icon: Blinds },
-  { id: 'ferragens',  label: 'Ferragens',      icon: Wrench },
-  { id: 'bandos',     label: 'Bandôs',         icon: Tag },
-  { id: 'barra',      label: 'Barra Niv.',     icon: Ruler },
-  { id: 'colocacao',  label: 'Instalação',     icon: Cog },
-  { id: 'motor',      label: 'Motor',          icon: Cog },
-  { id: 'parametros', label: 'Parâmetros',     icon: Settings2 },
+  { id: 'ia',         label: 'Assistente',     icon: Sparkles,  fimGrupo: false },
+  { id: 'promocoes',  label: 'Promoções',      icon: Percent,   fimGrupo: true },
+  { id: 'tecidos',    label: 'Tecidos',        icon: Layers,    fimGrupo: false },
+  { id: 'artigos',    label: 'PV / PH Alumínio', icon: Blinds,  fimGrupo: false },
+  { id: 'ph50',       label: 'PH 50mm',        icon: Blinds,    fimGrupo: true },
+  { id: 'ferragens',  label: 'Ferragens',      icon: Wrench,    fimGrupo: false },
+  { id: 'bandos',     label: 'Bandôs',         icon: Tag,       fimGrupo: false },
+  { id: 'barra',      label: 'Barra Niv.',     icon: Ruler,     fimGrupo: false },
+  { id: 'colocacao',  label: 'Instalação',     icon: Cog,       fimGrupo: false },
+  { id: 'motor',      label: 'Motor',          icon: Cog,       fimGrupo: true },
+  { id: 'parametros', label: 'Parâmetros',     icon: Settings2, fimGrupo: false },
 ] as const
 
 type SecaoId = typeof SECOES[number]['id']
@@ -89,15 +91,18 @@ export default function TabPrecos({ toast }: Props) {
 
       <SimuladorPreco />
 
-      <div className="flex flex-wrap gap-1 rounded-xl bg-muted/50 p-1">
-        {SECOES.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setSecao(id)} title={label}
-            className={cn(
-              'relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
-              secao === id ? 'bg-card text-primary shadow-elevated' : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
-            )}>
-            <Icon className="h-4 w-4 shrink-0" />{label}
-          </button>
+      <div className="flex flex-wrap items-stretch gap-1 rounded-xl bg-muted/50 p-1">
+        {SECOES.map(({ id, label, icon: Icon, fimGrupo }) => (
+          <Fragment key={id}>
+            <button onClick={() => setSecao(id)} title={label}
+              className={cn(
+                'relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+                secao === id ? 'bg-card text-primary shadow-elevated' : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
+              )}>
+              <Icon className="h-4 w-4 shrink-0" />{label}
+            </button>
+            {fimGrupo && <div className="mx-1 my-1.5 w-px bg-border" />}
+          </Fragment>
         ))}
       </div>
 
@@ -229,11 +234,8 @@ function VinculoModelos({ tecidos }: { tecidos: { nome: string }[] }) {
         Um tecido só aparece nos orçamentos dos modelos marcados aqui (é o que gera a aba DADOS_TECIDOS).
       </p>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <select value={tecido} onChange={e => setTecido(e.target.value)}
-          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary sm:w-64">
-          <option value="">Escolha o tecido…</option>
-          {nomes.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
+        <CustomSelect className="py-2 sm:w-64" value={tecido} onChange={setTecido}
+          options={nomes} placeholder="Escolha o tecido…" />
         {tecido && !isLoading && (
           <div className="flex flex-wrap gap-1.5">
             {MODELOS_PERSIANA.map(m => (
@@ -294,11 +296,9 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
       <div className="rounded-xl border-2 bg-card shadow-sm p-4">
         <p className="mb-3 font-display text-sm font-semibold tracking-wide">Nova promoção de tecido</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
-          <select className={cn(inputCls, 'sm:col-span-2')} value={form.alvo_nome}
-            onChange={e => setForm(f => ({ ...f, alvo_nome: e.target.value }))}>
-            <option value="">Escolha o tecido…</option>
-            {nomes.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
+          <CustomSelect className="py-2 sm:col-span-2" value={form.alvo_nome}
+            onChange={v => setForm(f => ({ ...f, alvo_nome: v }))}
+            options={nomes} placeholder="Escolha o tecido…" />
           <input className={inputCls} placeholder="% desconto" inputMode="decimal" value={form.desconto_pct}
             onChange={e => setForm(f => ({ ...f, desconto_pct: e.target.value }))} />
           <input className={inputCls} type="date" value={form.inicio}
@@ -662,23 +662,52 @@ function SecaoMotor({ salvar }: SecaoProps) {
   )
 }
 
+const GRUPOS_PARAMETROS: {
+  titulo: string; hint: string; chaves: string[]; formato: (v: unknown) => string
+}[] = [
+  {
+    titulo: 'Markups de venda', hint: 'Quanto o custo é multiplicado para virar preço de venda.',
+    chaves: ['markup_venda', 'markup_acabamento', 'markup_venda_pv_ph', 'markup_venda_ph50', 'markup_bando_ph50'],
+    formato: v => `× ${fmtNum(v)}`,
+  },
+  {
+    titulo: 'Taxas e descontos', hint: 'Parcelamento, taxa da PH 50 e desconto à vista.',
+    chaves: ['taxa_parcelamento', 'taxa_ph50', 'desconto_avista_pct', 'bando_ph50_venda_fixo'],
+    formato: v => fmtNum(v),
+  },
+  {
+    titulo: 'Kit Box', hint: 'Fatores da fórmula do Kit Box (exclusivo da Rolô).',
+    chaves: ['kitbox_ml_largura', 'kitbox_fixo1', 'kitbox_ml_perimetro', 'kitbox_fixo2', 'kitbox_ml_altura'],
+    formato: v => fmtBRL(v),
+  },
+]
+
 function SecaoParametros({ salvar }: SecaoProps) {
   const { data, isLoading } = usePrecosParametros()
   if (isLoading) return <Carregando />
-  const gerais = (data ?? []).filter(p => !p.chave.startsWith('barra_'))
+  const porChave = new Map((data ?? []).map(p => [p.chave, p]))
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-foreground">
         <CircleDollarSign className="mr-1.5 inline h-4 w-4 text-amber-500" />
-        Cuidado: estes números afetam TODOS os orçamentos (markup, taxas, Kit Box). Mexa com certeza.
+        Cuidado: estes números afetam TODOS os orçamentos. Mexa com certeza — dá pra desfazer no histórico do Assistente.
       </div>
-      <PrecosGrid
-        colunas={[
-          { key: 'chave', label: 'Chave', tipo: 'texto', readonly: true },
-          { key: 'descricao', label: 'O que é', tipo: 'texto', readonly: true },
-          { key: 'valor', label: 'Valor', tipo: 'numero', formato: fmtNum },
-        ]}
-        linhas={gerais} chave={r => ({ chave: r.chave })} onSalvar={salvar('precos_parametros')} />
+      {GRUPOS_PARAMETROS.map(g => {
+        const linhas = g.chaves.map(c => porChave.get(c)).filter(Boolean) as NonNullable<ReturnType<typeof porChave.get>>[]
+        if (linhas.length === 0) return null
+        return (
+          <div key={g.titulo}>
+            <p className="mb-0.5 font-display text-sm font-semibold tracking-wide">{g.titulo}</p>
+            <p className="mb-2 text-xs text-muted-foreground">{g.hint}</p>
+            <PrecosGrid
+              colunas={[
+                { key: 'descricao', label: 'O que é', tipo: 'texto', readonly: true },
+                { key: 'valor', label: 'Valor', tipo: 'numero', formato: g.formato },
+              ]}
+              linhas={linhas} chave={r => ({ chave: r.chave })} onSalvar={salvar('precos_parametros')} />
+          </div>
+        )
+      })}
     </div>
   )
 }

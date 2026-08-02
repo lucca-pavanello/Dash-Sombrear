@@ -1,6 +1,7 @@
 import { Fragment, ReactNode, useState } from 'react'
 import { Check, Loader2, Plus, Trash2, TriangleAlert, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 export interface ColunaDef {
   key: string
@@ -99,9 +100,8 @@ export default function PrecosGrid<T extends object>({
   function campo(c: ColunaDef, valor: unknown, set: (v: unknown) => void) {
     if (c.tipo === 'select') {
       return (
-        <select className={inputCls} value={String(valor ?? '')} onChange={e => set(e.target.value)}>
-          {(c.options ?? []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <CustomSelect className="min-w-32 px-2 py-1 text-sm font-normal" value={String(valor ?? '')}
+          onChange={v => set(v)} options={c.options ?? []} />
       )
     }
     return (

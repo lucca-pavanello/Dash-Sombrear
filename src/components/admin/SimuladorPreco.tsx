@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Calculator, ChevronDown, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { simular, AcabamentoSim, EntradaSim, ModeloSim } from '@/lib/simulador'
 import {
   usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas,
@@ -90,51 +91,42 @@ export default function SimuladorPreco() {
 
       {aberto && (
         <div className="border-t px-5 py-4 space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <select className={selectCls} value={modelo}
-              onChange={e => { setModelo(e.target.value as ModeloSim); setTecido(''); setArtigo(''); setAcabamento('nenhum'); setPh50Bando(false) }}>
-              {MODELOS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
+          <div className="flex flex-wrap items-center gap-3">
+            <CustomSelect className="w-40 py-2" value={modelo}
+              onChange={v => { setModelo(v as ModeloSim); setTecido(''); setArtigo(''); setAcabamento('nenhum'); setPh50Bando(false) }}
+              options={MODELOS.map(m => ({ value: m.id, label: m.label }))} />
 
             {comTecido && (
               <>
-                <select className={cn(selectCls, 'max-w-56')} value={tecido} onChange={e => setTecido(e.target.value)}>
-                  <option value="">Tecido…</option>
-                  {nomesTecidos.map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                <CustomSelect className="w-56 py-2" value={tecido} onChange={setTecido}
+                  options={nomesTecidos} placeholder="Tecido…" />
                 {modelo !== 'Romana' && (
-                  <select className={selectCls} value={corFerragem} onChange={e => setCorFerragem(e.target.value as 'BRANCA' | 'PRETA')}>
-                    <option value="BRANCA">Ferragem branca</option>
-                    <option value="PRETA">Ferragem preta</option>
-                  </select>
+                  <CustomSelect className="w-44 py-2" value={corFerragem}
+                    onChange={v => setCorFerragem(v as 'BRANCA' | 'PRETA')}
+                    options={[{ value: 'BRANCA', label: 'Ferragem branca' }, { value: 'PRETA', label: 'Ferragem preta' }]} />
                 )}
-                <select className={selectCls} value={acabamento} onChange={e => setAcabamento(e.target.value as AcabamentoSim)}>
-                  <option value="nenhum">Sem acabamento</option>
-                  <option value="bando_branco">Bandô branco</option>
-                  <option value="bando_preto">Bandô preto</option>
-                  <option value="barra">Barra niveladora</option>
-                  {modelo === 'Rolo' && <option value="kit_box">Kit Box</option>}
-                </select>
+                <CustomSelect className="w-44 py-2" value={acabamento} onChange={v => setAcabamento(v as AcabamentoSim)}
+                  options={[
+                    { value: 'nenhum', label: 'Sem acabamento' },
+                    { value: 'bando_branco', label: 'Bandô branco' },
+                    { value: 'bando_preto', label: 'Bandô preto' },
+                    { value: 'barra', label: 'Barra niveladora' },
+                    ...(modelo === 'Rolo' ? [{ value: 'kit_box', label: 'Kit Box' }] : []),
+                  ]} />
               </>
             )}
 
             {(modelo === 'PV' || modelo === 'PH_Aluminio') && (
-              <select className={cn(selectCls, 'max-w-64')} value={artigo} onChange={e => setArtigo(e.target.value)}>
-                <option value="">Artigo…</option>
-                {nomesArtigos.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
+              <CustomSelect className="w-64 py-2" value={artigo} onChange={setArtigo}
+                options={nomesArtigos} placeholder="Artigo…" />
             )}
 
             {modelo === 'PH_50' && (
               <>
-                <select className={cn(selectCls, 'max-w-64')} value={artigo} onChange={e => setArtigo(e.target.value)}>
-                  <option value="">Modelo / cor…</option>
-                  {itensPh50.map(i => <option key={i.valor} value={i.valor}>{i.label}</option>)}
-                </select>
-                <select className={selectCls} value={ph50Acab} onChange={e => setPh50Acab(e.target.value as 'cadarco' | 'fita')}>
-                  <option value="cadarco">Com cadarço</option>
-                  <option value="fita">Com fita</option>
-                </select>
+                <CustomSelect className="w-64 py-2" value={artigo} onChange={setArtigo}
+                  options={itensPh50.map(i => ({ value: i.valor, label: i.label }))} placeholder="Modelo / cor…" />
+                <CustomSelect className="w-40 py-2" value={ph50Acab} onChange={v => setPh50Acab(v as 'cadarco' | 'fita')}
+                  options={[{ value: 'cadarco', label: 'Com cadarço' }, { value: 'fita', label: 'Com fita' }]} />
                 <label className="flex items-center gap-1.5 text-sm font-medium">
                   <input type="checkbox" checked={ph50Bando} onChange={e => setPh50Bando(e.target.checked)}
                     className="h-4 w-4 accent-primary" />
