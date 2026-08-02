@@ -308,10 +308,16 @@
     50%       { opacity: 0; }
   }
 
-  /* ── Presentation mode progress bar ── */
+  /* ── Presentation mode progress bar (transform, não width) ── */
   @keyframes grow {
-    from { width: 0%; }
-    to   { width: 100%; }
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+
+  /* ── Presentation mode: entrada das barras de tendência ── */
+  @keyframes tv-bar-in {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
   }
 
   /* ── Modal / drawer entrance ── */

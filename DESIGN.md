@@ -22,6 +22,13 @@ Tokens HSL em `src/index.css` (`:root` + `.dark`), mapeados no `tailwind.config.
 - Escala Tailwind (múltiplos de 4px); gaps padrão: `gap-3` em grids de KPI, `gap-4` em forms, `px-4 py-3` em células.
 - Raios: `rounded-xl` para cards, `rounded-lg` para botões/inputs, `rounded-full` para pills/badges (`--radius: 0.75rem`).
 
+## Primitivas base (`src/components/ui/primitives.tsx`)
+
+- **`<Button>`** — variants `primary | brand | outline | ghost | destructive`, sizes `sm | md | lg`, props `loading` (spinner) e `fullWidth`. Foco visível, active:scale e disabled já embutidos. **Não escrever botão com classes soltas em componente novo.**
+- **`<SectionTitle>`** — título de card/seção no padrão `font-display text-sm font-semibold tracking-wide` com ícone opcional e slot à direita.
+- **`<EmptyState>`** — ícone + título + dica que ensina (nunca "Sem dados" seco).
+- Migração: telas existentes adotam as primitivas quando forem tocadas; novas telas nascem com elas.
+
 ## Componentes
 
 - **Cards**: `rounded-xl border bg-card shadow-sm`. Acento de variante = borda inteira tingida + banho de fundo sutil (`border-{cor}/25 bg-{cor}/[0.04]`). **Listra lateral (border-l grosso) é proibida.**
