@@ -458,13 +458,13 @@ function SecaoFerragens({ salvar }: SecaoProps) {
             Itens marcados como “Opcional” são cobrados à parte e ficam fora dessa soma.
           </div>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <EscadaCalculada
+              titulo="Tabela gerada (igual à planilha)"
+              linhas={escadaCalculada(familias?.find(f => `${f.familia}|${f.cor}|${f.espessura}` === atual), somaMl, somaFixo)} />
             <div className="lg:col-span-2">
               <PrecosGrid colunas={colunas} linhas={comps} chave={r => ({ id: r.id })}
                 onSalvar={salvar('precos_ferragem_componentes')} />
             </div>
-            <EscadaCalculada
-              titulo="Tabela gerada (igual à planilha)"
-              linhas={escadaCalculada(familias?.find(f => `${f.familia}|${f.cor}|${f.espessura}` === atual), somaMl, somaFixo)} />
           </div>
         </div>
       )}
@@ -626,6 +626,10 @@ function SecaoBandos({ salvar, excluir, adicionar }: SecaoProps) {
         Mude a base aqui em cima que as tabelas ao lado se recalculam.
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="space-y-4">
+          <EscadaCalculada titulo="Bandô branco — tabela gerada" linhas={escadaDe('BRANCO')} />
+          <EscadaCalculada titulo="Bandô preto — tabela gerada" linhas={escadaDe('PRETO')} />
+        </div>
         <div className="space-y-4 lg:col-span-2">
           <PrecosGrid
             colunas={[
@@ -653,10 +657,6 @@ function SecaoBandos({ salvar, excluir, adicionar }: SecaoProps) {
               onAdicionar={adicionar!('precos_bandos')} />
           </div>
         </div>
-        <div className="space-y-4">
-          <EscadaCalculada titulo="Bandô branco — tabela gerada" linhas={escadaDe('BRANCO')} />
-          <EscadaCalculada titulo="Bandô preto — tabela gerada" linhas={escadaDe('PRETO')} />
-        </div>
       </div>
     </div>
   )
@@ -682,6 +682,8 @@ function SecaoBarra({ salvar }: SecaoProps) {
   }
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <EscadaCalculada titulo="Tabela gerada (igual à planilha)"
+        colunasExtras={['Presilhas', 'Valor presilhas', 'Valor barra']} linhas={escada} />
       <div className="space-y-4 lg:col-span-2">
         <PrecosGrid
           colunas={[
@@ -699,8 +701,6 @@ function SecaoBarra({ salvar }: SecaoProps) {
             linhas={faixas ?? []} chave={r => ({ largura_min: r.largura_min })} onSalvar={salvar('precos_barra_faixas')} />
         </div>
       </div>
-      <EscadaCalculada titulo="Tabela gerada (igual à planilha)"
-        colunasExtras={['Presilhas', 'Valor presilhas', 'Valor barra']} linhas={escada} />
     </div>
   )
 }
