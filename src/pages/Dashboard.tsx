@@ -459,8 +459,6 @@ export default function Dashboard() {
   const TABS = useMemo(() => [
     ...(canOrcamento ? [{ id: 'orcamento', label: 'Orçamentos', icon: FileText, badge: unreadCount }] : []),
     ...(canEstoque ? [{ id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length }] : []),
-    ...(canOrcamento ? [{ id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 }] : []),
-    ...(isAdmin ? [{ id: 'precos', label: 'Tabela de Preços', icon: CircleDollarSign, badge: 0 }] : []),
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck, badge: pendingCount }] : []),
   ], [isAdmin, canOrcamento, canEstoque, pendingCount, estoqueAlertas.length, unreadCount])
 
@@ -961,8 +959,19 @@ export default function Dashboard() {
           ))}
           {isOrcamentoArea && <ChatIATabBtn onMouseDown={handleTabRipple} />}
 
-          {/* SECTION TABS (fallback) */}
-          {!isOrcamentoArea && !isEstoqueArea && !isAdminArea && (
+          {/* ÁREAS SOLO: dentro delas só existe a própria área — navegação entre áreas é pelo Início */}
+          {(activeTab === 'agente-ia' || activeTab === 'precos') ? (
+            <button
+              data-tab={activeTab}
+              className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
+            >
+              {activeTab === 'agente-ia'
+                ? <><Bot className="h-4 w-4 shrink-0" />Agente IA</>
+                : <><CircleDollarSign className="h-4 w-4 shrink-0" />Tabela de Preços</>}
+            </button>
+          ) : (
+          /* SECTION TABS (fallback) */
+          !isOrcamentoArea && !isEstoqueArea && !isAdminArea && (
             TABS.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
@@ -989,7 +998,7 @@ export default function Dashboard() {
                 )}
               </button>
             ))
-          )}
+          ))}
         </div>
 
         <div>
