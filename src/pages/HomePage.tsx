@@ -4,7 +4,7 @@ import { ArrowRight, Bot, Calculator, CircleDollarSign, Package, ShieldCheck } f
 import { useProfile } from '@/hooks/useProfile'
 import { ADMIN_EMAIL, ESTOQUE_EMAIL } from '@/lib/constants'
 
-const CARD_CLS = 'group bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center'
+const CARD_CLS = 'group w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center'
 const ICON_WRAP_CLS = 'h-14 w-14 md:h-20 md:w-20 rounded-2xl md:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 md:mb-6 group-hover:bg-primary group-hover:scale-105 transition-all'
 const ICON_CLS = 'h-7 w-7 md:h-10 md:w-10 text-primary group-hover:text-white transition-colors'
 
@@ -58,7 +58,7 @@ export default function HomePage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl w-full">
+        <div className="flex flex-wrap justify-center gap-4 md:gap-6 max-w-5xl w-full">
           {canOrcamento && (
             <AreaCard titulo="Orçamento" icon={Calculator}
               descricao="Calcular preços, gerar propostas, gerenciar planilhas de orçamento e custos."
