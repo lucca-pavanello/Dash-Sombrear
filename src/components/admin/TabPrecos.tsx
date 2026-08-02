@@ -17,7 +17,8 @@ import {
 
 interface Props { toast: (type: 'success' | 'error', message: string) => void }
 
-const fmtBRL = (v: unknown) => `R$ ${Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+const fmtBRL = (v: unknown) =>
+  `R$ ${(Math.round((Number(v ?? 0) + 1e-9) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const fmtNum = (v: unknown) => Number(v ?? 0).toLocaleString('pt-BR')
 
 // ordem lógica: IA + promoções | produtos (tecidos e modelos) | estrutura (ferragem, acabamento, motor) | markups
