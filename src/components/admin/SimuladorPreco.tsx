@@ -158,7 +158,7 @@ export default function SimuladorPreco() {
 
           {ok && (
             <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 <div className="rounded-xl border-2 border-primary/20 bg-primary/10 dark:bg-primary/15 p-3 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Valor em 4x</p>
                   <p className="font-display text-xl font-bold text-primary tabular-nums">{brl(ok.total4x)}</p>
@@ -171,6 +171,18 @@ export default function SimuladorPreco() {
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Custo</p>
                   <p className="font-display text-xl font-bold tabular-nums">{brl(ok.custoProduto + ok.custoAcabamento)}</p>
                 </div>
+                {(() => {
+                  const custo = ok.custoProduto + ok.custoAcabamento
+                  const lucro = ok.total4x - custo
+                  const pct = ok.total4x > 0 ? (lucro / ok.total4x) * 100 : 0
+                  return (
+                    <div className="rounded-xl border-2 border-emerald-500/25 bg-emerald-500/5 p-3 text-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Margem</p>
+                      <p className="font-display text-xl font-bold text-emerald-600 tabular-nums">{pct.toFixed(0)}%</p>
+                      <p className="text-[10px] text-muted-foreground tabular-nums">{brl(lucro)} de lucro</p>
+                    </div>
+                  )
+                })()}
                 <div className="rounded-xl border-2 bg-card p-3 text-center shadow-sm">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Instalação</p>
                   <p className="font-display text-xl font-bold tabular-nums">
