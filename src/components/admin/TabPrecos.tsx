@@ -550,11 +550,16 @@ function MatrizRomana({ salvar }: { salvar: SalvarFn }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
-        Custo da ferragem Romana por largura × altura (célula usada: a mais próxima <i>para cima</i> da medida).
-        Clique numa célula para editar. Espelhada na aba SYNC_Custo M2 da planilha “Romana - Sombrear”.
-      </p>
-      <div className="rounded-xl border-2 bg-card shadow-sm overflow-x-auto" style={{ maxHeight: 480, overflowY: 'auto' }}>
+      <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
+        <div className="border-b bg-muted/40 px-4 py-2.5 text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Matriz largura × altura — tabela da planilha
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground/80">
+            Clique numa célula para editar · a medida usa a célula mais próxima <i>para cima</i>
+          </p>
+        </div>
+        <div className="overflow-x-auto" style={{ maxHeight: 480, overflowY: 'auto' }}>
         <table className="text-xs tabular-nums" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
             <tr>
@@ -593,6 +598,7 @@ function MatrizRomana({ salvar }: { salvar: SalvarFn }) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
@@ -608,39 +614,49 @@ function SecaoBandos({ salvar, excluir, adicionar }: SecaoProps) {
     if (!p) return 0
     return largura * Number(p.preco_metro) + qtdCd * (Number(p.cd1) + Number(p.cd2)) + Number(p.par)
   }
-  const linhas = (data ?? []).map(b => ({ ...b, preco_calc: precoDe(b.cor, Number(b.largura), Number(b.qtd_cd)) }))
+  const escadaDe = (cor: 'BRANCO' | 'PRETO') => (data ?? [])
+    .filter(b => b.cor === cor)
+    .sort((a, b) => Number(a.largura) - Number(b.largura))
+    .map(b => ({ largura: Number(b.largura), valor: precoDe(cor, Number(b.largura), Number(b.qtd_cd)) }))
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
         Preço calculado por fórmula (igual à planilha): <b>largura × base + cadarços × (cd1 + cd2) + par</b>.
-        Mude a base aqui em cima que a escada inteira se recalcula.
+        Mude a base aqui em cima que as tabelas ao lado se recalculam.
       </div>
-      <PrecosGrid
-        colunas={[
-          { key: 'cor', label: 'Cor', tipo: 'texto', readonly: true },
-          { key: 'preco_metro', label: 'Base (R$/m)', tipo: 'numero', formato: fmtBRL },
-          { key: 'par', label: 'Par (fixo)', tipo: 'numero', formato: fmtBRL },
-          { key: 'cd1', label: 'Cadarço 1', tipo: 'numero', formato: fmtBRL },
-          { key: 'cd2', label: 'Cadarço 2', tipo: 'numero', formato: fmtBRL },
-        ]}
-        linhas={params} chave={r => ({ cor: r.cor })} onSalvar={salvar('precos_bandos_params')} />
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">
-          Escada por largura — edite a quantidade de cadarços; o preço sai da fórmula:
-        </p>
-        <PrecosGrid
-          colunas={[
-            { key: 'cor', label: 'Cor', tipo: 'select', options: [
-              { value: 'BRANCO', label: 'Branco' }, { value: 'PRETO', label: 'Preto' }] },
-            { key: 'largura', label: 'Largura (m)', tipo: 'numero', formato: fmtNum },
-            { key: 'qtd_cd', label: 'Cadarços', tipo: 'numero', formato: fmtNum },
-            { key: 'qtd_par', label: 'Pares', tipo: 'numero', formato: fmtNum },
-            { key: 'preco_calc', label: 'Preço (calculado)', tipo: 'numero', readonly: true, formato: fmtBRL },
-          ]}
-          linhas={linhas} chave={r => ({ id: r.id })}
-          onSalvar={salvar('precos_bandos')} onExcluir={excluir!('precos_bandos')}
-          onAdicionar={adicionar!('precos_bandos')} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <PrecosGrid
+            colunas={[
+              { key: 'cor', label: 'Cor', tipo: 'texto', readonly: true },
+              { key: 'preco_metro', label: 'Base (R$/m)', tipo: 'numero', formato: fmtBRL },
+              { key: 'par', label: 'Par (fixo)', tipo: 'numero', formato: fmtBRL },
+              { key: 'cd1', label: 'Cadarço 1', tipo: 'numero', formato: fmtBRL },
+              { key: 'cd2', label: 'Cadarço 2', tipo: 'numero', formato: fmtBRL },
+            ]}
+            linhas={params} chave={r => ({ cor: r.cor })} onSalvar={salvar('precos_bandos_params')} />
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Escada por largura — edite a quantidade de cadarços; o preço sai da fórmula:
+            </p>
+            <PrecosGrid
+              colunas={[
+                { key: 'cor', label: 'Cor', tipo: 'select', options: [
+                  { value: 'BRANCO', label: 'Branco' }, { value: 'PRETO', label: 'Preto' }] },
+                { key: 'largura', label: 'Largura (m)', tipo: 'numero', formato: fmtNum },
+                { key: 'qtd_cd', label: 'Cadarços', tipo: 'numero', formato: fmtNum },
+                { key: 'qtd_par', label: 'Pares', tipo: 'numero', formato: fmtNum },
+              ]}
+              linhas={data ?? []} chave={r => ({ id: r.id })}
+              onSalvar={salvar('precos_bandos')} onExcluir={excluir!('precos_bandos')}
+              onAdicionar={adicionar!('precos_bandos')} />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <EscadaCalculada titulo="Bandô branco — tabela gerada" linhas={escadaDe('BRANCO')} />
+          <EscadaCalculada titulo="Bandô preto — tabela gerada" linhas={escadaDe('PRETO')} />
+        </div>
       </div>
     </div>
   )
