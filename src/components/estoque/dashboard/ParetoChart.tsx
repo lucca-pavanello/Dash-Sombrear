@@ -35,28 +35,28 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card px-3 py-2.5 shadow-md text-xs space-y-1 max-w-[200px]">
-      <p className="font-semibold text-sm leading-tight text-gray-900 dark:text-foreground">{d.nome}</p>
-      <p className="text-gray-500 dark:text-muted-foreground">SKU: {d.codigo}</p>
-      <hr className="border-gray-100 dark:border-border" />
+    <div className="rounded-lg border border-border bg-card px-3 py-2.5 shadow-md text-xs space-y-1 max-w-[200px]">
+      <p className="font-semibold text-sm leading-tight text-foreground">{d.nome}</p>
+      <p className="text-muted-foreground">SKU: {d.codigo}</p>
+      <hr className="border-border/60" />
       <p>
-        <span className="text-gray-500 dark:text-muted-foreground">Valor vendido: </span>
+        <span className="text-muted-foreground">Valor vendido: </span>
         <span className="font-medium">{fmtBRL(d.valor_total)}</span>
       </p>
       <p>
-        <span className="text-gray-500 dark:text-muted-foreground">% individual: </span>
+        <span className="text-muted-foreground">% individual: </span>
         <span className="font-medium text-orange-700 dark:text-orange-400">{d.percentual_individual.toFixed(1)}%</span>
       </p>
       <p>
-        <span className="text-gray-500 dark:text-muted-foreground">% acumulado: </span>
-        <span className="font-medium text-gray-700 dark:text-foreground/80">{d.percentual_acumulado.toFixed(1)}%</span>
+        <span className="text-muted-foreground">% acumulado: </span>
+        <span className="font-medium text-foreground/80">{d.percentual_acumulado.toFixed(1)}%</span>
       </p>
       <div className="flex items-center gap-1.5 pt-0.5">
         <div
           className="h-2.5 w-2.5 rounded-sm shrink-0"
           style={{ background: CLASS_COLOR[d.classificacao_abc ?? 'sem_dados'] }}
         />
-        <span className="text-gray-500 dark:text-muted-foreground">
+        <span className="text-muted-foreground">
           Classe {d.classificacao_abc ?? 'sem dados'}
         </span>
       </div>

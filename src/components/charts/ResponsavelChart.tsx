@@ -5,9 +5,9 @@ import ChartTooltip from '@/components/shared/ChartTooltip'
 
 const CHART_COLORS = ['#E8701A', '#F59E0B', '#D97706', '#B45309', '#92400E', '#C45E14', '#FB923C', '#FDBA74']
 
-interface Props { data: Orcamento[]; resetKey?: number }
+interface Props { data: Orcamento[]; resetKey?: number; loading?: boolean }
 
-function ResponsavelChart({ data, resetKey }: Props) {
+function ResponsavelChart({ data, resetKey, loading }: Props) {
   const chartData = useMemo(() => {
     const grouped = data.reduce<Record<string, number>>((acc, o) => {
       acc[o.responsavel] = (acc[o.responsavel] ?? 0) + 1
@@ -20,9 +20,14 @@ function ResponsavelChart({ data, resetKey }: Props) {
 
   return (
     <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
-      <h3 className="mb-4 font-display text-sm font-medium tracking-wide">Orçamentos por Responsável</h3>
-      {chartData.length === 0 ? (
-        <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">Sem dados</div>
+      <h3 className="mb-4 font-display text-sm font-semibold tracking-wide text-foreground">Orçamentos por Responsável</h3>
+      {loading ? (
+        <div className="h-[200px] rounded-lg skeleton-shimmer" />
+      ) : chartData.length === 0 ? (
+        <div className="flex h-48 flex-col items-center justify-center gap-1 text-center">
+          <p className="text-sm font-medium text-foreground">Nenhum orçamento no filtro</p>
+          <p className="text-xs text-muted-foreground">Ajuste o período ou os filtros para ver o ranking</p>
+        </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
           <BarChart key={resetKey} data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }} barSize={28}>
