@@ -12,6 +12,7 @@ import {
 import DatePicker from '@/components/ui/DatePicker'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
+import InsightsStella from '@/components/agente/InsightsStella'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
@@ -480,6 +481,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
       {/* ── Funil de conversão ── */}
       <FunnelChart stages={funnelStages} />
+
+      {/* ── Insights da Stella (síntese das conversas via Gemini) ── */}
+      <InsightsStella leads={leads} orcamentosIA={orcamentosIA} toast={toast} />
 
       {/* ── Banner: aguardando atendimento ── */}
       {aguardando.length > 0 && (
