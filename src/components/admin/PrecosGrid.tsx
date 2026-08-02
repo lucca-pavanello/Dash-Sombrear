@@ -28,7 +28,7 @@ interface Props<T extends object> {
 }
 
 const inputCls =
-  'w-full rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20'
+  'w-full rounded-md border border-border bg-background px-2 py-1 text-center text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20'
 
 export default function PrecosGrid<T extends object>({
   colunas, linhas, chave, onSalvar, onExcluir, onAdicionar, novoModelo, vazio = 'Nenhum registro.',
@@ -120,13 +120,13 @@ export default function PrecosGrid<T extends object>({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40">
+            <tr className="bg-muted/40">
               {colunas.map(c => (
-                <th key={c.key} className={cn('text-left px-3 py-2.5 font-semibold text-muted-foreground whitespace-nowrap', c.largura)}>
+                <th key={c.key} className={cn('border border-border/60 px-3 py-2.5 text-center font-semibold text-muted-foreground whitespace-nowrap', c.largura)}>
                   {c.label}
                 </th>
               ))}
-              <th className="w-24 px-3 py-2.5" />
+              <th className="w-24 border border-border/60 px-3 py-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -137,17 +137,17 @@ export default function PrecosGrid<T extends object>({
               const emEdicao = editando === idDe(row)
               return (
                 <Fragment key={idDe(row) + i}>
-                <tr className={cn('border-b border-border/50 last:border-0', emEdicao && 'bg-primary/5')}>
-                  {colunas.map(c => (
-                    <td key={c.key} className="px-3 py-2 align-middle">
+                <tr className={cn(emEdicao && 'bg-primary/5')}>
+                  {colunas.map((c, ci) => (
+                    <td key={c.key} className="border border-border/50 px-3 py-2 text-center align-middle">
                       {emEdicao && !c.readonly
                         ? campo(c, rascunho[c.key], v => setRascunho(r => ({ ...r, [c.key]: v })))
-                        : <span className={cn(c.tipo === 'numero' && 'tabular-nums')}>
+                        : <span className={cn(c.tipo === 'numero' && 'tabular-nums', ci === 0 && 'font-semibold')}>
                             {c.formato ? c.formato((row as Record<string, unknown>)[c.key]) : String((row as Record<string, unknown>)[c.key] ?? '—')}
                           </span>}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-right whitespace-nowrap">
+                  <td className="border border-border/50 px-3 py-2 text-center whitespace-nowrap">
                     {emEdicao ? (
                       <span className="inline-flex gap-1">
                         <button onClick={() => salvar(row)} disabled={salvando}
@@ -182,8 +182,8 @@ export default function PrecosGrid<T extends object>({
                   </td>
                 </tr>
                 {emEdicao && alerta && (
-                  <tr className="border-b border-border/50 bg-amber-500/10">
-                    <td colSpan={colunas.length + 1} className="px-3 py-2.5">
+                  <tr className="bg-amber-500/10">
+                    <td colSpan={colunas.length + 1} className="border border-border/50 px-3 py-2.5">
                       <div className="flex flex-wrap items-center gap-2 text-sm">
                         <TriangleAlert className="h-4 w-4 shrink-0 text-amber-600" />
                         <span className="font-medium text-amber-700 dark:text-amber-400">{alerta}</span>
@@ -207,12 +207,12 @@ export default function PrecosGrid<T extends object>({
             {adicionando && (
               <tr className="bg-primary/5">
                 {colunas.map(c => (
-                  <td key={c.key} className="px-3 py-2">
+                  <td key={c.key} className="border border-border/50 px-3 py-2 text-center">
                     {c.readonly ? <span className="text-muted-foreground">—</span>
                       : campo(c, novo[c.key], v => setNovo(r => ({ ...r, [c.key]: v })))}
                   </td>
                 ))}
-                <td className="px-3 py-2 text-right whitespace-nowrap">
+                <td className="border border-border/50 px-3 py-2 text-center whitespace-nowrap">
                   <span className="inline-flex gap-1">
                     <button onClick={adicionar} disabled={salvando}
                       className="rounded-md p-1.5 text-emerald-600 hover:bg-emerald-500/10" title="Salvar novo">

@@ -314,12 +314,12 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
 
       <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-border bg-muted/40">
-            <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">Tecido</th>
-            <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">Desconto</th>
-            <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">Período</th>
-            <th className="px-4 py-2.5 text-left font-semibold text-muted-foreground">Status</th>
-            <th className="w-16 px-4 py-2.5" />
+          <thead><tr className="bg-muted/40">
+            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Tecido</th>
+            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Desconto</th>
+            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Período</th>
+            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Status</th>
+            <th className="w-16 border border-border/60 px-4 py-2.5" />
           </tr></thead>
           <tbody>
             {(promocoes ?? []).length === 0 && (
@@ -330,13 +330,13 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
               const diasPraVencer = Math.ceil((new Date(p.fim + 'T23:59:59').getTime() - Date.now()) / 86400000)
               const vencendo = st === 'ativa' && diasPraVencer <= 3
               return (
-                <tr key={p.id} className="border-b border-border/50 last:border-0">
-                  <td className="px-4 py-2.5 font-medium">{p.alvo_nome}</td>
-                  <td className="px-4 py-2.5 tabular-nums">−{fmtNum(p.desconto_pct)}%</td>
-                  <td className="px-4 py-2.5 tabular-nums">
+                <tr key={p.id}>
+                  <td className="border border-border/50 px-4 py-2.5 text-center font-semibold">{p.alvo_nome}</td>
+                  <td className="border border-border/50 px-4 py-2.5 text-center tabular-nums">−{fmtNum(p.desconto_pct)}%</td>
+                  <td className="border border-border/50 px-4 py-2.5 text-center tabular-nums">
                     {new Date(p.inicio + 'T12:00:00').toLocaleDateString('pt-BR')} → {new Date(p.fim + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="border border-border/50 px-4 py-2.5 text-center">
                     <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', badge[st])}>{st}</span>
                     {vencendo && (
                       <span className="ml-1.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-600">
@@ -344,7 +344,7 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="border border-border/50 px-4 py-2.5 text-center">
                     <button onClick={async () => {
                       if (!confirm('Remover esta promoção?')) return
                       try { await deleteRow('precos_promocoes', { id: p.id }); toast('success', 'Promoção removida') }
@@ -520,11 +520,11 @@ function MatrizRomana({ salvar }: { salvar: SalvarFn }) {
                           onChange={e => setValor(e.target.value)}
                           onBlur={() => salvarCelula(l, a)}
                           onKeyDown={e => { if (e.key === 'Enter') salvarCelula(l, a); if (e.key === 'Escape') setEditando(null) }}
-                          className="w-16 bg-primary/10 px-1.5 py-1 text-right text-xs outline-none ring-2 ring-primary/40" />
+                          className="w-16 bg-primary/10 px-1.5 py-1 text-center text-xs outline-none ring-2 ring-primary/40" />
                       ) : (
                         <button
                           onClick={() => { setEditando(chave); setValor(String(porChave.get(chave) ?? '')) }}
-                          className="w-full px-1.5 py-1 text-right hover:bg-primary/10">
+                          className="w-full px-1.5 py-1 text-center hover:bg-primary/10">
                           {(porChave.get(chave) ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </button>
                       )}
