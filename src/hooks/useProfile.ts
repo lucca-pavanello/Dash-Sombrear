@@ -9,6 +9,8 @@ export type Profile = {
   is_admin: boolean
   pode_orcamento: boolean | null
   pode_estoque: boolean | null
+  pode_agente_ia: boolean | null
+  pode_precos: boolean | null
   created_at: string
 }
 

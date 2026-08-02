@@ -7,12 +7,21 @@ interface Props {
   toast: (type: 'success' | 'error', message: string) => void
 }
 
+// Uma coluna por hub — Admin não tem coluna (admins têm acesso total automático)
+const MODULOS = [
+  { field: 'pode_orcamento', label: 'Orçamento' },
+  { field: 'pode_estoque',   label: 'Estoque' },
+  { field: 'pode_agente_ia', label: 'Agente IA' },
+  { field: 'pode_precos',    label: 'Tabela de Preços' },
+] as const
+type CampoPermissao = typeof MODULOS[number]['field']
+
 export default function PermissoesView({ toast }: Props) {
   const { data: profiles = [], isLoading } = useAllProfiles()
   const queryClient = useQueryClient()
   const [saving, setSaving] = useState<string | null>(null)
 
-  async function togglePermission(id: string, field: 'pode_orcamento' | 'pode_estoque', current: boolean | null) {
+  async function togglePermission(id: string, field: CampoPermissao, current: boolean | null) {
     setSaving(`${id}-${field}`)
     const { error } = await supabase
       .from('profiles')
@@ -51,15 +60,14 @@ export default function PermissoesView({ toast }: Props) {
           <thead>
             <tr className="border-b border-border bg-muted/40">
               <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>
-              <th className="text-center px-4 py-3 font-semibold text-muted-foreground">Orçamento</th>
-              <th className="text-center px-4 py-3 font-semibold text-muted-foreground">Estoque</th>
+              {MODULOS.map(m => (
+                <th key={m.field} className="text-center px-4 py-3 font-semibold text-muted-foreground">{m.label}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {approved.map((p, i) => {
               const isAdminUser = p.is_admin
-              const keyOrc  = `${p.id}-pode_orcamento`
-              const keyEst  = `${p.id}-pode_estoque`
               return (
                 <tr
                   key={p.id}
@@ -80,44 +88,33 @@ export default function PermissoesView({ toast }: Props) {
                       <span className="text-xs text-muted-foreground">{p.email}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    {isAdminUser ? (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    ) : (
-                      <input
-                        type="checkbox"
-                        checked={p.pode_orcamento === true}
-                        disabled={saving === keyOrc}
-                        onChange={() => togglePermission(p.id, 'pode_orcamento', p.pode_orcamento)}
-                        className={cn(
-                          'h-4 w-4 rounded border-border accent-primary cursor-pointer',
-                          saving === keyOrc && 'opacity-50 cursor-not-allowed',
+                  {MODULOS.map(m => {
+                    const key = `${p.id}-${m.field}`
+                    return (
+                      <td key={m.field} className="px-4 py-3 text-center">
+                        {isAdminUser ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={p[m.field] === true}
+                            disabled={saving === key}
+                            onChange={() => togglePermission(p.id, m.field, p[m.field])}
+                            className={cn(
+                              'h-4 w-4 rounded border-border accent-primary cursor-pointer',
+                              saving === key && 'opacity-50 cursor-not-allowed',
+                            )}
+                          />
                         )}
-                      />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {isAdminUser ? (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    ) : (
-                      <input
-                        type="checkbox"
-                        checked={p.pode_estoque === true}
-                        disabled={saving === keyEst}
-                        onChange={() => togglePermission(p.id, 'pode_estoque', p.pode_estoque)}
-                        className={cn(
-                          'h-4 w-4 rounded border-border accent-primary cursor-pointer',
-                          saving === keyEst && 'opacity-50 cursor-not-allowed',
-                        )}
-                      />
-                    )}
-                  </td>
+                      </td>
+                    )
+                  })}
                 </tr>
               )
             })}
             {approved.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                <td colSpan={MODULOS.length + 1} className="px-4 py-8 text-center text-muted-foreground text-sm">
                   Nenhum usuário aprovado
                 </td>
               </tr>

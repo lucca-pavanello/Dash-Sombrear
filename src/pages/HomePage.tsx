@@ -35,8 +35,10 @@ export default function HomePage() {
   const isAdmin     = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
   const canOrcamento = isAdmin || profile?.pode_orcamento === true
   const canEstoque   = isAdmin || profile?.pode_estoque === true || profile?.email === ESTOQUE_EMAIL
+  const canAgenteIA  = isAdmin || profile?.pode_agente_ia === true
+  const canPrecos    = isAdmin || profile?.pode_precos === true
 
-  const noAccess = !isLoading && profile && !canOrcamento && !canEstoque && !isAdmin
+  const noAccess = !isLoading && profile && !canOrcamento && !canEstoque && !canAgenteIA && !canPrecos && !isAdmin
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
@@ -69,12 +71,12 @@ export default function HomePage() {
               descricao="Gerenciar produtos, fornecedores, registrar entradas, vendas e analisar performance."
               onClick={() => navigate('/estoque')} />
           )}
-          {canOrcamento && (
+          {canAgenteIA && (
             <AreaCard titulo="Agente IA" icon={Bot}
               descricao="Acompanhar os leads do WhatsApp, conversas e orçamentos gerados pela IA."
               onClick={() => navigate('/agente-ia')} />
           )}
-          {isAdmin && (
+          {canPrecos && (
             <AreaCard titulo="Tabela de Preços" icon={CircleDollarSign}
               descricao="Preços, promoções, simulador e o assistente — a fonte central dos orçamentos."
               onClick={() => navigate('/precos')} />

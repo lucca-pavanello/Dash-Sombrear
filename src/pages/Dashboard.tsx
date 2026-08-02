@@ -125,6 +125,8 @@ export default function Dashboard() {
   const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
   const canOrcamento = isAdmin || profile?.pode_orcamento === true
   const canEstoque = isAdmin || profile?.pode_estoque === true || profile?.email === ESTOQUE_EMAIL
+  const canAgenteIA = isAdmin || profile?.pode_agente_ia === true
+  const canPrecos = isAdmin || profile?.pode_precos === true
   // Badge de alertas só para quem tem acesso ao módulo — evita query desperdiçada
   const { data: estoqueAlertas = [] } = useEstoqueProdutosAlerta({ enabled: canEstoque })
   const { data: orcamentos = [], isLoading, isError, refetch } = useOrcamentos(
@@ -143,7 +145,7 @@ export default function Dashboard() {
 
   // Leads novos do WhatsApp aparecem sozinhos (toast + pulse na aba Agente IA)
   useAgenteIARealtime({
-    enabled: canOrcamento,
+    enabled: canAgenteIA,
     onNewLead: (lead) => {
       toast('info', `Novo lead do WhatsApp: ${lead.nome ?? lead.whatsapp ?? 'sem identificação'}`)
       if (!document.hasFocus()) setUnreadCount((n) => n + 1)
@@ -167,9 +169,9 @@ export default function Dashboard() {
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
-    && (tabFromUrl !== 'precos' || isAdmin || profileLoading)
+    && (tabFromUrl !== 'precos' || canPrecos || profileLoading)
     && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
-    && (tabFromUrl !== 'agente-ia' || canOrcamento || profileLoading)
+    && (tabFromUrl !== 'agente-ia' || canAgenteIA || profileLoading)
     && (!ORCAMENTO_TABS.includes(tabFromUrl) || canOrcamento || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
@@ -325,13 +327,14 @@ export default function Dashboard() {
   useEffect(() => {
     setMountedTabs(prev => {
       if (prev.has(activeTab)) return prev
-      // Não monta a aba admin enquanto o perfil está carregando ou se não for admin
-      if ((activeTab === 'admin' || activeTab === 'precos') && (profileLoading || !isAdmin)) return prev
-      // Não monta a aba estoque enquanto o perfil está carregando ou sem permissão
+      // Não monta abas restritas enquanto o perfil está carregando ou sem permissão
+      if (activeTab === 'admin' && (profileLoading || !isAdmin)) return prev
+      if (activeTab === 'precos' && (profileLoading || !canPrecos)) return prev
+      if (activeTab === 'agente-ia' && (profileLoading || !canAgenteIA)) return prev
       if (activeTab === 'estoque' && (profileLoading || !canEstoque)) return prev
       return new Set([...prev, activeTab])
     })
-  }, [activeTab, isAdmin, canEstoque, profileLoading])
+  }, [activeTab, isAdmin, canEstoque, canPrecos, canAgenteIA, profileLoading])
 
   // URLs antigas continuam funcionando: Agente IA e Tabela de Preços viraram áreas próprias
   useEffect(() => {
@@ -348,15 +351,13 @@ export default function Dashboard() {
         import('@/components/tabs/TabOrcamentos')
         import('@/components/tabs/TabPlanilha')
         import('@/components/tabs/TabCotacao')
-        import('@/components/tabs/TabAgenteIA')
         import('@/components/tabs/TabAnalises')
         import('@/components/tabs/TabCalculoCusto')
         import('@/components/tabs/TabKanban')
       }
-      if (isAdmin) {
-        import('@/components/admin/PainelAdmin')
-        import('@/components/admin/TabPrecos')
-      }
+      if (canAgenteIA) import('@/components/tabs/TabAgenteIA')
+      if (isAdmin) import('@/components/admin/PainelAdmin')
+      if (canPrecos) import('@/components/admin/TabPrecos')
       if (canEstoque) import('@/components/tabs/TabEstoque')
     }
     if ('requestIdleCallback' in window) {
@@ -367,7 +368,7 @@ export default function Dashboard() {
       const t = setTimeout(preload, 2000)
       return () => clearTimeout(t)
     }
-  }, [profileLoading, canOrcamento, canEstoque, isAdmin])
+  }, [profileLoading, canOrcamento, canEstoque, canAgenteIA, canPrecos, isAdmin])
 
   // ── Splash screen: some quando dados carregam ──
   useEffect(() => {
@@ -1058,7 +1059,7 @@ export default function Dashboard() {
               </div>
             </Suspense>
           )}
-          {mountedTabs.has('precos') && isAdmin && (
+          {mountedTabs.has('precos') && canPrecos && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'precos' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabPrecos toast={toast} />
