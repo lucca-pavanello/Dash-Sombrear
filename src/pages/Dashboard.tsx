@@ -39,7 +39,7 @@ const PermissoesView  = lazy(() => import('@/components/admin/PermissoesView'))
 const TabPrecos       = lazy(() => import('@/components/admin/TabPrecos'))
 const EditOrcamentoForm = lazy(() => import('@/components/orcamentos/EditOrcamentoForm'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban', 'precos']
 const DEFAULT_TAB = 'calcular-orcamento'
 function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
   const { abrir, aberto } = useChatStore()
@@ -66,12 +66,13 @@ const SECTION_LABELS: Record<string, string> = {
   'calcular-orcamento': 'Orçamentos',
   'planilha': 'Orçamentos',
   'calculo-custo': 'Orçamentos',
-  'agente-ia': 'Orçamentos',
+  'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
   'analises': 'Orçamentos',
   'kanban': 'Orçamentos',
   'estoque': 'Estoque',
   'admin': 'Admin',
+  'precos': 'Tabela de Preços',
 }
 
 export default function Dashboard() {
@@ -162,11 +163,13 @@ export default function Dashboard() {
     : isAdminPath ? 'admin'
     : isOrcamentoPath ? (orcamentoSub ?? DEFAULT_TAB)
     : (rawPath || DEFAULT_TAB)
-  const ORCAMENTO_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'analises', 'agente-ia', 'orcamentos', 'kanban']
+  const ORCAMENTO_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'kanban']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
+    && (tabFromUrl !== 'precos' || isAdmin || profileLoading)
     && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
+    && (tabFromUrl !== 'agente-ia' || canOrcamento || profileLoading)
     && (!ORCAMENTO_TABS.includes(tabFromUrl) || canOrcamento || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
@@ -323,12 +326,18 @@ export default function Dashboard() {
     setMountedTabs(prev => {
       if (prev.has(activeTab)) return prev
       // Não monta a aba admin enquanto o perfil está carregando ou se não for admin
-      if (activeTab === 'admin' && (profileLoading || !isAdmin)) return prev
+      if ((activeTab === 'admin' || activeTab === 'precos') && (profileLoading || !isAdmin)) return prev
       // Não monta a aba estoque enquanto o perfil está carregando ou sem permissão
       if (activeTab === 'estoque' && (profileLoading || !canEstoque)) return prev
       return new Set([...prev, activeTab])
     })
   }, [activeTab, isAdmin, canEstoque, profileLoading])
+
+  // URLs antigas continuam funcionando: Agente IA e Tabela de Preços viraram áreas próprias
+  useEffect(() => {
+    if (rawPath === 'orcamentos/agente-ia') navigate('/agente-ia', { replace: true })
+    if (rawPath === 'admin/precos') navigate('/precos', { replace: true })
+  }, [rawPath, navigate])
 
   useEffect(() => {
     // Preload apenas dos chunks que o perfil do usuário pode realmente abrir —
@@ -344,7 +353,10 @@ export default function Dashboard() {
         import('@/components/tabs/TabCalculoCusto')
         import('@/components/tabs/TabKanban')
       }
-      if (isAdmin) import('@/components/admin/PainelAdmin')
+      if (isAdmin) {
+        import('@/components/admin/PainelAdmin')
+        import('@/components/admin/TabPrecos')
+      }
       if (canEstoque) import('@/components/tabs/TabEstoque')
     }
     if ('requestIdleCallback' in window) {
@@ -447,13 +459,14 @@ export default function Dashboard() {
   const TABS = useMemo(() => [
     ...(canOrcamento ? [{ id: 'orcamento', label: 'Orçamentos', icon: FileText, badge: unreadCount }] : []),
     ...(canEstoque ? [{ id: 'estoque', label: 'Estoque', icon: Package, badge: estoqueAlertas.length }] : []),
+    ...(canOrcamento ? [{ id: 'agente-ia', label: 'Agente IA', icon: Bot, badge: 0 }] : []),
+    ...(isAdmin ? [{ id: 'precos', label: 'Tabela de Preços', icon: CircleDollarSign, badge: 0 }] : []),
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck, badge: pendingCount }] : []),
   ], [isAdmin, canOrcamento, canEstoque, pendingCount, estoqueAlertas.length, unreadCount])
 
   const ADMIN_SUBTABS = useMemo(() => [
     { id: 'usuarios',   label: 'Usuários',   icon: Users },
     { id: 'permissoes', label: 'Permissões', icon: ShieldCheck },
-    { id: 'precos',     label: 'Tabela de Preços', icon: CircleDollarSign },
   ], [])
 
   const ESTOQUE_SUBTABS = useMemo(() => [
@@ -473,7 +486,6 @@ export default function Dashboard() {
     { id: 'planilha',           label: 'Planilha',  icon: ClipboardList },
     { id: 'calculo-custo',      label: 'Custos',    icon: ClipboardList },
     { id: 'analises',           label: 'Análises',  icon: BarChart2     },
-    { id: 'agente-ia',          label: 'Agente IA', icon: Bot           },
     { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
     { id: 'kanban',             label: 'Funil',     icon: Kanban        },
   ], [])
@@ -1037,13 +1049,19 @@ export default function Dashboard() {
               </div>
             </Suspense>
           )}
+          {mountedTabs.has('precos') && isAdmin && (
+            <Suspense fallback={<TabSkeleton />}>
+              <div className={activeTab === 'precos' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
+                <TabPrecos toast={toast} />
+              </div>
+            </Suspense>
+          )}
           {mountedTabs.has('admin') && isAdmin && (
             <Suspense fallback={<TabSkeleton />}>
               <div className={activeTab === 'admin' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <div key={adminSub} className={adminSubDir === 'right' ? 'tab-active-right' : 'tab-active-left'}>
                   {adminSub === 'usuarios'   && <PainelAdmin toast={toast} />}
                   {adminSub === 'permissoes' && <PermissoesView toast={toast} />}
-                  {adminSub === 'precos'     && <TabPrecos toast={toast} />}
                 </div>
               </div>
             </Suspense>

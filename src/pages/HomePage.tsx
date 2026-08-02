@@ -1,8 +1,30 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calculator, Package, ArrowRight, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Bot, Calculator, CircleDollarSign, Package, ShieldCheck } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
 import { ADMIN_EMAIL, ESTOQUE_EMAIL } from '@/lib/constants'
+
+const CARD_CLS = 'group bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center'
+const ICON_WRAP_CLS = 'h-14 w-14 md:h-20 md:w-20 rounded-2xl md:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 md:mb-6 group-hover:bg-primary group-hover:scale-105 transition-all'
+const ICON_CLS = 'h-7 w-7 md:h-10 md:w-10 text-primary group-hover:text-white transition-colors'
+
+function AreaCard({ titulo, descricao, icon: Icon, onClick }: {
+  titulo: string; descricao: string; icon: typeof Calculator; onClick: () => void
+}) {
+  return (
+    <button onClick={onClick} className={CARD_CLS}>
+      <div className={ICON_WRAP_CLS}>
+        <Icon className={ICON_CLS} />
+      </div>
+      <h2 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">{titulo}</h2>
+      <p className="text-sm text-muted-foreground leading-relaxed mb-4 md:mb-8 max-w-xs mx-auto">{descricao}</p>
+      <div className="mt-auto inline-flex items-center text-sm font-medium text-primary">
+        Acessar
+        <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+      </div>
+    </button>
+  )
+}
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -36,62 +58,31 @@ export default function HomePage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-5xl w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-5xl w-full">
           {canOrcamento && (
-            <button
-              onClick={() => navigate('/orcamentos/calcular-orcamento')}
-              className="group bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-12 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center"
-            >
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-2xl md:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 md:mb-6 group-hover:bg-primary group-hover:scale-105 transition-all">
-                <Calculator className="h-7 w-7 md:h-10 md:w-10 text-primary group-hover:text-white transition-colors" />
-              </div>
-              <h2 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">Orçamento</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4 md:mb-8 max-w-xs mx-auto">
-                Calcular preços, gerar propostas, gerenciar planilhas de orçamento e custos.
-              </p>
-              <div className="mt-auto inline-flex items-center text-sm font-medium text-primary">
-                Acessar
-                <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
+            <AreaCard titulo="Orçamento" icon={Calculator}
+              descricao="Calcular preços, gerar propostas, gerenciar planilhas de orçamento e custos."
+              onClick={() => navigate('/orcamentos/calcular-orcamento')} />
           )}
-
           {canEstoque && (
-            <button
-              onClick={() => navigate('/estoque')}
-              className="group bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-12 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center"
-            >
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-2xl md:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 md:mb-6 group-hover:bg-primary group-hover:scale-105 transition-all">
-                <Package className="h-7 w-7 md:h-10 md:w-10 text-primary group-hover:text-white transition-colors" />
-              </div>
-              <h2 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">Estoque</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4 md:mb-8 max-w-xs mx-auto">
-                Gerenciar produtos, fornecedores, registrar entradas, vendas e analisar performance.
-              </p>
-              <div className="mt-auto inline-flex items-center text-sm font-medium text-primary">
-                Acessar
-                <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
+            <AreaCard titulo="Estoque" icon={Package}
+              descricao="Gerenciar produtos, fornecedores, registrar entradas, vendas e analisar performance."
+              onClick={() => navigate('/estoque')} />
           )}
-
+          {canOrcamento && (
+            <AreaCard titulo="Agente IA" icon={Bot}
+              descricao="Acompanhar os leads do WhatsApp, conversas e orçamentos gerados pela IA."
+              onClick={() => navigate('/agente-ia')} />
+          )}
           {isAdmin && (
-            <button
-              onClick={() => navigate('/admin')}
-              className="group bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-12 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center"
-            >
-              <div className="h-14 w-14 md:h-20 md:w-20 rounded-2xl md:rounded-3xl bg-primary/10 flex items-center justify-center mb-4 md:mb-6 group-hover:bg-primary group-hover:scale-105 transition-all">
-                <ShieldCheck className="h-7 w-7 md:h-10 md:w-10 text-primary group-hover:text-white transition-colors" />
-              </div>
-              <h2 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">Admin</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4 md:mb-8 max-w-xs mx-auto">
-                Gerenciar usuários, aprovar acessos e configurar permissões do sistema.
-              </p>
-              <div className="mt-auto inline-flex items-center text-sm font-medium text-primary">
-                Acessar
-                <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
+            <AreaCard titulo="Tabela de Preços" icon={CircleDollarSign}
+              descricao="Preços, promoções, simulador e o assistente — a fonte central dos orçamentos."
+              onClick={() => navigate('/precos')} />
+          )}
+          {isAdmin && (
+            <AreaCard titulo="Admin" icon={ShieldCheck}
+              descricao="Gerenciar usuários, aprovar acessos e configurar permissões do sistema."
+              onClick={() => navigate('/admin')} />
           )}
         </div>
       )}
