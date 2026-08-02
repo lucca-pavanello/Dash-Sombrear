@@ -456,10 +456,67 @@ function SecaoFerragens({ salvar }: SecaoProps) {
             Ex.: 2,00m → <b className="tabular-nums">{fmtBRL(somaMl * 2 + somaFixo)}</b>. Edite os componentes que a escada inteira se recalcula.
             Itens marcados como “Opcional” são cobrados à parte e ficam fora dessa soma.
           </div>
-          <PrecosGrid colunas={colunas} linhas={comps} chave={r => ({ id: r.id })}
-            onSalvar={salvar('precos_ferragem_componentes')} />
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <PrecosGrid colunas={colunas} linhas={comps} chave={r => ({ id: r.id })}
+                onSalvar={salvar('precos_ferragem_componentes')} />
+            </div>
+            <EscadaCalculada
+              titulo="Tabela gerada (igual à planilha)"
+              linhas={escadaCalculada(familias?.find(f => `${f.familia}|${f.cor}|${f.espessura}` === atual), somaMl, somaFixo)} />
+          </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function escadaCalculada(
+  fam: { larg_min: number; larg_max: number; passo: number } | undefined, somaMl: number, somaFixo: number,
+): { largura: number; valor: number }[] {
+  if (!fam) return []
+  const out: { largura: number; valor: number }[] = []
+  for (let L = Number(fam.larg_min); L <= Number(fam.larg_max) + 1e-9; L += Number(fam.passo)) {
+    const Lr = Math.round(L * 100) / 100
+    out.push({ largura: Lr, valor: somaMl * Lr + somaFixo })
+  }
+  return out
+}
+
+function EscadaCalculada({ titulo, linhas, colunasExtras }: {
+  titulo: string
+  linhas: { largura: number; valor: number; extras?: (string | number)[] }[]
+  colunasExtras?: string[]
+}) {
+  return (
+    <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden self-start">
+      <p className="border-b bg-muted/40 px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        {titulo}
+      </p>
+      <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/40">
+              <th className="border border-border/60 px-3 py-2 text-center font-semibold text-muted-foreground">Largura</th>
+              {(colunasExtras ?? []).map(c => (
+                <th key={c} className="border border-border/60 px-3 py-2 text-center font-semibold text-muted-foreground">{c}</th>
+              ))}
+              <th className="border border-border/60 px-3 py-2 text-center font-semibold text-muted-foreground">Preço</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map(l => (
+              <tr key={l.largura}>
+                <td className="border border-border/50 px-3 py-1.5 text-center font-semibold tabular-nums">{fmtNum(l.largura)}</td>
+                {(l.extras ?? []).map((e, i) => (
+                  <td key={i} className="border border-border/50 px-3 py-1.5 text-center tabular-nums">{e}</td>
+                ))}
+                <td className="border border-border/50 px-3 py-1.5 text-center tabular-nums">{fmtBRL(l.valor)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -593,23 +650,40 @@ function SecaoBarra({ salvar }: SecaoProps) {
   const { data: faixas } = usePrecosBarraFaixas()
   if (isLoading) return <Carregando />
   const barra = (params ?? []).filter(p => p.chave.startsWith('barra_'))
+  const metro = Number(barra.find(p => p.chave === 'barra_preco_metro')?.valor ?? 0)
+  const presilha = Number(barra.find(p => p.chave === 'barra_preco_presilha')?.valor ?? 0)
+  const fxs = [...(faixas ?? [])].sort((a, b) => a.largura_min - b.largura_min)
+  const escada: { largura: number; valor: number; extras: (string | number)[] }[] = []
+  for (let L = 1.0; L <= 6.0 + 1e-9; L += 0.1) {
+    const Lr = Math.round(L * 100) / 100
+    let qtd = fxs[0]?.qtd_presilhas ?? 2
+    for (const f of fxs) if (Lr >= Number(f.largura_min)) qtd = f.qtd_presilhas
+    escada.push({
+      largura: Lr, valor: metro * Lr + presilha * qtd,
+      extras: [qtd, fmtBRL(presilha * qtd), fmtBRL(metro * Lr)],
+    })
+  }
   return (
-    <div className="space-y-4">
-      <PrecosGrid
-        colunas={[
-          { key: 'descricao', label: 'Parâmetro', tipo: 'texto', readonly: true },
-          { key: 'valor', label: 'Valor', tipo: 'numero', formato: fmtBRL },
-        ]}
-        linhas={barra} chave={r => ({ chave: r.chave })} onSalvar={salvar('precos_parametros')} />
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">Quantidade de presilhas por faixa de largura (a partir de):</p>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="space-y-4 lg:col-span-2">
         <PrecosGrid
           colunas={[
-            { key: 'largura_min', label: 'A partir de (m)', tipo: 'numero', readonly: true, formato: fmtNum },
-            { key: 'qtd_presilhas', label: 'Presilhas', tipo: 'numero', formato: fmtNum },
+            { key: 'descricao', label: 'Parâmetro', tipo: 'texto', readonly: true },
+            { key: 'valor', label: 'Valor', tipo: 'numero', formato: fmtBRL },
           ]}
-          linhas={faixas ?? []} chave={r => ({ largura_min: r.largura_min })} onSalvar={salvar('precos_barra_faixas')} />
+          linhas={barra} chave={r => ({ chave: r.chave })} onSalvar={salvar('precos_parametros')} />
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Quantidade de presilhas por faixa de largura (a partir de):</p>
+          <PrecosGrid
+            colunas={[
+              { key: 'largura_min', label: 'A partir de (m)', tipo: 'numero', readonly: true, formato: fmtNum },
+              { key: 'qtd_presilhas', label: 'Presilhas', tipo: 'numero', formato: fmtNum },
+            ]}
+            linhas={faixas ?? []} chave={r => ({ largura_min: r.largura_min })} onSalvar={salvar('precos_barra_faixas')} />
+        </div>
       </div>
+      <EscadaCalculada titulo="Tabela gerada (igual à planilha)"
+        colunasExtras={['Presilhas', 'Valor presilhas', 'Valor barra']} linhas={escada} />
     </div>
   )
 }
