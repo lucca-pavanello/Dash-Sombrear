@@ -240,7 +240,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { mutate: marcarConvertido, isPending: marcando } = useMarcarConvertido()
   const { toasts, toast, dismiss } = useToast()
 
-  const [periodo, setPeriodo] = useState('mes')
+  const [periodo, setPeriodo] = useState('tudo')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [leadSort, setLeadSort] = useState<LeadSort>({ key: 'created_at', dir: 'desc' })
