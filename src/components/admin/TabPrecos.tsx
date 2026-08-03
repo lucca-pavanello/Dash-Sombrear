@@ -400,7 +400,9 @@ function SecaoArtigos({ salvar, excluir, adicionar }: SecaoProps) {
   const { data, isLoading } = usePrecosArtigos()
   const colunas: ColunaDef[] = [
     { key: 'categoria', label: 'Linha', tipo: 'select', options: [
-      { value: 'PV', label: 'PV (Vertical)' }, { value: 'PH_ALUMINIO', label: 'PH Alumínio 25mm' }] },
+      { value: 'PV', label: 'PV (Vertical)' }, { value: 'PV_PREMIUM', label: 'PV Premium' },
+      { value: 'PV_SEM_TRILHO', label: 'PV sem Trilho' },
+      { value: 'PH_ALUMINIO', label: 'PH Alumínio 25mm' }, { value: 'PH_ALUMINIO_16', label: 'PH Alumínio 16mm' }] },
     { key: 'nome', label: 'Artigo', tipo: 'texto' },
     { key: 'preco', label: 'Preço/m²', tipo: 'numero', formato: fmtBRL },
   ]
