@@ -17,7 +17,12 @@ const SYNC_WEBHOOK = 'https://n8n-n8n.yjlhot.easypanel.host/webhook/sincronizar-
 const TIPOS_VALIDOS = new Set([
   'criar_promocao', 'remover_promocao', 'atualizar_preco_tecido',
   'atualizar_parametro', 'atualizar_preco_artigo', 'atualizar_componente_ferragem',
+  'atualizar_ph50', 'atualizar_bando_param', 'atualizar_colocacao',
+  'atualizar_barra_faixa', 'atualizar_motor_componente', 'atualizar_motor_estrutura',
+  'atualizar_romana',
 ])
+const CAMPOS_PH50 = new Set(['preco_cadarco', 'preco_fita', 'bando_ml', 'aba_pc'])
+const CAMPOS_BANDO = new Set(['preco_metro', 'par', 'cd1', 'cd2'])
 
 function resposta(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -72,8 +77,8 @@ Deno.serve(async (req) => {
         db.from('precos_bandos_params').select('cor, preco_metro, par, cd1, cd2'),
         db.from('precos_bandos').select('cor, largura, qtd_cd'),
         db.from('precos_barra_faixas').select('largura_min, qtd_presilhas'),
-        db.from('precos_colocacao').select('ml_min, ml_max, preco'),
-        db.from('precos_motor_estrutura').select('largura, alt_faixa, valor, grupo'),
+        db.from('precos_colocacao').select('id, ml_min, ml_max, preco'),
+        db.from('precos_motor_estrutura').select('id, largura, alt_faixa, valor, grupo'),
         db.from('precos_motor_componentes').select('item, custo, quantidade'),
       ])
 
@@ -90,6 +95,13 @@ Tipos de ação permitidos (use EXATAMENTE estes campos):
 - {"tipo":"atualizar_parametro","chave":"chave_exata","valor":2.8}
 - {"tipo":"atualizar_preco_artigo","categoria":"PV" ou "PH_ALUMINIO","nome":"NOME EXATO","preco":50.00}
 - {"tipo":"atualizar_componente_ferragem","id":123,"item":"nome do item (informativo)","valor":14.00}  (use o id do componente listado em FERRAGENS; a escada inteira recalcula sozinha)
+- {"tipo":"atualizar_ph50","modelo":"MODELO EXATO","cor":"COR EXATA","campo":"preco_cadarco|preco_fita|bando_ml|aba_pc","valor":250.00}
+- {"tipo":"atualizar_bando_param","cor":"BRANCO" ou "PRETO","campo":"preco_metro|par|cd1|cd2","valor":30.00}
+- {"tipo":"atualizar_colocacao","id":1,"preco":85.00}  (use o id da faixa em INSTALAÇÃO)
+- {"tipo":"atualizar_barra_faixa","largura_min":2.5,"qtd_presilhas":3}
+- {"tipo":"atualizar_motor_componente","item":"ITEM EXATO","custo":399.00}
+- {"tipo":"atualizar_motor_estrutura","id":1,"valor":66.13}  (use o id da linha em MOTOR estrutura)
+- {"tipo":"atualizar_romana","largura":1.30,"altura":1.20,"custo":100.68}  (célula exata da matriz, passos de 0,10 entre 1,00 e 4,00)
 
 Regras:
 - Use APENAS nomes que existem nos dados abaixo (case exato). Se o admin falar "screen 3 bege", encontre "SCREEN 3% BEGE".
@@ -99,8 +111,10 @@ Regras:
 - Pedidos fora de preços/promoções/parâmetros → acoes vazia + explique educadamente.
 
 Consulta: você PODE responder perguntas de preço sobre QUALQUER dado abaixo (ferragens, PH 50,
-bandôs, barra, instalação, motor) — cite o valor exato. Edição: só os tipos de ação acima;
-para o resto (motor, PH 50, bandôs etc.), explique que se edita na aba correspondente da Tabela de Preços.
+bandôs, barra, instalação, motor) — cite o valor exato. Edição: TUDO acima é editável pelas ações;
+apenas criar/remover LINHAS (tecido novo, faixa nova etc.) se faz na aba correspondente.
+Romana: a matriz não está listada aqui — para EDITAR uma célula use atualizar_romana com a célula
+exata que o admin informar; para CONSULTAR valores dela, indique a aba Ferragens › ROMANA.
 
 DADOS ATUAIS:
 TECIDOS: ${JSON.stringify(tecidos)}
@@ -193,6 +207,40 @@ ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferra
           const { count } = await db.from('precos_ferragem_componentes')
             .select('id', { count: 'exact', head: true }).eq('id', Number(acao.id))
           if (!count) return resposta(400, { error: `Componente de ferragem #${acao.id} não existe` })
+        } else if (tipo === 'atualizar_ph50') {
+          if (!CAMPOS_PH50.has(String(acao.campo))) return resposta(400, { error: `Campo inválido no PH 50: ${acao.campo}` })
+          if (!(Number(acao.valor) > 0)) return resposta(400, { error: `Valor inválido em ${acao.modelo} ${acao.cor}` })
+          const { count } = await db.from('precos_ph50').select('id', { count: 'exact', head: true })
+            .eq('modelo', String(acao.modelo)).eq('cor', String(acao.cor))
+          if (!count) return resposta(400, { error: `Item PH 50 não encontrado: ${acao.modelo} ${acao.cor}` })
+        } else if (tipo === 'atualizar_bando_param') {
+          if (!CAMPOS_BANDO.has(String(acao.campo))) return resposta(400, { error: `Campo inválido no bandô: ${acao.campo}` })
+          if (!(Number(acao.valor) > 0)) return resposta(400, { error: `Valor inválido no bandô ${acao.cor}` })
+          const { count } = await db.from('precos_bandos_params').select('cor', { count: 'exact', head: true }).eq('cor', String(acao.cor))
+          if (!count) return resposta(400, { error: `Bandô não encontrado: ${acao.cor}` })
+        } else if (tipo === 'atualizar_colocacao') {
+          if (!(Number(acao.preco) > 0)) return resposta(400, { error: 'Preço de instalação inválido' })
+          const { count } = await db.from('precos_colocacao').select('id', { count: 'exact', head: true }).eq('id', Number(acao.id))
+          if (!count) return resposta(400, { error: `Faixa de instalação #${acao.id} não existe` })
+        } else if (tipo === 'atualizar_barra_faixa') {
+          const qtd = Number(acao.qtd_presilhas)
+          if (!(Number.isInteger(qtd) && qtd > 0)) return resposta(400, { error: 'Quantidade de presilhas inválida' })
+          const { count } = await db.from('precos_barra_faixas').select('largura_min', { count: 'exact', head: true })
+            .eq('largura_min', Number(acao.largura_min))
+          if (!count) return resposta(400, { error: `Faixa da barra não encontrada: a partir de ${acao.largura_min}m` })
+        } else if (tipo === 'atualizar_motor_componente') {
+          if (!(Number(acao.custo) > 0)) return resposta(400, { error: `Custo inválido em ${acao.item}` })
+          const { count } = await db.from('precos_motor_componentes').select('id', { count: 'exact', head: true }).eq('item', String(acao.item))
+          if (!count) return resposta(400, { error: `Componente de motor não encontrado: ${acao.item}` })
+        } else if (tipo === 'atualizar_motor_estrutura') {
+          if (!(Number(acao.valor) > 0)) return resposta(400, { error: 'Valor de estrutura inválido' })
+          const { count } = await db.from('precos_motor_estrutura').select('id', { count: 'exact', head: true }).eq('id', Number(acao.id))
+          if (!count) return resposta(400, { error: `Linha de estrutura #${acao.id} não existe` })
+        } else if (tipo === 'atualizar_romana') {
+          if (!(Number(acao.custo) > 0)) return resposta(400, { error: 'Custo inválido na matriz Romana' })
+          const { count } = await db.from('precos_romana_matriz').select('largura', { count: 'exact', head: true })
+            .eq('largura', Number(acao.largura)).eq('altura', Number(acao.altura))
+          if (!count) return resposta(400, { error: `Célula ${acao.largura}×${acao.altura} não existe na matriz Romana` })
         }
       }
 
@@ -257,6 +305,61 @@ ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferra
           if (!count) throw new Error(`Componente #${acao.id} não encontrado`)
           detalhe = { ...detalhe, antes }
           aplicadas.push(`Ferragem: ${antes?.item ?? acao.item ?? `componente #${acao.id}`} (${antes?.familia ?? ''} ${antes?.cor ?? ''}) → R$ ${valor.toFixed(2)}`)
+        } else if (tipo === 'atualizar_ph50') {
+          const campo = String(acao.campo), valor = Number(acao.valor)
+          const { data: antes } = await db.from('precos_ph50').select(campo)
+            .eq('modelo', String(acao.modelo)).eq('cor', String(acao.cor)).single()
+          const { error } = await db.from('precos_ph50').update({ [campo]: valor })
+            .eq('modelo', String(acao.modelo)).eq('cor', String(acao.cor))
+          if (error) throw error
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`PH 50 ${acao.modelo} ${acao.cor}: ${campo} → R$ ${valor.toFixed(2)}`)
+        } else if (tipo === 'atualizar_bando_param') {
+          const campo = String(acao.campo), valor = Number(acao.valor)
+          const { data: antes } = await db.from('precos_bandos_params').select(campo).eq('cor', String(acao.cor)).single()
+          const { error } = await db.from('precos_bandos_params').update({ [campo]: valor }).eq('cor', String(acao.cor))
+          if (error) throw error
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`Bandô ${acao.cor}: ${campo} → R$ ${valor.toFixed(2)}`)
+        } else if (tipo === 'atualizar_colocacao') {
+          const preco = Number(acao.preco)
+          const { data: antes } = await db.from('precos_colocacao').select('ml_min, ml_max, preco').eq('id', Number(acao.id)).single()
+          const { error } = await db.from('precos_colocacao').update({ preco }).eq('id', Number(acao.id))
+          if (error) throw error
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`Instalação (${antes?.ml_min}–${antes?.ml_max}ml) → R$ ${preco.toFixed(2)}`)
+        } else if (tipo === 'atualizar_barra_faixa') {
+          const qtd = Number(acao.qtd_presilhas)
+          const { data: antes } = await db.from('precos_barra_faixas').select('qtd_presilhas')
+            .eq('largura_min', Number(acao.largura_min)).single()
+          const { error } = await db.from('precos_barra_faixas').update({ qtd_presilhas: qtd })
+            .eq('largura_min', Number(acao.largura_min))
+          if (error) throw error
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`Barra: a partir de ${acao.largura_min}m → ${qtd} presilhas`)
+        } else if (tipo === 'atualizar_motor_componente') {
+          const custo = Number(acao.custo)
+          const { data: antes } = await db.from('precos_motor_componentes').select('custo').eq('item', String(acao.item)).single()
+          const { error } = await db.from('precos_motor_componentes').update({ custo }).eq('item', String(acao.item))
+          if (error) throw error
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`Motor: ${acao.item} → R$ ${custo.toFixed(2)}`)
+        } else if (tipo === 'atualizar_motor_estrutura') {
+          const valor = Number(acao.valor)
+          const { data: antes } = await db.from('precos_motor_estrutura').select('largura, alt_faixa, valor').eq('id', Number(acao.id)).single()
+          const { error } = await db.from('precos_motor_estrutura').update({ valor }).eq('id', Number(acao.id))
+          if (error) throw error
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`Motor estrutura (${antes?.largura}m, ${antes?.alt_faixa}) → R$ ${valor.toFixed(2)}`)
+        } else if (tipo === 'atualizar_romana') {
+          const custo = Number(acao.custo)
+          const { data: antes } = await db.from('precos_romana_matriz').select('custo')
+            .eq('largura', Number(acao.largura)).eq('altura', Number(acao.altura)).single()
+          const { error } = await db.from('precos_romana_matriz').update({ custo })
+            .eq('largura', Number(acao.largura)).eq('altura', Number(acao.altura))
+          if (error) throw error
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`Romana ${acao.largura}×${acao.altura}m → R$ ${custo.toFixed(2)}`)
         }
 
         await db.from('precos_auditoria').insert({

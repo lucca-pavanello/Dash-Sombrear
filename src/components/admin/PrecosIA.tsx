@@ -29,6 +29,26 @@ function descreverAcao(a: Acao): string {
       const fam = antes?.familia ? ` (${[antes.familia, antes.cor].filter(Boolean).join(' ')})` : ''
       return `Ferragem: ${nome}${fam} → R$ ${Number(a.valor).toFixed(2)}`
     }
+    case 'atualizar_ph50':
+      return `PH 50 ${a.modelo} ${a.cor}: ${a.campo} → R$ ${Number(a.valor).toFixed(2)}`
+    case 'atualizar_bando_param':
+      return `Bandô ${a.cor}: ${a.campo} → R$ ${Number(a.valor).toFixed(2)}`
+    case 'atualizar_colocacao': {
+      const antes = a.antes as { ml_min?: number; ml_max?: number } | undefined
+      const faixa = antes ? ` (${antes.ml_min}–${antes.ml_max}ml)` : ` #${a.id}`
+      return `Instalação${faixa} → R$ ${Number(a.preco).toFixed(2)}`
+    }
+    case 'atualizar_barra_faixa':
+      return `Barra: a partir de ${a.largura_min}m → ${a.qtd_presilhas} presilhas`
+    case 'atualizar_motor_componente':
+      return `Motor: ${a.item} → R$ ${Number(a.custo).toFixed(2)}`
+    case 'atualizar_motor_estrutura': {
+      const antes = a.antes as { largura?: number; alt_faixa?: string } | undefined
+      const linha = antes ? ` (${antes.largura}m, ${antes.alt_faixa})` : ` #${a.id}`
+      return `Motor estrutura${linha} → R$ ${Number(a.valor).toFixed(2)}`
+    }
+    case 'atualizar_romana':
+      return `Romana ${a.largura}×${a.altura}m → R$ ${Number(a.custo).toFixed(2)}`
     case 'editar_grade': {
       const depois = (a.depois ?? {}) as Record<string, unknown>
       const campos = Object.entries(depois).map(([k, v]) => `${k} → ${v}`).join(', ')
@@ -44,7 +64,9 @@ function descreverAcao(a: Acao): string {
 const TIPOS_REVERSIVEIS = new Set([
   'editar_grade', 'excluir_grade', 'criar_promocao', 'remover_promocao',
   'atualizar_preco_tecido', 'atualizar_parametro', 'atualizar_preco_artigo',
-  'atualizar_componente_ferragem',
+  'atualizar_componente_ferragem', 'atualizar_ph50', 'atualizar_bando_param',
+  'atualizar_colocacao', 'atualizar_barra_faixa', 'atualizar_motor_componente',
+  'atualizar_motor_estrutura', 'atualizar_romana',
 ])
 
 const semId = (row: Record<string, unknown>) => {
@@ -91,6 +113,29 @@ export default function PrecosIA({ toast }: Props) {
       } else if (a.acao === 'atualizar_componente_ferragem' && d.antes) {
         await updateRow('precos_ferragem_componentes', { id: d.id },
           { valor: (d.antes as { valor: number }).valor }, { valor: d.valor })
+      } else if (a.acao === 'atualizar_ph50' && d.antes) {
+        const campo = String(d.campo)
+        await updateRow('precos_ph50', { modelo: d.modelo, cor: d.cor },
+          { [campo]: (d.antes as Record<string, number>)[campo] }, { [campo]: d.valor })
+      } else if (a.acao === 'atualizar_bando_param' && d.antes) {
+        const campo = String(d.campo)
+        await updateRow('precos_bandos_params', { cor: d.cor },
+          { [campo]: (d.antes as Record<string, number>)[campo] }, { [campo]: d.valor })
+      } else if (a.acao === 'atualizar_colocacao' && d.antes) {
+        await updateRow('precos_colocacao', { id: d.id },
+          { preco: (d.antes as { preco: number }).preco }, { preco: d.preco })
+      } else if (a.acao === 'atualizar_barra_faixa' && d.antes) {
+        await updateRow('precos_barra_faixas', { largura_min: d.largura_min },
+          { qtd_presilhas: (d.antes as { qtd_presilhas: number }).qtd_presilhas }, { qtd_presilhas: d.qtd_presilhas })
+      } else if (a.acao === 'atualizar_motor_componente' && d.antes) {
+        await updateRow('precos_motor_componentes', { item: d.item },
+          { custo: (d.antes as { custo: number }).custo }, { custo: d.custo })
+      } else if (a.acao === 'atualizar_motor_estrutura' && d.antes) {
+        await updateRow('precos_motor_estrutura', { id: d.id },
+          { valor: (d.antes as { valor: number }).valor }, { valor: d.valor })
+      } else if (a.acao === 'atualizar_romana' && d.antes) {
+        await updateRow('precos_romana_matriz', { largura: d.largura, altura: d.altura },
+          { custo: (d.antes as { custo: number }).custo }, { custo: d.custo })
       } else {
         toast('error', 'Essa alteração não tem dados suficientes para desfazer')
         return
