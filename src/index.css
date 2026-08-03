@@ -19,7 +19,8 @@
     --secondary: 220 14% 93%;
     --secondary-foreground: 220 15% 20%;
     --muted: 220 14% 93%;
-    --muted-foreground: 220 10% 50%;
+    /* 43%: garante AA (≥4,5:1) sobre card, background e chips (antes 50% = 4,24 no card) */
+    --muted-foreground: 220 10% 43%;
     --accent: 220 14% 93%;
     --accent-foreground: 220 15% 20%;
     --destructive: 0 72% 51%;
@@ -41,10 +42,12 @@
     --secondary: 222 20% 18%;
     --secondary-foreground: 220 15% 80%;
     --muted: 222 20% 18%;
-    --muted-foreground: 220 10% 55%;
+    /* 60%: garante AA sobre chips escuros (antes 55% = 4,04 sobre muted) */
+    --muted-foreground: 220 10% 60%;
     --accent: 222 20% 18%;
     --accent-foreground: 220 15% 80%;
-    --destructive: 0 62% 45%;
+    /* 0 72% 62%: texto de erro legível no dark (antes 2,82:1 — reprovava AA) */
+    --destructive: 0 72% 62%;
     --destructive-foreground: 0 0% 100%;
   }
 
