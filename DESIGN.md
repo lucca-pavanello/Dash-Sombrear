@@ -11,6 +11,14 @@ Tokens HSL em `src/index.css` (`:root` + `.dark`), mapeados no `tailwind.config.
 - **Estratégia**: Restrained — neutros + um acento (laranja) em ≤10% da superfície. Gráficos podem usar a rampa da marca (#E8701A, #C45E14, #F59E0B, âmbares).
 - Texto cinza sobre fundo colorido: proibido — usar tom da própria cor do fundo ou token semântico.
 
+### Contraste (WCAG AA — verificado matematicamente em 2026-08-03)
+
+- Texto normal precisa de **≥4,5:1** contra o fundo onde vive; UI/texto grande ≥3:1.
+- `muted-foreground` foi calibrado pra passar AA sobre card, background E chips (`muted`): claro `220 10% 43%`, escuro `220 10% 60%`. **Não clarear** sem recalcular.
+- `destructive` no dark é `0 72% 62%` (texto de erro legível). No claro, `0 72% 51%`.
+- **Piso de opacidade para texto informativo**: `foreground/65` (≈5,5:1). Opacidades de `muted-foreground` em texto são proibidas (caem abaixo de 4:1 rápido). Profundidade visual = escala `foreground/85 → /75 → /65 → muted-foreground`.
+- **Trade-off aceito de marca**: branco sobre `primary` (#E8701A) = 3,08:1 — passa como UI/large (3:1), não como texto normal estrito. Botões da marca mantêm texto branco `font-semibold` (decisão consciente, padrão de mercado em marcas laranja). Não usar branco sobre primary em texto longo/pequeno.
+
 ## Tipografia
 
 - **Inter** (font-sans) para tudo de UI; **Space Grotesk** (font-display) apenas em valores de KPI e títulos de marca. Não introduzir terceira família.
