@@ -299,6 +299,7 @@ export default function TabCotacao() {
     for (let i = 0; i < ambientes.length; i++) {
       const a = ambientes[i]
       const nA = ambientes.length > 1 ? ` (Amb. ${i + 1})` : ''
+      if (!a.ambiente.trim()) return `Nome do ambiente é obrigatório${nA || ' (ex.: Sala, Quarto, Escritório)'}.`
       if (a.persianas.length === 0) return `Adicione ao menos uma persiana no ambiente ${a.ambiente || i + 1}.`
       for (let j = 0; j < a.persianas.length; j++) {
         const p = a.persianas[j]
@@ -601,7 +602,7 @@ export default function TabCotacao() {
                         <div className="p-4 space-y-4 sm:p-5 sm:space-y-5 animate-in fade-in-0 slide-in-from-top-1 duration-200">
                           {/* Nome do ambiente */}
                           <div>
-                            <label className={labelCls}>Nome do Ambiente</label>
+                            <label className={labelCls}>Nome do Ambiente <Req /></label>
                             <input
                               type="text" value={a.ambiente}
                               onChange={e => setAmbienteNome(a.id, e.target.value)}

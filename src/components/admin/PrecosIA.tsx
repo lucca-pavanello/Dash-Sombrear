@@ -23,6 +23,12 @@ function descreverAcao(a: Acao): string {
       return `Parâmetro ${a.chave} → ${a.valor}`
     case 'atualizar_preco_artigo':
       return `Artigo ${a.nome} (${a.categoria}) → R$ ${Number(a.preco).toFixed(2)}`
+    case 'atualizar_componente_ferragem': {
+      const antes = a.antes as { item?: string; familia?: string; cor?: string } | undefined
+      const nome = antes?.item ?? a.item ?? `componente #${a.id}`
+      const fam = antes?.familia ? ` (${[antes.familia, antes.cor].filter(Boolean).join(' ')})` : ''
+      return `Ferragem: ${nome}${fam} → R$ ${Number(a.valor).toFixed(2)}`
+    }
     case 'editar_grade': {
       const depois = (a.depois ?? {}) as Record<string, unknown>
       const campos = Object.entries(depois).map(([k, v]) => `${k} → ${v}`).join(', ')
@@ -38,6 +44,7 @@ function descreverAcao(a: Acao): string {
 const TIPOS_REVERSIVEIS = new Set([
   'editar_grade', 'excluir_grade', 'criar_promocao', 'remover_promocao',
   'atualizar_preco_tecido', 'atualizar_parametro', 'atualizar_preco_artigo',
+  'atualizar_componente_ferragem',
 ])
 
 const semId = (row: Record<string, unknown>) => {
@@ -81,6 +88,9 @@ export default function PrecosIA({ toast }: Props) {
       } else if (a.acao === 'atualizar_preco_artigo' && d.antes) {
         await updateRow('precos_artigos', { categoria: d.categoria, nome: d.nome },
           { preco: (d.antes as { preco: number }).preco }, { preco: d.preco })
+      } else if (a.acao === 'atualizar_componente_ferragem' && d.antes) {
+        await updateRow('precos_ferragem_componentes', { id: d.id },
+          { valor: (d.antes as { valor: number }).valor }, { valor: d.valor })
       } else {
         toast('error', 'Essa alteração não tem dados suficientes para desfazer')
         return

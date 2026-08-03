@@ -16,7 +16,7 @@ const corsHeaders = {
 const SYNC_WEBHOOK = 'https://n8n-n8n.yjlhot.easypanel.host/webhook/sincronizar-precos'
 const TIPOS_VALIDOS = new Set([
   'criar_promocao', 'remover_promocao', 'atualizar_preco_tecido',
-  'atualizar_parametro', 'atualizar_preco_artigo',
+  'atualizar_parametro', 'atualizar_preco_artigo', 'atualizar_componente_ferragem',
 ])
 
 function resposta(status: number, body: unknown) {
@@ -57,12 +57,24 @@ Deno.serve(async (req) => {
       const mensagem = String(body.mensagem ?? '').slice(0, 2000)
       if (!mensagem.trim()) return resposta(400, { error: 'Mensagem vazia' })
 
-      // contexto compacto do banco
-      const [{ data: tecidos }, { data: promos }, { data: params }, { data: artigos }] = await Promise.all([
+      // contexto compacto do banco — TODAS as tabelas de preço (menos a matriz Romana, grande demais)
+      const [
+        { data: tecidos }, { data: promos }, { data: params }, { data: artigos },
+        { data: ferragens }, { data: ph50 }, { data: bandoParams }, { data: bandos },
+        { data: barraFaixas }, { data: colocacao }, { data: motorEst }, { data: motorComp },
+      ] = await Promise.all([
         db.from('precos_tecidos').select('nome, tipo, largura, preco').order('nome'),
         db.from('precos_promocoes').select('id, alvo_nome, desconto_pct, inicio, fim').order('inicio'),
         db.from('precos_parametros').select('chave, valor, descricao'),
         db.from('precos_artigos').select('categoria, nome, preco'),
+        db.from('precos_ferragem_componentes').select('id, familia, cor, espessura, item, tipo_custo, valor').order('familia'),
+        db.from('precos_ph50').select('modelo, cor, preco_cadarco, preco_fita, bando_ml, aba_pc'),
+        db.from('precos_bandos_params').select('cor, preco_metro, par, cd1, cd2'),
+        db.from('precos_bandos').select('cor, largura, qtd_cd'),
+        db.from('precos_barra_faixas').select('largura_min, qtd_presilhas'),
+        db.from('precos_colocacao').select('ml_min, ml_max, preco'),
+        db.from('precos_motor_estrutura').select('largura, alt_faixa, valor, grupo'),
+        db.from('precos_motor_componentes').select('item, custo, quantidade'),
       ])
 
       const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
@@ -77,6 +89,7 @@ Tipos de ação permitidos (use EXATAMENTE estes campos):
 - {"tipo":"atualizar_preco_tecido","nome":"NOME EXATO","largura":null ou número,"preco":36.00}  (largura null = todas as larguras)
 - {"tipo":"atualizar_parametro","chave":"chave_exata","valor":2.8}
 - {"tipo":"atualizar_preco_artigo","categoria":"PV" ou "PH_ALUMINIO","nome":"NOME EXATO","preco":50.00}
+- {"tipo":"atualizar_componente_ferragem","id":123,"item":"nome do item (informativo)","valor":14.00}  (use o id do componente listado em FERRAGENS; a escada inteira recalcula sozinha)
 
 Regras:
 - Use APENAS nomes que existem nos dados abaixo (case exato). Se o admin falar "screen 3 bege", encontre "SCREEN 3% BEGE".
@@ -85,11 +98,22 @@ Regras:
 - NUNCA invente valores. Dúvida ou ambiguidade → acoes vazia + pergunta na resposta.
 - Pedidos fora de preços/promoções/parâmetros → acoes vazia + explique educadamente.
 
+Consulta: você PODE responder perguntas de preço sobre QUALQUER dado abaixo (ferragens, PH 50,
+bandôs, barra, instalação, motor) — cite o valor exato. Edição: só os tipos de ação acima;
+para o resto (motor, PH 50, bandôs etc.), explique que se edita na aba correspondente da Tabela de Preços.
+
 DADOS ATUAIS:
 TECIDOS: ${JSON.stringify(tecidos)}
 PROMOÇÕES: ${JSON.stringify(promos)}
 PARÂMETROS: ${JSON.stringify(params)}
-ARTIGOS: ${JSON.stringify(artigos)}`
+ARTIGOS (PV/PH Alumínio, preço por m²): ${JSON.stringify(artigos)}
+FERRAGENS (componentes; escada = soma(por_metro)×largura + soma(fixo); 'opcional_*' fica fora da soma): ${JSON.stringify(ferragens)}
+PH 50MM (preço por m²): ${JSON.stringify(ph50)}
+BANDÔ (preço = largura×preco_metro + qtd_cd×(cd1+cd2) + par): params=${JSON.stringify(bandoParams)} escada=${JSON.stringify(bandos)}
+BARRA NIVELADORA (preço = metro×largura + presilha×qtd; params barra_* acima): faixas=${JSON.stringify(barraFaixas)}
+INSTALAÇÃO (por metro linear): ${JSON.stringify(colocacao)}
+MOTOR: estrutura=${JSON.stringify(motorEst)} componentes=${JSON.stringify(motorComp)}
+ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferragens › ROMANA — grande demais pra listar aqui.`
 
       const historico = Array.isArray(body.historico) ? body.historico.slice(-6) : []
       const contents = [
@@ -164,6 +188,11 @@ ARTIGOS: ${JSON.stringify(artigos)}`
           const { count } = await db.from('precos_artigos').select('id', { count: 'exact', head: true })
             .eq('categoria', String(acao.categoria)).eq('nome', String(acao.nome))
           if (!count) return resposta(400, { error: `Artigo não encontrado: ${acao.nome}` })
+        } else if (tipo === 'atualizar_componente_ferragem') {
+          if (!(Number(acao.valor) > 0)) return resposta(400, { error: `Valor inválido no componente ${acao.item ?? acao.id}` })
+          const { count } = await db.from('precos_ferragem_componentes')
+            .select('id', { count: 'exact', head: true }).eq('id', Number(acao.id))
+          if (!count) return resposta(400, { error: `Componente de ferragem #${acao.id} não existe` })
         }
       }
 
@@ -218,6 +247,16 @@ ARTIGOS: ${JSON.stringify(artigos)}`
           if (!count) throw new Error(`Artigo não encontrado: ${acao.nome}`)
           detalhe = { ...detalhe, antes }
           aplicadas.push(`Artigo: ${acao.nome} → R$ ${preco.toFixed(2)}`)
+        } else if (tipo === 'atualizar_componente_ferragem') {
+          const valor = Number(acao.valor)
+          const { data: antes } = await db.from('precos_ferragem_componentes')
+            .select('familia, cor, espessura, item, valor').eq('id', Number(acao.id)).single()
+          const { error, count } = await db.from('precos_ferragem_componentes')
+            .update({ valor }).eq('id', Number(acao.id)).select('id', { count: 'exact' })
+          if (error) throw error
+          if (!count) throw new Error(`Componente #${acao.id} não encontrado`)
+          detalhe = { ...detalhe, antes }
+          aplicadas.push(`Ferragem: ${antes?.item ?? acao.item ?? `componente #${acao.id}`} (${antes?.familia ?? ''} ${antes?.cor ?? ''}) → R$ ${valor.toFixed(2)}`)
         }
 
         await db.from('precos_auditoria').insert({
