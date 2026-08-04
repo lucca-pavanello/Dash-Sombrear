@@ -461,6 +461,67 @@
   animation-duration: 220ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* ícone que viaja do card da Home pro topo da área (shared element) */
+::view-transition-group(icone-area) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* splash → header: o "S" encolhe até virar o logo do canto */
+::view-transition-group(logo-marca) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Tilt 3D dos cards da Home (segue o mouse; brilho especular acompanha) ── */
+.tilt-card {
+  transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease-out,
+    border-color 180ms ease-out;
+  will-change: transform;
+}
+.tilt-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+  background: radial-gradient(360px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    hsl(var(--primary) / 0.10), transparent 65%);
+}
+.tilt-card:hover::after { opacity: 1; }
+
+/* ── CTA da página pública: um brilho que varre o botão de tempos em tempos ── */
+@keyframes cta-varredura {
+  0%, 74% { transform: translateX(-130%) skewX(-18deg); }
+  100%    { transform: translateX(230%) skewX(-18deg); }
+}
+.cta-brilho { position: relative; overflow: hidden; }
+.cta-brilho::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; width: 40%;
+  background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.35), transparent);
+  animation: cta-varredura 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Cascata de KPIs dentro das áreas (roda uma vez, na montagem da aba) ── */
+@keyframes kpi-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.kpi-cascade > * { animation: kpi-rise 340ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.kpi-cascade > *:nth-child(1) { animation-delay: 0ms; }
+.kpi-cascade > *:nth-child(2) { animation-delay: 45ms; }
+.kpi-cascade > *:nth-child(3) { animation-delay: 90ms; }
+.kpi-cascade > *:nth-child(4) { animation-delay: 135ms; }
+.kpi-cascade > *:nth-child(5) { animation-delay: 180ms; }
+.kpi-cascade > *:nth-child(6) { animation-delay: 225ms; }
+.kpi-cascade > *:nth-child(7) { animation-delay: 270ms; }
+.kpi-cascade > *:nth-child(8) { animation-delay: 315ms; }
+.kpi-cascade > *:nth-child(n+9) { animation-delay: 360ms; }
 
 /* ── Acessibilidade: usuários com preferência por menos movimento ── */
 @media (prefers-reduced-motion: reduce) {

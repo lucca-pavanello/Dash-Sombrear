@@ -4,6 +4,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useOrcamentoPublico } from '@/hooks/useKanban'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { useCountUp } from '@/hooks/useCountUp'
+
+/** Valor total conta de 0 até o valor real na chegada do cliente */
+function ValorContagem({ total }: { total: number }) {
+  const v = useCountUp(total, 900)
+  return <>{formatCurrency(v)}</>
+}
 import { MapPin, User, Package, Ruler, Layers, Wrench, DollarSign, CalendarDays, CheckCircle2, Clock, MessageCircle, FileDown, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/primitives'
 
@@ -148,10 +155,18 @@ export default function OrcamentoPublico() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="home-choreo relative min-h-screen overflow-hidden bg-gray-50">
+      {/* Aurora clarinha da marca ao fundo */}
+      <div className="pointer-events-none absolute inset-0 -z-0" aria-hidden>
+        <div className="aurora-a absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full blur-3xl"
+          style={{ background: 'rgba(232, 112, 26, 0.07)' }} />
+        <div className="aurora-b absolute -bottom-40 -left-32 h-[480px] w-[480px] rounded-full blur-3xl"
+          style={{ background: 'rgba(245, 158, 11, 0.06)' }} />
+      </div>
+
       {/* Header */}
-      <header className="px-4 pb-8 pt-6 text-white" style={{ background: 'linear-gradient(135deg, #E8701A 0%, #C45E14 100%)' }}>
-        <div className="mx-auto max-w-md">
+      <header className="relative px-4 pb-8 pt-6 text-white" style={{ background: 'linear-gradient(135deg, #E8701A 0%, #C45E14 100%)' }}>
+        <div className="home-enter mx-auto max-w-md">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 shadow">
               <span className="text-base font-bold text-white">S</span>
@@ -183,12 +198,13 @@ export default function OrcamentoPublico() {
       {/* Content */}
       <main className="mx-auto max-w-md px-4 -mt-4 pb-10">
 
-        {/* Valor em destaque */}
+        {/* Valor em destaque — conta de 0 até o total na chegada */}
         {receita > 0 && (
-          <div className="mb-4 overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
+          <div className="home-enter mb-4 overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100"
+            style={{ '--enter-delay': '130ms' } as React.CSSProperties}>
             <div className="p-5 text-center">
               <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">Valor Total</p>
-              <p className="text-3xl font-bold" style={{ color: BRAND }}>{formatCurrency(receita)}</p>
+              <p className="text-3xl font-bold tabular-nums" style={{ color: BRAND }}><ValorContagem total={receita} /></p>
               {orcamento.valor_venda && orcamento.instalacao ? (
                 <div className="mt-2 flex items-center justify-center gap-3 text-xs text-gray-400">
                   <span>Produto: {formatCurrency(orcamento.valor_venda)}</span>
@@ -204,7 +220,7 @@ export default function OrcamentoPublico() {
         )}
 
         {/* CTA: aceitar / falar / PDF */}
-        <div className="mb-4 space-y-2">
+        <div className="home-enter mb-4 space-y-2" style={{ '--enter-delay': '240ms' } as React.CSSProperties}>
           {aceito ? (
             <div className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
               <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -219,7 +235,7 @@ export default function OrcamentoPublico() {
               fullWidth
               loading={aceitando}
               onClick={handleAceitar}
-              className="rounded-2xl py-3.5 text-sm font-bold shadow-lg"
+              className="cta-brilho rounded-2xl py-3.5 text-sm font-bold shadow-lg"
             >
               {aceitando ? 'Registrando…' : 'Aceitar orçamento'}
             </Button>

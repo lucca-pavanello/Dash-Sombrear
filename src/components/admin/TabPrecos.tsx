@@ -3,6 +3,7 @@ import {
   Blinds, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useCountUp } from '@/hooks/useCountUp'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
 import SimuladorPreco from './SimuladorPreco'
@@ -110,7 +111,7 @@ export default function TabPrecos({ toast }: Props) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="kpi-cascade grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'Tecidos', value: new Set((kpiTecidos ?? []).map(t => t.nome)).size },
           { label: 'Promoções ativas', value: promosAtivas },
@@ -119,7 +120,7 @@ export default function TabPrecos({ toast }: Props) {
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border-2 border-primary/20 bg-primary/10 dark:bg-primary/15 p-4 shadow-sm flex flex-col items-center text-center gap-1">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{label}</p>
-            <p className="font-display text-2xl font-bold text-primary">{value}</p>
+            <p className="font-display text-2xl font-bold text-primary tabular-nums"><KpiContagem n={value} /></p>
           </div>
         ))}
       </div>
@@ -157,6 +158,12 @@ export default function TabPrecos({ toast }: Props) {
       {secao === 'parametros' && <SecaoParametros salvar={salvar} />}
     </div>
   )
+}
+
+/** Número de KPI que conta de 0 na montagem da aba */
+function KpiContagem({ n }: { n: number }) {
+  const v = useCountUp(n, 650)
+  return <>{Math.round(v)}</>
 }
 
 /* ─── helpers de seção ───────────────────────────────────── */

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Bot, Calculator, CircleDollarSign, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
@@ -19,12 +20,42 @@ const ICON_CLS = 'h-7 w-7 md:h-10 md:w-10 text-primary group-hover:text-white tr
 
 type Badge = { label: string; tone: 'primary' | 'amber' }
 
-function AreaCard({ titulo, descricao, icon: Icon, onClick, badge, animIcone, delay = 0 }: {
+function AreaCard({ titulo, descricao, icon: Icon, onClick, badge, animIcone, delay = 0, viajando }: {
   titulo: string; descricao: string; icon: typeof Calculator; onClick: () => void
   badge?: Badge; animIcone?: string; delay?: number
+  /** true enquanto este ícone é o shared element da transição de saída */
+  viajando?: boolean
 }) {
+  const ref = useRef<HTMLButtonElement>(null)
+  const rafRef = useRef(0)
+
+  function onMove(e: React.MouseEvent) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (rafRef.current) return
+    const el = ref.current
+    if (!el) return
+    const { clientX, clientY } = e
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = 0
+      const r = el.getBoundingClientRect()
+      const px = (clientX - r.left) / r.width
+      const py = (clientY - r.top) / r.height
+      el.style.setProperty('--tilt-y', `${(px - 0.5) * 6}deg`)
+      el.style.setProperty('--tilt-x', `${(0.5 - py) * 5}deg`)
+      el.style.setProperty('--glow-x', `${px * 100}%`)
+      el.style.setProperty('--glow-y', `${py * 100}%`)
+    })
+  }
+  function onLeave() {
+    const el = ref.current
+    if (!el) return
+    el.style.setProperty('--tilt-x', '0deg')
+    el.style.setProperty('--tilt-y', '0deg')
+  }
+
   return (
-    <button onClick={onClick} className={cn(CARD_CLS, 'home-enter')}
+    <button ref={ref} onClick={onClick} onMouseMove={onMove} onMouseLeave={onLeave}
+      className={cn(CARD_CLS, 'home-enter tilt-card')}
       style={{ '--enter-delay': `${delay}ms` } as React.CSSProperties}>
       {badge && (
         <span className={cn(
@@ -36,7 +67,8 @@ function AreaCard({ titulo, descricao, icon: Icon, onClick, badge, animIcone, de
           {badge.label}
         </span>
       )}
-      <div className={ICON_WRAP_CLS}>
+      <div className={ICON_WRAP_CLS}
+        style={viajando ? ({ viewTransitionName: 'icone-area' } as React.CSSProperties) : undefined}>
         <Icon className={cn(ICON_CLS, animIcone)} />
       </div>
       <h2 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">{titulo}</h2>
@@ -124,6 +156,15 @@ export default function HomePage() {
   })
   const contarPulso = coreo === 'home-choreo'
   const ir = (path: string) => comTransicao(() => navigate(path))
+
+  // Ícone que viaja: marca o card clicado como shared element ANTES da transição,
+  // e avisa o destino (via sessionStorage) qual ícone deve "receber" o voo.
+  const [viajante, setViajante] = useState<string | null>(null)
+  function irArea(area: string, path: string) {
+    try { sessionStorage.setItem('sombrear-vt-icone', area) } catch { /* segue sem voo */ }
+    flushSync(() => setViajante(area))
+    comTransicao(() => navigate(path))
+  }
 
   // Parallax sutil das orbes de fundo (desativado com prefers-reduced-motion)
   const fundoRef = useRef<HTMLDivElement>(null)
@@ -292,28 +333,33 @@ export default function HomePage() {
             <AreaCard titulo="Orçamento" icon={Calculator} animIcone="icon-press" delay={260}
               descricao="Calcular preços, gerar propostas, gerenciar planilhas de orçamento e custos."
               badge={pulso.deHoje > 0 ? { label: `${pulso.deHoje} hoje`, tone: 'primary' } : undefined}
-              onClick={() => ir('/orcamentos/calcular-orcamento')} />
+              viajando={viajante === 'orcamento'}
+              onClick={() => irArea('orcamento', '/orcamentos/calcular-orcamento')} />
           )}
           {canEstoque && (
             <AreaCard titulo="Estoque" icon={Package} animIcone="icon-sway" delay={330}
               descricao="Gerenciar produtos, fornecedores, registrar entradas, vendas e analisar performance."
-              onClick={() => ir('/estoque')} />
+              viajando={viajante === 'estoque'}
+              onClick={() => irArea('estoque', '/estoque')} />
           )}
           {canAgenteIA && (
             <AreaCard titulo="Agente IA" icon={Bot} animIcone="icon-peek" delay={400}
               descricao="Acompanhar os leads do WhatsApp, conversas e orçamentos gerados pela IA."
               badge={pulso.aguardando > 0 ? { label: `${pulso.aguardando} aguardando`, tone: 'amber' } : undefined}
-              onClick={() => ir('/agente-ia')} />
+              viajando={viajante === 'agente-ia'}
+              onClick={() => irArea('agente-ia', '/agente-ia')} />
           )}
           {canPrecos && (
             <AreaCard titulo="Tabela de Preços" icon={CircleDollarSign} animIcone="icon-coin" delay={470}
               descricao="Preços, promoções, simulador e o assistente — a fonte central dos orçamentos."
-              onClick={() => ir('/precos')} />
+              viajando={viajante === 'precos'}
+              onClick={() => irArea('precos', '/precos')} />
           )}
           {isAdmin && (
             <AreaCard titulo="Admin" icon={ShieldCheck} animIcone="icon-guard" delay={540}
               descricao="Gerenciar usuários, aprovar acessos e configurar permissões do sistema."
-              onClick={() => ir('/admin')} />
+              viajando={viajante === 'admin'}
+              onClick={() => irArea('admin', '/admin')} />
           )}
         </div>
       )}

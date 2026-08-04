@@ -96,6 +96,14 @@ export default function Dashboard() {
   const [focusOpen, setFocusOpen] = useState(false)
   const [tabUpdatePulse, setTabUpdatePulse] = useState<Set<string>>(new Set())
   const [kanbanEditOrc, setKanbanEditOrc] = useState<Orcamento | null>(null)
+  // Ícone que viaja: a Home marca qual área recebeu o clique; o ícone de destino "recebe" o voo
+  const [vtIcone, setVtIcone] = useState<string | null>(() => {
+    try {
+      const v = sessionStorage.getItem('sombrear-vt-icone')
+      sessionStorage.removeItem('sombrear-vt-icone')
+      return v
+    } catch { return null }
+  })
   const prevUnreadRef = useRef(0)
   const prevAdminSubRef = useRef('usuarios')
   const tabBarRef = useRef<HTMLDivElement>(null)
@@ -213,6 +221,15 @@ export default function Dashboard() {
       prevAdminSubRef.current = adminSub
     }
   }, [adminSub])
+
+  // Depois que o voo termina, solta o nome (evita shared element duplicado em transições futuras)
+  useEffect(() => {
+    if (!vtIcone) return
+    const t = setTimeout(() => setVtIcone(null), 600)
+    return () => clearTimeout(t)
+  }, [vtIcone])
+  const vtStyle = (cond: boolean) =>
+    cond ? ({ viewTransitionName: 'icone-area' } as React.CSSProperties) : undefined
 
   function handleTabChange(id: string) {
     const nextIdx = TABS.findIndex(t => t.id === id)
@@ -371,9 +388,16 @@ export default function Dashboard() {
     }
   }, [profileLoading, canOrcamento, canEstoque, canAgenteIA, canPrecos, isAdmin])
 
-  // ── Splash screen: some quando dados carregam ──
+  // ── Splash screen: o "S" viaja e encolhe até virar o logo do header (View Transitions) ──
   useEffect(() => {
     if (!isLoading && showSplash) {
+      type DocVT = Document & { startViewTransition?: (cb: () => void) => void }
+      const suportaVT = !!(document as DocVT).startViewTransition
+        && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (suportaVT) {
+        comTransicao(() => setShowSplash(false))
+        return
+      }
       setSplashFading(true)
       const t = setTimeout(() => setShowSplash(false), 400)
       return () => clearTimeout(t)
@@ -614,7 +638,8 @@ export default function Dashboard() {
           splashFading && 'splash-overlay-out',
         )}
       >
-        <div className="splash-icon-pulse flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand">
+        <div className="splash-icon-pulse flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand"
+          style={{ viewTransitionName: 'logo-marca' } as React.CSSProperties}>
           <span className="font-display text-3xl font-bold text-white">S</span>
         </div>
         <h2 className="mt-5 font-display text-xl font-bold text-foreground">Sombrear</h2>
@@ -641,7 +666,8 @@ export default function Dashboard() {
       <header className="header-aurora sticky top-0 z-50 border-b border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] backdrop-blur-md shadow-sm">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-gradient shadow-brand">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-gradient shadow-brand"
+              style={!showSplash ? ({ viewTransitionName: 'logo-marca' } as React.CSSProperties) : undefined}>
               <span className="font-display text-base font-bold text-white">S</span>
             </div>
             <div>
@@ -901,7 +927,7 @@ export default function Dashboard() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'estoque' && estoqueSub === id)} />
                 <span className="hidden sm:inline truncate">{label}</span>
               </button>
             ))
@@ -928,7 +954,7 @@ export default function Dashboard() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'admin' && adminSub === id)} />
               <span className="hidden sm:inline truncate">{label}</span>
             </button>
           ))}
@@ -952,7 +978,7 @@ export default function Dashboard() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'orcamento' && activeTab === id)} />
               <span className="hidden sm:inline truncate">{label}</span>
               {tabUpdatePulse.has(id) && (
                 <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
@@ -968,8 +994,8 @@ export default function Dashboard() {
               className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
             >
               {activeTab === 'agente-ia'
-                ? <><Bot className="h-4 w-4 shrink-0" />Agente IA</>
-                : <><CircleDollarSign className="h-4 w-4 shrink-0" />Tabela de Preços</>}
+                ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia')} />Agente IA</>
+                : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos')} />Tabela de Preços</>}
             </button>
           ) : (
           /* SECTION TABS (fallback) */

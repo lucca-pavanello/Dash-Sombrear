@@ -100,7 +100,7 @@ export default function TabOrcamentos({ data, loading, resetKey }: Props) {
   if (loading) {
     return (
       <div className="space-y-5">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
           <SkeletonCard /><SkeletonCard /><SkeletonCard />
         </div>

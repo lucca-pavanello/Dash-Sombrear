@@ -464,14 +464,14 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       {/* ── Alcance do Agente ── */}
       <div key={periodo} className="space-y-3 animate-in fade-in-0 duration-200">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5">Alcance do Agente</p>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-4">
           {alcanceKpis.map(({ label, value, icon, alcance, sub }, i) => (
             <KpiCard key={label} label={label} value={value} icon={icon}
               alcance={alcance} sub={sub} delay={i * 80} />
           ))}
         </div>
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5 pt-1">Operacional</p>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-5">
           {opKpis.map(({ label, value, icon, attention, sub }, i) => (
             <KpiCard key={label} label={label} value={value} icon={icon}
               attention={attention} sub={sub} delay={i * 80 + 320} />
