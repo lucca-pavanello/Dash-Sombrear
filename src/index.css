@@ -397,6 +397,71 @@
   }
 }
 
+/* ── Abertura da Home: coreografia curta (1ª visita da sessão) ou fade rápido ── */
+@keyframes home-pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes home-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.home-choreo .home-enter {
+  animation: home-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+.home-quick .home-enter {
+  animation: home-fade 160ms ease-out both;
+}
+@keyframes logo-hello {
+  0%   { transform: scale(0.9); opacity: 0; }
+  60%  { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.home-choreo .home-logo { animation: logo-hello 480ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ── Aurora: orbes da marca à deriva, bem sutis (Home) ── */
+@keyframes aurora-a {
+  0%, 100% { transform: translate3d(var(--par-x, 0), var(--par-y, 0), 0) scale(1); }
+  50%      { transform: translate3d(calc(var(--par-x, 0px) + 3.5rem), calc(var(--par-y, 0px) + 2rem), 0) scale(1.07); }
+}
+@keyframes aurora-b {
+  0%, 100% { transform: translate3d(var(--par-x, 0), var(--par-y, 0), 0) scale(1); }
+  50%      { transform: translate3d(calc(var(--par-x, 0px) - 3rem), calc(var(--par-y, 0px) - 2.5rem), 0) scale(1.05); }
+}
+.aurora-a { animation: aurora-a 22s ease-in-out infinite; will-change: transform; }
+.aurora-b { animation: aurora-b 26s ease-in-out infinite; will-change: transform; }
+
+/* ── Ícones com alma: um gesto por área no hover do card ── */
+@keyframes icon-press {
+  0% { transform: none; } 30% { transform: translateY(2px) scale(0.94); }
+  60% { transform: translateY(-1px) scale(1.04); } 100% { transform: none; }
+}
+@keyframes icon-sway {
+  0%, 100% { transform: rotate(0); } 28% { transform: rotate(-7deg); } 64% { transform: rotate(6deg); }
+}
+@keyframes icon-peek {
+  0%, 100% { transform: none; } 30% { transform: rotate(-9deg) translateY(-1px); } 70% { transform: rotate(4deg); }
+}
+@keyframes icon-coin {
+  from { transform: rotateY(0); } to { transform: rotateY(360deg); }
+}
+@keyframes icon-guard {
+  0%, 100% { transform: scale(1); } 40% { transform: scale(1.12); }
+}
+.group:hover .icon-press { animation: icon-press 450ms cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .icon-sway  { animation: icon-sway 500ms cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .icon-peek  { animation: icon-peek 500ms cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .icon-coin  { animation: icon-coin 550ms cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .icon-guard { animation: icon-guard 450ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ── View Transitions: navegação entre áreas com crossfade curto ── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* ── Acessibilidade: usuários com preferência por menos movimento ── */
 @media (prefers-reduced-motion: reduce) {
   *,

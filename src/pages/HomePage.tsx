@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Bot, Calculator, CircleDollarSign, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
@@ -6,9 +6,11 @@ import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useCrmLeads } from '@/hooks/useAgenteIA'
 import { usePresence } from '@/hooks/usePresence'
 import { useCommandPalette } from '@/hooks/useCommandPalette'
+import { useCountUp } from '@/hooks/useCountUp'
 import CommandPalette from '@/components/shared/CommandPalette'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import { formatCurrency, cn } from '@/lib/utils'
+import { comTransicao } from '@/lib/viewTransition'
 import { ADMIN_EMAIL, ESTOQUE_EMAIL } from '@/lib/constants'
 
 const CARD_CLS = 'group w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] bg-card border border-border rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-sm hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1 transition-all flex flex-col items-center text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60'
@@ -17,11 +19,13 @@ const ICON_CLS = 'h-7 w-7 md:h-10 md:w-10 text-primary group-hover:text-white tr
 
 type Badge = { label: string; tone: 'primary' | 'amber' }
 
-function AreaCard({ titulo, descricao, icon: Icon, onClick, badge }: {
-  titulo: string; descricao: string; icon: typeof Calculator; onClick: () => void; badge?: Badge
+function AreaCard({ titulo, descricao, icon: Icon, onClick, badge, animIcone, delay = 0 }: {
+  titulo: string; descricao: string; icon: typeof Calculator; onClick: () => void
+  badge?: Badge; animIcone?: string; delay?: number
 }) {
   return (
-    <button onClick={onClick} className={CARD_CLS}>
+    <button onClick={onClick} className={cn(CARD_CLS, 'home-enter')}
+      style={{ '--enter-delay': `${delay}ms` } as React.CSSProperties}>
       {badge && (
         <span className={cn(
           'absolute top-4 right-4 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums',
@@ -33,7 +37,7 @@ function AreaCard({ titulo, descricao, icon: Icon, onClick, badge }: {
         </span>
       )}
       <div className={ICON_WRAP_CLS}>
-        <Icon className={ICON_CLS} />
+        <Icon className={cn(ICON_CLS, animIcone)} />
       </div>
       <h2 className="text-lg md:text-2xl font-bold text-foreground mb-2 md:mb-3">{titulo}</h2>
       <p className="text-sm text-muted-foreground leading-relaxed mb-4 md:mb-8 max-w-xs mx-auto">{descricao}</p>
@@ -42,6 +46,18 @@ function AreaCard({ titulo, descricao, icon: Icon, onClick, badge }: {
         <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
       </div>
     </button>
+  )
+}
+
+function CardSkeleton() {
+  return (
+    <div className={cn(CARD_CLS, 'pointer-events-none')} aria-hidden>
+      <div className="h-14 w-14 md:h-20 md:w-20 rounded-2xl md:rounded-3xl skeleton-shimmer mb-4 md:mb-6" />
+      <div className="h-6 w-32 rounded-lg skeleton-shimmer mb-3" />
+      <div className="h-3 w-48 rounded skeleton-shimmer mb-1.5" />
+      <div className="h-3 w-40 rounded skeleton-shimmer mb-6" />
+      <div className="mt-auto h-4 w-20 rounded skeleton-shimmer" />
+    </div>
   )
 }
 
@@ -69,14 +85,20 @@ function tempoAtras(iso: string): string {
   return `há ${Math.floor(h / 24)}d`
 }
 
-function PulsoPill({ icon: Icon, valor, rotulo, atencao }: {
-  icon: typeof FileText; valor: string; rotulo: string; atencao?: boolean
+function PulsoPill({ icon: Icon, numero, fmt, rotulo, atencao, delay = 0, contar = true }: {
+  icon: typeof FileText; numero: number; fmt?: (n: number) => string
+  rotulo: string; atencao?: boolean; delay?: number; contar?: boolean
 }) {
+  const animado = useCountUp(numero, 700, !contar)
+  const valor = fmt ? fmt(animado) : String(Math.round(animado))
   return (
-    <div className={cn(
-      'flex items-center gap-2 rounded-full border px-3.5 py-1.5 bg-card shadow-sm',
-      atencao ? 'border-amber-500/40' : 'border-border'
-    )}>
+    <div
+      className={cn(
+        'home-enter flex items-center gap-2 rounded-full border px-3.5 py-1.5 bg-card shadow-sm',
+        atencao ? 'border-amber-500/40' : 'border-border'
+      )}
+      style={{ '--enter-delay': `${delay}ms` } as React.CSSProperties}
+    >
       <Icon className={cn('h-3.5 w-3.5 shrink-0', atencao ? 'text-amber-500' : 'text-primary')} />
       <span className="text-sm font-bold tabular-nums text-foreground">{valor}</span>
       <span className="text-xs text-muted-foreground">{rotulo}</span>
@@ -91,6 +113,36 @@ export default function HomePage() {
   const { data: leads = [] } = useCrmLeads()
   const others = usePresence(profile ?? null, 'inicio')
   const { open: paletteOpen, close: closePalette } = useCommandPalette()
+
+  // Coreografia completa só na 1ª visita da sessão; depois, fade rápido (a Home não pode "fazer esperar")
+  const [coreo] = useState<'home-choreo' | 'home-quick'>(() => {
+    try {
+      if (sessionStorage.getItem('sombrear-home-coreo')) return 'home-quick'
+      sessionStorage.setItem('sombrear-home-coreo', '1')
+      return 'home-choreo'
+    } catch { return 'home-choreo' }
+  })
+  const contarPulso = coreo === 'home-choreo'
+  const ir = (path: string) => comTransicao(() => navigate(path))
+
+  // Parallax sutil das orbes de fundo (desativado com prefers-reduced-motion)
+  const fundoRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let raf = 0
+    function onMove(e: MouseEvent) {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        const x = (e.clientX / window.innerWidth - 0.5) * 24
+        const y = (e.clientY / window.innerHeight - 0.5) * 16
+        fundoRef.current?.style.setProperty('--par-x', `${x}px`)
+        fundoRef.current?.style.setProperty('--par-y', `${y}px`)
+      })
+    }
+    window.addEventListener('mousemove', onMove, { passive: true })
+    return () => { window.removeEventListener('mousemove', onMove); if (raf) cancelAnimationFrame(raf) }
+  }, [])
 
   useEffect(() => { document.title = 'Sombrear - Início' }, [])
 
@@ -162,20 +214,30 @@ export default function HomePage() {
   const dataLonga = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-10">
+    <div className={cn('relative min-h-screen flex flex-col items-center justify-center bg-background px-4 py-10 overflow-hidden', coreo)}>
+      {/* Aurora: dot grid + orbes da marca à deriva (mesma família visual do dash interno) */}
+      <div ref={fundoRef} className="absolute inset-0 -z-10 pointer-events-none" aria-hidden>
+        <div className="dot-grid absolute inset-0" />
+        <div className="aurora-a absolute -top-44 -right-44 h-[560px] w-[560px] rounded-full bg-primary/[0.07] dark:bg-primary/[0.11] blur-3xl" />
+        <div className="aurora-b absolute -bottom-48 -left-44 h-[640px] w-[640px] rounded-full bg-amber-400/[0.06] dark:bg-amber-400/[0.09] blur-3xl" />
+      </div>
+
       {/* Logo + saudação */}
       <div className="text-center mb-8 md:mb-12">
-        <div className="inline-flex h-16 w-16 md:h-24 md:w-24 rounded-2xl md:rounded-3xl bg-brand-gradient items-center justify-center mb-4 md:mb-6 shadow-brand">
+        <div className="home-logo inline-flex h-16 w-16 md:h-24 md:w-24 rounded-2xl md:rounded-3xl bg-brand-gradient items-center justify-center mb-4 md:mb-6 shadow-brand">
           <span className="text-white text-3xl md:text-5xl font-bold font-display tracking-tight">S</span>
         </div>
-        <h1 className="font-display text-2xl md:text-4xl font-bold text-foreground tracking-tight">
+        <h1 className="home-enter font-display text-2xl md:text-4xl font-bold text-foreground tracking-tight"
+          style={{ '--enter-delay': '70ms' } as React.CSSProperties}>
           {nome ? `${saudacao()}, ${nome}` : 'Sombrear'}
         </h1>
-        <p className="text-sm md:text-base text-muted-foreground mt-2 capitalize">{dataLonga}</p>
+        <p className="home-enter text-sm md:text-base text-muted-foreground mt-2 capitalize"
+          style={{ '--enter-delay': '120ms' } as React.CSSProperties}>{dataLonga}</p>
 
         {/* Presença: quem mais está no sistema agora */}
         {others.length > 0 && (
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-card border border-border px-3 py-1.5 shadow-sm">
+          <div className="home-enter mt-3 inline-flex items-center gap-2 rounded-full bg-card border border-border px-3 py-1.5 shadow-sm"
+            style={{ '--enter-delay': '170ms' } as React.CSSProperties}>
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -190,20 +252,24 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Pulso do dia */}
+      {/* Pulso do dia — números contam de 0 na 1ª visita da sessão */}
       {(canOrcamento || canAgenteIA) && !noAccess && (
         <div className="flex flex-wrap justify-center gap-2 mb-8 md:mb-10">
           {canOrcamento && (
             <>
-              <PulsoPill icon={FileText} valor={String(pulso.deHoje)} rotulo={pulso.deHoje === 1 ? 'orçamento hoje' : 'orçamentos hoje'} />
+              <PulsoPill icon={FileText} numero={pulso.deHoje} contar={contarPulso} delay={200}
+                rotulo={pulso.deHoje === 1 ? 'orçamento hoje' : 'orçamentos hoje'} />
               {pulso.cotadoHoje > 0 && (
-                <PulsoPill icon={TrendingUp} valor={formatCurrency(pulso.cotadoHoje)} rotulo="cotado hoje" />
+                <PulsoPill icon={TrendingUp} numero={pulso.cotadoHoje} fmt={formatCurrency}
+                  contar={contarPulso} delay={250} rotulo="cotado hoje" />
               )}
-              <PulsoPill icon={CheckCircle2} valor={String(pulso.fechadosSemana)} rotulo="fechados na semana" />
+              <PulsoPill icon={CheckCircle2} numero={pulso.fechadosSemana} contar={contarPulso}
+                delay={300} rotulo="fechados na semana" />
             </>
           )}
           {canAgenteIA && pulso.aguardando > 0 && (
-            <PulsoPill icon={Clock} valor={String(pulso.aguardando)} rotulo="leads aguardando" atencao />
+            <PulsoPill icon={Clock} numero={pulso.aguardando} contar={contarPulso} delay={350}
+              rotulo="leads aguardando" atencao />
           )}
         </div>
       )}
@@ -216,41 +282,46 @@ export default function HomePage() {
             Sua conta ainda não possui permissões configuradas. Fale com o administrador do sistema.
           </p>
         </div>
+      ) : isLoading ? (
+        <div className="flex flex-wrap justify-center gap-4 md:gap-6 max-w-5xl w-full">
+          <CardSkeleton /><CardSkeleton /><CardSkeleton />
+        </div>
       ) : (
         <div className="flex flex-wrap justify-center gap-4 md:gap-6 max-w-5xl w-full">
           {canOrcamento && (
-            <AreaCard titulo="Orçamento" icon={Calculator}
+            <AreaCard titulo="Orçamento" icon={Calculator} animIcone="icon-press" delay={260}
               descricao="Calcular preços, gerar propostas, gerenciar planilhas de orçamento e custos."
               badge={pulso.deHoje > 0 ? { label: `${pulso.deHoje} hoje`, tone: 'primary' } : undefined}
-              onClick={() => navigate('/orcamentos/calcular-orcamento')} />
+              onClick={() => ir('/orcamentos/calcular-orcamento')} />
           )}
           {canEstoque && (
-            <AreaCard titulo="Estoque" icon={Package}
+            <AreaCard titulo="Estoque" icon={Package} animIcone="icon-sway" delay={330}
               descricao="Gerenciar produtos, fornecedores, registrar entradas, vendas e analisar performance."
-              onClick={() => navigate('/estoque')} />
+              onClick={() => ir('/estoque')} />
           )}
           {canAgenteIA && (
-            <AreaCard titulo="Agente IA" icon={Bot}
+            <AreaCard titulo="Agente IA" icon={Bot} animIcone="icon-peek" delay={400}
               descricao="Acompanhar os leads do WhatsApp, conversas e orçamentos gerados pela IA."
               badge={pulso.aguardando > 0 ? { label: `${pulso.aguardando} aguardando`, tone: 'amber' } : undefined}
-              onClick={() => navigate('/agente-ia')} />
+              onClick={() => ir('/agente-ia')} />
           )}
           {canPrecos && (
-            <AreaCard titulo="Tabela de Preços" icon={CircleDollarSign}
+            <AreaCard titulo="Tabela de Preços" icon={CircleDollarSign} animIcone="icon-coin" delay={470}
               descricao="Preços, promoções, simulador e o assistente — a fonte central dos orçamentos."
-              onClick={() => navigate('/precos')} />
+              onClick={() => ir('/precos')} />
           )}
           {isAdmin && (
-            <AreaCard titulo="Admin" icon={ShieldCheck}
+            <AreaCard titulo="Admin" icon={ShieldCheck} animIcone="icon-guard" delay={540}
               descricao="Gerenciar usuários, aprovar acessos e configurar permissões do sistema."
-              onClick={() => navigate('/admin')} />
+              onClick={() => ir('/admin')} />
           )}
         </div>
       )}
 
       {/* Últimos orçamentos (rótulo honesto: só pulsa se houver algo de hoje) */}
       {canOrcamento && !noAccess && recentes.length > 0 && (
-        <div className="mt-8 md:mt-10 w-full max-w-5xl">
+        <div className="home-enter mt-8 md:mt-10 w-full max-w-5xl"
+          style={{ '--enter-delay': '620ms' } as React.CSSProperties}>
           <div className="rounded-2xl border border-border bg-card/60 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 border-b border-border/60 px-4 py-2.5">
               {temAtividadeHoje ? (
@@ -269,7 +340,7 @@ export default function HomePage() {
               {recentes.map(g => (
                 <button
                   key={g.id}
-                  onClick={() => navigate('/orcamentos/orcamentos')}
+                  onClick={() => ir('/orcamentos/orcamentos')}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
                 >
                   <AvatarInitials name={g.responsavel} size="xs" />
@@ -291,7 +362,8 @@ export default function HomePage() {
         </div>
       )}
 
-      <p className="mt-10 flex items-center gap-1.5 text-xs text-muted-foreground/60">
+      <p className="home-enter mt-10 flex items-center gap-1.5 text-xs text-muted-foreground/60"
+        style={{ '--enter-delay': '700ms' } as React.CSSProperties}>
         <Command className="h-3 w-3" />
         <kbd className="rounded border border-border bg-muted/50 px-1 py-0.5 text-[10px] font-semibold">K</kbd>
         busca rápida em qualquer tela · Sombrear — Sistema de Gestão

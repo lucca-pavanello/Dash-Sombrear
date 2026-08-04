@@ -16,6 +16,7 @@ import AvatarInitials from '@/components/shared/AvatarInitials'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import TopLoadingBar from '@/components/shared/TopLoadingBar'
 import { cn } from '@/lib/utils'
+import { comTransicao } from '@/lib/viewTransition'
 import { ADMIN_EMAIL, ESTOQUE_EMAIL } from '@/lib/constants'
 import { useUiSound } from '@/hooks/useUiSound'
 import { usePresence } from '@/hooks/usePresence'
@@ -863,7 +864,7 @@ export default function Dashboard() {
         <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none snap-x snap-mandatory md:snap-none">
           {/* Botão Início */}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => comTransicao(() => navigate('/'))}
             className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all duration-100 whitespace-nowrap active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             title="Voltar ao início"
           >
