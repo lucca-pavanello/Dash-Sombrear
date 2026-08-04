@@ -228,8 +228,23 @@ export default function Dashboard() {
     const t = setTimeout(() => setVtIcone(null), 600)
     return () => clearTimeout(t)
   }, [vtIcone])
+  // Voo de volta: ao clicar em ← Início, o ícone da área atual vira o shared element
+  const [vtVolta, setVtVolta] = useState(false)
   const vtStyle = (cond: boolean) =>
     cond ? ({ viewTransitionName: 'icone-area' } as React.CSSProperties) : undefined
+
+  function voltarInicio() {
+    const area = isEstoqueArea ? 'estoque'
+      : isAdminArea ? 'admin'
+      : activeTab === 'agente-ia' ? 'agente-ia'
+      : activeTab === 'precos' ? 'precos'
+      : isOrcamentoArea ? 'orcamento' : null
+    if (area) {
+      try { sessionStorage.setItem('sombrear-vt-icone', area) } catch { /* voa sem aviso */ }
+      flushSync(() => setVtVolta(true))
+    }
+    comTransicao(() => navigate('/'))
+  }
 
   function handleTabChange(id: string) {
     const nextIdx = TABS.findIndex(t => t.id === id)
@@ -881,7 +896,7 @@ export default function Dashboard() {
         <div ref={tabBarRef} className="mb-6 relative flex gap-1 rounded-xl bg-muted/60 p-1 overflow-x-auto scrollbar-none snap-x snap-mandatory md:snap-none">
           {/* Botão Início */}
           <button
-            onClick={() => comTransicao(() => navigate('/'))}
+            onClick={voltarInicio}
             className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all duration-100 whitespace-nowrap active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             title="Voltar ao início"
           >
@@ -918,7 +933,7 @@ export default function Dashboard() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'estoque' && estoqueSub === id)} />
+                <Icon className="h-4 w-4 shrink-0" style={vtStyle((vtIcone === 'estoque' || vtVolta) && estoqueSub === id)} />
                 <span className="hidden sm:inline truncate">{label}</span>
               </button>
             ))
@@ -945,7 +960,7 @@ export default function Dashboard() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'admin' && adminSub === id)} />
+              <Icon className="h-4 w-4 shrink-0" style={vtStyle((vtIcone === 'admin' || vtVolta) && adminSub === id)} />
               <span className="hidden sm:inline truncate">{label}</span>
             </button>
           ))}
@@ -969,7 +984,7 @@ export default function Dashboard() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'orcamento' && activeTab === id)} />
+              <Icon className="h-4 w-4 shrink-0" style={vtStyle((vtIcone === 'orcamento' || vtVolta) && activeTab === id)} />
               <span className="hidden sm:inline truncate">{label}</span>
               {tabUpdatePulse.has(id) && (
                 <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
@@ -985,8 +1000,8 @@ export default function Dashboard() {
               className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
             >
               {activeTab === 'agente-ia'
-                ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia')} />Agente IA</>
-                : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos')} />Tabela de Preços</>}
+                ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia' || (vtVolta && activeTab === 'agente-ia'))} />Agente IA</>
+                : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos' || (vtVolta && activeTab === 'precos'))} />Tabela de Preços</>}
             </button>
           ) : (
           /* SECTION TABS (fallback) */

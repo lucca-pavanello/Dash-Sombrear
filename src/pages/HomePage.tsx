@@ -157,9 +157,20 @@ export default function HomePage() {
   const contarPulso = coreo === 'home-choreo'
   const ir = (path: string) => comTransicao(() => navigate(path))
 
-  // Ícone que viaja: marca o card clicado como shared element ANTES da transição,
-  // e avisa o destino (via sessionStorage) qual ícone deve "receber" o voo.
-  const [viajante, setViajante] = useState<string | null>(null)
+  // Ícone que viaja: na IDA marca o card clicado antes da transição e avisa o destino;
+  // na VOLTA (← Início) o Dashboard deixa o aviso e o card correspondente "recebe" o voo.
+  const [viajante, setViajante] = useState<string | null>(() => {
+    try {
+      const v = sessionStorage.getItem('sombrear-vt-icone')
+      sessionStorage.removeItem('sombrear-vt-icone')
+      return v
+    } catch { return null }
+  })
+  useEffect(() => {
+    if (!viajante) return
+    const t = setTimeout(() => setViajante(null), 600)
+    return () => clearTimeout(t)
+  }, [viajante])
   function irArea(area: string, path: string) {
     try { sessionStorage.setItem('sombrear-vt-icone', area) } catch { /* segue sem voo */ }
     flushSync(() => setViajante(area))
