@@ -471,6 +471,11 @@
   animation-duration: 380ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* linha da tabela → painel de edição: o clique "expande" a linha no detalhe */
+::view-transition-group(detalhe-orc) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
 
 /* ── Tilt 3D dos cards da Home (segue o mouse; brilho especular acompanha) ── */
 .tilt-card {

@@ -629,7 +629,7 @@ function SecaoSazonalidade() {
                       fontSize: '12px',
                     }}
                   />
-                  <Bar dataKey="faturamento" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="faturamento" radius={[4, 4, 0, 0]} isAnimationActive animationDuration={700} animationEasing="ease-out">
                     {chartData.map((entry, index) => (
                       <Cell key={index} fill={entry.fill} />
                     ))}

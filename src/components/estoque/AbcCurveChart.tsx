@@ -112,7 +112,7 @@ export default function AbcCurveChart({ toast }: Props) {
                 labelFormatter={() => ''}
                 contentStyle={{ fontSize: 12 }}
               />
-              <Bar dataKey="saidas" radius={[4, 4, 0, 0]} maxBarSize={40}>
+              <Bar dataKey="saidas" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive animationDuration={700} animationEasing="ease-out">
                 {chartData.map((entry, idx) => (
                   <Cell key={idx} fill={ABC_COLOR[entry.classe]} />
                 ))}

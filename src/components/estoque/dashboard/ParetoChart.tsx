@@ -124,7 +124,7 @@ export default function ParetoChart({ items, isLoading }: Props) {
           formatter={(value) => (value === 'percentual_individual' ? '% individual (barras)' : '% acumulado (linha)')}
           wrapperStyle={{ fontSize: 11 }}
         />
-        <Bar yAxisId="left" dataKey="percentual_individual" maxBarSize={32} radius={[3, 3, 0, 0]}>
+        <Bar yAxisId="left" dataKey="percentual_individual" maxBarSize={32} radius={[3, 3, 0, 0]} isAnimationActive animationDuration={700} animationEasing="ease-out">
           {items.map((entry, i) => (
             <Cell key={i} fill={CLASS_COLOR[entry.classificacao_abc ?? 'sem_dados']} />
           ))}

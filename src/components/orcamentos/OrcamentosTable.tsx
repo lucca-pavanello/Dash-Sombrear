@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { flushSync } from 'react-dom'
+import { comTransicao } from '@/lib/viewTransition'
 import { Download, ChevronUp, ChevronDown, ChevronsUpDown, StickyNote, Square, CheckSquare, FileDown, ChevronLeft, ChevronRight, FileX, Copy, Check, Columns3, Maximize2, Minimize2 } from 'lucide-react'
 import AvatarInitials from '@/components/shared/AvatarInitials'
 import EmptyState from '@/components/shared/EmptyState'
@@ -304,6 +306,19 @@ function loadColVis(): Record<ColId, boolean> {
 
 export default function OrcamentosTable({ data, toast, isFiltered, search = '', onClearFilters, filterKey, totalCount }: Props) {
   const [editing, setEditing] = useState<Orcamento | null>(null)
+  // Linha → detalhe: a linha clicada vira o shared element e "expande" no painel de edição
+  const [vtOrcId, setVtOrcId] = useState<Orcamento['id'] | null>(null)
+  function abrirEdicao(o: Orcamento) {
+    flushSync(() => setVtOrcId(o.id))
+    comTransicao(() => setEditing(o))
+  }
+  useEffect(() => {
+    if (vtOrcId == null) return
+    const t = setTimeout(() => setVtOrcId(null), 600)
+    return () => clearTimeout(t)
+  }, [vtOrcId])
+  const vtLinha = (id: Orcamento['id']) =>
+    vtOrcId === id ? ({ viewTransitionName: 'detalhe-orc' } as React.CSSProperties) : undefined
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>(() => {
     try {
       const s = localStorage.getItem(ORC_SORT_KEY)
@@ -572,13 +587,13 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                     return (
                       <tr
                         key={o.id}
-                        onClick={() => setEditing(o)}
+                        onClick={() => abrirEdicao(o)}
                         className={cn(
                           'border-b last:border-0 transition-colors duration-150 cursor-pointer group row-animate-in',
                           o.fechado && !hasFlash && 'row-fechado',
                           hasFlash && 'animate-row-close'
                         )}
-                        style={{ animationDelay: `${i * 25}ms` }}
+                        style={{ animationDelay: `${i * 25}ms`, ...vtLinha(o.id) }}
                       >
                         {/* sticky left */}
                         <td className="px-2 py-3 text-center w-10 relative" style={{ position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'hsl(var(--card))', boxShadow: '4px 0 6px -2px rgba(0,0,0,0.12)' }}>
@@ -712,7 +727,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                 return (
                   <div
                     key={o.id}
-                    onClick={() => setEditing(o)}
+                    onClick={() => abrirEdicao(o)}
+                    style={vtLinha(o.id)}
                     className={cn(
                       'px-4 py-4 cursor-pointer hover:bg-muted/20 transition-colors',
                       o.fechado && !hasFlash && 'row-fechado',
