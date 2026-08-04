@@ -312,6 +312,15 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
     flushSync(() => setVtOrcId(o.id))
     comTransicao(() => setEditing(o))
   }
+  // A volta: o painel encolhe de volta até a linha de origem (nome só entra na
+  // linha DENTRO da transição — nunca junto com o painel, senão o par duplica)
+  function fecharEdicao() {
+    const id = editing?.id
+    comTransicao(() => {
+      setEditing(null)
+      if (id != null) setVtOrcId(id)
+    })
+  }
   useEffect(() => {
     if (vtOrcId == null) return
     const t = setTimeout(() => setVtOrcId(null), 600)
@@ -818,7 +827,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
       {editing && (
         <EditOrcamentoForm
           orcamento={editing}
-          onClose={() => setEditing(null)}
+          onClose={fecharEdicao}
           toast={toast}
         />
       )}

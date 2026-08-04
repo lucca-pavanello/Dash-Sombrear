@@ -466,11 +466,6 @@
   animation-duration: 320ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* splash → header: o "S" encolhe até virar o logo do canto */
-::view-transition-group(logo-marca) {
-  animation-duration: 380ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
 /* linha da tabela → painel de edição: o clique "expande" a linha no detalhe */
 ::view-transition-group(detalhe-orc) {
   animation-duration: 300ms;

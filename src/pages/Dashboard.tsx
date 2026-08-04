@@ -388,16 +388,9 @@ export default function Dashboard() {
     }
   }, [profileLoading, canOrcamento, canEstoque, canAgenteIA, canPrecos, isAdmin])
 
-  // ── Splash screen: o "S" viaja e encolhe até virar o logo do header (View Transitions) ──
+  // ── Splash screen: some quando dados carregam ──
   useEffect(() => {
     if (!isLoading && showSplash) {
-      type DocVT = Document & { startViewTransition?: (cb: () => void) => void }
-      const suportaVT = !!(document as DocVT).startViewTransition
-        && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      if (suportaVT) {
-        comTransicao(() => setShowSplash(false))
-        return
-      }
       setSplashFading(true)
       const t = setTimeout(() => setShowSplash(false), 400)
       return () => clearTimeout(t)
@@ -638,8 +631,7 @@ export default function Dashboard() {
           splashFading && 'splash-overlay-out',
         )}
       >
-        <div className="splash-icon-pulse flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand"
-          style={{ viewTransitionName: 'logo-marca' } as React.CSSProperties}>
+        <div className="splash-icon-pulse flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand">
           <span className="font-display text-3xl font-bold text-white">S</span>
         </div>
         <h2 className="mt-5 font-display text-xl font-bold text-foreground">Sombrear</h2>
@@ -666,8 +658,7 @@ export default function Dashboard() {
       <header className="header-aurora sticky top-0 z-50 border-b border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] backdrop-blur-md shadow-sm">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-gradient shadow-brand"
-              style={!showSplash ? ({ viewTransitionName: 'logo-marca' } as React.CSSProperties) : undefined}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-gradient shadow-brand">
               <span className="font-display text-base font-bold text-white">S</span>
             </div>
             <div>
