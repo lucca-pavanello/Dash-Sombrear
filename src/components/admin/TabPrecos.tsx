@@ -842,23 +842,59 @@ function SecaoMotor({ salvar }: SecaoProps) {
   )
 }
 
+// Cada grupo diz EXATAMENTE onde é usado e se está ativo no cálculo dos agentes —
+// pra um humano nunca mexer no número errado.
 const GRUPOS_PARAMETROS: {
-  titulo: string; hint: string; chaves: string[]; formato: (v: unknown) => string
+  titulo: string; hint: string; usadoPor: string[]; ativo: boolean
+  chaves: string[]; formato: (v: unknown) => string
 }[] = [
   {
-    titulo: 'Markups de venda', hint: 'Quanto o custo é multiplicado para virar preço de venda.',
-    chaves: ['markup_venda', 'markup_acabamento', 'markup_venda_pv_ph', 'markup_venda_ph50', 'markup_bando_ph50', 'markup_motorizacao'],
+    titulo: 'Persianas de tecido', hint: 'Venda = custo × markup × parcelamento². Acabamento (bandô/barra) tem markup próprio.',
+    usadoPor: ['Rolô', 'Double', 'Romana', 'Motorizado (parte persiana)'], ativo: true,
+    chaves: ['markup_venda', 'markup_acabamento'],
     formato: v => `× ${fmtNum(v)}`,
   },
   {
-    titulo: 'Taxas e descontos', hint: 'Parcelamento, taxa da PH 50 e desconto à vista.',
-    chaves: ['taxa_parcelamento', 'taxa_ph50', 'desconto_avista_pct', 'bando_ph50_venda_fixo'],
+    titulo: 'PV e PH Alumínio', hint: 'Venda = custo × markup × parcelamento².',
+    usadoPor: ['PV', 'PH Alumínio 25mm'], ativo: true,
+    chaves: ['markup_venda_pv_ph'],
+    formato: v => `× ${fmtNum(v)}`,
+  },
+  {
+    titulo: 'PH 50mm', hint: 'Venda = custo × markup × taxa própria (não usa o parcelamento geral). Bandô tem markup e parcela fixa próprios.',
+    usadoPor: ['PH 50mm'], ativo: true,
+    chaves: ['markup_venda_ph50', 'taxa_ph50', 'markup_bando_ph50', 'bando_ph50_venda_fixo'],
     formato: v => fmtNum(v),
   },
   {
-    titulo: 'Kit Box', hint: 'Fatores da fórmula do Kit Box (exclusivo da Rolô).',
+    titulo: 'Motorização', hint: 'Venda do motor = custo × markup (SEM taxa de parcelamento por cima).',
+    usadoPor: ['Rolô Motorizado (parte motor)'], ativo: true,
+    chaves: ['markup_motorizacao'],
+    formato: v => `× ${fmtNum(v)}`,
+  },
+  {
+    titulo: 'Parcelamento e à vista', hint: 'A taxa entra 2× na venda (4× sem juros); o desconto vale pra pagamento à vista.',
+    usadoPor: ['Todos os modelos (exceto a taxa na PH 50mm)'], ativo: true,
+    chaves: ['taxa_parcelamento', 'desconto_avista_pct'],
+    formato: v => fmtNum(v),
+  },
+  {
+    titulo: 'Kit Box — fórmula atual', hint: 'Fatores da fórmula em uso no orçamento da Rolô.',
+    usadoPor: ['Rolô (acabamento Kit Box)'], ativo: true,
     chaves: ['kitbox_ml_largura', 'kitbox_fixo1', 'kitbox_ml_perimetro', 'kitbox_fixo2', 'kitbox_ml_altura'],
     formato: v => fmtBRL(v),
+  },
+  {
+    titulo: 'Kit Box v2 — tabela Julho/26', hint: 'Receita nova da planilha da cliente. Entra em vigor quando o prompt da Rolô for virado.',
+    usadoPor: ['Ninguém ainda'], ativo: false,
+    chaves: ['kitbox2_bando_ml', 'kitbox2_tampa_bando_par', 'kitbox2_guia60_ml', 'kitbox2_guia55_ml', 'kitbox2_tampa_guia_pc', 'kitbox2_escovinha_ml'],
+    formato: v => fmtBRL(v),
+  },
+  {
+    titulo: 'Atacado — tabela Julho/26', hint: 'Multiplicador de atacado da planilha nova. Ainda não entra em nenhum orçamento.',
+    usadoPor: ['Ninguém ainda'], ativo: false,
+    chaves: ['markup_atacado'],
+    formato: v => `× ${fmtNum(v)}`,
   },
 ]
 
@@ -877,7 +913,20 @@ function SecaoParametros({ salvar }: SecaoProps) {
         if (linhas.length === 0) return null
         return (
           <div key={g.titulo}>
-            <p className="mb-0.5 font-display text-sm font-semibold tracking-wide">{g.titulo}</p>
+            <div className="mb-0.5 flex flex-wrap items-center gap-2">
+              <p className="font-display text-sm font-semibold tracking-wide">{g.titulo}</p>
+              <span className={cn(
+                'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                g.ativo ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600',
+              )}>
+                {g.ativo ? 'usado no cálculo hoje' : 'ainda não usado'}
+              </span>
+              {g.usadoPor.map(u => (
+                <span key={u} className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                  {u}
+                </span>
+              ))}
+            </div>
             <p className="mb-2 text-xs text-muted-foreground">{g.hint}</p>
             <PrecosGrid
               colunas={[
