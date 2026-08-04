@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FileText, Bot, Calculator, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, Kanban, AlertTriangle, CircleDollarSign } from 'lucide-react'
 import { supabase, type Orcamento } from '@/lib/supabase'
