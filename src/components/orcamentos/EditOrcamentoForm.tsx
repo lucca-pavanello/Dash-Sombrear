@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react'
+import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight, MessageCircle, FileDown } from 'lucide-react'
 import { useUpdateOrcamento, useDeleteOrcamento, useAddOrcamento, useOrcamentoHistorico, useAddHistorico, type HistoricoEntry } from '@/hooks/useOrcamentos'
 import { haptic } from '@/lib/haptic'
 import { useToggleShare } from '@/hooks/useKanban'
 import type { Orcamento } from '@/lib/supabase'
 import { cn, formatCurrency, calcularMargem, formatDateTime } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
-import { MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
+import { ADMIN_EMAIL, MODELOS, SUGESTOES_AMBIENTE } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
 import { useSugestaoCustoTecido } from '@/hooks/useSugestaoCustoTecido'
+import { useProfile } from '@/hooks/useProfile'
+import { gerarPropostaPdf } from '@/lib/propostaPdf'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -175,6 +177,9 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   const { mutateAsync: addHistorico } = useAddHistorico()
   const { mutateAsync: toggleShare, isPending: isTogglingShare } = useToggleShare()
   const { data: historico } = useOrcamentoHistorico(orcamento.id)
+  const { data: perfil } = useProfile()
+  // Proposta PDF em beta: só admin vê o botão até o Arthur aprovar o layout
+  const ehAdmin = perfil?.email === ADMIN_EMAIL || perfil?.is_admin === true
   const userEditedDimensions = useRef(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
@@ -436,6 +441,17 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             </p>
           </div>
           <div className="flex items-center gap-1">
+            {ehAdmin && (
+              <button
+                type="button"
+                onClick={() => gerarPropostaPdf(orcamento)}
+                className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                title="Proposta em PDF (beta — visível só para admin)"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Proposta
+              </button>
+            )}
             <button
               type="button"
               onClick={handleShare}
