@@ -13,6 +13,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
 import InsightsStella from '@/components/agente/InsightsStella'
+import ClassificadorConversas, { SeloClassificacao } from '@/components/agente/ClassificadorConversas'
 import FollowupControle from '@/components/agente/FollowupControle'
 import { useProfile } from '@/hooks/useProfile'
 import { ADMIN_EMAIL } from '@/lib/constants'
@@ -487,6 +488,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       {/* ── Funil de conversão ── */}
       <FunnelChart stages={funnelStages} />
 
+      {/* ── Veredito da IA por conversa (venda / negociação / perdida + motivo) ── */}
+      <ClassificadorConversas leads={filtrados} toast={toast} />
+
       {/* ── Insights da Stella (síntese das conversas via Gemini) ── */}
       <InsightsStella leads={leads} orcamentosIA={orcamentosIA} toast={toast} />
 
@@ -601,7 +605,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                               </span>
                             </td>
                             <td className="px-4 py-3.5 text-center font-medium border-r border-border/20">
-                              {lead.nome ?? '—'}
+                              <span className="block">{lead.nome ?? '—'}</span>
+                              <SeloClassificacao lead={lead} className="mt-1" />
                             </td>
                             <td className="px-4 py-3.5 text-center border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
                               {lead.whatsapp ? (
@@ -814,6 +819,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div>
                             <p className="font-semibold text-sm">{lead.nome ?? 'Sem nome'}</p>
+                            <SeloClassificacao lead={lead} className="mt-1" />
                             {lead.whatsapp && (
                               <span className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-xs text-muted-foreground">{lead.whatsapp}</span>

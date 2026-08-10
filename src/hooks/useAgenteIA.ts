@@ -33,6 +33,11 @@ export type CrmLead = {
   cidade: string | null
   tipo_imovel: string | null
   orcamento_aceito: boolean | null
+  // veredito da IA sobre a conversa (edge function classificar-conversas)
+  classificacao_ia: string | null
+  classificacao_motivo: string | null
+  classificacao_temperatura: string | null
+  classificacao_em: string | null
 }
 
 export type OrcamentoIA = {
