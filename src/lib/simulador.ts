@@ -125,6 +125,17 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       if (e.modelo === 'Rolo') {
         familia = 'ROLO'
         espessura = (L >= 2.51 || A >= 3.01) ? 50 : (L >= 1.71 || A >= 1.41) ? 38 : 32
+        // A loja só tem ferragem preta no tubo 38: o 32 preto vira 38, e no
+        // tamanho que exigiria o tubo 50 a persiana só existe em branca.
+        if (e.corFerragem === 'PRETA') {
+          if (espessura === 50) {
+            return { erro: 'Nessa medida a ferragem preta não é fabricada (tubo 50mm só em branca). Ofereça a versão branca.' }
+          }
+          if (espessura === 32) {
+            espessura = 38
+            obs.push('Ferragem preta: tubo 38mm (a loja não trabalha o 32mm preto)')
+          }
+        }
       }
       const comps = d.componentes.filter(c =>
         c.familia === familia && c.cor === e.corFerragem && Number(c.espessura) === espessura)
@@ -218,6 +229,19 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
 
   const total4x = round2(vendaProduto + vendaAcabamento)
   const totalAvista = round2(total4x * (1 - param('desconto_avista_pct', 5) / 100))
+
+  /* ── custo real da loja ────────────────────────────────────────────────
+     Nas persianas de tecido (Rolô, Double, Romana e Motorizado) a produção é
+     feita por uma empresa parceira: o que a loja paga é o custo da tabela ×
+     custo_parceiro. O PREÇO DE VENDA NÃO MUDA (segue sobre o custo de tabela);
+     o que muda é o custo real e, portanto, a margem verdadeira.
+     PV, PH Alumínio, PH 50mm e instalação ficam de fora. */
+  const modeloDeTecido = e.modelo === 'Rolo' || e.modelo === 'Double' || e.modelo === 'Romana'
+  const fatorParceiro = modeloDeTecido ? param('custo_parceiro', 1.4) : 1
+  if (fatorParceiro !== 1) {
+    custoProduto *= fatorParceiro
+    custoAcabamento *= fatorParceiro
+  }
 
   return {
     custoProduto: round2(custoProduto), custoAcabamento: round2(custoAcabamento),
