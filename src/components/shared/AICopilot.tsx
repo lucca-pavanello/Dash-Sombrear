@@ -140,7 +140,7 @@ function AICopilot({ open, onClose, data }: Props) {
 
       <div className={cn(
         'fixed bottom-20 right-4 z-[490] flex flex-col',
-        'w-[360px] max-h-[560px] min-h-[200px]',
+        'w-[min(360px,calc(100vw-2rem))] max-h-[min(560px,calc(100dvh-6.5rem))] min-h-[200px]',
         'rounded-2xl border-2 border-primary/20 bg-card shadow-2xl',
         'dark:bg-card/90 dark:backdrop-blur-xl',
         'animate-in slide-in-from-bottom-4 fade-in duration-200',

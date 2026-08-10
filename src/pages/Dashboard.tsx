@@ -784,7 +784,7 @@ export default function Dashboard() {
             {/* ── Grupo 3: Ferramentas — Apresentação, Copilot, Som, Tema ── */}
             <MagneticBtn
               onClick={() => setPresentationOpen(true)}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+              className="hidden sm:inline-flex rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               aria-label="Modo Apresentação"
               title="Modo Apresentação (P)"
             >
@@ -807,7 +807,7 @@ export default function Dashboard() {
 
             <MagneticBtn
               onClick={uiSound.toggle}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+              className="hidden sm:inline-flex rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               aria-label={uiSound.enabled ? 'Desativar sons' : 'Ativar sons'}
               title={uiSound.enabled ? 'Sons ativos' : 'Sons desativados'}
             >
