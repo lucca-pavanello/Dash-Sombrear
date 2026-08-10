@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { useEstoqueMovimentacoes } from '@/hooks/useEstoqueMovimentacoes'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import type { MovimentacaoFilters } from '@/hooks/useEstoqueMovimentacoes'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 const TIPO_BADGE: Record<string, string> = {
   entrada: 'bg-primary/10 text-primary',
@@ -63,26 +64,27 @@ export default function EstoqueMovimentacoesTable({ defaultTipo = '', headerActi
           )}
         </div>
 
-        <select
+        <CustomSelect
           value={produtoFilter}
-          onChange={(e) => { setProdutoFilter(e.target.value); setPage(1) }}
-          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all"
-        >
-          <option value="">Todos os produtos</option>
-          {produtos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-        </select>
+          onChange={(v) => { setProdutoFilter(v); setPage(1) }}
+          options={[{ value: '', label: 'Todos os produtos' }, ...produtos.map((p) => ({ value: p.id, label: p.nome }))]}
+          placeholder="Todos os produtos"
+          className="w-48"
+        />
 
-        <select
+        <CustomSelect
           value={tipoFilter}
-          onChange={(e) => { setTipoFilter(e.target.value); setPage(1) }}
-          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all"
-        >
-          <option value="">Todos os tipos</option>
-          <option value="entrada">Entrada</option>
-          <option value="saida">Saída</option>
-          <option value="ajuste">Ajuste</option>
-          <option value="perda">Perda</option>
-        </select>
+          onChange={(v) => { setTipoFilter(v); setPage(1) }}
+          options={[
+            { value: '', label: 'Todos os tipos' },
+            { value: 'entrada', label: 'Entrada' },
+            { value: 'saida', label: 'Saída' },
+            { value: 'ajuste', label: 'Ajuste' },
+            { value: 'perda', label: 'Perda' },
+          ]}
+          placeholder="Todos os tipos"
+          className="w-40"
+        />
       </div>
 
       {/* Tabela */}

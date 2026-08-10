@@ -4,6 +4,7 @@ import { useAddCustoInterno } from '@/hooks/useAddCustoInterno'
 import { formatCurrency } from '@/lib/utils'
 import { MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 function ModeloHint({ modelo }: { modelo: string }) {
   const rule = MODELO_RULES[modelo]
@@ -170,6 +171,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
       aria-modal="true"
       aria-labelledby="modal-title-custo"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-[2px]"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={panelRef}
@@ -190,15 +192,12 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
             {/* Responsável */}
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Responsável <span className="text-destructive ml-0.5">*</span></label>
-              <select
-                required
+              <CustomSelect
                 value={form.responsavel}
-                onChange={(e) => set('responsavel', e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Selecione…</option>
-                {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
+                onChange={(v) => set('responsavel', v)}
+                options={responsaveis}
+                placeholder="Selecione…"
+              />
             </div>
 
             {/* Cliente */}
@@ -225,9 +224,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
             {/* Modelo */}
             <div>
               <label className={labelClass}>Modelo <span className="text-destructive ml-0.5">*</span></label>
-              <select required value={form.modelo} onChange={(e) => set('modelo', e.target.value)} className={inputClass}>
-                {MODELOS.map((m) => <option key={m}>{m}</option>)}
-              </select>
+              <CustomSelect value={form.modelo} onChange={(v) => set('modelo', v)} options={MODELOS} />
             </div>
 
             <ModeloHint modelo={form.modelo} />

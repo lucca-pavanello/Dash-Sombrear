@@ -6,6 +6,7 @@ import SectionDivider from '@/components/shared/SectionDivider'
 import { MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
 import { useSugestaoCustoTecido } from '@/hooks/useSugestaoCustoTecido'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 function ModeloHint({ modelo }: { modelo: string }) {
   const rule = MODELO_RULES[modelo]
@@ -215,6 +216,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
       aria-modal="true"
       aria-labelledby="modal-title-novo"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-[2px]"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={panelRef}
@@ -275,15 +277,12 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
               <SectionDivider label="Cliente" />
               <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Responsável <span className="text-destructive ml-0.5">*</span></label>
-                <select
-                  required
+                <CustomSelect
                   value={form.responsavel}
-                  onChange={(e) => set('responsavel', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Selecione…</option>
-                  {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
+                  onChange={(v) => set('responsavel', v)}
+                  options={responsaveis}
+                  placeholder="Selecione…"
+                />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Cliente</label>
@@ -315,9 +314,7 @@ export default function NovoOrcamentoForm({ toast, open, onClose, initial, fonte
               <SectionDivider label="Produto" />
               <div className="col-span-2 sm:col-span-1">
                 <label className={labelClass}>Modelo <span className="text-destructive ml-0.5">*</span></label>
-                <select required value={form.modelo} onChange={(e) => set('modelo', e.target.value)} className={cn(inputClass, 'cursor-pointer')}>
-                  {MODELOS.map((m) => <option key={m}>{m}</option>)}
-                </select>
+                <CustomSelect value={form.modelo} onChange={(v) => set('modelo', v)} options={MODELOS} />
               </div>
               <ModeloHint modelo={form.modelo} />
               <div className="col-span-2 sm:col-span-1">

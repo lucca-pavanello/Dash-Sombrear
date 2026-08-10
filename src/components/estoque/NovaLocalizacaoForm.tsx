@@ -5,6 +5,7 @@ import { useAddLocalizacao, useUpdateLocalizacao } from '@/hooks/useEstoqueLocal
 import { NIVEIS_ACESSO } from '@/lib/constants'
 import type { EstoqueLocalizacao } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
@@ -118,6 +119,7 @@ export default function NovaLocalizacaoForm({ open, onClose, toast, editando }: 
       aria-modal="true"
       aria-labelledby="modal-title-localizacao"
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={panelRef}
@@ -183,16 +185,13 @@ export default function NovaLocalizacaoForm({ open, onClose, toast, editando }: 
 
           <div>
             <label className={labelClass}>Nível de acesso *</label>
-            <select
+            <CustomSelect
               value={form.nivel_acesso}
-              onChange={(e) => set('nivel_acesso', e.target.value)}
-              className={cn(inputClass, errors.nivel_acesso && 'border-destructive')}
-            >
-              <option value="">Selecione…</option>
-              {Object.entries(NIVEIS_ACESSO).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+              onChange={(v) => set('nivel_acesso', v)}
+              options={Object.entries(NIVEIS_ACESSO).map(([value, label]) => ({ value, label }))}
+              placeholder="Selecione…"
+              className={cn(errors.nivel_acesso && 'border-destructive')}
+            />
             {errors.nivel_acesso && <p className="mt-1 text-xs text-destructive">{errors.nivel_acesso}</p>}
           </div>
 

@@ -11,6 +11,7 @@ import { useResponsaveis } from '@/hooks/useResponsaveis'
 import { useSugestaoCustoTecido } from '@/hooks/useSugestaoCustoTecido'
 import { useProfile } from '@/hooks/useProfile'
 import { gerarPropostaPdf } from '@/lib/propostaPdf'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
 
@@ -419,6 +420,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       aria-modal="true"
       aria-labelledby="modal-title-edit"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-[2px]"
+      onClick={e => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div
         ref={panelRef}
@@ -510,15 +512,12 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
 
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Responsável <span className="text-destructive ml-0.5">*</span></label>
-              <select
-                required
+              <CustomSelect
                 value={form.responsavel}
-                onChange={(e) => set('responsavel', e.target.value)}
-                className={inputClass}
-              >
-                <option value="">Selecione…</option>
-                {responsaveis.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
+                onChange={(v) => set('responsavel', v)}
+                options={responsaveis}
+                placeholder="Selecione…"
+              />
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Cliente</label>
@@ -555,9 +554,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Modelo <span className="text-destructive ml-0.5">*</span></label>
-              <select required value={form.modelo} onChange={(e) => set('modelo', e.target.value)} className={cn(inputClass, 'cursor-pointer')}>
-                {MODELOS.map((m) => <option key={m}>{m}</option>)}
-              </select>
+              <CustomSelect value={form.modelo} onChange={(v) => set('modelo', v)} options={MODELOS} />
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className={labelClass}>Quantidade <span className="text-destructive ml-0.5">*</span></label>

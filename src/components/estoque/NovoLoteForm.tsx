@@ -6,6 +6,7 @@ import { useAddLote } from '@/hooks/useEstoqueLotes'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { formatCurrency } from '@/lib/utils'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
@@ -156,6 +157,7 @@ export default function NovoLoteForm({ open, onClose, toast }: Props) {
       aria-modal="true"
       aria-labelledby="modal-title-lote"
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={panelRef}
@@ -217,16 +219,15 @@ export default function NovoLoteForm({ open, onClose, toast }: Props) {
               </div>
               <div>
                 <label className={labelClass}>Fornecedor</label>
-                <select
+                <CustomSelect
                   value={fornecedor_id}
-                  onChange={(e) => setFornecedorId(e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Selecione (opcional)...</option>
-                  {fornecedores.map((f) => (
-                    <option key={f.id} value={f.id}>{f.nome}</option>
-                  ))}
-                </select>
+                  onChange={setFornecedorId}
+                  options={[
+                    { value: '', label: 'Selecione (opcional)...' },
+                    ...fornecedores.map((f) => ({ value: f.id, label: f.nome })),
+                  ]}
+                  placeholder="Selecione (opcional)..."
+                />
               </div>
               <div>
                 <label className={labelClass}>Número da NF</label>
@@ -275,18 +276,16 @@ export default function NovoLoteForm({ open, onClose, toast }: Props) {
 
                   <div>
                     <label className={labelClass}>Produto *</label>
-                    <select
+                    <CustomSelect
                       value={item.produto_id}
-                      onChange={(e) => updateItem(idx, 'produto_id', e.target.value)}
-                      className={cn(inputClass, errors[`produto_${idx}`] && 'border-destructive')}
-                    >
-                      <option value="">Selecione o produto…</option>
-                      {produtos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.nome}{p.codigo ? ` (${p.codigo})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(v) => updateItem(idx, 'produto_id', v)}
+                      options={produtos.map((p) => ({
+                        value: p.id,
+                        label: `${p.nome}${p.codigo ? ` (${p.codigo})` : ''}`,
+                      }))}
+                      placeholder="Selecione o produto…"
+                      className={cn(errors[`produto_${idx}`] && 'border-destructive')}
+                    />
                     {errors[`produto_${idx}`] && (
                       <p className="mt-1 text-xs text-destructive">{errors[`produto_${idx}`]}</p>
                     )}

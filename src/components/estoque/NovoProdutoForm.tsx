@@ -7,6 +7,7 @@ import { useCreateEstoqueProduto, useUpdateEstoqueProduto } from '@/hooks/useEst
 import { useRegistrarMovimentacao } from '@/hooks/useEstoqueMovimentacoes'
 import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
@@ -170,6 +171,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
       aria-modal="true"
       aria-labelledby="modal-title-produto"
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={panelRef}
@@ -241,30 +243,28 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
               </div>
               <div>
                 <label className={labelClass}>Categoria *</label>
-                <select
+                <CustomSelect
                   value={form.categoria_id}
-                  onChange={(e) => set('categoria_id', e.target.value)}
-                  className={cn(inputClass, errors.categoria_id && 'border-destructive')}
-                >
-                  <option value="">Selecione…</option>
-                  {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
+                  onChange={(v) => set('categoria_id', v)}
+                  options={categorias.map((c) => ({ value: c.id, label: c.nome }))}
+                  placeholder="Selecione…"
+                  className={cn(errors.categoria_id && 'border-destructive')}
+                />
                 {errors.categoria_id && <p className="mt-1 text-xs text-destructive">{errors.categoria_id}</p>}
               </div>
               <div>
                 <label className={labelClass}>Unidade de Medida *</label>
-                <select
+                <CustomSelect
                   value={form.unidade}
-                  onChange={(e) => set('unidade', e.target.value as typeof form.unidade)}
-                  className={cn(inputClass, errors.unidade && 'border-destructive')}
-                >
-                  <option value="m">Metro linear (m)</option>
-                  <option value="m2">Metro quadrado (m²)</option>
-                  <option value="un">Unidade (un)</option>
-                  <option value="kg">Quilograma (kg)</option>
-                </select>
+                  onChange={(v) => set('unidade', v as typeof form.unidade)}
+                  options={[
+                    { value: 'm', label: 'Metro linear (m)' },
+                    { value: 'm2', label: 'Metro quadrado (m²)' },
+                    { value: 'un', label: 'Unidade (un)' },
+                    { value: 'kg', label: 'Quilograma (kg)' },
+                  ]}
+                  className={cn(errors.unidade && 'border-destructive')}
+                />
               </div>
             </>
           )}
@@ -324,16 +324,15 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
               </div>
               <div>
                 <label className={labelClass}>Localização</label>
-                <select
+                <CustomSelect
                   value={form.localizacao_id}
-                  onChange={(e) => set('localizacao_id', e.target.value)}
-                  className={inputClass}
-                >
-                  <option value="">Sem localização</option>
-                  {localizacoes.map((l) => (
-                    <option key={l.id} value={l.id}>{l.codigo} – {l.setor}</option>
-                  ))}
-                </select>
+                  onChange={(v) => set('localizacao_id', v)}
+                  options={[
+                    { value: '', label: 'Sem localização' },
+                    ...localizacoes.map((l) => ({ value: l.id, label: `${l.codigo} – ${l.setor}` })),
+                  ]}
+                  placeholder="Sem localização"
+                />
               </div>
             </>
           )}

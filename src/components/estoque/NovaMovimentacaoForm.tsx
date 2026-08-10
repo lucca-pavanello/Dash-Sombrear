@@ -5,6 +5,7 @@ import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { useRegistrarMovimentacao } from '@/hooks/useEstoqueMovimentacoes'
 import type { EstoqueProduto } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
 const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
@@ -132,6 +133,7 @@ export default function NovaMovimentacaoForm({
       aria-modal="true"
       aria-labelledby="modal-title-mov"
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={panelRef}
@@ -183,18 +185,16 @@ export default function NovaMovimentacaoForm({
           {/* Produto */}
           <div>
             <label className={labelClass}>Produto *</label>
-            <select
+            <CustomSelect
               value={produtoId}
-              onChange={(e) => { setProdutoId(e.target.value); setErrors((er) => { const n = {...er}; delete n.produto; return n }) }}
-              className={cn(inputClass, errors.produto && 'border-destructive')}
-            >
-              <option value="">Selecione o produto…</option>
-              {produtos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nome} ({p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} {p.unidade} em estoque)
-                </option>
-              ))}
-            </select>
+              onChange={(v) => { setProdutoId(v); setErrors((er) => { const n = {...er}; delete n.produto; return n }) }}
+              options={produtos.map((p) => ({
+                value: p.id,
+                label: `${p.nome} (${p.quantidade_atual.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} ${p.unidade} em estoque)`,
+              }))}
+              placeholder="Selecione o produto…"
+              className={cn(errors.produto && 'border-destructive')}
+            />
             {errors.produto && <p className="mt-1 text-xs text-destructive">{errors.produto}</p>}
           </div>
 

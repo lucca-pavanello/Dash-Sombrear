@@ -277,6 +277,7 @@ export default function NovoFornecedorForm({ open, onClose, toast, editando }: P
       aria-modal="true"
       aria-labelledby="modal-title-fornecedor"
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         ref={panelRef}

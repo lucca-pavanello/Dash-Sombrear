@@ -7,6 +7,7 @@ import { useEstoquePontoPedido } from '@/hooks/useEstoquePontoPedido'
 import { ClasseABC } from './shared/ClasseABC'
 import type { NivelAlerta } from './theme'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 const fmtNum = (v: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v)
@@ -58,9 +59,6 @@ export default function PontoPedidoView(_: Props) {
   const filtered = filtroNivel === 'todos'
     ? data
     : data.filter(r => r.nivel_alerta === filtroNivel)
-
-  const selectClass =
-    'rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all'
 
   return (
     <div className="space-y-5">
@@ -114,18 +112,19 @@ export default function PontoPedidoView(_: Props) {
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
           <p className="text-sm font-semibold mr-auto">Todos os produtos</p>
-          <select
+          <CustomSelect
             value={filtroNivel}
-            onChange={e => setFiltroNivel(e.target.value)}
-            className={selectClass}
-          >
-            <option value="todos">Todos os níveis</option>
-            <option value="ruptura">🔴 Ruptura</option>
-            <option value="critico">Crítico</option>
-            <option value="atencao">🟡 Atenção</option>
-            <option value="ok">✓ OK</option>
-            <option value="sem_dados">Sem dados</option>
-          </select>
+            onChange={setFiltroNivel}
+            options={[
+              { value: 'todos', label: 'Todos os níveis' },
+              { value: 'ruptura', label: '🔴 Ruptura' },
+              { value: 'critico', label: 'Crítico' },
+              { value: 'atencao', label: '🟡 Atenção' },
+              { value: 'ok', label: '✓ OK' },
+              { value: 'sem_dados', label: 'Sem dados' },
+            ]}
+            className="w-44"
+          />
         </div>
 
         {/* Cabeçalho da tabela */}

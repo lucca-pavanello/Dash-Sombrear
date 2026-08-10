@@ -5,6 +5,7 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { useSugestaoCompra } from '@/hooks/useEstoqueSugestao'
 import type { SugestaoCompra } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 interface Props {
   toast: (type: ToastType, message: string) => void
@@ -173,28 +174,28 @@ export default function SugestaoCompraView({ toast }: Props) {
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <CustomSelect
               value={filtroUrgencia}
-              onChange={e => setFiltroUrgencia(e.target.value)}
-              className="rounded-lg border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="todas">Todas urgências</option>
-              <option value="critico">Crítico</option>
-              <option value="abaixo_minimo">Abaixo do mínimo</option>
-              <option value="atencao">Atenção</option>
-              <option value="ok">OK</option>
-            </select>
+              onChange={setFiltroUrgencia}
+              options={[
+                { value: 'todas', label: 'Todas urgências' },
+                { value: 'critico', label: 'Crítico' },
+                { value: 'abaixo_minimo', label: 'Abaixo do mínimo' },
+                { value: 'atencao', label: 'Atenção' },
+                { value: 'ok', label: 'OK' },
+              ]}
+              className="w-44"
+            />
 
-            <select
+            <CustomSelect
               value={filtroFornecedor}
-              onChange={e => setFiltroFornecedor(e.target.value)}
-              className="rounded-lg border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="todos">Todos fornecedores</option>
-              {fornecedores.map(f => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
+              onChange={setFiltroFornecedor}
+              options={[
+                { value: 'todos', label: 'Todos fornecedores' },
+                ...fornecedores.map(f => ({ value: f, label: f })),
+              ]}
+              className="w-48"
+            />
 
             {selecionados.size > 0 && (
               <span className="text-xs text-muted-foreground">{selecionados.size} selecionado(s)</span>

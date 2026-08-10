@@ -10,6 +10,7 @@ import { NIVEIS_ACESSO } from '@/lib/constants'
 import { ClasseABC } from './shared/ClasseABC'
 import type { EstoqueSugestaoMover } from '@/lib/supabase'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 type ClasseFilter = 'todas' | 'A' | 'B' | 'C'
 
@@ -108,16 +109,17 @@ export default function MoverItensView({ toast }: Props) {
       <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center gap-2 border-b px-4 py-3">
-          <select
+          <CustomSelect
             value={classeFilter}
-            onChange={(e) => setClasseFilter(e.target.value as ClasseFilter)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all"
-          >
-            <option value="todas">Todas as classes</option>
-            <option value="A">Classe A</option>
-            <option value="B">Classe B</option>
-            <option value="C">Classe C</option>
-          </select>
+            onChange={(v) => setClasseFilter(v as ClasseFilter)}
+            options={[
+              { value: 'todas', label: 'Todas as classes' },
+              { value: 'A', label: 'Classe A' },
+              { value: 'B', label: 'Classe B' },
+              { value: 'C', label: 'Classe C' },
+            ]}
+            className="w-44"
+          />
           <span className="ml-auto text-xs text-muted-foreground">
             {filtered.length} sugestão{filtered.length !== 1 ? 'ões' : ''}
           </span>
@@ -211,6 +213,7 @@ export default function MoverItensView({ toast }: Props) {
           aria-modal="true"
           aria-labelledby="dialog-mover-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
+          onClick={e => { if (e.target === e.currentTarget) handleFecharDialog() }}
         >
           <div className="w-full max-w-sm bg-card rounded-2xl shadow-elevated">
             {/* Header */}
@@ -236,19 +239,15 @@ export default function MoverItensView({ toast }: Props) {
                 <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Nova localização *
                 </label>
-                <select
+                <CustomSelect
                   value={novaLocalizacaoId}
-                  onChange={(e) => setNovaLocalizacaoId(e.target.value)}
-                  className="w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all"
-                  autoFocus
-                >
-                  <option value="">Selecione uma localização…</option>
-                  {localizacoes.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.codigo} – {l.setor} ({NIVEIS_ACESSO[l.nivel_acesso] ?? l.nivel_acesso})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setNovaLocalizacaoId}
+                  options={localizacoes.map((l) => ({
+                    value: l.id,
+                    label: `${l.codigo} – ${l.setor} (${NIVEIS_ACESSO[l.nivel_acesso] ?? l.nivel_acesso})`,
+                  }))}
+                  placeholder="Selecione uma localização…"
+                />
               </div>
             </div>
 

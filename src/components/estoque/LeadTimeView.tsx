@@ -8,6 +8,7 @@ import { useLeadTimeRows, useLeadTimeConfig } from '@/hooks/useEstoqueLeadTime'
 import { ClasseABC } from './shared/ClasseABC'
 import type { LeadTimeConfig } from '@/hooks/useEstoqueLeadTime'
 import type { ToastType } from '@/hooks/useToast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 // ─── Constantes visuais ───────────────────────────────────────────────────────
 
@@ -41,9 +42,6 @@ const NIVEL_LABEL: Record<Nivel, string> = {
   vermelho: 'Vermelho',
   neutro:   '—',
 }
-
-const selectClass =
-  'rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary transition-all'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -160,42 +158,45 @@ export default function LeadTimeView(_: Props) {
           <p className="text-sm font-semibold mr-auto">Todos os produtos</p>
           <div className="flex flex-wrap gap-2">
             {/* Tipo */}
-            <select
+            <CustomSelect
               value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
-              className={selectClass}
-            >
-              <option value="all">Todos os tipos</option>
-              <option value="tecido">Tecido</option>
-              <option value="ferragem">Ferragem</option>
-              <option value="acessorio">Acessório</option>
-              <option value="outro">Outro</option>
-            </select>
+              onChange={setFilterTipo}
+              options={[
+                { value: 'all', label: 'Todos os tipos' },
+                { value: 'tecido', label: 'Tecido' },
+                { value: 'ferragem', label: 'Ferragem' },
+                { value: 'acessorio', label: 'Acessório' },
+                { value: 'outro', label: 'Outro' },
+              ]}
+              className="w-40"
+            />
 
             {/* Classe ABC */}
-            <select
+            <CustomSelect
               value={filterAbc}
-              onChange={(e) => setFilterAbc(e.target.value)}
-              className={selectClass}
-            >
-              <option value="all">Todas as classes</option>
-              <option value="A">Classe A</option>
-              <option value="B">Classe B</option>
-              <option value="C">Classe C</option>
-              <option value="sem_dados">Sem dados</option>
-            </select>
+              onChange={setFilterAbc}
+              options={[
+                { value: 'all', label: 'Todas as classes' },
+                { value: 'A', label: 'Classe A' },
+                { value: 'B', label: 'Classe B' },
+                { value: 'C', label: 'Classe C' },
+                { value: 'sem_dados', label: 'Sem dados' },
+              ]}
+              className="w-40"
+            />
 
             {/* Nível */}
-            <select
+            <CustomSelect
               value={filterNivel}
-              onChange={(e) => setFilterNivel(e.target.value)}
-              className={selectClass}
-            >
-              <option value="all">Todos os níveis</option>
-              <option value="verde">🟢 Verde (saudável)</option>
-              <option value="amarelo">🟡 Amarelo (alerta)</option>
-              <option value="vermelho">🔴 Vermelho (crítico)</option>
-            </select>
+              onChange={setFilterNivel}
+              options={[
+                { value: 'all', label: 'Todos os níveis' },
+                { value: 'verde', label: '🟢 Verde (saudável)' },
+                { value: 'amarelo', label: '🟡 Amarelo (alerta)' },
+                { value: 'vermelho', label: '🔴 Vermelho (crítico)' },
+              ]}
+              className="w-48"
+            />
           </div>
         </div>
 
