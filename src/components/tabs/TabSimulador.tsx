@@ -452,6 +452,17 @@ export default function TabSimulador() {
             )}
           </div>
 
+          {/* Limpar sempre à mão — zera produto, cliente e a lista da visita */}
+          <button
+            type="button"
+            onClick={limparTudo}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-xs font-semibold text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
+            title="Zera produto, cliente e os salvos — pronto pra próxima visita"
+          >
+            <Eraser className="h-3.5 w-3.5" />
+            Limpar tudo
+          </button>
+
           {/* Salvos nesta visita */}
           {salvos.length > 0 && (
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
