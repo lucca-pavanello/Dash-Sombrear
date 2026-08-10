@@ -34,6 +34,7 @@ const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
 const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
 
 const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
+const TabSimulador    = lazy(() => import('@/components/tabs/TabSimulador'))
 const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
 const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
@@ -41,7 +42,7 @@ const PermissoesView  = lazy(() => import('@/components/admin/PermissoesView'))
 const TabPrecos       = lazy(() => import('@/components/admin/TabPrecos'))
 const EditOrcamentoForm = lazy(() => import('@/components/orcamentos/EditOrcamentoForm'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban', 'precos']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban', 'precos', 'simulador']
 const DEFAULT_TAB = 'calcular-orcamento'
 function AskIATabBtn({ onMouseDown, onClick, active }: {
   onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void
@@ -84,6 +85,7 @@ const SECTION_LABELS: Record<string, string> = {
   'estoque': 'Estoque',
   'admin': 'Admin',
   'precos': 'Tabela de Preços',
+  'simulador': 'Simulador',
 }
 
 export default function Dashboard() {
@@ -191,6 +193,7 @@ export default function Dashboard() {
     && (tabFromUrl !== 'precos' || canPrecos || profileLoading)
     && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
     && (tabFromUrl !== 'agente-ia' || canAgenteIA || profileLoading)
+    && (tabFromUrl !== 'simulador' || canOrcamento || profileLoading)
     && (!ORCAMENTO_TABS.includes(tabFromUrl) || canOrcamento || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
@@ -248,6 +251,7 @@ export default function Dashboard() {
       : isAdminArea ? 'admin'
       : activeTab === 'agente-ia' ? 'agente-ia'
       : activeTab === 'precos' ? 'precos'
+      : activeTab === 'simulador' ? 'simulador'
       : isOrcamentoArea ? 'orcamento' : null
     if (area) {
       try { sessionStorage.setItem('sombrear-vt-icone', area) } catch { /* voa sem aviso */ }
@@ -374,10 +378,11 @@ export default function Dashboard() {
       if (activeTab === 'admin' && (profileLoading || !isAdmin)) return prev
       if (activeTab === 'precos' && (profileLoading || !canPrecos)) return prev
       if (activeTab === 'agente-ia' && (profileLoading || !canAgenteIA)) return prev
+      if (activeTab === 'simulador' && (profileLoading || !canOrcamento)) return prev
       if (activeTab === 'estoque' && (profileLoading || !canEstoque)) return prev
       return new Set([...prev, activeTab])
     })
-  }, [activeTab, isAdmin, canEstoque, canPrecos, canAgenteIA, profileLoading])
+  }, [activeTab, isAdmin, canEstoque, canPrecos, canAgenteIA, canOrcamento, profileLoading])
 
   // URLs antigas continuam funcionando: Agente IA e Tabela de Preços viraram áreas próprias
   useEffect(() => {
@@ -1014,13 +1019,15 @@ export default function Dashboard() {
           )}
 
           {/* ÁREAS SOLO: dentro delas só existe a própria área — navegação entre áreas é pelo Início */}
-          {(activeTab === 'agente-ia' || activeTab === 'precos') ? (
+          {(activeTab === 'agente-ia' || activeTab === 'precos' || activeTab === 'simulador') ? (
             <button
               data-tab={activeTab}
               className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
             >
               {activeTab === 'agente-ia'
                 ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia' || (vtVolta && activeTab === 'agente-ia'))} />Agente IA</>
+                : activeTab === 'simulador'
+                ? <><Calculator className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'simulador' || (vtVolta && activeTab === 'simulador'))} />Simulador</>
                 : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos' || (vtVolta && activeTab === 'precos'))} />Tabela de Preços</>}
             </button>
           ) : (
@@ -1074,6 +1081,13 @@ export default function Dashboard() {
             <Suspense fallback={<SkeletonKPITable />}>
               <div className={activeTab === 'agente-ia' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabAgenteIA resetKey={tabVersions['agente-ia']} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('simulador') && (
+            <Suspense fallback={<SkeletonForm />}>
+              <div className={activeTab === 'simulador' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
+                <TabSimulador />
               </div>
             </Suspense>
           )}

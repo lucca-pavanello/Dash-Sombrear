@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Bot, Calculator, CircleDollarSign, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
+import { ArrowRight, Bot, Calculator, CircleDollarSign, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command, Zap } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useCrmLeads } from '@/hooks/useAgenteIA'
@@ -346,6 +346,12 @@ export default function HomePage() {
               badge={pulso.deHoje > 0 ? { label: `${pulso.deHoje} hoje`, tone: 'primary' } : undefined}
               viajando={viajante === 'orcamento'}
               onClick={() => irArea('orcamento', '/orcamentos/calcular-orcamento')} />
+          )}
+          {canOrcamento && (
+            <AreaCard titulo="Simulador" icon={Zap} animIcone="icon-press" delay={295}
+              descricao="Preço na hora pro cliente do balcão — e salva como orçamento em um toque."
+              viajando={viajante === 'simulador'}
+              onClick={() => irArea('simulador', '/simulador')} />
           )}
           {canEstoque && (
             <AreaCard titulo="Estoque" icon={Package} animIcone="icon-sway" delay={330}

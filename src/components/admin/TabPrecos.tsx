@@ -1,12 +1,12 @@
 import { Fragment, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  Blinds, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
+  Blinds, Calculator, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
-import SimuladorPreco from './SimuladorPreco'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import {
   statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas, usePrecosColocacao,
@@ -40,6 +40,7 @@ const SECOES = [
 type SecaoId = typeof SECOES[number]['id']
 
 export default function TabPrecos({ toast }: Props) {
+  const navigate = useNavigate()
   const [secao, setSecao] = useState<SecaoId>('ia')
   const [promoPrefill, setPromoPrefill] = useState<string | null>(null)
   const { updateRow, insertRow, deleteRow } = usePrecosMutations()
@@ -125,7 +126,20 @@ export default function TabPrecos({ toast }: Props) {
         ))}
       </div>
 
-      <SimuladorPreco />
+      {/* Simulador virou área própria (balcão) — atalho no lugar */}
+      <button
+        onClick={() => navigate('/simulador')}
+        className="flex w-full items-center gap-2.5 rounded-xl border-2 bg-card px-5 py-4 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
+      >
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+          <Calculator className="h-3.5 w-3.5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-sm font-semibold tracking-wide">Simulador de orçamento</p>
+          <p className="text-xs text-muted-foreground">agora é uma área própria — feita pro balcão, com salvar em um toque</p>
+        </div>
+        <span className="text-xs font-semibold text-primary">Abrir →</span>
+      </button>
 
       <div className="flex flex-wrap items-stretch gap-1 rounded-xl bg-muted/50 p-1">
         {SECOES.map(({ id, label, icon: Icon, fimGrupo }) => (
