@@ -152,7 +152,7 @@ function AICopilot({ open, onClose, data }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold leading-none">Copilot Sombrear</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Powered by Gemini 1.5 Flash</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Powered by Gemini 2.5 Flash</p>
           </div>
           {messages.length > 0 && (
             <button

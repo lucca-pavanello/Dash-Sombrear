@@ -25,24 +25,31 @@ Deno.serve(async (req) => {
 
     const { contents } = await req.json()
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      return new Response(JSON.stringify({ error: data }), {
-        status: res.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Mesma estratégia do precos-ia: tenta modelos atuais em ordem
+    // (gemini-1.5-flash foi aposentado pelo Google — não usar)
+    let data: unknown = null
+    let status = 500
+    for (const modelo of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents }),
       })
+      data = await res.json()
+      status = res.status
+      if (res.ok) {
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      // 404 = modelo indisponível → tenta o próximo; outros erros param aqui
+      if (res.status !== 404) break
     }
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
+    return new Response(JSON.stringify({ error: data }), {
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
