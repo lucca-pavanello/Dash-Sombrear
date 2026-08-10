@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, User, Lock, Mail, Send, Eye, EyeOff } from 'lucide-react'
+import { X, User, Lock, Mail, Send, Eye, EyeOff, Bell } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/hooks/useProfile'
 import { cn } from '@/lib/utils'
 import SectionDivider from '@/components/shared/SectionDivider'
 import AvatarInitials from '@/components/shared/AvatarInitials'
+import { ativarPush, desativarPush, estadoPush } from '@/lib/push'
 
 const inputClass =
   'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
@@ -30,6 +31,12 @@ export default function EditProfileModal({ mode, targetProfile, onClose, toast }
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [push, setPush] = useState<'ativo' | 'inativo' | 'bloqueado' | 'sem-suporte'>('sem-suporte')
+  const [pushOcupado, setPushOcupado] = useState(false)
+
+  useEffect(() => {
+    if (mode === 'self') estadoPush().then(setPush).catch(() => setPush('sem-suporte'))
+  }, [mode])
 
   const initialName = targetProfile.full_name ?? ''
   const initialEmail = targetProfile.email ?? ''
@@ -284,6 +291,48 @@ export default function EditProfileModal({ mode, targetProfile, onClose, toast }
                 {resetSent ? 'Email enviado!' : 'Enviar link de redefinição de senha'}
               </button>
             </div>
+          )}
+
+          {/* Notificações — só no próprio perfil (inscrição é por aparelho) */}
+          {mode === 'self' && push !== 'sem-suporte' && (
+            <>
+              <SectionDivider label="Notificações" />
+              <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-3">
+                <Bell className={cn('h-4 w-4 shrink-0', push === 'ativo' ? 'text-primary' : 'text-muted-foreground')} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">Avisos neste aparelho</p>
+                  <p className="text-xs text-muted-foreground">
+                    {push === 'ativo' ? 'Você recebe um aviso quando um cliente aceita um orçamento.'
+                      : push === 'bloqueado' ? 'Bloqueado nas configurações do navegador — libere lá pra ativar.'
+                      : 'Receba um aviso na hora que um cliente aceitar um orçamento.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={push === 'bloqueado' || pushOcupado}
+                  onClick={async () => {
+                    setPushOcupado(true)
+                    try {
+                      if (push === 'ativo') { await desativarPush(); setPush('inativo') }
+                      else { await ativarPush(targetProfile.id); setPush('ativo'); toast('success', 'Notificações ativadas neste aparelho!') }
+                    } catch (err) {
+                      toast('error', err instanceof Error ? err.message : 'Não consegui ativar as notificações.')
+                      setPush(await estadoPush())
+                    } finally {
+                      setPushOcupado(false)
+                    }
+                  }}
+                  className={cn(
+                    'shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50',
+                    push === 'ativo'
+                      ? 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                      : 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20',
+                  )}
+                >
+                  {pushOcupado ? '…' : push === 'ativo' ? 'Desativar' : 'Ativar'}
+                </button>
+              </div>
+            </>
           )}
 
           {/* Actions */}

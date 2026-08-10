@@ -26,6 +26,7 @@ export default defineConfig({
       },
       workbox: {
         // SPA: navegação cai no index; API (Supabase/n8n) nunca é cacheada (cross-origin fica de fora)
+        importScripts: ['push-sw.js'],
         navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
