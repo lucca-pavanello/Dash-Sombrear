@@ -56,46 +56,55 @@ const VENDA_PERSIANA: RegraVenda = {
 const comCampos = (r: RegraVenda, campos: string[], nota?: string): RegraVenda =>
   ({ ...r, campos, nota: nota ?? r.nota })
 
+/** Grupos do menu: "baixar todas as ferragens de uma vez" */
+export const GRUPOS = ['Tecidos', 'Ferragens', 'Acabamentos', 'PV / PH', 'Motor', 'Regras'] as const
+export type Grupo = typeof GRUPOS[number]
+
 /** As tabelas na mesma ordem em que aparecem na tela */
 export const TABELAS: {
   tabela: string; titulo: string; aba: string; ordem: string[]
+  grupo: Grupo
   venda?: RegraVenda; avisoVenda?: string
+  /** tabela que não existe pronta no banco: é montada na hora, como na tela */
+  derivada?: 'escada'
 }[] = [
-  { tabela: 'precos_promocoes', titulo: 'Promoções', aba: 'Promoções', ordem: ['inicio'] },
-  { tabela: 'precos_tecidos', titulo: 'Tecidos', aba: 'Tecidos', ordem: ['nome', 'largura'],
+  { tabela: 'precos_promocoes', titulo: 'Promoções', aba: 'Promoções', ordem: ['inicio'], grupo: 'Tecidos' },
+  { tabela: 'precos_tecidos', titulo: 'Tecidos', aba: 'Tecidos', ordem: ['nome', 'largura'], grupo: 'Tecidos',
     venda: comCampos(VENDA_PERSIANA, ['preco']) },
-  { tabela: 'precos_tecido_modelos', titulo: 'Tecidos por modelo', aba: 'Tecidos x Modelo', ordem: ['tecido_nome', 'modelo'] },
-  { tabela: 'precos_artigos', titulo: 'PV / PH Alumínio', aba: 'PV e PH Aluminio', ordem: ['categoria', 'nome'],
+  { tabela: 'precos_tecido_modelos', titulo: 'Tecidos por modelo', aba: 'Tecidos x Modelo', ordem: ['tecido_nome', 'modelo'], grupo: 'Tecidos' },
+  { tabela: 'precos_artigos', titulo: 'PV / PH Alumínio', aba: 'PV e PH Aluminio', ordem: ['categoria', 'nome'], grupo: 'PV / PH',
     venda: { campos: ['preco'], markup: 'markup_venda_pv_ph', mkPadrao: 1.8,
       taxa: 'taxa_parcelamento', taxaPadrao: 1.06, expo: 2,
       nota: 'Preço final = custo × markup de PV/PH × taxa de parcelamento²' } },
-  { tabela: 'precos_ph50', titulo: 'PH 50mm', aba: 'PH 50mm', ordem: ['modelo', 'cor'],
+  { tabela: 'precos_ph50', titulo: 'PH 50mm', aba: 'PH 50mm', ordem: ['modelo', 'cor'], grupo: 'PV / PH',
     venda: { campos: ['preco_cadarco', 'preco_fita'], markup: 'markup_venda_ph50', mkPadrao: 1.95,
       taxa: 'taxa_ph50', taxaPadrao: 1.07, expo: 1,
       nota: 'Preço final = custo × markup do PH 50 × taxa do PH 50' },
     avisoVenda: 'O bandô do PH 50 tem markup próprio e ainda soma um valor fixo por peça — por isso não ganha coluna de venda aqui.' },
-  { tabela: 'precos_ferragem_familias', titulo: 'Ferragens — famílias', aba: 'Ferragem familias', ordem: ['familia', 'cor', 'espessura'] },
-  { tabela: 'precos_ferragem_componentes', titulo: 'Ferragens — componentes', aba: 'Ferragem componentes', ordem: ['familia', 'cor', 'espessura', 'item'],
+  { tabela: 'precos_ferragem_familias', titulo: 'Ferragens — famílias', aba: 'Ferragem familias', ordem: ['familia', 'cor', 'espessura'], grupo: 'Ferragens' },
+  { tabela: 'precos_ferragem_componentes', titulo: 'Ferragens — componentes', aba: 'Ferragem componentes', ordem: ['familia', 'cor', 'espessura', 'item'], grupo: 'Ferragens',
     venda: comCampos(VENDA_PERSIANA, ['valor']) },
-  { tabela: 'precos_ferragem_escada', titulo: 'Ferragens — escada por largura', aba: 'Ferragem escada', ordem: ['familia', 'cor', 'espessura', 'largura'],
-    venda: comCampos(VENDA_PERSIANA, ['preco', 'valor', 'custo']) },
-  { tabela: 'precos_romana_matriz', titulo: 'Romana — matriz', aba: 'Romana', ordem: ['altura', 'largura'],
+  { tabela: 'precos_ferragem_escada', titulo: 'Ferragens — escada por largura', aba: 'Ferragem escada',
+    ordem: ['familia', 'cor', 'espessura', 'largura'], grupo: 'Ferragens', derivada: 'escada',
+    venda: comCampos(VENDA_PERSIANA, ['custo'],
+      'Custo da escada = soma dos componentes por metro × largura + componentes fixos. Preço final = custo × markup de venda × taxa de parcelamento².') },
+  { tabela: 'precos_romana_matriz', titulo: 'Romana — matriz', aba: 'Romana', ordem: ['altura', 'largura'], grupo: 'Ferragens',
     venda: comCampos(VENDA_PERSIANA, ['custo']) },
-  { tabela: 'precos_bandos', titulo: 'Bandôs', aba: 'Bandos', ordem: ['cor', 'largura'] },
-  { tabela: 'precos_bandos_params', titulo: 'Bandôs — parâmetros', aba: 'Bandos params', ordem: ['cor'],
+  { tabela: 'precos_bandos', titulo: 'Bandôs', aba: 'Bandos', ordem: ['cor', 'largura'], grupo: 'Acabamentos' },
+  { tabela: 'precos_bandos_params', titulo: 'Bandôs — parâmetros', aba: 'Bandos params', ordem: ['cor'], grupo: 'Acabamentos',
     venda: { campos: ['preco_metro'], markup: 'markup_acabamento', mkPadrao: 2.2,
       taxa: 'taxa_parcelamento', taxaPadrao: 1.06, expo: 2,
       nota: 'Preço final = custo × markup de acabamento × taxa de parcelamento²' } },
-  { tabela: 'precos_barra_faixas', titulo: 'Barra niveladora', aba: 'Barra niveladora', ordem: ['largura_min'] },
-  { tabela: 'precos_colocacao', titulo: 'Instalação', aba: 'Instalacao', ordem: ['ml_min'],
+  { tabela: 'precos_barra_faixas', titulo: 'Barra niveladora', aba: 'Barra niveladora', ordem: ['largura_min'], grupo: 'Acabamentos' },
+  { tabela: 'precos_colocacao', titulo: 'Instalação', aba: 'Instalacao', ordem: ['ml_min'], grupo: 'Regras',
     avisoVenda: 'A instalação já é cobrada por este valor — não leva markup.' },
-  { tabela: 'precos_motor_estrutura', titulo: 'Motor — estrutura', aba: 'Motor estrutura', ordem: ['largura'],
+  { tabela: 'precos_motor_estrutura', titulo: 'Motor — estrutura', aba: 'Motor estrutura', ordem: ['largura'], grupo: 'Motor',
     venda: comCampos(VENDA_PERSIANA, ['valor', 'valor_extra'],
       'Preço final = custo × markup de venda × taxa de parcelamento² (mesma regra da persiana)') },
-  { tabela: 'precos_motor_componentes', titulo: 'Motor — componentes', aba: 'Motor componentes', ordem: ['item'],
+  { tabela: 'precos_motor_componentes', titulo: 'Motor — componentes', aba: 'Motor componentes', ordem: ['item'], grupo: 'Motor',
     venda: comCampos(VENDA_PERSIANA, ['custo'],
       'Preço final = custo × markup de venda × taxa de parcelamento² (mesma regra da persiana)') },
-  { tabela: 'precos_parametros', titulo: 'Parâmetros e markups', aba: 'Parametros', ordem: ['chave'] },
+  { tabela: 'precos_parametros', titulo: 'Parâmetros e markups', aba: 'Parametros', ordem: ['chave'], grupo: 'Regras' },
 ]
 
 type Linhas = Record<string, unknown>[]
@@ -116,6 +125,49 @@ const rotuloVenda = (campo: string) =>
     ? 'Preço final ao cliente'
     : `${rotular(campo)} — preço final`
 
+/**
+ * A escada por largura quase nunca está gravada: a tela monta na hora a partir
+ * das famílias (larg_min, larg_max, passo) e da soma dos componentes. Quando a
+ * família TEM linha gravada, ela manda — é o mesmo critério do PrecosGrid.
+ */
+async function montarEscada(): Promise<Linhas> {
+  const [{ data: familias }, { data: componentes }, { data: gravadas }] = await Promise.all([
+    supabase.from('precos_ferragem_familias').select('*').order('familia'),
+    supabase.from('precos_ferragem_componentes').select('*'),
+    supabase.from('precos_ferragem_escada').select('*'),
+  ])
+  const linhas: Linhas = []
+  for (const fam of familias ?? []) {
+    const mesma = (x: { familia: string; cor: string; espessura: number | string }) =>
+      x.familia === fam.familia && x.cor === fam.cor && String(x.espessura) === String(fam.espessura)
+    const jaGravada = (gravadas ?? []).filter(mesma)
+    if (jaGravada.length) {
+      for (const g of jaGravada.sort((a, b) => Number(a.largura) - Number(b.largura))) {
+        linhas.push({
+          familia: fam.familia, cor: fam.cor, espessura: fam.espessura,
+          largura: Number(g.largura), custo: Number(g.custo),
+        })
+      }
+      continue
+    }
+    const comps = (componentes ?? []).filter(mesma)
+    const porMetro = comps.filter(c => c.tipo_custo === 'por_metro')
+      .reduce((s, c) => s + Number(c.valor), 0)
+    const fixo = comps.filter(c => c.tipo_custo === 'fixo')
+      .reduce((s, c) => s + Number(c.valor), 0)
+    if (!(porMetro > 0 || fixo > 0)) continue
+    const passo = Number(fam.passo) || 0.1
+    for (let L = Number(fam.larg_min); L <= Number(fam.larg_max) + 1e-9; L += passo) {
+      const largura = Math.round(L * 100) / 100
+      linhas.push({
+        familia: fam.familia, cor: fam.cor, espessura: fam.espessura, largura,
+        custo: Math.round((porMetro * largura + fixo) * 100) / 100,
+      })
+    }
+  }
+  return linhas
+}
+
 interface Bloco {
   tabela: string; titulo: string; aba: string
   campos: string[]; linhas: Linhas
@@ -124,17 +176,30 @@ interface Bloco {
   nota?: string
 }
 
-/** `apenas` limita a uma tabela; sem ele, vem o pacote inteiro. */
-async function buscarTudo(apenas?: string): Promise<Bloco[]> {
+/**
+ * `filtro` vazio = pacote inteiro; nome de tabela = só ela;
+ * "grupo:Ferragens" = todas as tabelas daquele grupo.
+ */
+async function buscarTudo(filtro?: string): Promise<Bloco[]> {
+  const grupo = filtro?.startsWith('grupo:') ? filtro.slice(6) : null
+  const escolhida = (x: typeof TABELAS[number]) =>
+    !filtro ? true : grupo ? x.grupo === grupo : x.tabela === filtro
+
   const mult = await multiplicadores()
   const resultado: Bloco[] = []
-  for (const t of TABELAS.filter(x => !apenas || x.tabela === apenas)) {
-    let q = supabase.from(t.tabela).select('*')
-    for (const c of t.ordem) q = q.order(c, { ascending: true })
-    const { data, error } = await q
-    if (error || !data?.length) continue          // tabela vazia não vira aba em branco
+  for (const t of TABELAS.filter(escolhida)) {
+    let data: Linhas | null
+    if (t.derivada === 'escada') {
+      data = await montarEscada()
+    } else {
+      let q = supabase.from(t.tabela).select('*')
+      for (const c of t.ordem) q = q.order(c, { ascending: true })
+      const r = await q
+      data = r.error ? null : (r.data as Linhas)
+    }
+    if (!data?.length) continue                   // tabela vazia não vira aba em branco
     const campos = Object.keys(data[0]).filter(c => !OCULTAS.has(c))
-    const linhas = data as Linhas
+    const linhas = data
 
     // preço final ao lado de cada custo, pela regra daquela tabela
     const vendaCols: { campo: string; rotulo: string }[] = []
@@ -171,16 +236,24 @@ const nomeArquivo = (ext: string, titulo?: string) => {
   return `${meio}-Sombrear-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.${ext}`
 }
 /** Mensagem clara quando a tabela existe mas não tem linha nenhuma */
-const vazia = (apenas?: string) => {
-  const t = TABELAS.find(x => x.tabela === apenas)
+const vazia = (filtro?: string) => {
+  if (filtro?.startsWith('grupo:')) {
+    return new Error(`Nenhuma tabela de ${filtro.slice(6)} tem dados — não há o que baixar.`)
+  }
+  const t = TABELAS.find(x => x.tabela === filtro)
   return new Error(t ? `A tabela "${t.titulo}" está vazia — não há o que baixar.`
                      : 'Não veio nenhuma tabela do banco')
 }
+/** miolo do nome do arquivo conforme o que foi pedido */
+const tituloDoArquivo = (filtro: string | undefined, blocos: Bloco[]) =>
+  filtro?.startsWith('grupo:') ? filtro.slice(6)
+    : filtro ? blocos[0].titulo
+    : undefined
 
 /** Uma aba por tabela; preço vai como número com formato de real. */
-export async function baixarPrecosExcel(apenas?: string) {
-  const [XLSX, blocos] = await Promise.all([import('xlsx'), buscarTudo(apenas)])
-  if (!blocos.length) throw vazia(apenas)
+export async function baixarPrecosExcel(filtro?: string) {
+  const [XLSX, blocos] = await Promise.all([import('xlsx'), buscarTudo(filtro)])
+  if (!blocos.length) throw vazia(filtro)
 
   const wb = XLSX.utils.book_new()
   for (const b of blocos) {
@@ -210,16 +283,16 @@ export async function baixarPrecosExcel(apenas?: string) {
     ws['!freeze'] = { xSplit: 0, ySplit: 1 }
     XLSX.utils.book_append_sheet(wb, ws, b.aba.slice(0, 31))
   }
-  XLSX.writeFile(wb, nomeArquivo('xlsx', apenas ? blocos[0].titulo : undefined))
+  XLSX.writeFile(wb, nomeArquivo('xlsx', tituloDoArquivo(filtro, blocos)))
   return blocos.length
 }
 
 /** Mesmo conteúdo, formato de leitura — uma tabela por seção, com sumário. */
-export async function baixarPrecosPDF(apenas?: string) {
+export async function baixarPrecosPDF(filtro?: string) {
   const [{ default: jsPDF }, { default: autoTable }, blocos] = await Promise.all([
-    import('jspdf'), import('jspdf-autotable'), buscarTudo(apenas),
+    import('jspdf'), import('jspdf-autotable'), buscarTudo(filtro),
   ])
-  if (!blocos.length) throw vazia(apenas)
+  if (!blocos.length) throw vazia(filtro)
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
   const larguraPg = doc.internal.pageSize.getWidth()
@@ -228,7 +301,8 @@ export async function baixarPrecosPDF(apenas?: string) {
   const umaSo = blocos.length === 1
   if (!umaSo) {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
-    doc.text('Tabela de Preços — Sombrear', larguraPg / 2, 120, { align: 'center' })
+    doc.text(filtro?.startsWith('grupo:') ? `${filtro.slice(6)} — Sombrear` : 'Tabela de Preços — Sombrear',
+      larguraPg / 2, 120, { align: 'center' })
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(120)
     doc.text(`Gerada em ${carimbo()}`, larguraPg / 2, 140, { align: 'center' })
     doc.setFontSize(11); doc.setTextColor(40)
@@ -268,6 +342,6 @@ export async function baixarPrecosPDF(apenas?: string) {
     doc.text(`Sombrear · ${carimbo()} · ${p}/${total}`,
       larguraPg / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' })
   }
-  doc.save(nomeArquivo('pdf', apenas ? blocos[0].titulo : undefined))
+  doc.save(nomeArquivo('pdf', tituloDoArquivo(filtro, blocos)))
   return blocos.length
 }

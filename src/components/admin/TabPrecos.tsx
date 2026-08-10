@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
-import { TABELAS as TABELAS_EXPORT, baixarPrecosExcel, baixarPrecosPDF } from '@/lib/exportarPrecos'
+import { GRUPOS, TABELAS as TABELAS_EXPORT, baixarPrecosExcel, baixarPrecosPDF } from '@/lib/exportarPrecos'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import {
@@ -562,6 +562,29 @@ function PainelAjustes({ titulo, children }: { titulo: string; children: React.R
   )
 }
 
+/** Uma linha do menu de download: rótulo + Excel + PDF */
+function LinhaBaixar({ rotulo, onBaixar, destaque }: {
+  rotulo: string
+  onBaixar: (formato: 'xlsx' | 'pdf') => void
+  destaque?: boolean
+}) {
+  return (
+    <div className="flex items-center gap-2 border-b border-border/40 px-3 py-1.5 last:border-b-0 hover:bg-muted/40">
+      <span className={cn('flex-1 truncate text-xs', destaque ? 'font-semibold' : 'font-medium')}>
+        {rotulo}
+      </span>
+      <button onClick={() => onBaixar('xlsx')} title={`${rotulo} em Excel`}
+        className="rounded-md p-1 text-emerald-600 transition-colors hover:bg-emerald-500/10 active:scale-95">
+        <FileSpreadsheet className="h-3.5 w-3.5" />
+      </button>
+      <button onClick={() => onBaixar('pdf')} title={`${rotulo} em PDF`}
+        className="rounded-md p-1 text-red-500 transition-colors hover:bg-red-500/10 active:scale-95">
+        <FileText className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+}
+
 /**
  * Baixa TODAS as tabelas de preço de uma vez. O Excel sai com uma aba por
  * tabela e os preços como número (dá pra somar); o PDF é a versão de leitura.
@@ -575,7 +598,7 @@ function BotaoBaixarTabelas({ toast }: { toast: Props['toast'] }) {
     setBaixando(formato)
     try {
       const n = formato === 'xlsx' ? await baixarPrecosExcel(apenas) : await baixarPrecosPDF(apenas)
-      toast('success', apenas ? 'Tabela baixada' : `${n} tabelas baixadas`)
+      toast('success', n === 1 ? 'Tabela baixada' : `${n} tabelas baixadas`)
     } catch (e) {
       toast('error', e instanceof Error ? e.message : 'Não deu para gerar o arquivo')
     } finally {
@@ -616,22 +639,19 @@ function BotaoBaixarTabelas({ toast }: { toast: Props['toast'] }) {
             </button>
 
             <p className="border-y bg-muted/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Por grupo
+            </p>
+            {GRUPOS.map(g => (
+              <LinhaBaixar key={g} rotulo={g} onBaixar={fmt => baixar(fmt, `grupo:${g}`)} destaque />
+            ))}
+
+            <p className="border-y bg-muted/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Uma tabela só
             </p>
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-56 overflow-y-auto">
               {TABELAS_EXPORT.map(tb => (
-                <div key={tb.tabela}
-                  className="flex items-center gap-2 border-b border-border/40 px-3 py-1.5 last:border-b-0 hover:bg-muted/40">
-                  <span className="flex-1 truncate text-xs font-medium">{tb.titulo}</span>
-                  <button onClick={() => baixar('xlsx', tb.tabela)} title={`${tb.titulo} em Excel`}
-                    className="rounded-md p-1 text-emerald-600 transition-colors hover:bg-emerald-500/10 active:scale-95">
-                    <FileSpreadsheet className="h-3.5 w-3.5" />
-                  </button>
-                  <button onClick={() => baixar('pdf', tb.tabela)} title={`${tb.titulo} em PDF`}
-                    className="rounded-md p-1 text-red-500 transition-colors hover:bg-red-500/10 active:scale-95">
-                    <FileText className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                <LinhaBaixar key={tb.tabela} rotulo={tb.titulo}
+                  onBaixar={fmt => baixar(fmt, tb.tabela)} />
               ))}
             </div>
           </div>
