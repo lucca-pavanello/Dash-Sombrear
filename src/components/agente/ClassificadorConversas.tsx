@@ -51,6 +51,7 @@ interface Props {
 export default function ClassificadorConversas({ leads, toast }: Props) {
   const qc = useQueryClient()
   const [rodando, setRodando] = useState(false)
+  const [feitas, setFeitas] = useState(0)
 
   const { contagem, classificadas, pendentes, motivosPerdidas, nHistoricas } = useMemo(() => {
     const comConversa = leads.filter(l => (l.resumo_conversa ?? '').trim().length >= 20)
@@ -65,23 +66,38 @@ export default function ClassificadorConversas({ leads, toast }: Props) {
     return { contagem, classificadas, pendentes: comConversa.length - classificadas.length, motivosPerdidas, nHistoricas }
   }, [leads])
 
+  /**
+   * Analisa em rodadas até acabar a fila (a função processa 25 por chamada).
+   * Teto de rodadas pra nunca virar loop infinito por um bug de contagem.
+   */
   async function analisar() {
     if (rodando) return
     setRodando(true)
+    setFeitas(0)
+    const MAX_RODADAS = 12
+    let total = 0
     try {
-      const { data, error } = await supabase.functions.invoke('classificar-conversas', { body: {} })
-      if (error) throw new Error(error.message)
-      const r = data as { classificadas?: number; restantes?: number; mensagem?: string; error?: string }
-      if (r.error) throw new Error(r.error)
-      await qc.invalidateQueries({ queryKey: ['crm-leads'] })
-      if (r.classificadas) {
-        toast('success', `${r.classificadas} conversa${r.classificadas > 1 ? 's' : ''} analisada${r.classificadas > 1 ? 's' : ''}` +
-          (r.restantes ? ` · ainda faltam ${r.restantes}` : ''))
-      } else {
-        toast('info', r.mensagem ?? 'Nada novo pra analisar.')
+      for (let rodada = 0; rodada < MAX_RODADAS; rodada++) {
+        const { data, error } = await supabase.functions.invoke('classificar-conversas', { body: {} })
+        if (error) throw new Error(error.message)
+        const r = data as { classificadas?: number; restantes?: number; mensagem?: string; error?: string }
+        if (r.error) throw new Error(r.error)
+        if (!r.classificadas) {
+          if (total === 0) toast('info', r.mensagem ?? 'Nada novo pra analisar.')
+          break
+        }
+        total += r.classificadas
+        setFeitas(total)
+        await qc.invalidateQueries({ queryKey: ['crm-leads'] })
+        if (!r.restantes) break
+        if (rodada === MAX_RODADAS - 1) {
+          toast('info', `${total} analisadas. Ainda faltam ${r.restantes} — clique de novo pra continuar.`)
+        }
       }
+      if (total > 0) toast('success', `${total} conversa${total > 1 ? 's' : ''} analisada${total > 1 ? 's' : ''} pela IA.`)
     } catch (err) {
       toast('error', err instanceof Error ? err.message : 'Não consegui analisar agora.')
+      if (total > 0) await qc.invalidateQueries({ queryKey: ['crm-leads'] })
     } finally {
       setRodando(false)
     }
@@ -108,7 +124,9 @@ export default function ClassificadorConversas({ leads, toast }: Props) {
           className="ml-auto flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-[11px] font-bold text-primary transition-colors hover:bg-primary/20 disabled:opacity-60"
         >
           {rodando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-          {rodando ? 'Analisando…' : pendentes > 0 ? `Analisar ${pendentes} conversa${pendentes > 1 ? 's' : ''}` : 'Reanalisar'}
+          {rodando
+            ? (feitas > 0 ? `Analisando… ${feitas} prontas` : 'Analisando…')
+            : pendentes > 0 ? `Analisar ${pendentes} conversa${pendentes > 1 ? 's' : ''}` : 'Reanalisar'}
         </button>
       </div>
 
