@@ -14,7 +14,8 @@ const OCULTAS = new Set(['id', 'created_at', 'updated_at', 'criado_em', 'atualiz
 const NAO_E_DINHEIRO = new Set(['precos_parametros.valor'])
 
 /** Colunas que são dinheiro — viram número com formato de real */
-const ehDinheiro = (campo: string, tabela: string) =>
+const ehDinheiro = (campo: string, tabela: string): boolean =>
+  ehCalculada(campo) ||
   !NAO_E_DINHEIRO.has(`${tabela}.${campo}`)
   && (/^(preco|valor|custo)/.test(campo) || /_(preco|valor|rs)$/.test(campo)
     || ['bando_ml', 'aba_pc', 'preco_fita', 'preco_cadarco'].includes(campo))
@@ -33,38 +34,128 @@ const ROTULOS: Record<string, string> = {
 const rotular = (campo: string) =>
   ROTULOS[campo] ?? campo.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
 
+/** coluna calculada por nós (preço final) — sempre dinheiro */
+const ehCalculada = (campo: string) => campo.startsWith('__venda_')
+
+/**
+ * Como o custo daquela tabela vira preço de cliente. É a MESMA conta da
+ * calculadora: custo × markup × taxa de parcelamento. Onde a regra não é
+ * única (bandô comum, barra) a tabela fica sem a coluna em vez de chutar.
+ */
+interface RegraVenda {
+  campos: string[]          // colunas de custo que ganham par de venda
+  markup: string; mkPadrao: number
+  taxa: string; taxaPadrao: number; expo: number
+  nota: string              // explica a conta no cabeçalho do PDF
+}
+const VENDA_PERSIANA: RegraVenda = {
+  campos: [], markup: 'markup_venda', mkPadrao: 2.8,
+  taxa: 'taxa_parcelamento', taxaPadrao: 1.06, expo: 2,
+  nota: 'Preço final = custo × markup de venda × taxa de parcelamento²  (Rolô, Double e Romana)',
+}
+const comCampos = (r: RegraVenda, campos: string[], nota?: string): RegraVenda =>
+  ({ ...r, campos, nota: nota ?? r.nota })
+
 /** As tabelas na mesma ordem em que aparecem na tela */
-export const TABELAS: { tabela: string; titulo: string; aba: string; ordem: string[] }[] = [
+export const TABELAS: {
+  tabela: string; titulo: string; aba: string; ordem: string[]
+  venda?: RegraVenda; avisoVenda?: string
+}[] = [
   { tabela: 'precos_promocoes', titulo: 'Promoções', aba: 'Promoções', ordem: ['inicio'] },
-  { tabela: 'precos_tecidos', titulo: 'Tecidos', aba: 'Tecidos', ordem: ['nome', 'largura'] },
+  { tabela: 'precos_tecidos', titulo: 'Tecidos', aba: 'Tecidos', ordem: ['nome', 'largura'],
+    venda: comCampos(VENDA_PERSIANA, ['preco']) },
   { tabela: 'precos_tecido_modelos', titulo: 'Tecidos por modelo', aba: 'Tecidos x Modelo', ordem: ['tecido_nome', 'modelo'] },
-  { tabela: 'precos_artigos', titulo: 'PV / PH Alumínio', aba: 'PV e PH Aluminio', ordem: ['categoria', 'nome'] },
-  { tabela: 'precos_ph50', titulo: 'PH 50mm', aba: 'PH 50mm', ordem: ['modelo', 'cor'] },
+  { tabela: 'precos_artigos', titulo: 'PV / PH Alumínio', aba: 'PV e PH Aluminio', ordem: ['categoria', 'nome'],
+    venda: { campos: ['preco'], markup: 'markup_venda_pv_ph', mkPadrao: 1.8,
+      taxa: 'taxa_parcelamento', taxaPadrao: 1.06, expo: 2,
+      nota: 'Preço final = custo × markup de PV/PH × taxa de parcelamento²' } },
+  { tabela: 'precos_ph50', titulo: 'PH 50mm', aba: 'PH 50mm', ordem: ['modelo', 'cor'],
+    venda: { campos: ['preco_cadarco', 'preco_fita'], markup: 'markup_venda_ph50', mkPadrao: 1.95,
+      taxa: 'taxa_ph50', taxaPadrao: 1.07, expo: 1,
+      nota: 'Preço final = custo × markup do PH 50 × taxa do PH 50' },
+    avisoVenda: 'O bandô do PH 50 tem markup próprio e ainda soma um valor fixo por peça — por isso não ganha coluna de venda aqui.' },
   { tabela: 'precos_ferragem_familias', titulo: 'Ferragens — famílias', aba: 'Ferragem familias', ordem: ['familia', 'cor', 'espessura'] },
-  { tabela: 'precos_ferragem_componentes', titulo: 'Ferragens — componentes', aba: 'Ferragem componentes', ordem: ['familia', 'cor', 'espessura', 'item'] },
-  { tabela: 'precos_ferragem_escada', titulo: 'Ferragens — escada por largura', aba: 'Ferragem escada', ordem: ['familia', 'cor', 'espessura', 'largura'] },
-  { tabela: 'precos_romana_matriz', titulo: 'Romana — matriz', aba: 'Romana', ordem: ['altura', 'largura'] },
+  { tabela: 'precos_ferragem_componentes', titulo: 'Ferragens — componentes', aba: 'Ferragem componentes', ordem: ['familia', 'cor', 'espessura', 'item'],
+    venda: comCampos(VENDA_PERSIANA, ['valor']) },
+  { tabela: 'precos_ferragem_escada', titulo: 'Ferragens — escada por largura', aba: 'Ferragem escada', ordem: ['familia', 'cor', 'espessura', 'largura'],
+    venda: comCampos(VENDA_PERSIANA, ['preco', 'valor', 'custo']) },
+  { tabela: 'precos_romana_matriz', titulo: 'Romana — matriz', aba: 'Romana', ordem: ['altura', 'largura'],
+    venda: comCampos(VENDA_PERSIANA, ['custo']) },
   { tabela: 'precos_bandos', titulo: 'Bandôs', aba: 'Bandos', ordem: ['cor', 'largura'] },
-  { tabela: 'precos_bandos_params', titulo: 'Bandôs — parâmetros', aba: 'Bandos params', ordem: ['cor'] },
+  { tabela: 'precos_bandos_params', titulo: 'Bandôs — parâmetros', aba: 'Bandos params', ordem: ['cor'],
+    venda: { campos: ['preco_metro'], markup: 'markup_acabamento', mkPadrao: 2.2,
+      taxa: 'taxa_parcelamento', taxaPadrao: 1.06, expo: 2,
+      nota: 'Preço final = custo × markup de acabamento × taxa de parcelamento²' } },
   { tabela: 'precos_barra_faixas', titulo: 'Barra niveladora', aba: 'Barra niveladora', ordem: ['largura_min'] },
-  { tabela: 'precos_colocacao', titulo: 'Instalação', aba: 'Instalacao', ordem: ['ml_min'] },
-  { tabela: 'precos_motor_estrutura', titulo: 'Motor — estrutura', aba: 'Motor estrutura', ordem: ['largura'] },
-  { tabela: 'precos_motor_componentes', titulo: 'Motor — componentes', aba: 'Motor componentes', ordem: ['item'] },
+  { tabela: 'precos_colocacao', titulo: 'Instalação', aba: 'Instalacao', ordem: ['ml_min'],
+    avisoVenda: 'A instalação já é cobrada por este valor — não leva markup.' },
+  { tabela: 'precos_motor_estrutura', titulo: 'Motor — estrutura', aba: 'Motor estrutura', ordem: ['largura'],
+    venda: comCampos(VENDA_PERSIANA, ['valor', 'valor_extra'],
+      'Preço final = custo × markup de venda × taxa de parcelamento² (mesma regra da persiana)') },
+  { tabela: 'precos_motor_componentes', titulo: 'Motor — componentes', aba: 'Motor componentes', ordem: ['item'],
+    venda: comCampos(VENDA_PERSIANA, ['custo'],
+      'Preço final = custo × markup de venda × taxa de parcelamento² (mesma regra da persiana)') },
   { tabela: 'precos_parametros', titulo: 'Parâmetros e markups', aba: 'Parametros', ordem: ['chave'] },
 ]
 
 type Linhas = Record<string, unknown>[]
 
+/** Multiplicador de venda de cada tabela, lido dos parâmetros do banco */
+async function multiplicadores() {
+  const { data } = await supabase.from('precos_parametros').select('chave, valor')
+  const param = (chave: string, padrao: number) => {
+    const p = (data ?? []).find(x => x.chave === chave)
+    const n = Number(p?.valor)
+    return Number.isFinite(n) && n > 0 ? n : padrao
+  }
+  return (r: RegraVenda) => param(r.markup, r.mkPadrao) * param(r.taxa, r.taxaPadrao) ** r.expo
+}
+
+const rotuloVenda = (campo: string) =>
+  campo === 'preco' || campo === 'valor' || campo === 'custo'
+    ? 'Preço final ao cliente'
+    : `${rotular(campo)} — preço final`
+
+interface Bloco {
+  tabela: string; titulo: string; aba: string
+  campos: string[]; linhas: Linhas
+  /** colunas de venda calculadas: nome sintético → rótulo */
+  vendaCols: { campo: string; rotulo: string }[]
+  nota?: string
+}
+
 /** `apenas` limita a uma tabela; sem ele, vem o pacote inteiro. */
-async function buscarTudo(apenas?: string) {
-  const resultado: { tabela: string; titulo: string; aba: string; campos: string[]; linhas: Linhas }[] = []
+async function buscarTudo(apenas?: string): Promise<Bloco[]> {
+  const mult = await multiplicadores()
+  const resultado: Bloco[] = []
   for (const t of TABELAS.filter(x => !apenas || x.tabela === apenas)) {
     let q = supabase.from(t.tabela).select('*')
     for (const c of t.ordem) q = q.order(c, { ascending: true })
     const { data, error } = await q
     if (error || !data?.length) continue          // tabela vazia não vira aba em branco
     const campos = Object.keys(data[0]).filter(c => !OCULTAS.has(c))
-    resultado.push({ tabela: t.tabela, titulo: t.titulo, aba: t.aba, campos, linhas: data as Linhas })
+    const linhas = data as Linhas
+
+    // preço final ao lado de cada custo, pela regra daquela tabela
+    const vendaCols: { campo: string; rotulo: string }[] = []
+    if (t.venda) {
+      const k = mult(t.venda)
+      for (const c of t.venda.campos.filter(c => campos.includes(c))) {
+        const sintetico = `__venda_${c}`
+        vendaCols.push({ campo: sintetico, rotulo: rotuloVenda(c) })
+        for (const l of linhas) {
+          const v = Number(l[c])
+          l[sintetico] = Number.isFinite(v) && l[c] != null && l[c] !== ''
+            ? Math.round(v * k * 100) / 100
+            : null
+        }
+      }
+    }
+    resultado.push({
+      tabela: t.tabela, titulo: t.titulo, aba: t.aba,
+      campos: [...campos, ...vendaCols.map(v => v.campo)], linhas, vendaCols,
+      nota: vendaCols.length ? t.venda?.nota : t.avisoVenda,
+    })
   }
   return resultado
 }
@@ -93,7 +184,8 @@ export async function baixarPrecosExcel(apenas?: string) {
 
   const wb = XLSX.utils.book_new()
   for (const b of blocos) {
-    const ws = XLSX.utils.aoa_to_sheet([b.campos.map(rotular)])
+    const cabecalho = (c: string) => b.vendaCols.find(v => v.campo === c)?.rotulo ?? rotular(c)
+    const ws = XLSX.utils.aoa_to_sheet([b.campos.map(cabecalho)])
     XLSX.utils.sheet_add_json(ws, b.linhas.map(l => {
       const o: Record<string, unknown> = {}
       for (const c of b.campos) {
@@ -112,7 +204,7 @@ export async function baixarPrecosExcel(apenas?: string) {
       }
     })
     ws['!cols'] = b.campos.map(c => ({
-      wch: Math.max(rotular(c).length + 2,
+      wch: Math.max(cabecalho(c).length + 2,
         ...b.linhas.slice(0, 200).map(l => String(l[c] ?? '').length + 2)),
     }))
     ws['!freeze'] = { xSplit: 0, ySplit: 1 }
@@ -150,9 +242,13 @@ export async function baixarPrecosPDF(apenas?: string) {
     if (!(umaSo && i === 0)) doc.addPage()   // sem capa, a primeira tabela usa a página 1
     doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(20)
     doc.text(b.titulo, 40, 48)
+    if (b.nota) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120)
+      doc.text(b.nota, 40, 60)
+    }
     autoTable(doc, {
-      startY: 62,
-      head: [b.campos.map(rotular)],
+      startY: b.nota ? 72 : 62,
+      head: [b.campos.map(c => b.vendaCols.find(v => v.campo === c)?.rotulo ?? rotular(c))],
       body: b.linhas.map(l => b.campos.map(c => {
         const v = l[c]
         if (v == null || v === '') return '—'
