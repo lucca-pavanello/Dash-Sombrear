@@ -85,7 +85,7 @@ const SECTION_LABELS: Record<string, string> = {
   'estoque': 'Estoque',
   'admin': 'Admin',
   'precos': 'Tabela de Preços',
-  'simulador': 'Simulador',
+  'simulador': 'Orçamentos',
 }
 
 export default function Dashboard() {
@@ -186,14 +186,13 @@ export default function Dashboard() {
     : isAdminPath ? 'admin'
     : isOrcamentoPath ? (orcamentoSub ?? DEFAULT_TAB)
     : (rawPath || DEFAULT_TAB)
-  const ORCAMENTO_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'kanban']
+  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'kanban']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
     && (tabFromUrl !== 'precos' || canPrecos || profileLoading)
     && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
     && (tabFromUrl !== 'agente-ia' || canAgenteIA || profileLoading)
-    && (tabFromUrl !== 'simulador' || canOrcamento || profileLoading)
     && (!ORCAMENTO_TABS.includes(tabFromUrl) || canOrcamento || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
@@ -251,7 +250,6 @@ export default function Dashboard() {
       : isAdminArea ? 'admin'
       : activeTab === 'agente-ia' ? 'agente-ia'
       : activeTab === 'precos' ? 'precos'
-      : activeTab === 'simulador' ? 'simulador'
       : isOrcamentoArea ? 'orcamento' : null
     if (area) {
       try { sessionStorage.setItem('sombrear-vt-icone', area) } catch { /* voa sem aviso */ }
@@ -534,6 +532,7 @@ export default function Dashboard() {
 
   const ORCAMENTO_SUBTABS = useMemo(() => [
     { id: 'calcular-orcamento', label: 'Calcular',  icon: Calculator    },
+    { id: 'simulador',          label: 'Simulador', icon: Zap           },
     { id: 'planilha',           label: 'Planilha',  icon: ClipboardList },
     { id: 'calculo-custo',      label: 'Custos',    icon: ClipboardList },
     { id: 'analises',           label: 'Análises',  icon: BarChart2     },
@@ -1019,15 +1018,13 @@ export default function Dashboard() {
           )}
 
           {/* ÁREAS SOLO: dentro delas só existe a própria área — navegação entre áreas é pelo Início */}
-          {(activeTab === 'agente-ia' || activeTab === 'precos' || activeTab === 'simulador') ? (
+          {(activeTab === 'agente-ia' || activeTab === 'precos') ? (
             <button
               data-tab={activeTab}
               className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
             >
               {activeTab === 'agente-ia'
                 ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia' || (vtVolta && activeTab === 'agente-ia'))} />Agente IA</>
-                : activeTab === 'simulador'
-                ? <><Calculator className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'simulador' || (vtVolta && activeTab === 'simulador'))} />Simulador</>
                 : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos' || (vtVolta && activeTab === 'precos'))} />Tabela de Preços</>}
             </button>
           ) : (

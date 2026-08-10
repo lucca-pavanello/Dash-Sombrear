@@ -128,7 +128,7 @@ export default function TabPrecos({ toast }: Props) {
 
       {/* Simulador virou área própria (balcão) — atalho no lugar */}
       <button
-        onClick={() => navigate('/simulador')}
+        onClick={() => navigate('/orcamentos/simulador')}
         className="flex w-full items-center gap-2.5 rounded-xl border-2 bg-card px-5 py-4 text-left shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
       >
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
