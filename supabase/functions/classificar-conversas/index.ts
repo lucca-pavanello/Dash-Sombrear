@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       .from('crm_sombrear_ia')
       .select('id, nome, status_lead, resumo_conversa, ultimo_valor_cotado, modelo_interesse, ' +
               'tecido_cor, medidas_coletadas, orcamento_aceito, timestamp_ultima_msg, ' +
-              'classificacao_ia, classificacao_em')
+              'objecoes, gatilhos, classificacao_ia, classificacao_em')
       .not('resumo_conversa', 'is', null)
       .order('timestamp_ultima_msg', { ascending: false })
       .limit(200)
@@ -108,6 +108,9 @@ Deno.serve(async (req) => {
       valor_cotado: l.ultimo_valor_cotado ?? null,
       tem_medidas: !!l.medidas_coletadas,
       orcamento_aceito: l.orcamento_aceito ?? null,
+      // extraídos na importação do histórico: sinal forte de perda (objeção) e de ganho (gatilho)
+      objecoes: l.objecoes ?? null,
+      o_que_destravou: l.gatilhos ?? null,
       conversa: (l.resumo_conversa ?? '').slice(0, 900),
     }))
 
@@ -127,6 +130,8 @@ Critérios:
 - "sem_interesse": não era cliente (curioso, engano, fornecedor, assunto fora de persianas).
 - "indefinido": conversa curta demais para julgar.
 - motivo: diga o PORQUÊ concreto ("achou o valor alto para 3 janelas", "queria instalação no mesmo dia"), nunca genérico.
+  Quando vier "objecoes" preenchido, use a objeção real do cliente como motivo — ela vale mais que a tua leitura do resumo.
+  Quando vier "o_que_destravou", cite no motivo o que fechou a venda.
 - temperatura: chance de fechar agora (quente = perto de fechar; pos_venda costuma ser morno).
 
 CONVERSAS:
