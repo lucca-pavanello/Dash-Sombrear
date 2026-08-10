@@ -79,6 +79,9 @@ export interface ResultadoSim {
 
 const ceil10c = (v: number) => Math.ceil(v * 10) / 10
 const round2 = (v: number) => Math.round((v + 1e-9) * 100) / 100
+/** 1.5 → "1,50m" — pros rótulos do custo item a item */
+const fmtM = (v: number) => `${v.toFixed(2).replace('.', ',')}m`
+const fmtR$ = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
 export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: string } {
   const { largura: L, altura: A, quantidade: qtd } = e
@@ -117,12 +120,14 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
   }
 
   /* ── custo do bandô (fórmula: L×base + qtd_cd×(cd1+cd2) + par, degrau ≥ L) ── */
+  let larguraBando = 0
   const custoBando = (cor: 'BRANCO' | 'PRETO'): number | null => {
     const p = d.bandoParams.find(x => x.cor === cor)
     if (!p) return null
     const degraus = d.bandos.filter(b => b.cor === cor).sort((a, b) => a.largura - b.largura)
     const degrau = degraus.find(b => Number(b.largura) >= L - 1e-9) ?? degraus[degraus.length - 1]
     if (!degrau) return null
+    larguraBando = Number(degrau.largura)
     if (Number(degrau.largura) < L) obs.push(`Bandô: largura acima da tabela (usei ${degrau.largura}m)`)
     return Number(degrau.largura) * Number(p.preco_metro)
       + Number(degrau.qtd_cd) * (Number(p.cd1) + Number(p.cd2)) + Number(p.par)
@@ -166,7 +171,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       if (!cel) return { erro: 'Célula da matriz Romana não encontrada' }
       custoFerragem = Number(cel.custo)
       chaveFerragem = 'parceiro_romana'
-      rotuloFerragem = 'Ferragem Romana'
+      rotuloFerragem = `Ferragem Romana — célula ${fmtM(Lm)} × ${fmtM(Am)}`
       obs.push(`Ferragem Romana na célula ${Lm.toFixed(2).replace('.', ',')} × ${Am.toFixed(2).replace('.', ',')}m`)
     } else {
       // ferragem: Rolo escolhe o tubo pela medida; Double é família única
@@ -197,14 +202,15 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
         ? `parceiro_ferragem_double_${e.corFerragem.toLowerCase()}`
         : `parceiro_ferragem_rolo_${e.corFerragem.toLowerCase()}_${espessura}`
       rotuloFerragem = familia === 'DOUBLE'
-        ? `Ferragem Double ${e.corFerragem === 'PRETA' ? 'preta' : 'branca'}`
-        : `Ferragem ${espessura}mm ${e.corFerragem === 'PRETA' ? 'preta' : 'branca'}`
+        ? `Ferragem Double Vision ${e.corFerragem === 'PRETA' ? 'preta' : 'branca'}`
+        : `Ferragem Rolô ${e.corFerragem === 'PRETA' ? 'preta' : 'branca'} — tubo ${espessura}mm`
       if (e.modelo === 'Rolo') obs.push(`Tubo ${espessura}mm · ferragem em ${largFerragem.toFixed(2).replace('.', ',')}m`)
     }
 
     custoProduto = (custoTecido + custoFerragem) * qtd
-    somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto', 'Tecido')
-    somaReal(custoFerragem * qtd, chaveFerragem, 'produto', rotuloFerragem)
+    somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto',
+      `Tecido ${e.tecido} — rolo ${fmtM(Number(rolo.largura))} a ${fmtR$(Number(rolo.preco))}/m²` + (qtd > 1 ? ` × ${qtd}` : ''))
+    somaReal(custoFerragem * qtd, chaveFerragem, 'produto', rotuloFerragem + (qtd > 1 ? ` × ${qtd}` : ''))
 
     // acabamento
     if (e.acabamento === 'bando_branco' || e.acabamento === 'bando_preto') {
@@ -212,16 +218,17 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       if (cb == null) return { erro: 'Bandô sem parâmetros no banco' }
       custoAcabamento = cb * qtd
       somaReal(custoAcabamento, `parceiro_bando_${e.acabamento === 'bando_branco' ? 'branco' : 'preto'}`, 'acabamento',
-        e.acabamento === 'bando_branco' ? 'Bandô branco' : 'Bandô preto')
+        `Bandô ${e.acabamento === 'bando_branco' ? 'branco' : 'preto'}${larguraBando ? ` — ${fmtM(larguraBando)}` : ''}`
+        + (qtd > 1 ? ` × ${qtd}` : ''))
     } else if (e.acabamento === 'barra') {
       custoAcabamento = custoBarra() * qtd
-      somaReal(custoAcabamento, 'parceiro_barra', 'acabamento', 'Barra niveladora')
+      somaReal(custoAcabamento, 'parceiro_barra', 'acabamento', `Barra niveladora — ${fmtM(L)}` + (qtd > 1 ? ` × ${qtd}` : ''))
     } else if (e.acabamento === 'kit_box') {
       if (e.modelo !== 'Rolo') return { erro: 'Kit Box é exclusivo da Rolô' }
       custoAcabamento = (L * param('kitbox_ml_largura', 88.7) + param('kitbox_fixo1', 20.3)
         + (L + 2 * A) * param('kitbox_ml_perimetro', 30) + param('kitbox_fixo2', 12.28)
         + 4 * A * param('kitbox_ml_altura', 0.82)) * qtd
-      somaReal(custoAcabamento, 'parceiro_kitbox', 'acabamento', 'Kit Box')
+      somaReal(custoAcabamento, 'parceiro_kitbox', 'acabamento', `Kit Box — ${fmtM(L)} × ${fmtM(A)}` + (qtd > 1 ? ` × ${qtd}` : ''))
     }
 
     const mkVenda = param('markup_venda', 2.8)

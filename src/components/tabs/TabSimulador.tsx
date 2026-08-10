@@ -102,6 +102,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [salvos, setSalvos] = useState<Salvo[]>([])
   // desconto/acréscimo dado na mão: vazio = cobra o valor calculado
   const [valorCobrado, setValorCobrado] = useState('')
+  // à vista tem 5% de desconto; no cartão vale o valor em 4x
+  const [formaPagamento, setFormaPagamento] = useState('cartao_4x')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chamadaRef = useRef(0)
 
@@ -140,6 +142,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   useEffect(() => {
     setSalvoAtual(false)
     setValorCobrado('')
+    setFormaPagamento('cartao_4x')
     if (!pronto) { setResultado(null); return }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const id = ++chamadaRef.current
@@ -167,7 +170,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     try {
       const { data, error } = await supabase.functions.invoke('simular', {
         body: { acao: 'salvar', entrada, cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda,
-          valor_cobrado: num(valorCobrado) || null },
+          valor_cobrado: num(valorCobrado) || null, forma_pagamento: formaPagamento },
       })
       if (error) throw error
       if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
@@ -196,7 +199,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setCorFerragem('BRANCA'); setLargura(''); setAltura(''); setQuantidade('1')
     setAcabamento('nenhum'); setInstalacao(false)
     setCliente(''); setTelefone(''); setAmbiente('')
-    setResultado(null); setSalvoAtual(false); setSalvos([]); setValorCobrado('')
+    setResultado(null); setSalvoAtual(false); setSalvos([]); setValorCobrado(''); setFormaPagamento('cartao_4x')
   }
 
   const ok = resultado && !resultado.erro ? resultado : null
@@ -456,6 +459,33 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                 )}
 
                 <div className="mt-4 border-t border-border/60 pt-4">
+                  <label className={labelCls}>Forma de pagamento</label>
+                  <div className="mb-3 grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'cartao_4x', rotulo: 'Cartão 4x', valor: () => ok?.total4x },
+                      { id: 'a_vista', rotulo: 'À vista −5%', valor: () => ok?.totalAvista },
+                      { id: 'outro', rotulo: 'Outro', valor: () => undefined },
+                    ].map(op => (
+                      <button
+                        key={op.id}
+                        type="button"
+                        onClick={() => {
+                          setFormaPagamento(op.id)
+                          const v = op.valor()
+                          // a forma escolhida já preenche o valor real da venda
+                          setValorCobrado(v != null ? v.toFixed(2) : '')
+                        }}
+                        className={cn(
+                          'rounded-lg border px-2 py-2 text-xs font-semibold transition-all active:scale-95',
+                          formaPagamento === op.id
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-foreground/60 hover:border-muted-foreground/40 hover:bg-muted/30',
+                        )}
+                      >
+                        {op.rotulo}
+                      </button>
+                    ))}
+                  </div>
                   <label className={labelCls}>Valor cobrado do cliente</label>
                   <input
                     className={inputCls}

@@ -145,6 +145,8 @@ Deno.serve(async (req) => {
       // desconto/acréscimo dado na mão: o que o cliente REALMENTE pagou
       const cobradoBruto = Number(body.valor_cobrado)
       const valorCobrado = Number.isFinite(cobradoBruto) && cobradoBruto > 0 ? Math.round(cobradoBruto * 100) / 100 : null
+      const FORMAS = new Set(['a_vista', 'cartao_4x', 'outro'])
+      const formaPagamento = FORMAS.has(String(body.forma_pagamento)) ? String(body.forma_pagamento) : null
       const receita = r.total4x + (instalacaoNum ?? 0)
       const custoTotal = r.custoProduto + r.custoAcabamento
       const margem = receita > 0 ? ((receita - custoTotal) / receita) * 100 : null
@@ -173,6 +175,7 @@ Deno.serve(async (req) => {
         custo_acabamento: r.custoAcabamento,
         valor_parceiro: r.valorParceiro ?? 0,
         valor_cobrado: valorCobrado,
+        forma_pagamento: formaPagamento,
         custos_detalhe: r.detalhe ?? null,
         margem,
         // 'FEITO' NÃO existe no check da tabela — venda vira 'fechado', consulta vira 'CALCULADO'

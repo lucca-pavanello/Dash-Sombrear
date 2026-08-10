@@ -39,6 +39,9 @@ const pago = (o: Orcamento) => o.valor_cobrado != null ? Number(o.valor_cobrado)
 const pagoParceira = (o: Orcamento) =>
   o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)
 const ajustado = (calc: number, real: number) => Math.abs(calc - real) >= 0.01
+const ROTULO_PAGAMENTO: Record<string, string> = {
+  a_vista: 'à vista (−5%)', cartao_4x: 'cartão 4x', outro: 'outro',
+}
 
 /** "R$ 792,50 (R$ 750,00)" — calculado com o realmente pago entre parênteses */
 function ValorComReal({ calc, real, classe }: { calc: number; real: number; classe?: string }) {
@@ -168,19 +171,20 @@ export default function TabFechamento() {
 
       autoTable(doc, {
         startY: 28,
-        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Cliente pagou', 'À parceira', 'Sobra']],
+        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pgto', 'Cliente pagou', 'À parceira', 'Sobra']],
         body: vendas.map(o => [
           formatDate(o.created_at),
           o.cliente ?? '—',
           [o.modelo, o.tecido].filter(Boolean).join(' · '),
           o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—',
+          o.forma_pagamento ? (ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento) : '—',
           ajustado(receita(o), pago(o)) ? `${formatCurrency(receita(o))} → ${formatCurrency(pago(o))}` : formatCurrency(pago(o)),
           ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
             ? `${formatCurrency(Number(o.valor_parceiro ?? 0))} → ${formatCurrency(pagoParceira(o))}`
             : formatCurrency(pagoParceira(o)),
           formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
         ]),
-        foot: [['', '', '', 'TOTAIS',
+        foot: [['', '', '', '', 'TOTAIS',
           formatCurrency(totais.bruto), formatCurrency(totais.parceira), formatCurrency(totais.sobra)]],
         theme: 'striped',
         headStyles: { fillColor: laranja, textColor: 255, fontSize: 9 },
@@ -322,6 +326,11 @@ export default function TabFechamento() {
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
                         <ValorComReal calc={bruto} real={pago(o)} />
+                        {o.forma_pagamento && (
+                          <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
+                            {ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400">
                         {parceira > 0 || o.valor_parceiro_pago != null

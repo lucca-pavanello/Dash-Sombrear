@@ -21,6 +21,7 @@ export type Orcamento = {
   custo_acabamento?: number | null
   valor_parceiro?: number | null
   valor_cobrado?: number | null
+  forma_pagamento?: string | null
   valor_parceiro_pago?: number | null
   custos_detalhe?: { parte: string; tabela: number; fator: number; real: number }[] | null
   custo_m2?: number | null
