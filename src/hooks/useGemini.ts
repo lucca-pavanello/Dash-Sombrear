@@ -15,6 +15,8 @@ export interface GeminiContext {
   emAberto: number
   emRisco: number
   responsaveis: string[]
+  primeiroOrc: string | null
+  ultimoOrc: string | null
 }
 
 function buildSystemPrompt(ctx: GeminiContext): string {
@@ -29,6 +31,7 @@ Dados atuais do dashboard (atualizado agora):
 - Ticket médio: ${ctx.ticketMedio > 0 ? formatCurrency(ctx.ticketMedio) : 'sem dados'}
 - Margem média: ${ctx.margemMedia != null ? ctx.margemMedia.toFixed(1) + '%' : 'sem dados de custo'}
 - Em aberto: ${ctx.emAberto} orçamentos | Em risco (sem resposta +7 dias): ${ctx.emRisco}
+- Período dos dados: primeiro orçamento em ${ctx.primeiroOrc ?? 'sem dados'}, mais recente em ${ctx.ultimoOrc ?? 'sem dados'}
 - Responsáveis: ${resp}
 
 Seja objetivo, prático e motivador. Se não souber algo com os dados disponíveis, diga claramente.`
@@ -90,6 +93,8 @@ export function buildGeminiContext(data: Orcamento[]): GeminiContext {
     return dias > 7
   })
   const responsaveis = [...new Set(data.map(o => o.responsavel))]
+  const datas = data.map(o => new Date(o.created_at).getTime()).filter(t => !Number.isNaN(t))
+  const fmtData = (t: number) => new Date(t).toLocaleDateString('pt-BR')
   return {
     totalOrc: data.length,
     fechados: fechados.length,
@@ -100,5 +105,7 @@ export function buildGeminiContext(data: Orcamento[]): GeminiContext {
     emAberto: emAberto.length,
     emRisco: emRisco.length,
     responsaveis,
+    primeiroOrc: datas.length > 0 ? fmtData(Math.min(...datas)) : null,
+    ultimoOrc: datas.length > 0 ? fmtData(Math.max(...datas)) : null,
   }
 }
