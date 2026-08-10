@@ -117,6 +117,26 @@ Deno.serve(async (req) => {
         db.from('precos_motor_componentes').select('item, custo, quantidade'),
       ])
 
+      // Histórico de mudanças: com o "antes" gravado na auditoria a IA consegue
+      // responder "qual era o valor antes?" e reverter sem perguntar ao admin.
+      const { data: auditoria } = await db.from('precos_auditoria')
+        .select('acao, detalhe, criado_em').order('criado_em', { ascending: false }).limit(25)
+      const mudancas = (auditoria ?? []).map(a => {
+        const d = (a.detalhe ?? {}) as Record<string, unknown>
+        const antes = d.antes as Record<string, unknown> | Array<Record<string, unknown>> | undefined
+        const valorAntes = Array.isArray(antes)
+          ? antes.map(x => x.preco ?? x.valor).join(' / ')
+          : (antes?.valor ?? antes?.preco ?? antes?.custo ?? null)
+        return {
+          quando: String(a.criado_em).slice(0, 16).replace('T', ' '),
+          o_que: a.acao,
+          alvo: d.item ?? d.nome ?? d.chave ?? d.tecido ?? d.modelo ?? d.id ?? null,
+          detalhe_alvo: [d.familia, d.cor, d.espessura, d.categoria].filter(Boolean).join(' ') || null,
+          de: valorAntes,
+          para: d.valor ?? d.preco ?? d.custo ?? d.desconto_pct ?? null,
+        }
+      })
+
       const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
       const sistema = `Você é a assistente de gestão de preços da Sombrear (persianas). Hoje é ${hoje}.
 O admin descreve mudanças em linguagem natural; você devolve APENAS um JSON válido:
@@ -162,7 +182,13 @@ BANDÔ (preço = largura×preco_metro + qtd_cd×(cd1+cd2) + par): params=${JSON.
 BARRA NIVELADORA (preço = metro×largura + presilha×qtd; params barra_* acima): faixas=${JSON.stringify(barraFaixas)}
 INSTALAÇÃO (por metro linear): ${JSON.stringify(colocacao)}
 MOTOR: estrutura=${JSON.stringify(motorEst)} componentes=${JSON.stringify(motorComp)}
-ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferragens › ROMANA — grande demais pra listar aqui.`
+ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferragens › ROMANA — grande demais pra listar aqui.
+
+MUDANÇAS JÁ FEITAS (mais recente primeiro; "de"=valor anterior, "para"=valor que entrou):
+${JSON.stringify(mudancas)}
+Use esta lista para responder "qual era o valor antes?" e para reverter ("volta pro valor anterior"):
+pegue o "de" da mudança mais recente daquele item e proponha a ação com esse valor — NÃO pergunte ao
+admin um valor que já está aqui. Se o item não aparecer na lista, aí sim diga que não há registro.`
 
       const historico = Array.isArray(body.historico) ? body.historico.slice(-6) : []
       const contents = [

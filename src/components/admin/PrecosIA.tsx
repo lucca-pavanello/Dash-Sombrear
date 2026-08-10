@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, History, Loader2, Send, Sparkles, Undo2, X } from 'lucide-react'
+import { Check, Eraser, History, Loader2, Send, Sparkles, Undo2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { usePrecosMutations } from '@/hooks/usePrecos'
@@ -76,11 +76,46 @@ const semId = (row: Record<string, unknown>) => {
   return resto
 }
 
+/** Valor que existia antes da mudança — vem do 'antes' gravado na auditoria. */
+function valorAnterior(detalhe: Record<string, unknown>): string | null {
+  const antes = detalhe?.antes as Record<string, unknown> | Array<Record<string, unknown>> | undefined
+  if (!antes) return null
+  const bruto = Array.isArray(antes)
+    ? antes.map(x => x.preco ?? x.valor).filter(v => v != null)
+    : [antes.valor ?? antes.preco ?? antes.custo ?? antes.qtd_presilhas]
+  const nums = bruto.filter(v => v != null && !isNaN(Number(v))).map(v => Number(v))
+  if (nums.length === 0) return null
+  return [...new Set(nums)].map(n => `R$ ${n.toFixed(2)}`).join(' / ')
+}
+
+const CHAVE_CONVERSA = 'sombrear-precos-ia-conversa'
+const MAX_GUARDADAS = 15
+
+const SAUDACAO: Mensagem = {
+  papel: 'ia',
+  texto: 'Oi! Me diz o que você quer mudar nos preços — por exemplo: "coloca o SCREEN 3% BEGE com 10% de desconto até o fim do mês" ou "o BK BRANCO sobe pra R$ 36". Eu preparo a mudança e você só confirma.',
+}
+
+/** Conversa guardada no aparelho: ao voltar na aba o admin continua de onde parou. */
+function carregarConversa(): Mensagem[] {
+  try {
+    const bruto = localStorage.getItem(CHAVE_CONVERSA)
+    if (!bruto) return [SAUDACAO]
+    const salvas = JSON.parse(bruto) as Mensagem[]
+    if (!Array.isArray(salvas) || salvas.length === 0) return [SAUDACAO]
+    // propostas não sobrevivem ao recarregar: os dados podem ter mudado nesse meio-tempo
+    return salvas.map(m => ({ ...m, acoes: undefined }))
+  } catch { return [SAUDACAO] }
+}
+
 export default function PrecosIA({ toast }: Props) {
-  const [mensagens, setMensagens] = useState<Mensagem[]>([{
-    papel: 'ia',
-    texto: 'Oi! Me diz o que você quer mudar nos preços — por exemplo: "coloca o SCREEN 3% BEGE com 10% de desconto até o fim do mês" ou "o BK BRANCO sobe pra R$ 36". Eu preparo a mudança e você só confirma.',
-  }])
+  const [mensagens, setMensagens] = useState<Mensagem[]>(carregarConversa)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAVE_CONVERSA, JSON.stringify(mensagens.slice(-MAX_GUARDADAS)))
+    } catch { /* cota cheia: seguir sem persistir */ }
+  }, [mensagens])
   const [texto, setTexto] = useState('')
   const [pensando, setPensando] = useState(false)
   const [aplicando, setAplicando] = useState(false)
@@ -232,6 +267,16 @@ export default function PrecosIA({ toast }: Props) {
           <span className="ml-auto rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
             propõe → você confirma
           </span>
+          {mensagens.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setMensagens([SAUDACAO])}
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Limpar conversa (as alterações continuam no histórico ao lado)"
+            >
+              <Eraser className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" style={{ maxHeight: 420, minHeight: 280 }}>
@@ -302,6 +347,7 @@ export default function PrecosIA({ toast }: Props) {
             <History className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
           <h2 className="font-display text-sm font-semibold tracking-wide">Últimas alterações</h2>
+          <span className="ml-auto text-[10px] text-muted-foreground">o valor anterior fica guardado</span>
         </div>
         <div className="divide-y">
           {(auditoria ?? []).length === 0 && (
@@ -311,6 +357,11 @@ export default function PrecosIA({ toast }: Props) {
             <div key={a.id} className="flex items-start gap-2 px-5 py-3">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-foreground">{descreverAcao({ tipo: a.acao, ...a.detalhe })}</p>
+                {valorAnterior(a.detalhe) && (
+                  <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
+                    antes: {valorAnterior(a.detalhe)}
+                  </p>
+                )}
                 <p className="mt-0.5 text-[10px] text-muted-foreground">
                   {a.usuario} · {new Date(a.criado_em).toLocaleString('pt-BR')}
                 </p>
