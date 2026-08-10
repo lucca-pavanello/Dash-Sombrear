@@ -20,7 +20,7 @@ import Toaster from '@/components/ui/Toaster'
 import { SUGESTOES_AMBIENTE } from '@/lib/constants'
 import { useHistoricoCliente, resumoHistorico } from '@/hooks/useHistoricoCliente'
 
-const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 const MODELOS = [
   { id: 'Rolo', label: 'Rolô' },

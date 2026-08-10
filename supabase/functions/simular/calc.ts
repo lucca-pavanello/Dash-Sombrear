@@ -48,8 +48,13 @@ export interface DadosSim {
 }
 
 export interface ResultadoSim {
+  /** custo REAL da loja (já com o multiplicador da parceira, quando se aplica) */
   custoProduto: number
   custoAcabamento: number
+  /** custo de tabela — é dele que sai o preço de venda */
+  custoTabela: number
+  /** quanto será pago à empresa parceira (0 em PV, PH Alumínio e PH 50mm) */
+  valorParceiro: number
   vendaProduto: number
   vendaAcabamento: number
   total4x: number
@@ -79,6 +84,21 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
   let emPromocao = false
   let descontoPct: number | null = null
   const taxa2 = param('taxa_parcelamento', 1.06) ** 2
+
+  /* ── custo da empresa parceira ──────────────────────────────────────────
+     A produção das persianas de tecido é feita por uma parceira, que cobra um
+     multiplicador sobre o custo de tabela — e cada item tem o SEU (editável em
+     Parâmetros). O preço do cliente NÃO muda: a venda continua saindo do custo
+     de tabela; o multiplicador só revela o custo real e a margem verdadeira.
+     PV, PH Alumínio, PH 50mm e instalação não passam pela parceira. */
+  const parceiro = (chave: string) => param(chave, param('custo_parceiro', 1.4))
+  let realProduto = 0        // custo real do produto (tecido + ferragem/motor)
+  let realAcabamento = 0     // custo real do acabamento (bandô, barra, kit box)
+  const somaReal = (custoTabela: number, chave: string, onde: 'produto' | 'acabamento') => {
+    const real = custoTabela * parceiro(chave)
+    if (onde === 'produto') realProduto += real
+    else realAcabamento += real
+  }
 
   /* ── custo do bandô (fórmula: L×base + qtd_cd×(cd1+cd2) + par, degrau ≥ L) ── */
   const custoBando = (cor: 'BRANCO' | 'PRETO'): number | null => {
@@ -114,6 +134,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     const custoTecido = Number(rolo.largura) * alturaUsada * Number(rolo.preco)
 
     let custoFerragem: number
+    let chaveFerragem: string
     if (e.modelo === 'Romana') {
       // matriz L×A: coluna e linha mais próximas PARA CIMA
       const largs = [...new Set(d.romana.map(r => Number(r.largura)))].sort((a, b) => a - b)
@@ -127,6 +148,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       const cel = d.romana.find(r => Number(r.largura) === Lm && Number(r.altura) === Am)
       if (!cel) return { erro: 'Célula da matriz Romana não encontrada' }
       custoFerragem = Number(cel.custo)
+      chaveFerragem = 'parceiro_romana'
       obs.push(`Ferragem Romana na célula ${Lm.toFixed(2).replace('.', ',')} × ${Am.toFixed(2).replace('.', ',')}m`)
     } else {
       // ferragem: Rolo escolhe o tubo pela medida; Double é família única
@@ -153,23 +175,31 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       const fixo = comps.filter(c => c.tipo_custo === 'fixo').reduce((s, c) => s + Number(c.valor), 0)
       const largFerragem = Math.ceil(L * 10 - 1e-9) / 10
       custoFerragem = ml * largFerragem + fixo
+      chaveFerragem = familia === 'DOUBLE'
+        ? `parceiro_ferragem_double_${e.corFerragem.toLowerCase()}`
+        : `parceiro_ferragem_rolo_${e.corFerragem.toLowerCase()}_${espessura}`
       if (e.modelo === 'Rolo') obs.push(`Tubo ${espessura}mm · ferragem em ${largFerragem.toFixed(2).replace('.', ',')}m`)
     }
 
     custoProduto = (custoTecido + custoFerragem) * qtd
+    somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto')
+    somaReal(custoFerragem * qtd, chaveFerragem, 'produto')
 
     // acabamento
     if (e.acabamento === 'bando_branco' || e.acabamento === 'bando_preto') {
       const cb = custoBando(e.acabamento === 'bando_branco' ? 'BRANCO' : 'PRETO')
       if (cb == null) return { erro: 'Bandô sem parâmetros no banco' }
       custoAcabamento = cb * qtd
+      somaReal(custoAcabamento, `parceiro_bando_${e.acabamento === 'bando_branco' ? 'branco' : 'preto'}`, 'acabamento')
     } else if (e.acabamento === 'barra') {
       custoAcabamento = custoBarra() * qtd
+      somaReal(custoAcabamento, 'parceiro_barra', 'acabamento')
     } else if (e.acabamento === 'kit_box') {
       if (e.modelo !== 'Rolo') return { erro: 'Kit Box é exclusivo da Rolô' }
       custoAcabamento = (L * param('kitbox_ml_largura', 88.7) + param('kitbox_fixo1', 20.3)
         + (L + 2 * A) * param('kitbox_ml_perimetro', 30) + param('kitbox_fixo2', 12.28)
         + 4 * A * param('kitbox_ml_altura', 0.82)) * qtd
+      somaReal(custoAcabamento, 'parceiro_kitbox', 'acabamento')
     }
 
     const mkVenda = param('markup_venda', 2.8)
@@ -239,21 +269,18 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
   const total4x = round2(vendaProduto + vendaAcabamento)
   const totalAvista = round2(total4x * (1 - param('desconto_avista_pct', 5) / 100))
 
-  /* ── custo real da loja ────────────────────────────────────────────────
-     Nas persianas de tecido (Rolô, Double, Romana e Motorizado) a produção é
-     feita por uma empresa parceira: o que a loja paga é o custo da tabela ×
-     custo_parceiro. O PREÇO DE VENDA NÃO MUDA (segue sobre o custo de tabela);
-     o que muda é o custo real e, portanto, a margem verdadeira.
-     PV, PH Alumínio, PH 50mm e instalação ficam de fora. */
-  const modeloDeTecido = e.modelo === 'Rolo' || e.modelo === 'Double' || e.modelo === 'Romana'
-  const fatorParceiro = modeloDeTecido ? param('custo_parceiro', 1.4) : 1
-  if (fatorParceiro !== 1) {
-    custoProduto *= fatorParceiro
-    custoAcabamento *= fatorParceiro
-  }
+  /* O custo devolvido é o REAL (o que a loja paga). Nos itens da parceira ele
+     é o custo de tabela × multiplicador do item; nos demais (PV, PH Alumínio,
+     PH 50mm) tabela e real são a mesma coisa. A venda acima já saiu do custo
+     de tabela, então o preço do cliente não muda. */
+  const custoRealProduto = round2(realProduto > 0 ? realProduto : custoProduto)
+  const custoRealAcabamento = round2(realAcabamento > 0 ? realAcabamento : custoAcabamento)
+  // soma dos valores JÁ arredondados: o relatório nunca mostra 1 centavo de diferença
+  const valorParceiro = round2((realProduto > 0 ? custoRealProduto : 0) + (realAcabamento > 0 ? custoRealAcabamento : 0))
 
   return {
-    custoProduto: round2(custoProduto), custoAcabamento: round2(custoAcabamento),
+    custoProduto: custoRealProduto, custoAcabamento: custoRealAcabamento,
+    custoTabela: round2(custoProduto + custoAcabamento), valorParceiro,
     vendaProduto: round2(vendaProduto), vendaAcabamento: round2(vendaAcabamento),
     total4x, totalAvista, instalacao, emPromocao, descontoPct, observacoes: obs,
   }
