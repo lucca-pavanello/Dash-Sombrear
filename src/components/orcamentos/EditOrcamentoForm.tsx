@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight, MessageCircle, FileDown } from 'lucide-react'
+import { X, Trash2, Copy, Check as CheckIcon, ChevronDown, ChevronUp, Share2, Link, Clock, ChevronLeft, ChevronRight, MessageCircle, FileDown, CopyPlus } from 'lucide-react'
 import { useUpdateOrcamento, useDeleteOrcamento, useAddOrcamento, useOrcamentoHistorico, useAddHistorico, type HistoricoEntry } from '@/hooks/useOrcamentos'
 import { haptic } from '@/lib/haptic'
 import { useToggleShare } from '@/hooks/useKanban'
@@ -218,6 +218,44 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
   function handleClose() {
     if (isDirty) { setConfirmDiscard(true); return }
     onClose()
+  }
+
+  const [duplicando, setDuplicando] = useState(false)
+  // Recompra / outra janela do mesmo cliente: novo orçamento a partir deste
+  async function handleDuplicar() {
+    if (duplicando) return
+    setDuplicando(true)
+    try {
+      await add({
+        responsavel: orcamento.responsavel,
+        cliente: orcamento.cliente ?? null,
+        telefone: orcamento.telefone ?? null,
+        ambiente: orcamento.ambiente ?? null,
+        modelo: orcamento.modelo ?? null,
+        tecido: orcamento.tecido ?? null,
+        largura: orcamento.largura ?? null,
+        altura: orcamento.altura ?? null,
+        quantidade: orcamento.quantidade ?? 1,
+        cor_ferragem_motor: orcamento.cor_ferragem_motor ?? null,
+        acabamentos: orcamento.acabamentos ?? null,
+        valor_venda: orcamento.valor_venda ?? null,
+        instalacao: orcamento.instalacao ?? null,
+        custo_m2: orcamento.custo_m2 ?? null,
+        custo_tecido: orcamento.custo_tecido ?? null,
+        custo_acabamento: orcamento.custo_acabamento ?? null,
+        margem: orcamento.margem ?? null,
+        observacoes: orcamento.observacoes ?? null,
+        status: 'FEITO',
+        fechado: false,
+        fonte: 'duplicado',
+      } as Omit<Orcamento, 'id' | 'created_at'>)
+      toast('success', 'Orçamento duplicado! O novo já está no topo da Planilha.')
+      onClose()
+    } catch {
+      toast('error', 'Não consegui duplicar. Tente de novo.')
+    } finally {
+      setDuplicando(false)
+    }
   }
 
   useEffect(() => {
@@ -490,6 +528,16 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             >
               <MessageCircle className="h-3.5 w-3.5" />
               WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={handleDuplicar}
+              disabled={duplicando}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
+              title="Criar um novo orçamento a partir deste (recompra / outra janela)"
+            >
+              <CopyPlus className="h-3.5 w-3.5" />
+              {duplicando ? 'Duplicando…' : 'Duplicar'}
             </button>
             {ehAdmin && (
               <button
