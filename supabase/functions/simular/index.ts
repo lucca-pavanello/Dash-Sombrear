@@ -5,6 +5,7 @@
  *
  * acao 'calcular' → valores de venda (custos/margem só quando o chamador é admin)
  * acao 'salvar'   → grava direto em orcamentos (fonte='simulador', status FEITO)
+ * acao 'detalhar' → reconstrói a quebra por item de uma venda antiga (só se conferir)
  *
  * Qualquer usuário APROVADO usa; custo e margem nunca saem para não-admin.
  */
@@ -19,10 +20,17 @@ const corsHeaders = {
 const ADMIN_EMAIL = 'luccapavanallo@gmail.com'
 const MODELOS = new Set(['Rolo', 'Double', 'Romana', 'PV', 'PH_Aluminio', 'PH_50'])
 const ACABAMENTOS = new Set(['nenhum', 'bando_branco', 'bando_preto', 'barra', 'kit_box'])
+/** caminho inverso do rótulo: o que está salvo em orcamentos.acabamentos */
+const ACABAMENTO_DA_VENDA: Record<string, string> = {
+  'Bando Branco': 'bando_branco', 'Bando Preto': 'bando_preto',
+  'Barra Niveladora': 'barra', 'Kit Box': 'kit_box', 'Sem': 'nenhum',
+}
 const ROTULO_ACABAMENTO: Record<string, string> = {
   nenhum: 'Sem', bando_branco: 'Bando Branco', bando_preto: 'Bando Preto',
   barra: 'Barra Niveladora', kit_box: 'Kit Box',
 }
+
+const round2c = (v: number) => Math.round((v + 1e-9) * 100) / 100
 
 function resposta(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -72,6 +80,42 @@ Deno.serve(async (req) => {
         artigosPH: (art ?? []).filter(a => a.categoria === 'PH_ALUMINIO').map(a => a.nome),
         ph50: (p50 ?? []).map(p => ({ valor: `${p.modelo}|${p.cor}`, label: `${String(p.modelo).trim()} · ${p.cor}` })),
       })
+    }
+
+    /* ══════════════ DETALHAR ══════════════
+       Venda antiga (veio do WhatsApp ou é anterior à quebra por item) não tem
+       custos_detalhe. Aqui a gente recalcula pelos dados guardados e SÓ grava
+       se o número bater com o que já estava salvo — senão seria chute. */
+    let idDetalhar: string | null = null
+    if (acao === 'detalhar') {
+      if (!isAdmin && perfil?.pode_fechamento !== true) {
+        return resposta(403, { error: 'Sem acesso ao fechamento' })
+      }
+      const { data: o } = await db.from('orcamentos')
+        .select('id, modelo, tecido, largura, altura, quantidade, cor_ferragem_motor, acabamentos, custo_tecido, custo_acabamento, valor_parceiro, custos_detalhe')
+        .eq('id', String(body.id ?? '')).single()
+      if (!o) return resposta(404, { error: 'Orçamento não encontrado' })
+      if (o.custos_detalhe) return resposta(200, { erro: 'Essa venda já tem a quebra.' })
+      if (!MODELOS.has(String(o.modelo))) {
+        return resposta(200, {
+          erro: `${o.modelo} não passa pelo motor do simulador (o motor não entra no cálculo), então a quebra teria que ser chutada.`,
+        })
+      }
+      const acab = String(o.acabamentos ?? '')
+      const ehPH50 = o.modelo === 'PH_50'
+      idDetalhar = o.id
+      body.entrada = {
+        modelo: o.modelo,
+        tecido: o.tecido,
+        artigo: o.tecido,
+        corFerragem: /pret/i.test(String(o.cor_ferragem_motor ?? '')) ? 'PRETA' : 'BRANCA',
+        largura: o.largura, altura: o.altura, quantidade: o.quantidade ?? 1,
+        acabamento: ACABAMENTO_DA_VENDA[acab] ?? 'nenhum',
+        ph50Acabamento: /fita/i.test(acab) ? 'fita' : 'cadarco',
+        ph50Bando: ehPH50 && /band/i.test(acab),
+        incluirInstalacao: false,
+      }
+      body.vendaOriginal = o
     }
 
     // ── Entrada saneada ─────────────────────────────────────
@@ -128,6 +172,36 @@ Deno.serve(async (req) => {
       emPromocao: r.emPromocao,
       descontoPct: r.descontoPct,
       observacoes: r.observacoes,
+    }
+
+    // ══════════════ DETALHAR: confere e grava ══════════════
+    if (acao === 'detalhar' && idDetalhar) {
+      const o = body.vendaOriginal
+      const custoRealTotal = round2c(r.custoProduto + r.custoAcabamento)
+      const parceiraSalva = Number(o.valor_parceiro ?? 0)
+      const custoSalvo = round2c(Number(o.custo_tecido ?? 0) + Number(o.custo_acabamento ?? 0))
+
+      // bate com a parceira (venda nova) ou com o custo de tabela (venda do n8n)?
+      const bateParceira = parceiraSalva > 0 && Math.abs(r.valorParceiro - parceiraSalva) < 0.02
+      const bateTabela = custoSalvo > 0 && Math.abs(r.custoTabela - custoSalvo) < 0.02
+      if (!bateParceira && !bateTabela) {
+        return resposta(200, {
+          erro: 'Os preços de hoje não reproduzem o valor desta venda — provavelmente a tabela mudou desde então. Reconstruir aqui seria inventar número, então preferi não gravar.',
+        })
+      }
+
+      const patch: Record<string, unknown> = { custos_detalhe: r.detalhe }
+      // venda do n8n não tinha o repasse calculado; agora tem
+      if (!(parceiraSalva > 0)) patch.valor_parceiro = r.valorParceiro
+      const { error: erroGravar } = await db.from('orcamentos').update(patch).eq('id', idDetalhar)
+      if (erroGravar) return resposta(500, { error: erroGravar.message })
+
+      return resposta(200, {
+        ok: true,
+        detalhe: r.detalhe,
+        valorParceiro: r.valorParceiro,
+        conferiu: bateParceira ? 'parceira' : 'custo',
+      })
     }
 
     // ══════════════ CALCULAR ══════════════

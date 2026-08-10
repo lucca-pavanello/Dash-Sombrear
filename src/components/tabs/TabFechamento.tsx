@@ -8,7 +8,7 @@
 import { Fragment, Suspense, useMemo, useState } from 'react'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import {
-  Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Wallet, X,
+  Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Wallet, Wand2, X,
 } from 'lucide-react'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -89,6 +89,31 @@ export default function TabFechamento() {
   const [editando, setEditando] = useState<string | null>(null)
   const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string }>({ cobrado: '', parceira: '' })
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
+  const [reconstruindo, setReconstruindo] = useState<string | null>(null)
+  const [erroReconstruir, setErroReconstruir] = useState<Record<string, string>>({})
+
+  /**
+   * Recalcula a quebra por item de uma venda que entrou sem ela (WhatsApp).
+   * O servidor só grava se o número reproduzir o que já estava salvo.
+   */
+  const reconstruir = async (id: string) => {
+    setReconstruindo(id)
+    setErroReconstruir(e => ({ ...e, [id]: '' }))
+    try {
+      const { data, error } = await supabase.functions.invoke('simular', {
+        body: { acao: 'detalhar', id },
+      })
+      if (error) throw error
+      if (data?.erro) { setErroReconstruir(e => ({ ...e, [id]: data.erro })); return }
+      await refetch()
+    } catch (err) {
+      setErroReconstruir(e => ({
+        ...e, [id]: err instanceof Error ? err.message : 'Não deu para reconstruir agora.',
+      }))
+    } finally {
+      setReconstruindo(null)
+    }
+  }
 
   function abrirAjuste(o: Orcamento) {
     if (editando === o.id) { setEditando(null); return }
@@ -392,12 +417,25 @@ export default function TabFechamento() {
                                   </tbody>
                                 </table>
                               ) : (
-                                <p className="text-xs text-muted-foreground">
-                                  Venda registrada antes da quebra por item existir. O que temos: produto{' '}
-                                  {formatCurrency(Number(o.custo_tecido ?? 0))}
-                                  {Number(o.custo_acabamento) > 0 && <> e acabamento {formatCurrency(Number(o.custo_acabamento))}</>}.
-                                  As vendas novas já vêm detalhadas.
-                                </p>
+                                <div className="space-y-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    Essa venda entrou sem a quebra por item. O que temos: produto{' '}
+                                    {formatCurrency(Number(o.custo_tecido ?? 0))}
+                                    {Number(o.custo_acabamento) > 0 && <> e acabamento {formatCurrency(Number(o.custo_acabamento))}</>}.
+                                  </p>
+                                  <button type="button" onClick={() => reconstruir(o.id)} disabled={reconstruindo === o.id}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-2.5 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/5 disabled:opacity-60">
+                                    {reconstruindo === o.id
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <Wand2 className="h-3 w-3" />}
+                                    Reconstruir pelos dados da venda
+                                  </button>
+                                  {erroReconstruir[o.id] && (
+                                    <p className="text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
+                                      {erroReconstruir[o.id]}
+                                    </p>
+                                  )}
+                                </div>
                               )}
                             </div>
 

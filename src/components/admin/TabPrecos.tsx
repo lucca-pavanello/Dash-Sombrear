@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Blinds, Calculator, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
+  Blinds, Calculator, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Download, FileSpreadsheet, FileText, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -82,7 +82,10 @@ export default function TabPrecos({ toast }: Props) {
             Fonte central de preços e promoções — a planilha-espelho se atualiza a cada 30 min ou pelo botão.
           </p>
         </div>
-        <BotaoSincronizar toast={toast} />
+        <div className="flex items-center gap-2">
+          <BotaoBaixarTabelas toast={toast} />
+          <BotaoSincronizar toast={toast} />
+        </div>
       </div>
 
       {/* Saúde do sistema: a cliente bate o olho e sabe que está tudo em ordem */}
@@ -554,6 +557,63 @@ function PainelAjustes({ titulo, children }: { titulo: string; children: React.R
         <ChevronDown className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', aberto && 'rotate-180')} />
       </button>
       {aberto && <div className="border-t p-4 space-y-4">{children}</div>}
+    </div>
+  )
+}
+
+/**
+ * Baixa TODAS as tabelas de preço de uma vez. O Excel sai com uma aba por
+ * tabela e os preços como número (dá pra somar); o PDF é a versão de leitura.
+ */
+function BotaoBaixarTabelas({ toast }: { toast: Props['toast'] }) {
+  const [aberto, setAberto] = useState(false)
+  const [baixando, setBaixando] = useState<'xlsx' | 'pdf' | null>(null)
+
+  const baixar = async (formato: 'xlsx' | 'pdf') => {
+    setAberto(false)
+    setBaixando(formato)
+    try {
+      const { baixarPrecosExcel, baixarPrecosPDF } = await import('@/lib/exportarPrecos')
+      const n = formato === 'xlsx' ? await baixarPrecosExcel() : await baixarPrecosPDF()
+      toast('success', `${n} tabelas baixadas`)
+    } catch (e) {
+      toast('error', e instanceof Error ? e.message : 'Não deu para gerar o arquivo')
+    } finally {
+      setBaixando(null)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button onClick={() => setAberto(a => !a)} disabled={baixando != null}
+        className="flex items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-60">
+        {baixando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+        Baixar tabelas
+        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', aberto && 'rotate-180')} />
+      </button>
+      {aberto && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} />
+          <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-xl border-2 bg-card shadow-lg">
+            <button onClick={() => baixar('xlsx')}
+              className="flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/50">
+              <FileSpreadsheet className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              <span>
+                <span className="block text-sm font-semibold">Excel (.xlsx)</span>
+                <span className="block text-xs text-muted-foreground">Uma aba por tabela, preços como número</span>
+              </span>
+            </button>
+            <button onClick={() => baixar('pdf')}
+              className="flex w-full items-start gap-2.5 border-t px-3 py-2.5 text-left transition-colors hover:bg-muted/50">
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+              <span>
+                <span className="block text-sm font-semibold">PDF</span>
+                <span className="block text-xs text-muted-foreground">Pronto pra imprimir ou mandar por e-mail</span>
+              </span>
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
