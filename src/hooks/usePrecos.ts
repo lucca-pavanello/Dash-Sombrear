@@ -38,6 +38,7 @@ export interface PrecoTecidoModelo { tecido_nome: string; modelo: string }
 export interface PrecoTecidoVigente {
   id: number; nome: string; tipo: string; largura: number
   preco: number; preco_cheio: number; desconto_pct: number | null; em_promocao: boolean
+  promo_fim: string | null
 }
 
 export const MODELOS_PERSIANA = ['Rolo', 'Double', 'Romana', 'PH_Aluminio', 'PV', 'PH_50', 'Rolo Motorizado'] as const

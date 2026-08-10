@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Send, CheckCircle2, Loader2, Plus, Trash2, Home,
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
-  ChevronRight, ChevronDown, Package, PenLine, Copy,
+  ChevronRight, ChevronDown, Package, PenLine, Copy, Tag,
 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { cn } from '@/lib/utils'
@@ -22,6 +23,17 @@ const ACABAMENTOS = [
 const MODEL_PH50 = 'PH_50'
 const PH50_ACABAMENTOS = ['Cadarço', 'Fita']
 const DRAFT_KEY = 'sombrear-cotacao-draft-v3'
+const MAIS_BARATO = 'MAIS BARATO (a partir de)'
+// Tipo de tecido no modo "mais barato" — vai no payload como economico_tipo
+const ECON_TIPOS = ['Qualquer', 'Blackout', 'Tela Solar', 'Decorativo']
+const ECON_TIPO_PAYLOAD: Record<string, string | null> = {
+  'Qualquer': null, 'Blackout': 'blackout', 'Tela Solar': 'tela_solar', 'Decorativo': 'decorativo',
+}
+const normTecido = (s: string) => s.toUpperCase().replace(/\s+/g, ' ').trim()
+const fmtDataBR = (iso: string) => {
+  const [y, m, d] = iso.split('-')
+  return y && m && d ? `${d}/${m}` : iso
+}
 
 /* ─── Style tokens ───────────────────────────────────────── */
 const inputCls =
@@ -43,6 +55,7 @@ interface Persiana {
   tecido: string
   cor_ferragem: string
   acabamento: string
+  economico_tipo: string
   medidas: Medida[]
 }
 
@@ -65,7 +78,7 @@ function newMedida(nextIdRef: React.MutableRefObject<number>): Medida {
 }
 
 function newPersiana(nextIdRef: React.MutableRefObject<number>): Persiana {
-  return { id: nextIdRef.current++, modelo: '', tecido: '', cor_ferragem: 'Sem', acabamento: 'Sem', medidas: [newMedida(nextIdRef)] }
+  return { id: nextIdRef.current++, modelo: '', tecido: '', cor_ferragem: 'Sem', acabamento: 'Sem', economico_tipo: 'Qualquer', medidas: [newMedida(nextIdRef)] }
 }
 
 function copyPersiana(p: Persiana, nextIdRef: React.MutableRefObject<number>): Persiana {
@@ -97,7 +110,11 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
     if (!draft?.ambientes?.[0]?.persianas) return null
     // Force expand all ambientes on draft load
     if (draft?.ambientes) {
-      draft.ambientes = draft.ambientes.map((a: Ambiente) => ({ ...a, collapsed: false }))
+      draft.ambientes = draft.ambientes.map((a: Ambiente) => ({
+        ...a,
+        collapsed: false,
+        persianas: a.persianas.map(p => ({ ...p, economico_tipo: p.economico_tipo ?? 'Qualquer' })),
+      }))
     }
     // Aceita qualquer nome não-vazio — a lista agora é dinâmica (useResponsaveis)
     if (!draft.form.responsavel) {
@@ -144,6 +161,23 @@ export default function TabCotacao() {
   const { data: catalogoData, isLoading: catalogoLoading, isError: catalogoError, refetch: catalogoRefetch } = useModelosTecidos()
   const modelos = catalogoData?.modelos ?? []
   const tecidosPorModelo = catalogoData?.tecidosPorModelo ?? {}
+
+  /* ── Promoções vigentes (view segura, sem preços) ── */
+  const { data: promoData } = useQuery({
+    queryKey: ['promocoes-ativas'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('precos_promocoes_ativas').select('nome, desconto_pct, promo_fim')
+      if (error) throw error
+      return data as { nome: string; desconto_pct: number; promo_fim: string }[]
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+  const promoPorTecido = useMemo(() => {
+    const mapa = new Map<string, { desconto_pct: number; promo_fim: string }>()
+    for (const p of promoData ?? []) mapa.set(normTecido(p.nome), p)
+    return mapa
+  }, [promoData])
 
   /* ── Auto-save draft ── */
   useEffect(() => {
@@ -349,6 +383,7 @@ export default function TabCotacao() {
             cor_ferragem: p.cor_ferragem.trim(),
             acabamento: p.acabamento.trim(),
             persiana_grupo: `a${aIdx}p${pIdx}`,
+            economico_tipo: p.tecido === MAIS_BARATO ? (ECON_TIPO_PAYLOAD[p.economico_tipo] ?? null) : null,
           }))
         ),
       })),
@@ -617,13 +652,15 @@ export default function TabCotacao() {
                             {a.persianas.map((p, persianaIndex) => {
                               const tecidoBase = tecidosPorModelo[p.modelo] ?? []
                               // Opção especial: o n8n detecta "MAIS BARATO" e resolve o tecido
-                              // mais barato do modelo ao vivo na planilha (orçamento "a partir de")
+                              // mais barato do modelo ao vivo no banco (orçamento "a partir de")
                               const tecidoOpcoes = tecidoBase.length > 0
-                                ? ['MAIS BARATO (a partir de)', ...tecidoBase]
+                                ? [MAIS_BARATO, ...tecidoBase]
                                 : tecidoBase
                               const tecidoLivre = !catalogoLoading && tecidoOpcoes.length === 0
                               const isLastPersiana = persianaIndex === a.persianas.length - 1
                               const isPH50 = p.modelo === MODEL_PH50
+                              const isEconomico = p.tecido === MAIS_BARATO
+                              const promo = !isEconomico && p.tecido ? promoPorTecido.get(normTecido(p.tecido)) : undefined
 
                               return (
                                 <div
@@ -713,7 +750,28 @@ export default function TabCotacao() {
                                             placeholder={!p.modelo ? 'Selecione um modelo primeiro' : 'Ex: Blackout, Solar Screen…'}
                                           />
                                         )}
+                                        {promo && (
+                                          <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/5 px-2.5 py-1.5">
+                                            <Tag className="h-3 w-3 shrink-0 text-primary" />
+                                            <span className="text-[11px] font-semibold text-primary">
+                                              Em promoção: −{promo.desconto_pct}% até {fmtDataBR(promo.promo_fim)} — avise o cliente!
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
+                                      {isEconomico && (
+                                        <div className="sm:col-span-2">
+                                          <label className={labelCls}>Tipo de tecido (mais barato)</label>
+                                          <CustomSelect
+                                            value={p.economico_tipo}
+                                            onChange={v => setPersianaField(a.id, p.id, 'economico_tipo', v)}
+                                            options={ECON_TIPOS}
+                                          />
+                                          <p className="mt-1 text-[11px] text-foreground/50">
+                                            Ex.: Blackout = o BK mais barato do modelo, não o tecido mais barato em geral.
+                                          </p>
+                                        </div>
+                                      )}
                                       <div>
                                         <label className={labelCls}>Cor Ferragem</label>
                                         <CustomSelect
@@ -965,6 +1023,12 @@ export default function TabCotacao() {
                               <div className="space-y-0.5">
                                 <MiniRow k="Modelo" v={p.modelo} />
                                 <MiniRow k="Tecido" v={p.tecido} />
+                                {p.tecido === MAIS_BARATO && p.economico_tipo !== 'Qualquer' && (
+                                  <MiniRow k="Tipo" v={p.economico_tipo} />
+                                )}
+                                {p.tecido !== MAIS_BARATO && promoPorTecido.has(normTecido(p.tecido)) && (
+                                  <MiniRow k="Promoção" v={`−${promoPorTecido.get(normTecido(p.tecido))!.desconto_pct}% até ${fmtDataBR(promoPorTecido.get(normTecido(p.tecido))!.promo_fim)}`} />
+                                )}
                                 {p.medidas.filter(m => parseFloat(m.largura) > 0).map((m, mi) => (
                                   <MiniRow key={m.id} k={p.medidas.length > 1 ? `Medida ${mi + 1}` : 'Medidas'} v={`${m.largura}×${m.altura}m × ${m.quantidade}`} />
                                 ))}
