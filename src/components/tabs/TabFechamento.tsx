@@ -5,7 +5,8 @@
  * Mostra o que o cliente pagou, quanto vai para a empresa parceira e o que
  * sobra para a loja — com totais do período para fechar o mês.
  */
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
+import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import {
   Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Wallet, X,
 } from 'lucide-react'
@@ -17,7 +18,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import { useCountUp } from '@/hooks/useCountUp'
 import { supabase, type Orcamento } from '@/lib/supabase'
 
-const TabSimulador = lazy(() => import('@/components/tabs/TabSimulador'))
+const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 
 const PERIODOS = [
   { value: 'mes', label: 'Este mês' },

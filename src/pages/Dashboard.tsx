@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, lazy, Suspense, useMemo } from 'react'
+import { useEffect, useState, useRef, Suspense, useMemo } from 'react'
 import { flushSync } from 'react-dom'
+import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, Kanban, AlertTriangle, CircleDollarSign } from 'lucide-react'
 import { supabase, type Orcamento } from '@/lib/supabase'
@@ -27,21 +28,21 @@ import PresentationMode from '@/components/shared/PresentationMode'
 import { useChatStore } from '@/components/estoque/chat/store'
 import { isAIEstoqueEnabled } from '@/components/estoque/chat/featureFlag'
 
-const TabOrcamentos   = lazy(() => import('@/components/tabs/TabOrcamentos'))
-const TabPlanilha     = lazy(() => import('@/components/tabs/TabPlanilha'))
-const TabAgenteIA     = lazy(() => import('@/components/tabs/TabAgenteIA'))
-const TabCotacao      = lazy(() => import('@/components/tabs/TabCotacao'))
-const TabCalculoCusto = lazy(() => import('@/components/tabs/TabCalculoCusto'))
+const TabOrcamentos   = lazyComRecarga(() => import('@/components/tabs/TabOrcamentos'))
+const TabPlanilha     = lazyComRecarga(() => import('@/components/tabs/TabPlanilha'))
+const TabAgenteIA     = lazyComRecarga(() => import('@/components/tabs/TabAgenteIA'))
+const TabCotacao      = lazyComRecarga(() => import('@/components/tabs/TabCotacao'))
+const TabCalculoCusto = lazyComRecarga(() => import('@/components/tabs/TabCalculoCusto'))
 
-const TabAnalises     = lazy(() => import('@/components/tabs/TabAnalises'))
-const TabSimulador    = lazy(() => import('@/components/tabs/TabSimulador'))
-const TabFechamento   = lazy(() => import('@/components/tabs/TabFechamento'))
-const TabKanban       = lazy(() => import('@/components/tabs/TabKanban'))
-const TabEstoque      = lazy(() => import('@/components/tabs/TabEstoque'))
-const PainelAdmin     = lazy(() => import('@/components/admin/PainelAdmin'))
-const PermissoesView  = lazy(() => import('@/components/admin/PermissoesView'))
-const TabPrecos       = lazy(() => import('@/components/admin/TabPrecos'))
-const EditOrcamentoForm = lazy(() => import('@/components/orcamentos/EditOrcamentoForm'))
+const TabAnalises     = lazyComRecarga(() => import('@/components/tabs/TabAnalises'))
+const TabSimulador    = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
+const TabFechamento   = lazyComRecarga(() => import('@/components/tabs/TabFechamento'))
+const TabKanban       = lazyComRecarga(() => import('@/components/tabs/TabKanban'))
+const TabEstoque      = lazyComRecarga(() => import('@/components/tabs/TabEstoque'))
+const PainelAdmin     = lazyComRecarga(() => import('@/components/admin/PainelAdmin'))
+const PermissoesView  = lazyComRecarga(() => import('@/components/admin/PermissoesView'))
+const TabPrecos       = lazyComRecarga(() => import('@/components/admin/TabPrecos'))
+const EditOrcamentoForm = lazyComRecarga(() => import('@/components/orcamentos/EditOrcamentoForm'))
 
 const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban', 'precos', 'simulador', 'fechamento']
 const DEFAULT_TAB = 'calcular-orcamento'
