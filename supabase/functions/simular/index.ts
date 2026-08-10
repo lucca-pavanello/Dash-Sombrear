@@ -139,6 +139,8 @@ Deno.serve(async (req) => {
     // ══════════════ SALVAR ══════════════
     if (acao === 'salvar') {
       const cliente = String(body.cliente ?? '').trim() || 'Balcão'
+      const telefone = String(body.telefone ?? '').trim() || null
+      const ambiente = String(body.ambiente ?? '').trim() || null
       const instalacaoNum = typeof r.instalacao === 'number' ? r.instalacao : null
       const receita = r.total4x + (instalacaoNum ?? 0)
       const custoTotal = r.custoProduto + r.custoAcabamento
@@ -153,6 +155,8 @@ Deno.serve(async (req) => {
       const { data: novo, error: insertError } = await db.from('orcamentos').insert({
         responsavel: perfil?.full_name || perfil?.email || 'Balcão',
         cliente,
+        telefone,
+        ambiente,
         modelo: entrada.modelo,
         tecido: entrada.tecido ?? entrada.artigo ?? null,
         largura: entrada.largura || null,
