@@ -38,6 +38,9 @@ export type CrmLead = {
   classificacao_motivo: string | null
   classificacao_temperatura: string | null
   classificacao_em: string | null
+  // extraídos do histórico da loja: o que o cliente reclamou / o que destravou a venda
+  objecoes: string | null
+  gatilhos: string | null
 }
 
 export type OrcamentoIA = {
