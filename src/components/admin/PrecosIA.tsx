@@ -93,7 +93,7 @@ const MAX_GUARDADAS = 15
 
 const SAUDACAO: Mensagem = {
   papel: 'ia',
-  texto: 'Oi! Me diz o que você quer mudar nos preços — por exemplo: "coloca o SCREEN 3% BEGE com 10% de desconto até o fim do mês" ou "o BK BRANCO sobe pra R$ 36". Eu preparo a mudança e você só confirma.',
+  texto: 'Oi! Posso mudar preços — "coloca o SCREEN 3% BEGE com 10% de desconto até o fim do mês", "o BK BRANCO sobe pra R$ 36" — e também responder sobre as vendas: "quanto o Fernando pagou?", "quanto vou pagar à parceira esse mês?", "qual foi o valor anterior do tubo 32?". Nas mudanças eu preparo e você só confirma.',
 }
 
 /** Conversa guardada no aparelho: ao voltar na aba o admin continua de onde parou. */
@@ -330,7 +330,7 @@ export default function PrecosIA({ toast }: Props) {
             value={texto}
             onChange={e => setTexto(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() } }}
-            placeholder='Ex.: "BK Branco com 15% até dia 20"'
+            placeholder='Ex.: "BK Branco com 15% até dia 20" ou "total da parceira esse mês"'
             className="flex-1 rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
           <button onClick={enviar} disabled={pensando || !texto.trim()}

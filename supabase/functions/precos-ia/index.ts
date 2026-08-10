@@ -117,6 +117,30 @@ Deno.serve(async (req) => {
         db.from('precos_motor_componentes').select('item, custo, quantidade'),
       ])
 
+      // Orçamentos e vendas: sem isso a assistente não sabe responder "quanto o
+      // Fernando pagou" nem "quanto vai pra parceira neste mês" — e é justamente
+      // o que o admin pergunta enquanto olha o Fechamento.
+      const [{ data: vendas }, { data: recentes }] = await Promise.all([
+        db.from('orcamentos')
+          .select('cliente, modelo, tecido, largura, altura, quantidade, acabamentos, cor_ferragem_motor, ' +
+                  'valor_venda, valor_cobrado, instalacao, custo_tecido, custo_acabamento, valor_parceiro, ' +
+                  'valor_parceiro_pago, margem, created_at, responsavel, fonte')
+          .eq('fechado', true).order('created_at', { ascending: false }).limit(60),
+        db.from('orcamentos')
+          .select('cliente, modelo, tecido, largura, altura, quantidade, valor_venda, custo_tecido, ' +
+                  'valor_parceiro, fechado, created_at, responsavel')
+          .eq('fechado', false).order('created_at', { ascending: false }).limit(40),
+      ])
+      const compacto = (linhas: Record<string, unknown>[] | null) =>
+        (linhas ?? []).map(l => {
+          const o: Record<string, unknown> = {}
+          for (const [k, v] of Object.entries(l)) {
+            if (v == null || v === '') continue
+            o[k] = k === 'created_at' ? String(v).slice(0, 10) : v
+          }
+          return o
+        })
+
       // Histórico de mudanças: com o "antes" gravado na auditoria a IA consegue
       // responder "qual era o valor antes?" e reverter sem perguntar ao admin.
       const { data: auditoria } = await db.from('precos_auditoria')
@@ -166,7 +190,8 @@ Regras:
 - Pedidos fora de preços/promoções/parâmetros → acoes vazia + explique educadamente.
 
 Consulta: você PODE responder perguntas de preço sobre QUALQUER dado abaixo (ferragens, PH 50,
-bandôs, barra, instalação, motor) — cite o valor exato. Edição: TUDO acima é editável pelas ações;
+bandôs, barra, instalação, motor) — cite o valor exato — E TAMBÉM sobre os orçamentos e vendas
+listados adiante (quem comprou, quanto pagou, quanto vai pra parceira, totais do período). Edição: TUDO acima é editável pelas ações;
 apenas criar/remover LINHAS (tecido novo, faixa nova etc.) se faz na aba correspondente.
 Romana: a matriz não está listada aqui — para EDITAR uma célula use atualizar_romana com a célula
 exata que o admin informar; para CONSULTAR valores dela, indique a aba Ferragens › ROMANA.
@@ -183,6 +208,19 @@ BARRA NIVELADORA (preço = metro×largura + presilha×qtd; params barra_* acima)
 INSTALAÇÃO (por metro linear): ${JSON.stringify(colocacao)}
 MOTOR: estrutura=${JSON.stringify(motorEst)} componentes=${JSON.stringify(motorComp)}
 ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferragens › ROMANA — grande demais pra listar aqui.
+
+VENDAS FECHADAS (as 60 mais recentes — é o que aparece na aba Fechamento):
+${JSON.stringify(compacto(vendas))}
+ORÇAMENTOS EM ABERTO (os 40 mais recentes):
+${JSON.stringify(compacto(recentes))}
+Sobre esses dados, você PODE responder: quem comprou o quê, por quanto, quanto foi cobrado de
+verdade (valor_cobrado quando existe, senão valor_venda), quanto vai/foi pago à parceira
+(valor_parceiro_pago quando existe, senão valor_parceiro), custo, margem, totais por período,
+por cliente, por modelo ou por responsável. Some você mesmo quando pedirem totais.
+LIMITE HONESTO: o custo gravado (custo_tecido) é o custo do PRODUTO somado — a separação entre
+tecido e ferragem NÃO é guardada por orçamento. Se pedirem essa separação, diga isso e ofereça o
+custo total do produto e o do acabamento, ou o cálculo pelas tabelas para aquelas medidas.
+Se o cliente citado não estiver nas listas acima, diga que não achou nas vendas recentes em vez de inventar.
 
 MUDANÇAS JÁ FEITAS (mais recente primeiro; "de"=valor anterior, "para"=valor que entrou):
 ${JSON.stringify(mudancas)}
