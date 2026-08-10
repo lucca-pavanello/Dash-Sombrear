@@ -6,7 +6,7 @@
  * outro (cliente quer ver 3 modelos → troca o modelo e salva de novo);
  * "Limpar" zera a visita inteira.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Calculator, CheckCircle2, ChevronRight, Eraser, History, Layers, Loader2,
@@ -19,6 +19,9 @@ import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { SUGESTOES_AMBIENTE } from '@/lib/constants'
 import { useHistoricoCliente, resumoHistorico } from '@/hooks/useHistoricoCliente'
+import { lazyComRecarga } from '@/lib/lazyComRecarga'
+
+const CalculadoraCortina = lazyComRecarga(() => import('@/components/cortina/CalculadoraCortina'))
 
 const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -101,6 +104,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [salvoAtual, setSalvoAtual] = useState(false)
   const [salvos, setSalvos] = useState<Salvo[]>([])
   // desconto/acréscimo dado na mão: vazio = cobra o valor calculado
+  // persiana e cortina são dois cálculos diferentes; a chave decide qual aparece
+  const [produto, setProduto] = useState<'persiana' | 'cortina'>('persiana')
   const [valorCobrado, setValorCobrado] = useState('')
   // à vista tem 5% de desconto; no cartão vale o valor em 4x
   const [formaPagamento, setFormaPagamento] = useState('cartao_4x')
@@ -227,7 +232,29 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px] xl:gap-5">
+      {/* ── Persiana ou cortina: contas diferentes, telas diferentes ── */}
+      <div className="mx-auto mb-5 flex w-full max-w-xs gap-1 rounded-xl border border-border bg-muted/30 p-1">
+        {([['persiana', 'Persiana'], ['cortina', 'Cortina Wave']] as const).map(([id, label]) => (
+          <button key={id} type="button" onClick={() => setProduto(id)}
+            className={cn('flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all active:scale-95',
+              produto === id ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {produto === 'cortina' && (
+        <Suspense fallback={
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        }>
+          <CalculadoraCortina />
+        </Suspense>
+      )}
+
+      <div className={cn('grid grid-cols-1 gap-4 xl:grid-cols-[1fr_360px] xl:gap-5',
+        produto === 'cortina' && 'hidden')}>
 
         {/* ── COLUNA ESQUERDA: produto + cliente ── */}
         <div className="space-y-4">

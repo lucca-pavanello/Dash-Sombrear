@@ -15,6 +15,7 @@ import {
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
   usePrecosMotorComponentes, usePrecosMotorEstrutura, usePrecosMutations, usePrecosParametros,
   usePrecosPh50, usePrecosPromocoes, usePrecosRomanaMatriz, usePrecosTecidoModelos, usePrecosTecidos,
+  usePrecosCortinaTecidos, usePrecosCortinaValores,
   MODELOS_PERSIANA,
 } from '@/hooks/usePrecos'
 
@@ -35,7 +36,8 @@ const SECOES = [
   { id: 'bandos',     label: 'Bandôs',         icon: Tag,       fimGrupo: false },
   { id: 'barra',      label: 'Barra Niv.',     icon: Ruler,     fimGrupo: false },
   { id: 'colocacao',  label: 'Instalação',     icon: Cog,       fimGrupo: false },
-  { id: 'motor',      label: 'Motor',          icon: Cog,       fimGrupo: true },
+  { id: 'motor',      label: 'Motor',          icon: Cog,       fimGrupo: false },
+  { id: 'cortinas',   label: 'Cortinas',       icon: Blinds,    fimGrupo: true },
   { id: 'parametros', label: 'Parâmetros',     icon: Settings2, fimGrupo: false },
 ] as const
 
@@ -174,6 +176,7 @@ export default function TabPrecos({ toast }: Props) {
       {secao === 'barra' && <SecaoBarra salvar={salvar} />}
       {secao === 'colocacao' && <SecaoColocacao salvar={salvar} excluir={excluir} adicionar={adicionar} />}
       {secao === 'motor' && <SecaoMotor salvar={salvar} />}
+      {secao === 'cortinas' && <SecaoCortinas salvar={salvar} excluir={excluir} adicionar={adicionar} />}
       {secao === 'parametros' && <SecaoParametros salvar={salvar} />}
     </div>
   )
@@ -558,6 +561,73 @@ function PainelAjustes({ titulo, children }: { titulo: string; children: React.R
         <ChevronDown className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', aberto && 'rotate-180')} />
       </button>
       {aberto && <div className="border-t p-4 space-y-4">{children}</div>}
+    </div>
+  )
+}
+
+/**
+ * Cortina Wave. Diferente das persianas, aqui os números da tabela JÁ SÃO o
+ * preço que vai no orçamento do cliente — não passam por markup. Por isso a
+ * seção fica separada: misturar as duas lógicas na mesma tela confunde.
+ */
+function SecaoCortinas({ salvar, excluir, adicionar }: SecaoProps) {
+  const { data: tecidos, isLoading: l1 } = usePrecosCortinaTecidos()
+  const { data: valores, isLoading: l2 } = usePrecosCortinaValores()
+  if (l1 || l2) return <Carregando />
+
+  const pendentes = (valores ?? []).filter(v => v.valor == null)
+
+  return (
+    <div className="space-y-5">
+      {pendentes.length > 0 && (
+        <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
+          <p className="font-semibold text-amber-700 dark:text-amber-400">
+            {pendentes.length} valor{pendentes.length > 1 ? 'es' : ''} ainda sem preço
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Enquanto estiver vazio, a calculadora recusa o orçamento em vez de chutar um número:{' '}
+            {pendentes.map(p => p.chave.replace(/_/g, ' ')).join(', ')}.
+          </p>
+        </div>
+      )}
+
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Tecidos e forros de cortina
+        </p>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Preço por metro de consumo. Use <b>tecido</b> para o pano da frente e <b>forro</b> para
+          forro comum e blackouts.
+        </p>
+        <PrecosGrid
+          colunas={[
+            { key: 'nome', label: 'Nome', tipo: 'texto' },
+            { key: 'tipo', label: 'Uso', tipo: 'select', options: [
+              { value: 'tecido', label: 'Tecido' }, { value: 'forro', label: 'Forro / blackout' }] },
+            { key: 'preco', label: 'R$/m', tipo: 'numero', formato: fmtBRL },
+            { key: 'largura_rolo', label: 'Largura do rolo', tipo: 'numero', formato: fmtNum },
+          ]}
+          linhas={tecidos ?? []}
+          chave={r => ({ id: r.id })}
+          onSalvar={salvar('precos_cortina_tecidos')}
+          onExcluir={excluir!('precos_cortina_tecidos')}
+          onAdicionar={adicionar!('precos_cortina_tecidos')} />
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Valores e regras do Wave
+        </p>
+        <PrecosGrid
+          colunas={[
+            { key: 'chave', label: 'Item', tipo: 'texto', readonly: true },
+            { key: 'valor', label: 'Valor', tipo: 'numero' },
+            { key: 'descricao', label: 'O que é', tipo: 'texto', readonly: true },
+          ]}
+          linhas={valores ?? []}
+          chave={r => ({ chave: r.chave })}
+          onSalvar={salvar('precos_cortina_valores')} />
+      </div>
     </div>
   )
 }

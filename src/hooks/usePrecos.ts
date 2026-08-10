@@ -41,6 +41,14 @@ export interface PrecoTecidoVigente {
   promo_fim: string | null
 }
 
+export interface PrecoCortinaTecido {
+  id: number; nome: string; tipo: string; preco: number
+  largura_rolo: number; observacao: string | null
+}
+export interface PrecoCortinaValor {
+  chave: string; valor: number | null; descricao: string | null
+}
+
 export const MODELOS_PERSIANA = ['Rolo', 'Double', 'Romana', 'PH_Aluminio', 'PV', 'PH_50', 'Rolo Motorizado'] as const
 
 /* ─── Fetch genérico ─────────────────────────────────────── */
@@ -75,6 +83,8 @@ export const usePrecosBarraFaixas = () => usePrecosTable<PrecoBarraFaixa>('preco
 export const usePrecosTecidoModelos = () => usePrecosTable<PrecoTecidoModelo>('precos_tecido_modelos', ['tecido_nome', 'modelo'])
 export const usePrecosTecidosVigentes = () => usePrecosTable<PrecoTecidoVigente>('precos_tecidos_vigentes', ['nome', 'largura'])
 export const usePrecosRomanaMatriz = () => usePrecosTable<PrecoRomanaMatriz>('precos_romana_matriz', ['altura', 'largura'])
+export const usePrecosCortinaTecidos = () => usePrecosTable<PrecoCortinaTecido>('precos_cortina_tecidos', ['tipo', 'nome'])
+export const usePrecosCortinaValores = () => usePrecosTable<PrecoCortinaValor>('precos_cortina_valores', ['chave'])
 
 /* ─── Mutações ───────────────────────────────────────────── */
 export function usePrecosMutations() {
