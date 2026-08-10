@@ -11,8 +11,10 @@
  *  2. o arredondamento para centavos só acontece NO FIM. Aplicar os 6% sobre um
  *     subtotal já arredondado dá R$ 647,05 onde a loja cobra R$ 647,04.
  *
- * Onde a regra ainda não existe (varão, trilho duplo, franzido), o cálculo
- * PARA e diz o que falta. Preço inventado aqui vira prejuízo lá na frente.
+ * Onde a loja ainda não respondeu (varão, trilho duplo, franzido), o cálculo
+ * PARA e diz o que falta — preço inventado aqui vira prejuízo lá na frente.
+ * Nenhuma dessas pendências exige mexer neste arquivo de novo: todas são
+ * valores em precos_cortina_valores, preenchidos pela tela de preços.
  */
 
 export interface PrecoCortinaTecido {
@@ -39,7 +41,9 @@ export interface EntradaCortina {
   tecido: string
   forro?: string | null
   suporte: SuporteCortina
+  /** painel de trás franzido (Wave na frente + franzido atrás) */
   franzido?: boolean
+  franzidoTecido?: string | null
   quantidade?: number
   incluirColocacao?: boolean
 }
@@ -90,6 +94,12 @@ export function calcularCortina(
     const n = Number(p?.valor)
     return p?.valor != null && Number.isFinite(n) ? n : padrao
   }
+  /** igual ao de cima, mas 0 é resposta legítima ("não leva fita") */
+  const paramOpcionalZero = (chave: string): number | null => {
+    const p = d.valores.find(v => v.chave === chave)
+    const n = Number(p?.valor)
+    return p?.valor != null && Number.isFinite(n) ? n : null
+  }
   /** null = a loja ainda não informou; quem chama precisa tratar */
   const paramOpcional = (chave: string): number | null => {
     const p = d.valores.find(v => v.chave === chave)
@@ -101,13 +111,6 @@ export function calcularCortina(
   const A = Number(e.altura)
   const qtd = Math.max(1, Math.round(Number(e.quantidade) || 1))
   if (!(L > 0) || !(A > 0)) return { erro: 'Informe largura e altura da cortina.' }
-
-  if (e.franzido) {
-    return {
-      erro: 'Wave + franzido ainda não entra: falta a loja dizer se o franzido leva '
-        + 'fita/entretela e como é a mão de obra dele. O consumo (largura × 1,5) já sabemos.',
-    }
-  }
 
   const tecido = d.tecidos.find(t => t.nome === e.tecido && t.tipo === 'tecido')
   if (!tecido) return { erro: 'Escolha o tecido da cortina.' }
@@ -166,6 +169,34 @@ export function calcularCortina(
 
   const fita = param('preco_fita_wave', 31.4)
   add('Fita/entretela', `${fmtM(consumo)} × ${fmtR$(fita)}/m`, consumo * fita)
+
+  /* ── painel franzido atrás (regras vêm do banco, não daqui) ── */
+  if (e.franzido) {
+    const levaFita = paramOpcionalZero('franzido_leva_fita')
+    const moIgual = paramOpcionalZero('franzido_mo_igual')
+    if (levaFita == null || moIgual == null) {
+      return {
+        erro: 'O franzido ainda depende de duas respostas da loja: se ele leva fita/entretela e '
+          + 'se a mão de obra usa a mesma conta do Wave. Preencha em Tabela de Preços → Cortinas '
+          + '(franzido leva fita / franzido mo igual) e o cálculo passa a sair sozinho.',
+      }
+    }
+    const tecidoFr = d.tecidos.find(x => x.nome === e.franzidoTecido)
+      ?? d.tecidos.find(x => x.nome === (forro?.nome ?? ''))
+      ?? tecido
+    const consumoFr = L * param('fator_franzido', 1.5)
+    memorial.push(`Franzido atrás: ${fmtM(L)} × ${String(param('fator_franzido', 1.5)).replace('.', ',')} = ${fmtM(consumoFr)}`)
+    add(`Franzido — ${tecidoFr.nome}`, `${fmtM(consumoFr)} × ${fmtR$(Number(tecidoFr.preco))}/m`,
+      consumoFr * Number(tecidoFr.preco))
+    if (moIgual === 1) {
+      add('Mão de obra do franzido', `${fmtM(consumoFr)} ÷ ${fmtM(moFaixa)} × ${fmtR$(moValor)}`,
+        consumoFr / moFaixa * moValor)
+    }
+    if (levaFita === 1) {
+      add('Fita do franzido', `${fmtM(consumoFr)} × ${fmtR$(fita)}/m`, consumoFr * fita)
+    }
+    observacoes.push('Franzido: a loja arredonda o consumo para menos quando o corte permite — confira antes de fechar.')
+  }
 
   /* ── suporte: trilho ou varão ──────────────────────────────── */
   const precoSuporte = paramOpcional(CHAVE_SUPORTE[e.suporte])

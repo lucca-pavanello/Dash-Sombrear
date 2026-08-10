@@ -38,6 +38,7 @@ export default function CalculadoraCortina() {
   const [suporte, setSuporte] = useState<SuporteCortina>('trilho_simples')
   const [quantidade, setQuantidade] = useState('1')
   const [colocacao, setColocacao] = useState(false)
+  const [franzido, setFranzido] = useState(false)
   const [copiado, setCopiado] = useState(false)
 
   const opcoesTecido = useMemo(
@@ -52,9 +53,9 @@ export default function CalculadoraCortina() {
       largura: num(largura), altura: num(altura), tecido,
       forro: forro === 'Sem forro' ? null : forro,
       suporte, quantidade: Math.max(1, Math.round(num(quantidade) || 1)),
-      incluirColocacao: colocacao,
+      incluirColocacao: colocacao, franzido,
     }, { tecidos, valores })
-  }, [tecidos, valores, largura, altura, tecido, forro, suporte, quantidade, colocacao])
+  }, [tecidos, valores, largura, altura, tecido, forro, suporte, quantidade, colocacao, franzido])
 
   const ok = resultado && !('erro' in resultado) ? resultado : null
 
@@ -159,6 +160,12 @@ export default function CalculadoraCortina() {
             <span className="text-xs font-medium">Com colocação</span>
           </label>
         </div>
+
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2">
+          <input type="checkbox" checked={franzido} onChange={e => setFranzido(e.target.checked)}
+            className="h-4 w-4 accent-[hsl(var(--primary))]" />
+          <span className="text-xs font-medium">Wave na frente + franzido atrás</span>
+        </label>
       </div>
 
       {/* ── resultado ── */}
