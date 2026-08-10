@@ -5,7 +5,7 @@
  * Mostra o que o cliente pagou, quanto vai para a empresa parceira e o que
  * sobra para a loja — com totais do período para fechar o mês.
  */
-import { Suspense, useMemo, useState } from 'react'
+import { Fragment, Suspense, useMemo, useState } from 'react'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import {
   Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Wallet, X,
@@ -88,11 +88,21 @@ export default function TabFechamento() {
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
 
   function abrirAjuste(o: Orcamento) {
+    if (editando === o.id) { setEditando(null); return }
     setEditando(o.id)
     setRascunho({
-      cobrado: o.valor_cobrado != null ? String(o.valor_cobrado) : '',
-      parceira: o.valor_parceiro_pago != null ? String(o.valor_parceiro_pago) : '',
+      cobrado: String((o.valor_cobrado != null ? Number(o.valor_cobrado) : receita(o)).toFixed(2)),
+      parceira: String((o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)).toFixed(2)),
     })
+  }
+
+  /** Os três valores são ligados: sobra = cliente − parceira. Mexeu na sobra, o
+      preço do cliente acompanha (a parceira é custo, não se negocia por aqui). */
+  function mudarSobra(valor: string) {
+    const sobraNova = parseFloat(valor.replace(',', '.'))
+    const parceira = parseFloat(rascunho.parceira.replace(',', '.')) || 0
+    if (!Number.isFinite(sobraNova)) return
+    setRascunho(r => ({ ...r, cobrado: (parceira + sobraNova).toFixed(2) }))
   }
 
   async function salvarAjuste(id: string) {
@@ -294,8 +304,12 @@ export default function TabFechamento() {
                   const parceira = Number(o.valor_parceiro ?? 0)
                   const sobra = pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))
                   const emEdicao = editando === o.id
+                  const sobraRascunho =
+                    (parseFloat(rascunho.cobrado.replace(',', '.')) || 0) -
+                    (parseFloat(rascunho.parceira.replace(',', '.')) || 0)
                   return (
-                    <tr key={o.id} className={cn('transition-colors hover:bg-primary/[0.03]', emEdicao && 'bg-primary/[0.04]')}>
+                    <Fragment key={o.id}>
+                    <tr className={cn('transition-colors hover:bg-primary/[0.03]', emEdicao && 'bg-primary/[0.04]')}>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">{formatDate(o.created_at)}</td>
                       <td className="px-4 py-3 font-medium text-foreground">{o.cliente ?? '—'}</td>
                       <td className="px-4 py-3 text-muted-foreground">
@@ -307,18 +321,10 @@ export default function TabFechamento() {
                         {Number(o.quantidade) > 1 && <span className="ml-1">× {o.quantidade}</span>}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
-                        {emEdicao ? (
-                          <input autoFocus className="w-28 rounded-md border border-primary/40 bg-background px-2 py-1 text-right text-sm tabular-nums outline-none focus:ring-2 focus:ring-primary/15"
-                            inputMode="decimal" placeholder={String(bruto.toFixed(2))}
-                            value={rascunho.cobrado} onChange={e => setRascunho(r => ({ ...r, cobrado: e.target.value }))} />
-                        ) : <ValorComReal calc={bruto} real={pago(o)} />}
+                        <ValorComReal calc={bruto} real={pago(o)} />
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400">
-                        {emEdicao ? (
-                          <input className="w-28 rounded-md border border-primary/40 bg-background px-2 py-1 text-right text-sm tabular-nums outline-none focus:ring-2 focus:ring-primary/15"
-                            inputMode="decimal" placeholder={String(parceira.toFixed(2))}
-                            value={rascunho.parceira} onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
-                        ) : parceira > 0 || o.valor_parceiro_pago != null
+                        {parceira > 0 || o.valor_parceiro_pago != null
                           ? <ValorComReal calc={parceira} real={pagoParceira(o)} />
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
@@ -339,27 +345,95 @@ export default function TabFechamento() {
                         })()}
                       </td>
                       <td className="px-2 py-3 text-right">
-                        {emEdicao ? (
-                          <span className="flex items-center justify-end gap-1">
-                            <button type="button" onClick={() => salvarAjuste(o.id)} disabled={salvandoAjuste}
-                              title="Salvar valores reais"
-                              className="rounded-md p-1.5 text-emerald-600 transition-colors hover:bg-emerald-500/10 disabled:opacity-50">
-                              {salvandoAjuste ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                            </button>
-                            <button type="button" onClick={() => setEditando(null)} title="Cancelar"
-                              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted">
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </span>
-                        ) : (
-                          <button type="button" onClick={() => abrirAjuste(o)}
-                            title="Ajustar o que foi realmente pago (desconto, acréscimo)"
-                            className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground">
-                            <PencilLine className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <button type="button" onClick={() => abrirAjuste(o)}
+                          title="Ver o custo item a item e ajustar valores"
+                          className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
+                            emEdicao ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
+                          <PencilLine className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
+                    {emEdicao && (
+                      <tr>
+                        <td colSpan={8} className="bg-muted/20 px-4 py-4">
+                          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+                            <div className="rounded-lg border border-border bg-card p-3">
+                              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                                Custo item a item
+                              </p>
+                              {o.custos_detalhe?.length ? (
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                      <th className="pb-1 text-left font-bold">Parte</th>
+                                      <th className="pb-1 text-right font-bold">Tabela</th>
+                                      <th className="pb-1 text-right font-bold">Fator</th>
+                                      <th className="pb-1 text-right font-bold">Custo real</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-border/40">
+                                    {o.custos_detalhe.map((p, i) => (
+                                      <tr key={i}>
+                                        <td className="py-1.5 text-foreground">{p.parte}</td>
+                                        <td className="py-1.5 text-right tabular-nums text-muted-foreground">{formatCurrency(p.tabela)}</td>
+                                        <td className="py-1.5 text-right tabular-nums text-muted-foreground">{p.fator}</td>
+                                        <td className="py-1.5 text-right font-semibold tabular-nums text-foreground">{formatCurrency(p.real)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">
+                                  Venda registrada antes da quebra por item existir. O que temos: produto{' '}
+                                  {formatCurrency(Number(o.custo_tecido ?? 0))}
+                                  {Number(o.custo_acabamento) > 0 && <> e acabamento {formatCurrency(Number(o.custo_acabamento))}</>}.
+                                  As vendas novas já vêm detalhadas.
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="rounded-lg border border-border bg-card p-3">
+                              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                                Ajustar valores
+                              </p>
+                              <div className="space-y-2">
+                                <label className="block">
+                                  <span className="text-[11px] text-muted-foreground">Cliente pagou</span>
+                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                    inputMode="decimal" value={rascunho.cobrado}
+                                    onChange={e => setRascunho(r => ({ ...r, cobrado: e.target.value }))} />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] text-muted-foreground">À parceira</span>
+                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                    inputMode="decimal" value={rascunho.parceira}
+                                    onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] text-muted-foreground">Sobra da loja (ajusta o valor do cliente)</span>
+                                  <input className="mt-0.5 w-full rounded-md border border-emerald-500/40 bg-background px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/15 dark:text-emerald-400"
+                                    inputMode="decimal"
+                                    value={sobraRascunho.toFixed(2)}
+                                    onChange={e => mudarSobra(e.target.value)} />
+                                </label>
+                              </div>
+                              <div className="mt-3 flex gap-2">
+                                <button type="button" onClick={() => salvarAjuste(o.id)} disabled={salvandoAjuste}
+                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-gradient px-3 py-2 text-xs font-bold text-white shadow-brand transition-all hover:opacity-95 disabled:opacity-60">
+                                  {salvandoAjuste ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                                  Salvar
+                                </button>
+                                <button type="button" onClick={() => setEditando(null)}
+                                  className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted">
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   )
                 })}
               </tbody>

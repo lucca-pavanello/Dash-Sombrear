@@ -38,6 +38,17 @@ export interface DadosSim {
   romana: PrecoRomanaMatriz[]
 }
 
+export interface DetalheCusto {
+  /** nome amigável da parte: Tecido, Ferragem 38mm branca, Bandô branco… */
+  parte: string
+  /** custo de tabela (o que sai do banco de preços) */
+  tabela: number
+  /** multiplicador da parceira aplicado nessa parte */
+  fator: number
+  /** custo real da parte (tabela × fator) */
+  real: number
+}
+
 export interface ResultadoSim {
   /** custo REAL da loja (já com o multiplicador da parceira, quando se aplica) */
   custoProduto: number
@@ -46,6 +57,8 @@ export interface ResultadoSim {
   custoTabela: number
   /** quanto será pago à empresa parceira (0 em PV, PH Alumínio e PH 50mm) */
   valorParceiro: number
+  /** quebra do custo por parte — permite ajustar um item só no Fechamento */
+  detalhe: DetalheCusto[]
   vendaProduto: number
   vendaAcabamento: number
   total4x: number
@@ -85,10 +98,14 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
   const parceiro = (chave: string) => param(chave, param('custo_parceiro', 1.4))
   let realProduto = 0        // custo real do produto (tecido + ferragem/motor)
   let realAcabamento = 0     // custo real do acabamento (bandô, barra, kit box)
-  const somaReal = (custoTabela: number, chave: string, onde: 'produto' | 'acabamento') => {
-    const real = custoTabela * parceiro(chave)
+  /** quebra por parte (tecido, ferragem, acabamento…) pro fechamento poder ajustar item a item */
+  const detalhe: DetalheCusto[] = []
+  const somaReal = (custoTabela: number, chave: string, onde: 'produto' | 'acabamento', rotulo?: string) => {
+    const fator = parceiro(chave)
+    const real = custoTabela * fator
     if (onde === 'produto') realProduto += real
     else realAcabamento += real
+    if (rotulo) detalhe.push({ parte: rotulo, tabela: round2(custoTabela), fator, real: round2(real) })
   }
 
   /* ── custo do bandô (fórmula: L×base + qtd_cd×(cd1+cd2) + par, degrau ≥ L) ── */
@@ -126,6 +143,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
 
     let custoFerragem: number
     let chaveFerragem: string
+    let rotuloFerragem = 'Ferragem'
     if (e.modelo === 'Romana') {
       // matriz L×A: coluna e linha mais próximas PARA CIMA
       const largs = [...new Set(d.romana.map(r => Number(r.largura)))].sort((a, b) => a - b)
@@ -140,6 +158,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       if (!cel) return { erro: 'Célula da matriz Romana não encontrada' }
       custoFerragem = Number(cel.custo)
       chaveFerragem = 'parceiro_romana'
+      rotuloFerragem = 'Ferragem Romana'
       obs.push(`Ferragem Romana na célula ${Lm.toFixed(2).replace('.', ',')} × ${Am.toFixed(2).replace('.', ',')}m`)
     } else {
       // ferragem: Rolo escolhe o tubo pela medida; Double é família única
@@ -169,28 +188,32 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       chaveFerragem = familia === 'DOUBLE'
         ? `parceiro_ferragem_double_${e.corFerragem.toLowerCase()}`
         : `parceiro_ferragem_rolo_${e.corFerragem.toLowerCase()}_${espessura}`
+      rotuloFerragem = familia === 'DOUBLE'
+        ? `Ferragem Double ${e.corFerragem === 'PRETA' ? 'preta' : 'branca'}`
+        : `Ferragem ${espessura}mm ${e.corFerragem === 'PRETA' ? 'preta' : 'branca'}`
       if (e.modelo === 'Rolo') obs.push(`Tubo ${espessura}mm · ferragem em ${largFerragem.toFixed(2).replace('.', ',')}m`)
     }
 
     custoProduto = (custoTecido + custoFerragem) * qtd
-    somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto')
-    somaReal(custoFerragem * qtd, chaveFerragem, 'produto')
+    somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto', 'Tecido')
+    somaReal(custoFerragem * qtd, chaveFerragem, 'produto', rotuloFerragem)
 
     // acabamento
     if (e.acabamento === 'bando_branco' || e.acabamento === 'bando_preto') {
       const cb = custoBando(e.acabamento === 'bando_branco' ? 'BRANCO' : 'PRETO')
       if (cb == null) return { erro: 'Bandô sem parâmetros no banco' }
       custoAcabamento = cb * qtd
-      somaReal(custoAcabamento, `parceiro_bando_${e.acabamento === 'bando_branco' ? 'branco' : 'preto'}`, 'acabamento')
+      somaReal(custoAcabamento, `parceiro_bando_${e.acabamento === 'bando_branco' ? 'branco' : 'preto'}`, 'acabamento',
+        e.acabamento === 'bando_branco' ? 'Bandô branco' : 'Bandô preto')
     } else if (e.acabamento === 'barra') {
       custoAcabamento = custoBarra() * qtd
-      somaReal(custoAcabamento, 'parceiro_barra', 'acabamento')
+      somaReal(custoAcabamento, 'parceiro_barra', 'acabamento', 'Barra niveladora')
     } else if (e.acabamento === 'kit_box') {
       if (e.modelo !== 'Rolo') return { erro: 'Kit Box é exclusivo da Rolô' }
       custoAcabamento = (L * param('kitbox_ml_largura', 88.7) + param('kitbox_fixo1', 20.3)
         + (L + 2 * A) * param('kitbox_ml_perimetro', 30) + param('kitbox_fixo2', 12.28)
         + 4 * A * param('kitbox_ml_altura', 0.82)) * qtd
-      somaReal(custoAcabamento, 'parceiro_kitbox', 'acabamento')
+      somaReal(custoAcabamento, 'parceiro_kitbox', 'acabamento', 'Kit Box')
     }
 
     const mkVenda = param('markup_venda', 2.8)
@@ -271,7 +294,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
 
   return {
     custoProduto: custoRealProduto, custoAcabamento: custoRealAcabamento,
-    custoTabela: round2(custoProduto + custoAcabamento), valorParceiro,
+    custoTabela: round2(custoProduto + custoAcabamento), valorParceiro, detalhe,
     vendaProduto: round2(vendaProduto), vendaAcabamento: round2(vendaAcabamento),
     total4x, totalAvista, instalacao, emPromocao, descontoPct, observacoes: obs,
   }

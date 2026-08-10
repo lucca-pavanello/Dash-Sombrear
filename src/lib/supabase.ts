@@ -22,6 +22,7 @@ export type Orcamento = {
   valor_parceiro?: number | null
   valor_cobrado?: number | null
   valor_parceiro_pago?: number | null
+  custos_detalhe?: { parte: string; tabela: number; fator: number; real: number }[] | null
   custo_m2?: number | null
   fechado?: boolean | null
   telefone?: string | null

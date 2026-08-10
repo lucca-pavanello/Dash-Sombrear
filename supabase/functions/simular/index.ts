@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
         custo_acabamento: r.custoAcabamento,
         valor_parceiro: r.valorParceiro ?? 0,
         valor_cobrado: valorCobrado,
+        custos_detalhe: r.detalhe ?? null,
         margem,
         // 'FEITO' NÃO existe no check da tabela — venda vira 'fechado', consulta vira 'CALCULADO'
         status: body.fechado === true ? 'fechado' : 'CALCULADO',
