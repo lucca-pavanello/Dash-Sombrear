@@ -11,6 +11,7 @@ export type Profile = {
   pode_estoque: boolean | null
   pode_agente_ia: boolean | null
   pode_precos: boolean | null
+  pode_fechamento: boolean | null
   created_at: string
 }
 

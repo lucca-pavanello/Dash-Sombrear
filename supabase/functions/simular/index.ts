@@ -168,10 +168,11 @@ Deno.serve(async (req) => {
         instalacao: instalacaoNum,
         custo_tecido: custoTotal,
         custo_acabamento: r.custoAcabamento,
+        valor_parceiro: r.valorParceiro ?? 0,
         margem,
         status: 'FEITO',
-        fechado: false,
-        fonte: 'simulador',
+        fechado: body.fechado === true,
+        fonte: body.fechado === true ? 'fechamento' : 'simulador',
         user_id: caller.id,
         observacoes: obs,
       }).select('id').single()

@@ -75,7 +75,11 @@ function SectionHeader({ step, icon, title, hint }: { step: string; icon: React.
   )
 }
 
-export default function TabSimulador() {
+export default function TabSimulador({ modoVenda, aoSalvar }: {
+  /** No Fechamento a simulação vira VENDA FECHADA direto (não um orçamento aberto). */
+  modoVenda?: boolean
+  aoSalvar?: () => void
+} = {}) {
   const { toasts, toast, dismiss } = useToast()
   const [modelo, setModelo] = useState('Rolo')
   const [tecido, setTecido] = useState('')
@@ -159,7 +163,7 @@ export default function TabSimulador() {
     setSalvando(true)
     try {
       const { data, error } = await supabase.functions.invoke('simular', {
-        body: { acao: 'salvar', entrada, cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim() },
+        body: { acao: 'salvar', entrada, cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda },
       })
       if (error) throw error
       if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
@@ -173,7 +177,8 @@ export default function TabSimulador() {
         total: resultado.total4x,
       }])
       setSalvoAtual(true)
-      toast('success', 'Orçamento salvo na Planilha!')
+      toast('success', modoVenda ? 'Venda registrada no Fechamento!' : 'Orçamento salvo na Planilha!')
+      aoSalvar?.()
     } catch (err) {
       toast('error', err instanceof Error ? err.message : 'Erro ao salvar. Tente de novo.')
     } finally {
@@ -449,11 +454,15 @@ export default function TabSimulador() {
                     {salvando ? <Loader2 className="h-4 w-4 animate-spin" />
                       : salvoAtual ? <CheckCircle2 className="h-4 w-4" />
                       : <Save className="h-4 w-4" />}
-                    {salvoAtual ? 'Salvo! Troque o modelo pra salvar outro' : 'Salvar orçamento'}
+                    {salvoAtual
+                      ? (modoVenda ? 'Venda registrada! Troque o modelo pra somar outra' : 'Salvo! Troque o modelo pra salvar outro')
+                      : (modoVenda ? 'Registrar venda' : 'Salvar orçamento')}
                   </button>
                   <p className="mt-1.5 text-[11px] text-foreground/40">
                     <Sparkles className="mr-1 inline h-3 w-3" />
-                    Salva direto na Planilha, sem WhatsApp. Os dados do cliente continuam aqui pro próximo modelo.
+                    {modoVenda
+                      ? 'Entra como venda fechada no Fechamento. Os dados do cliente continuam aqui pro próximo item.'
+                      : 'Salva direto na Planilha, sem WhatsApp. Os dados do cliente continuam aqui pro próximo modelo.'}
                   </p>
                 </div>
               </>

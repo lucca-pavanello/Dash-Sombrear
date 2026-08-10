@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Bot, Calculator, CircleDollarSign, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
+import { ArrowRight, Bot, Calculator, CircleDollarSign, Wallet, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useCrmLeads } from '@/hooks/useAgenteIA'
@@ -203,8 +203,9 @@ export default function HomePage() {
   const canEstoque   = isAdmin || profile?.pode_estoque === true || profile?.email === ESTOQUE_EMAIL
   const canAgenteIA  = isAdmin || profile?.pode_agente_ia === true
   const canPrecos    = isAdmin || profile?.pode_precos === true
+  const canFechamento = isAdmin || profile?.pode_fechamento === true
 
-  const noAccess = !isLoading && profile && !canOrcamento && !canEstoque && !canAgenteIA && !canPrecos && !isAdmin
+  const noAccess = !isLoading && profile && !canOrcamento && !canEstoque && !canAgenteIA && !canPrecos && !canFechamento && !isAdmin
 
   // ── Pulso do dia ──
   const pulso = useMemo(() => {
@@ -365,6 +366,12 @@ export default function HomePage() {
               descricao="Preços, promoções, simulador e o assistente — a fonte central dos orçamentos."
               viajando={viajante === 'precos'}
               onClick={() => irArea('precos', '/precos')} />
+          )}
+          {canFechamento && (
+            <AreaCard titulo="Fechamento" icon={Wallet} animIcone="icon-coin" delay={505}
+              descricao="Vendas efetivadas, quanto vai para a parceira e o que sobra para a loja."
+              viajando={viajante === 'fechamento'}
+              onClick={() => irArea('fechamento', '/fechamento')} />
           )}
           {isAdmin && (
             <AreaCard titulo="Admin" icon={ShieldCheck} animIcone="icon-guard" delay={540}

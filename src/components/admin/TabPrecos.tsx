@@ -870,6 +870,21 @@ const GRUPOS_PARAMETROS: {
     formato: v => `× ${fmtNum(v)}`,
   },
   {
+    titulo: 'Custo da empresa parceira',
+    hint: 'Quanto a loja paga à parceira por cada item — custo de tabela × este número. NÃO muda o preço do cliente: serve pra margem e pro fechamento com a parceira. Cada item pode ter o seu.',
+    usadoPor: ['Rolô', 'Double', 'Romana', 'Motorizado'], ativo: true,
+    chaves: [
+      'parceiro_tecido', 'parceiro_romana',
+      'parceiro_ferragem_rolo_branca_32', 'parceiro_ferragem_rolo_branca_38',
+      'parceiro_ferragem_rolo_branca_50', 'parceiro_ferragem_rolo_preta_38',
+      'parceiro_ferragem_double_branca', 'parceiro_ferragem_double_preta',
+      'parceiro_bando_branco', 'parceiro_bando_preto',
+      'parceiro_barra', 'parceiro_kitbox', 'parceiro_motor',
+      'custo_parceiro',
+    ],
+    formato: v => `× ${fmtNum(v)}`,
+  },
+  {
     titulo: 'PV e PH Alumínio', hint: 'Venda = custo × markup × parcelamento².',
     usadoPor: ['PV', 'PH Alumínio 25mm'], ativo: true,
     chaves: ['markup_venda_pv_ph'],

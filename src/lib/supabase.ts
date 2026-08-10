@@ -19,6 +19,7 @@ export type Orcamento = {
   acabamentos?: string | null
   custo_tecido?: number | null
   custo_acabamento?: number | null
+  valor_parceiro?: number | null
   custo_m2?: number | null
   fechado?: boolean | null
   telefone?: string | null
