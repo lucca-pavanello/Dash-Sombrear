@@ -124,7 +124,15 @@ export default function TabFechamento() {
     const parceira = vendas.reduce((s, o) => s + pagoParceira(o), 0)
     const custo = vendas.reduce((s, o) => s + (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o)), 0)
     const ajustes = vendas.filter(o => o.valor_cobrado != null || o.valor_parceiro_pago != null).length
-    return { bruto, parceira, custo, sobra: bruto - custo, ajustes }
+    // o que teria sido sem desconto/acréscimo dado na mão — serve de régua na negociação
+    const brutoCalc = vendas.reduce((s, o) => s + receita(o), 0)
+    const custoCalc = vendas.reduce((s, o) => s + custoReal(o), 0)
+    return {
+      bruto, parceira, custo, sobra: bruto - custo, ajustes,
+      sobraCalc: brutoCalc - custoCalc,
+      pctReal: bruto > 0 ? ((bruto - custo) / bruto) * 100 : 0,
+      pctCalc: brutoCalc > 0 ? ((brutoCalc - custoCalc) / brutoCalc) * 100 : 0,
+    }
   }, [vendas])
 
   async function exportarPdf() {
@@ -242,7 +250,10 @@ export default function TabFechamento() {
         <Kpi rotulo="Custo total" valor={totais.custo} contar={!isLoading}
           hint="inclui itens fora da parceira" />
         <Kpi rotulo="Sobra para a loja" valor={totais.sobra} contar={!isLoading}
-          hint={totais.bruto > 0 ? `${((totais.sobra / totais.bruto) * 100).toFixed(0)}% do faturamento` : undefined}
+          hint={totais.bruto > 0
+            ? `${totais.pctReal.toFixed(0)}% do faturamento` +
+              (Math.abs(totais.pctReal - totais.pctCalc) >= 0.5 ? ` · sem os ajustes seria ${totais.pctCalc.toFixed(0)}%` : '')
+            : undefined}
           destaque="emerald" />
       </div>
 
@@ -310,7 +321,22 @@ export default function TabFechamento() {
                           ? <ValorComReal calc={parceira} real={pagoParceira(o)} />
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(sobra)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {(() => {
+                          const sobraCalc = bruto - custoReal(o)
+                          const pctReal = pago(o) > 0 ? (sobra / pago(o)) * 100 : 0
+                          const pctCalc = bruto > 0 ? (sobraCalc / bruto) * 100 : 0
+                          const mudou = Math.abs(pctReal - pctCalc) >= 0.5
+                          return (
+                            <>
+                              <span className="block font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(sobra)}</span>
+                              <span className={cn('block text-[11px]', mudou ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
+                                {pctReal.toFixed(0)}%{mudou && <> · seria {pctCalc.toFixed(0)}%</>}
+                              </span>
+                            </>
+                          )
+                        })()}
+                      </td>
                       <td className="px-2 py-3 text-right">
                         {emEdicao ? (
                           <span className="flex items-center justify-end gap-1">
@@ -343,7 +369,14 @@ export default function TabFechamento() {
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-foreground">{formatCurrency(totais.bruto)}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400">{formatCurrency(totais.parceira)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(totais.sobra)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    <span className="block text-emerald-600 dark:text-emerald-400">{formatCurrency(totais.sobra)}</span>
+                    <span className={cn('block text-[11px] font-semibold',
+                      Math.abs(totais.pctReal - totais.pctCalc) >= 0.5 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
+                      {totais.pctReal.toFixed(0)}%
+                      {Math.abs(totais.pctReal - totais.pctCalc) >= 0.5 && <> · seria {totais.pctCalc.toFixed(0)}%</>}
+                    </span>
+                  </td>
                   <td className="px-2 py-3" />
                 </tr>
               </tfoot>
