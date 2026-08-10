@@ -100,6 +100,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [salvando, setSalvando] = useState(false)
   const [salvoAtual, setSalvoAtual] = useState(false)
   const [salvos, setSalvos] = useState<Salvo[]>([])
+  // desconto/acréscimo dado na mão: vazio = cobra o valor calculado
+  const [valorCobrado, setValorCobrado] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chamadaRef = useRef(0)
 
@@ -137,6 +139,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   /* ── cálculo no servidor, com debounce (o motor é o mesmo dos agentes) ── */
   useEffect(() => {
     setSalvoAtual(false)
+    setValorCobrado('')
     if (!pronto) { setResultado(null); return }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const id = ++chamadaRef.current
@@ -163,7 +166,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setSalvando(true)
     try {
       const { data, error } = await supabase.functions.invoke('simular', {
-        body: { acao: 'salvar', entrada, cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda },
+        body: { acao: 'salvar', entrada, cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda,
+          valor_cobrado: num(valorCobrado) || null },
       })
       if (error) throw error
       if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
@@ -192,7 +196,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setCorFerragem('BRANCA'); setLargura(''); setAltura(''); setQuantidade('1')
     setAcabamento('nenhum'); setInstalacao(false)
     setCliente(''); setTelefone(''); setAmbiente('')
-    setResultado(null); setSalvoAtual(false); setSalvos([])
+    setResultado(null); setSalvoAtual(false); setSalvos([]); setValorCobrado('')
   }
 
   const ok = resultado && !resultado.erro ? resultado : null
@@ -452,6 +456,31 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                 )}
 
                 <div className="mt-4 border-t border-border/60 pt-4">
+                  <label className={labelCls}>Valor cobrado do cliente</label>
+                  <input
+                    className={inputCls}
+                    inputMode="decimal"
+                    placeholder={ok ? brl(ok.total4x).replace('R$ ', '') : ''}
+                    value={valorCobrado}
+                    onChange={e => setValorCobrado(e.target.value.replace(',', '.'))}
+                  />
+                  {(() => {
+                    const cobrado = num(valorCobrado)
+                    if (!ok || !cobrado || Math.abs(cobrado - ok.total4x) < 0.01) {
+                      return <p className="mt-1 mb-3 text-[11px] text-foreground/40">Deixe vazio para cobrar o valor calculado.</p>
+                    }
+                    const dif = cobrado - ok.total4x
+                    const pct = (dif / ok.total4x) * 100
+                    return (
+                      <p className={cn('mt-1 mb-3 text-[11px] font-semibold',
+                        dif < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
+                        {dif < 0 ? 'Desconto' : 'Acréscimo'} de {brl(Math.abs(dif))} ({Math.abs(pct).toFixed(1)}%)
+                        {dif < 0 && ok.custoProduto != null && (
+                          <> · margem cai para {(((cobrado - (ok.custoProduto + (ok.custoAcabamento ?? 0))) / cobrado) * 100).toFixed(0)}%</>
+                        )}
+                      </p>
+                    )
+                  })()}
                   <button
                     type="button"
                     onClick={salvar}

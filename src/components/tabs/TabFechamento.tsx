@@ -7,7 +7,7 @@
  */
 import { lazy, Suspense, useMemo, useState } from 'react'
 import {
-  CheckCircle2, ChevronRight, Download, HandCoins, Loader2, Plus, Wallet,
+  Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Wallet, X,
 } from 'lucide-react'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -15,7 +15,7 @@ import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { useCountUp } from '@/hooks/useCountUp'
-import type { Orcamento } from '@/lib/supabase'
+import { supabase, type Orcamento } from '@/lib/supabase'
 
 const TabSimulador = lazy(() => import('@/components/tabs/TabSimulador'))
 
@@ -32,6 +32,23 @@ const PERIODOS = [
 const custoReal = (o: Orcamento) =>
   Number(o.valor_parceiro) > 0 ? Number(o.valor_parceiro) : Number(o.custo_tecido ?? 0)
 const receita = (o: Orcamento) => Number(o.valor_venda ?? 0) + Number(o.instalacao ?? 0)
+/** o que o cliente REALMENTE pagou (desconto/acréscimo na mão) — cai no calculado quando não houve ajuste */
+const pago = (o: Orcamento) => o.valor_cobrado != null ? Number(o.valor_cobrado) : receita(o)
+/** o que REALMENTE foi pago à parceira */
+const pagoParceira = (o: Orcamento) =>
+  o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)
+const ajustado = (calc: number, real: number) => Math.abs(calc - real) >= 0.01
+
+/** "R$ 792,50 (R$ 750,00)" — calculado com o realmente pago entre parênteses */
+function ValorComReal({ calc, real, classe }: { calc: number; real: number; classe?: string }) {
+  if (!ajustado(calc, real)) return <span className={classe}>{formatCurrency(calc)}</span>
+  return (
+    <span className={classe}>
+      <span className="text-muted-foreground/60 line-through decoration-1">{formatCurrency(calc)}</span>{' '}
+      <strong>({formatCurrency(real)})</strong>
+    </span>
+  )
+}
 
 function Kpi({ rotulo, valor, hint, destaque, contar }: {
   rotulo: string; valor: number; hint?: string; destaque?: 'primary' | 'emerald' | 'amber'; contar: boolean
@@ -65,6 +82,36 @@ export default function TabFechamento() {
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
   const [baixando, setBaixando] = useState(false)
+  const [editando, setEditando] = useState<string | null>(null)
+  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string }>({ cobrado: '', parceira: '' })
+  const [salvandoAjuste, setSalvandoAjuste] = useState(false)
+
+  function abrirAjuste(o: Orcamento) {
+    setEditando(o.id)
+    setRascunho({
+      cobrado: o.valor_cobrado != null ? String(o.valor_cobrado) : '',
+      parceira: o.valor_parceiro_pago != null ? String(o.valor_parceiro_pago) : '',
+    })
+  }
+
+  async function salvarAjuste(id: string) {
+    setSalvandoAjuste(true)
+    try {
+      const numero = (s: string) => {
+        const v = parseFloat(s.replace(',', '.'))
+        return Number.isFinite(v) && v > 0 ? v : null
+      }
+      const { error } = await supabase.from('orcamentos').update({
+        valor_cobrado: numero(rascunho.cobrado),
+        valor_parceiro_pago: numero(rascunho.parceira),
+      }).eq('id', id)
+      if (error) throw error
+      setEditando(null)
+      await refetch()
+    } finally {
+      setSalvandoAjuste(false)
+    }
+  }
 
   const vendas = useMemo(() => {
     const fechados = todos.filter(o => o.fechado === true)
@@ -73,10 +120,11 @@ export default function TabFechamento() {
   }, [todos, periodo, de, ate])
 
   const totais = useMemo(() => {
-    const bruto = vendas.reduce((s, o) => s + receita(o), 0)
-    const parceira = vendas.reduce((s, o) => s + Number(o.valor_parceiro ?? 0), 0)
-    const custo = vendas.reduce((s, o) => s + custoReal(o), 0)
-    return { bruto, parceira, custo, sobra: bruto - custo }
+    const bruto = vendas.reduce((s, o) => s + pago(o), 0)
+    const parceira = vendas.reduce((s, o) => s + pagoParceira(o), 0)
+    const custo = vendas.reduce((s, o) => s + (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o)), 0)
+    const ajustes = vendas.filter(o => o.valor_cobrado != null || o.valor_parceiro_pago != null).length
+    return { bruto, parceira, custo, sobra: bruto - custo, ajustes }
   }, [vendas])
 
   async function exportarPdf() {
@@ -107,9 +155,11 @@ export default function TabFechamento() {
           o.cliente ?? '—',
           [o.modelo, o.tecido].filter(Boolean).join(' · '),
           o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—',
-          formatCurrency(receita(o)),
-          formatCurrency(Number(o.valor_parceiro ?? 0)),
-          formatCurrency(receita(o) - custoReal(o)),
+          ajustado(receita(o), pago(o)) ? `${formatCurrency(receita(o))} → ${formatCurrency(pago(o))}` : formatCurrency(pago(o)),
+          ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
+            ? `${formatCurrency(Number(o.valor_parceiro ?? 0))} → ${formatCurrency(pagoParceira(o))}`
+            : formatCurrency(pagoParceira(o)),
+          formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
         ]),
         foot: [['', '', '', 'TOTAIS',
           formatCurrency(totais.bruto), formatCurrency(totais.parceira), formatCurrency(totais.sobra)]],
@@ -185,7 +235,8 @@ export default function TabFechamento() {
       {/* Totais */}
       <div className="kpi-cascade mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi rotulo="Vendas no período" valor={totais.bruto} contar={!isLoading}
-          hint={`${vendas.length} venda${vendas.length !== 1 ? 's' : ''} fechada${vendas.length !== 1 ? 's' : ''}`} destaque="primary" />
+          hint={`${vendas.length} venda${vendas.length !== 1 ? 's' : ''} fechada${vendas.length !== 1 ? 's' : ''}` +
+            (totais.ajustes ? ` · ${totais.ajustes} com ajuste manual` : '')} destaque="primary" />
         <Kpi rotulo="A pagar à parceira" valor={totais.parceira} contar={!isLoading}
           hint="produção das persianas de tecido" destaque="amber" />
         <Kpi rotulo="Custo total" valor={totais.custo} contar={!isLoading}
@@ -222,15 +273,17 @@ export default function TabFechamento() {
                   <th className="px-4 py-3 text-right font-bold">Cliente pagou</th>
                   <th className="px-4 py-3 text-right font-bold">À parceira</th>
                   <th className="px-4 py-3 text-right font-bold">Sobra</th>
+                  <th className="px-2 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
                 {vendas.map(o => {
                   const bruto = receita(o)
                   const parceira = Number(o.valor_parceiro ?? 0)
-                  const sobra = bruto - custoReal(o)
+                  const sobra = pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))
+                  const emEdicao = editando === o.id
                   return (
-                    <tr key={o.id} className="transition-colors hover:bg-primary/[0.03]">
+                    <tr key={o.id} className={cn('transition-colors hover:bg-primary/[0.03]', emEdicao && 'bg-primary/[0.04]')}>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">{formatDate(o.created_at)}</td>
                       <td className="px-4 py-3 font-medium text-foreground">{o.cliente ?? '—'}</td>
                       <td className="px-4 py-3 text-muted-foreground">
@@ -241,11 +294,44 @@ export default function TabFechamento() {
                         {o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—'}
                         {Number(o.quantidade) > 1 && <span className="ml-1">× {o.quantidade}</span>}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">{formatCurrency(bruto)}</td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
+                        {emEdicao ? (
+                          <input autoFocus className="w-28 rounded-md border border-primary/40 bg-background px-2 py-1 text-right text-sm tabular-nums outline-none focus:ring-2 focus:ring-primary/15"
+                            inputMode="decimal" placeholder={String(bruto.toFixed(2))}
+                            value={rascunho.cobrado} onChange={e => setRascunho(r => ({ ...r, cobrado: e.target.value }))} />
+                        ) : <ValorComReal calc={bruto} real={pago(o)} />}
+                      </td>
                       <td className="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400">
-                        {parceira > 0 ? formatCurrency(parceira) : <span className="text-muted-foreground/40">—</span>}
+                        {emEdicao ? (
+                          <input className="w-28 rounded-md border border-primary/40 bg-background px-2 py-1 text-right text-sm tabular-nums outline-none focus:ring-2 focus:ring-primary/15"
+                            inputMode="decimal" placeholder={String(parceira.toFixed(2))}
+                            value={rascunho.parceira} onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
+                        ) : parceira > 0 || o.valor_parceiro_pago != null
+                          ? <ValorComReal calc={parceira} real={pagoParceira(o)} />
+                          : <span className="text-muted-foreground/40">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(sobra)}</td>
+                      <td className="px-2 py-3 text-right">
+                        {emEdicao ? (
+                          <span className="flex items-center justify-end gap-1">
+                            <button type="button" onClick={() => salvarAjuste(o.id)} disabled={salvandoAjuste}
+                              title="Salvar valores reais"
+                              className="rounded-md p-1.5 text-emerald-600 transition-colors hover:bg-emerald-500/10 disabled:opacity-50">
+                              {salvandoAjuste ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            </button>
+                            <button type="button" onClick={() => setEditando(null)} title="Cancelar"
+                              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => abrirAjuste(o)}
+                            title="Ajustar o que foi realmente pago (desconto, acréscimo)"
+                            className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground">
+                            <PencilLine className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
@@ -258,6 +344,7 @@ export default function TabFechamento() {
                   <td className="px-4 py-3 text-right tabular-nums text-foreground">{formatCurrency(totais.bruto)}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400">{formatCurrency(totais.parceira)}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-emerald-600 dark:text-emerald-400">{formatCurrency(totais.sobra)}</td>
+                  <td className="px-2 py-3" />
                 </tr>
               </tfoot>
             </table>
@@ -267,6 +354,7 @@ export default function TabFechamento() {
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1"><Wallet className="h-3 w-3" /> "Cliente pagou" inclui a instalação quando houver.</span>
+        <span className="inline-flex items-center gap-1"><PencilLine className="h-3 w-3" /> Deu desconto ou acréscimo na mão? Clique no lápis da linha: o valor calculado fica riscado e o realmente pago aparece entre parênteses — os totais usam o real.</span>
         <span className="inline-flex items-center gap-1"><HandCoins className="h-3 w-3" /> "À parceira" é o custo de produção das persianas de tecido (PV, PH Alumínio e PH 50mm não passam por ela).</span>
       </div>
     </>

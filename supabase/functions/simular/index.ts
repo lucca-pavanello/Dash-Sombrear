@@ -142,6 +142,9 @@ Deno.serve(async (req) => {
       const telefone = String(body.telefone ?? '').trim() || null
       const ambiente = String(body.ambiente ?? '').trim() || null
       const instalacaoNum = typeof r.instalacao === 'number' ? r.instalacao : null
+      // desconto/acréscimo dado na mão: o que o cliente REALMENTE pagou
+      const cobradoBruto = Number(body.valor_cobrado)
+      const valorCobrado = Number.isFinite(cobradoBruto) && cobradoBruto > 0 ? Math.round(cobradoBruto * 100) / 100 : null
       const receita = r.total4x + (instalacaoNum ?? 0)
       const custoTotal = r.custoProduto + r.custoAcabamento
       const margem = receita > 0 ? ((receita - custoTotal) / receita) * 100 : null
@@ -169,6 +172,7 @@ Deno.serve(async (req) => {
         custo_tecido: custoTotal,
         custo_acabamento: r.custoAcabamento,
         valor_parceiro: r.valorParceiro ?? 0,
+        valor_cobrado: valorCobrado,
         margem,
         // 'FEITO' NÃO existe no check da tabela — venda vira 'fechado', consulta vira 'CALCULADO'
         status: body.fechado === true ? 'fechado' : 'CALCULADO',
