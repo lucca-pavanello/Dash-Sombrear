@@ -8,6 +8,7 @@ import { useCountUp } from '@/hooks/useCountUp'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import DatePicker from '@/components/ui/DatePicker'
 import {
   statusPromocao, usePrecosArtigos, usePrecosBandos, usePrecosBandosParams, usePrecosBarraFaixas, usePrecosColocacao,
   usePrecosFerragemComponentes, usePrecosFerragemEscada, usePrecosFerragemFamilias,
@@ -357,10 +358,12 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
             options={nomes} placeholder="Escolha o tecido…" />
           <input className={inputCls} placeholder="% desconto" inputMode="decimal" value={form.desconto_pct}
             onChange={e => setForm(f => ({ ...f, desconto_pct: e.target.value }))} />
-          <input className={inputCls} type="date" value={form.inicio}
-            onChange={e => setForm(f => ({ ...f, inicio: e.target.value }))} />
-          <input className={inputCls} type="date" value={form.fim}
-            onChange={e => setForm(f => ({ ...f, fim: e.target.value }))} />
+          <DatePicker value={form.inicio} placeholder="Início (dd/mm/aaaa)"
+            triggerClassName="py-3"
+            onChange={v => setForm(f => ({ ...f, inicio: v }))} />
+          <DatePicker value={form.fim} placeholder="Fim (dd/mm/aaaa)"
+            min={form.inicio || undefined} triggerClassName="py-3"
+            onChange={v => setForm(f => ({ ...f, fim: v }))} />
         </div>
         <button onClick={criar} disabled={salvando}
           className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">

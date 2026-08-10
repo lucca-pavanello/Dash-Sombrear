@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface DatePickerProps {
   value: string // YYYY-MM-DD or ''
@@ -24,7 +26,28 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
   const [open, setOpen] = useState(false)
   const [viewYear, setViewYear] = useState(parsed ? parsed.getFullYear() : today.getFullYear())
   const [viewMonth, setViewMonth] = useState(parsed ? parsed.getMonth() : today.getMonth())
+  const [style, setStyle] = useState<React.CSSProperties>({})
   const ref = useRef<HTMLDivElement>(null)
+  const gatilhoRef = useRef<HTMLDivElement>(null)
+  const painelRef = useRef<HTMLDivElement>(null)
+
+  /* Painel em portal com posição fixa: dentro de modal/área rolável o
+     absolute era cortado pelo overflow do container. */
+  const posicionar = useCallback(() => {
+    const g = gatilhoRef.current
+    if (!g) return
+    const r = g.getBoundingClientRect()
+    const ALTURA = 340
+    const cabeAbaixo = window.innerHeight - r.bottom > ALTURA + 8
+    const largura = Math.min(264, window.innerWidth - 32)
+    setStyle({
+      position: 'fixed',
+      left: Math.min(Math.max(8, r.left), window.innerWidth - largura - 8),
+      width: largura,
+      zIndex: 9999,
+      ...(cabeAbaixo ? { top: r.bottom + 6 } : { bottom: window.innerHeight - r.top + 6 }),
+    })
+  }, [])
 
   // Sync view to value when it changes externally
   useEffect(() => {
@@ -37,11 +60,27 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
 
   useEffect(() => {
     function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const alvo = e.target as Node
+      if (ref.current?.contains(alvo) || painelRef.current?.contains(alvo)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    posicionar()
+    function fechaNoEsc(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('scroll', posicionar, true)
+    window.addEventListener('resize', posicionar)
+    window.addEventListener('keydown', fechaNoEsc)
+    return () => {
+      window.removeEventListener('scroll', posicionar, true)
+      window.removeEventListener('resize', posicionar)
+      window.removeEventListener('keydown', fechaNoEsc)
+    }
+  }, [open, posicionar])
 
   function displayValue() {
     if (!parsed) return ''
@@ -101,9 +140,13 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
     <div ref={ref} className={`relative ${className}`}>
       {/* Trigger */}
       <div
-        onClick={() => setOpen(v => !v)}
-        className={`flex cursor-pointer items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-all duration-150 hover:border-primary/50 select-none
-          ${open ? 'border-primary ring-2 ring-primary/15' : 'border-border'} ${triggerClassName ?? ''}`}
+        ref={gatilhoRef}
+        onClick={() => { if (!open) posicionar(); setOpen(v => !v) }}
+        className={cn(
+          'flex cursor-pointer select-none items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm transition-all duration-150 hover:border-primary/50',
+          open ? 'border-primary ring-2 ring-primary/15' : 'border-border',
+          triggerClassName,
+        )}
       >
         <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span className={`flex-1 tabular-nums ${value ? 'text-foreground font-medium' : 'text-muted-foreground/60'}`}>
@@ -120,9 +163,13 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
         )}
       </div>
 
-      {/* Popover */}
-      {open && (
-        <div className="absolute top-[calc(100%+6px)] left-0 z-50 w-[calc(100vw-2rem)] max-w-[264px] animate-in fade-in-0 slide-in-from-top-2 duration-150 rounded-xl border border-border bg-card p-3.5 shadow-elevated">
+      {/* Popover — portal pra não ser cortado por modal/scroll */}
+      {open && createPortal(
+        <div
+          ref={painelRef}
+          style={style}
+          className="animate-in fade-in-0 slide-in-from-top-2 duration-150 rounded-xl border border-border bg-card p-3.5 shadow-elevated"
+        >
           {/* Month navigation */}
           <div className="mb-3 flex items-center justify-between">
             <button
@@ -192,7 +239,8 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
               Hoje
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

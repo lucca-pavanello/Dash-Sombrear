@@ -5,6 +5,7 @@ import { useEstoqueFornecedores } from '@/hooks/useEstoqueFornecedores'
 import { useAddLote } from '@/hooks/useEstoqueLotes'
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { formatCurrency } from '@/lib/utils'
+import DatePicker from '@/components/ui/DatePicker'
 import type { ToastType } from '@/hooks/useToast'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 
@@ -209,11 +210,10 @@ export default function NovoLoteForm({ open, onClose, toast }: Props) {
             <>
               <div>
                 <label className={labelClass}>Data de Entrada *</label>
-                <input
-                  type="date"
+                <DatePicker
                   value={data_entrada}
-                  onChange={(e) => { setDataEntrada(e.target.value); setErrors((er) => { const n = {...er}; delete n.data_entrada; return n }) }}
-                  className={cn(inputClass, errors.data_entrada && 'border-destructive')}
+                  onChange={(v) => { setDataEntrada(v); setErrors((er) => { const n = {...er}; delete n.data_entrada; return n }) }}
+                  triggerClassName={cn('py-3', errors.data_entrada && 'border-destructive')}
                 />
                 {errors.data_entrada && <p className="mt-1 text-xs text-destructive">{errors.data_entrada}</p>}
               </div>
