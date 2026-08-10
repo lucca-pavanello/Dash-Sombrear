@@ -43,24 +43,33 @@ const EditOrcamentoForm = lazy(() => import('@/components/orcamentos/EditOrcamen
 
 const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban', 'precos']
 const DEFAULT_TAB = 'calcular-orcamento'
-function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
-  const { abrir, aberto } = useChatStore()
+function AskIATabBtn({ onMouseDown, onClick, active }: {
+  onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onClick: () => void
+  active: boolean
+}) {
   return (
     <button
-      onClick={abrir}
+      onClick={onClick}
       onMouseDown={onMouseDown}
       title="Perguntar à IA"
       type="button"
       className={cn(
         'flex-[1.5] min-w-0 relative flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
         'bg-brand-gradient hover:brightness-110 text-white shadow-brand',
-        aberto && 'ring-2 ring-primary/40 ring-offset-1',
+        active && 'ring-2 ring-primary/40 ring-offset-1',
       )}
     >
       <Sparkles className="h-4 w-4 shrink-0" />
       <span className="hidden sm:inline truncate">Perguntar à IA</span>
     </button>
   )
+}
+
+// Área Estoque: abre o chat de estoque (drawer montado no TabEstoque)
+function ChatIATabBtn({ onMouseDown }: { onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
+  const { abrir, aberto } = useChatStore()
+  return <AskIATabBtn onMouseDown={onMouseDown} onClick={abrir} active={aberto} />
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -992,7 +1001,13 @@ export default function Dashboard() {
               )}
             </button>
           ))}
-          {isOrcamentoArea && <ChatIATabBtn onMouseDown={handleTabRipple} />}
+          {isOrcamentoArea && (
+            <AskIATabBtn
+              onMouseDown={handleTabRipple}
+              onClick={() => setCopilotOpen(v => !v)}
+              active={copilotOpen}
+            />
+          )}
 
           {/* ÁREAS SOLO: dentro delas só existe a própria área — navegação entre áreas é pelo Início */}
           {(activeTab === 'agente-ia' || activeTab === 'precos') ? (
