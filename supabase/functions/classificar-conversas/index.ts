@@ -15,7 +15,7 @@ const corsHeaders = {
 }
 
 const LOTE = 25
-const RESULTADOS = new Set(['venda', 'negociacao', 'perdida', 'sem_interesse', 'indefinido'])
+const RESULTADOS = new Set(['venda', 'negociacao', 'perdida', 'pos_venda', 'sem_interesse', 'indefinido'])
 const TEMPERATURAS = new Set(['quente', 'morno', 'frio'])
 
 function resposta(status: number, body: unknown) {
@@ -113,16 +113,21 @@ Deno.serve(async (req) => {
 
     const prompt = `Você é analista comercial da Sombrear (cortinas e persianas sob medida).
 Para CADA conversa abaixo, dê um veredito comercial. Responda APENAS um array JSON, um objeto por conversa:
-[{"id":"<id exato>","resultado":"venda|negociacao|perdida|sem_interesse|indefinido","motivo":"uma frase curta e concreta em português BR","temperatura":"quente|morno|frio"}]
+[{"id":"<id exato>","resultado":"venda|negociacao|perdida|pos_venda|sem_interesse|indefinido","motivo":"uma frase curta e concreta em português BR","temperatura":"quente|morno|frio"}]
 
 Critérios:
 - "venda": o cliente aceitou/fechou, confirmou compra ou agendou medição/instalação para comprar.
-- "negociacao": segue conversando, pediu orçamento, comparando opções, sem recusa clara.
-- "perdida": recusou, achou caro, escolheu concorrente ou sumiu depois do preço.
+  Se comprou E segue orçando outra coisa, ainda é "venda".
+- "negociacao": segue conversando, pediu orçamento, comparando opções, sem recusa clara —
+  E a conversa NÃO indica que o cliente parou de responder.
+- "perdida": recusou, achou caro, escolheu concorrente, OU o texto diz que o cliente
+  não respondeu mais / sumiu depois do preço. Silêncio depois do orçamento é perda, não negociação.
+- "pos_venda": já é cliente e o assunto é garantia, reparo, ajuste, reclamação ou suporte
+  de algo comprado — não é venda nova nem perda. NUNCA classifique isso como "sem_interesse".
 - "sem_interesse": não era cliente (curioso, engano, fornecedor, assunto fora de persianas).
 - "indefinido": conversa curta demais para julgar.
 - motivo: diga o PORQUÊ concreto ("achou o valor alto para 3 janelas", "queria instalação no mesmo dia"), nunca genérico.
-- temperatura: chance de fechar agora (quente = perto de fechar).
+- temperatura: chance de fechar agora (quente = perto de fechar; pos_venda costuma ser morno).
 
 CONVERSAS:
 ${JSON.stringify(amostra)}`

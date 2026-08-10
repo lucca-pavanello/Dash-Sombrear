@@ -307,38 +307,38 @@ ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferra
           const { data: antes } = await qa
           let q = db.from('precos_tecidos').update({ preco }).eq('nome', acao.nome)
           if (acao.largura != null) q = q.eq('largura', Number(acao.largura))
-          const { error, count } = await q.select('id', { count: 'exact' })
+          const { data: tocadas, error } = await q.select('id')
           if (error) throw error
-          if (!count) throw new Error(`Tecido não encontrado: ${acao.nome}`)
+          if (!tocadas?.length) throw new Error(`Tecido não encontrado: ${acao.nome}`)
           detalhe = { ...detalhe, antes }
           aplicadas.push(`Preço: ${acao.nome}${acao.largura != null ? ` (${acao.largura}m)` : ''} → R$ ${preco.toFixed(2)}`)
         } else if (tipo === 'atualizar_parametro') {
           const { data: antes } = await db.from('precos_parametros').select('valor').eq('chave', String(acao.chave)).single()
-          const { error, count } = await db.from('precos_parametros')
-            .update({ valor: Number(acao.valor) }).eq('chave', String(acao.chave)).select('chave', { count: 'exact' })
+          const { data: tocadas, error } = await db.from('precos_parametros')
+            .update({ valor: Number(acao.valor) }).eq('chave', String(acao.chave)).select('chave')
           if (error) throw error
-          if (!count) throw new Error(`Parâmetro não encontrado: ${acao.chave}`)
+          if (!tocadas?.length) throw new Error(`Parâmetro não encontrado: ${acao.chave}`)
           detalhe = { ...detalhe, antes }
           aplicadas.push(`Parâmetro: ${acao.chave} → ${acao.valor}`)
         } else if (tipo === 'atualizar_preco_artigo') {
           const preco = Number(acao.preco)
           const { data: antes } = await db.from('precos_artigos').select('preco')
             .eq('categoria', String(acao.categoria)).eq('nome', String(acao.nome)).single()
-          const { error, count } = await db.from('precos_artigos')
+          const { data: tocadas, error } = await db.from('precos_artigos')
             .update({ preco }).eq('categoria', String(acao.categoria)).eq('nome', String(acao.nome))
-            .select('id', { count: 'exact' })
+            .select('id')
           if (error) throw error
-          if (!count) throw new Error(`Artigo não encontrado: ${acao.nome}`)
+          if (!tocadas?.length) throw new Error(`Artigo não encontrado: ${acao.nome}`)
           detalhe = { ...detalhe, antes }
           aplicadas.push(`Artigo: ${acao.nome} → R$ ${preco.toFixed(2)}`)
         } else if (tipo === 'atualizar_componente_ferragem') {
           const valor = Number(acao.valor)
           const { data: antes } = await db.from('precos_ferragem_componentes')
             .select('familia, cor, espessura, item, valor').eq('id', Number(acao.id)).single()
-          const { error, count } = await db.from('precos_ferragem_componentes')
-            .update({ valor }).eq('id', Number(acao.id)).select('id', { count: 'exact' })
+          const { data: tocadas, error } = await db.from('precos_ferragem_componentes')
+            .update({ valor }).eq('id', Number(acao.id)).select('id')
           if (error) throw error
-          if (!count) throw new Error(`Componente #${acao.id} não encontrado`)
+          if (!tocadas?.length) throw new Error(`Componente #${acao.id} não encontrado`)
           detalhe = { ...detalhe, antes }
           aplicadas.push(`Ferragem: ${antes?.item ?? acao.item ?? `componente #${acao.id}`} (${antes?.familia ?? ''} ${antes?.cor ?? ''}) → R$ ${valor.toFixed(2)}`)
         } else if (tipo === 'atualizar_ph50') {

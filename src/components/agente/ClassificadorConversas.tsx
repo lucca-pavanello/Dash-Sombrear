@@ -9,23 +9,24 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  Brain, CheckCircle2, Loader2, MessagesSquare, MinusCircle, Sparkles, XCircle,
+  Brain, CheckCircle2, LifeBuoy, Loader2, MessagesSquare, MinusCircle, Sparkles, XCircle,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import type { CrmLead } from '@/hooks/useAgenteIA'
 
-type Resultado = 'venda' | 'negociacao' | 'perdida' | 'sem_interesse' | 'indefinido'
+type Resultado = 'venda' | 'negociacao' | 'perdida' | 'pos_venda' | 'sem_interesse' | 'indefinido'
 
 const ESTILO: Record<Resultado, { label: string; classe: string; Icone: typeof CheckCircle2 }> = {
   venda:         { label: 'Virou venda',   classe: 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30', Icone: CheckCircle2 },
   negociacao:    { label: 'Negociando',    classe: 'bg-primary/12 text-primary border-primary/30',                                    Icone: MessagesSquare },
   perdida:       { label: 'Perdida',       classe: 'bg-destructive/10 text-destructive border-destructive/30',                        Icone: XCircle },
+  pos_venda:     { label: 'Pós-venda',     classe: 'bg-sky-500/12 text-sky-700 dark:text-sky-400 border-sky-500/30',                   Icone: LifeBuoy },
   sem_interesse: { label: 'Sem interesse', classe: 'bg-muted text-muted-foreground border-border',                                     Icone: MinusCircle },
   indefinido:    { label: 'Indefinido',    classe: 'bg-muted text-muted-foreground border-border',                                     Icone: MinusCircle },
 }
 
-const ORDEM: Resultado[] = ['venda', 'negociacao', 'perdida', 'sem_interesse', 'indefinido']
+const ORDEM: Resultado[] = ['venda', 'negociacao', 'perdida', 'pos_venda', 'sem_interesse', 'indefinido']
 
 /** Selo compacto pra linha do lead. */
 export function SeloClassificacao({ lead, className }: { lead: CrmLead; className?: string }) {
