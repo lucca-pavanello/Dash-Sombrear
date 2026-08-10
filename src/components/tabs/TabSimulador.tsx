@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Calculator, CheckCircle2, ChevronRight, Eraser, Layers, Loader2,
+  Calculator, CheckCircle2, ChevronRight, Eraser, History, Layers, Loader2,
   Ruler, Save, Sparkles, Tag, User, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { SUGESTOES_AMBIENTE } from '@/lib/constants'
+import { useHistoricoCliente, resumoHistorico } from '@/hooks/useHistoricoCliente'
 
 const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
@@ -98,6 +99,7 @@ export default function TabSimulador() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chamadaRef = useRef(0)
 
+  const { data: historicoCliente } = useHistoricoCliente(cliente)
   const { data: opcoes } = useQuery<Opcoes>({
     queryKey: ['simulador-opcoes'],
     queryFn: async () => {
@@ -346,6 +348,12 @@ export default function TabSimulador() {
                   <label className={labelCls}>Nome</label>
                   <input className={inputCls} placeholder="Balcão" autoComplete="off"
                     value={cliente} onChange={e => setCliente(e.target.value)} />
+                  {historicoCliente && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                      <History className="h-3 w-3 shrink-0" />
+                      Cliente conhecido: {resumoHistorico(historicoCliente)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className={labelCls}>Telefone</label>

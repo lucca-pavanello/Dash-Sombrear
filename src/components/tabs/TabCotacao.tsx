@@ -3,13 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Send, CheckCircle2, Loader2, Plus, Trash2, Home,
   User, Ruler, Layers, MessageSquare, AlertCircle, RefreshCw,
-  ChevronRight, ChevronDown, Package, PenLine, Copy, Tag,
+  ChevronRight, ChevronDown, Package, PenLine, Copy, Tag, History,
 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { useModelosTecidos } from '@/hooks/useModelosTecidos'
+import { useHistoricoCliente, resumoHistorico } from '@/hooks/useHistoricoCliente'
 import { SUGESTOES_AMBIENTE, DEFAULT_RESPONSAVEL } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
 import { supabase } from '@/lib/supabase'
@@ -178,6 +179,8 @@ export default function TabCotacao() {
     for (const p of promoData ?? []) mapa.set(normTecido(p.nome), p)
     return mapa
   }, [promoData])
+
+  const { data: historicoCliente } = useHistoricoCliente(form.cliente)
 
   /* ── Auto-save draft ── */
   useEffect(() => {
@@ -509,6 +512,12 @@ export default function TabCotacao() {
                         onChange={e => setField('cliente', e.target.value)}
                         className={inputCls} placeholder="Nome do cliente" autoComplete="off"
                       />
+                      {historicoCliente && (
+                        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                          <History className="h-3 w-3 shrink-0" />
+                          Cliente conhecido: {resumoHistorico(historicoCliente)}
+                        </p>
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <label className={labelCls}>
