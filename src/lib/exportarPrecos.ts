@@ -34,7 +34,7 @@ const rotular = (campo: string) =>
   ROTULOS[campo] ?? campo.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
 
 /** As tabelas na mesma ordem em que aparecem na tela */
-const TABELAS: { tabela: string; titulo: string; aba: string; ordem: string[] }[] = [
+export const TABELAS: { tabela: string; titulo: string; aba: string; ordem: string[] }[] = [
   { tabela: 'precos_promocoes', titulo: 'Promoções', aba: 'Promoções', ordem: ['inicio'] },
   { tabela: 'precos_tecidos', titulo: 'Tecidos', aba: 'Tecidos', ordem: ['nome', 'largura'] },
   { tabela: 'precos_tecido_modelos', titulo: 'Tecidos por modelo', aba: 'Tecidos x Modelo', ordem: ['tecido_nome', 'modelo'] },
@@ -55,9 +55,10 @@ const TABELAS: { tabela: string; titulo: string; aba: string; ordem: string[] }[
 
 type Linhas = Record<string, unknown>[]
 
-async function buscarTudo() {
+/** `apenas` limita a uma tabela; sem ele, vem o pacote inteiro. */
+async function buscarTudo(apenas?: string) {
   const resultado: { tabela: string; titulo: string; aba: string; campos: string[]; linhas: Linhas }[] = []
-  for (const t of TABELAS) {
+  for (const t of TABELAS.filter(x => !apenas || x.tabela === apenas)) {
     let q = supabase.from(t.tabela).select('*')
     for (const c of t.ordem) q = q.order(c, { ascending: true })
     const { data, error } = await q
@@ -69,16 +70,26 @@ async function buscarTudo() {
 }
 
 const carimbo = () => new Date().toLocaleString('pt-BR')
-const nomeArquivo = (ext: string) => {
+/** Vira nome de arquivo: "PV / PH Alumínio" → "PV-PH-Aluminio" */
+const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '')
+const nomeArquivo = (ext: string, titulo?: string) => {
   const d = new Date()
   const p = (n: number) => String(n).padStart(2, '0')
-  return `Tabela-de-Precos-Sombrear-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.${ext}`
+  const meio = titulo ? semAcento(titulo) : 'Tabela-de-Precos'
+  return `${meio}-Sombrear-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.${ext}`
+}
+/** Mensagem clara quando a tabela existe mas não tem linha nenhuma */
+const vazia = (apenas?: string) => {
+  const t = TABELAS.find(x => x.tabela === apenas)
+  return new Error(t ? `A tabela "${t.titulo}" está vazia — não há o que baixar.`
+                     : 'Não veio nenhuma tabela do banco')
 }
 
 /** Uma aba por tabela; preço vai como número com formato de real. */
-export async function baixarPrecosExcel() {
-  const [XLSX, blocos] = await Promise.all([import('xlsx'), buscarTudo()])
-  if (!blocos.length) throw new Error('Não veio nenhuma tabela do banco')
+export async function baixarPrecosExcel(apenas?: string) {
+  const [XLSX, blocos] = await Promise.all([import('xlsx'), buscarTudo(apenas)])
+  if (!blocos.length) throw vazia(apenas)
 
   const wb = XLSX.utils.book_new()
   for (const b of blocos) {
@@ -107,32 +118,36 @@ export async function baixarPrecosExcel() {
     ws['!freeze'] = { xSplit: 0, ySplit: 1 }
     XLSX.utils.book_append_sheet(wb, ws, b.aba.slice(0, 31))
   }
-  XLSX.writeFile(wb, nomeArquivo('xlsx'))
+  XLSX.writeFile(wb, nomeArquivo('xlsx', apenas ? blocos[0].titulo : undefined))
   return blocos.length
 }
 
 /** Mesmo conteúdo, formato de leitura — uma tabela por seção, com sumário. */
-export async function baixarPrecosPDF() {
+export async function baixarPrecosPDF(apenas?: string) {
   const [{ default: jsPDF }, { default: autoTable }, blocos] = await Promise.all([
-    import('jspdf'), import('jspdf-autotable'), buscarTudo(),
+    import('jspdf'), import('jspdf-autotable'), buscarTudo(apenas),
   ])
-  if (!blocos.length) throw new Error('Não veio nenhuma tabela do banco')
+  if (!blocos.length) throw vazia(apenas)
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
   const larguraPg = doc.internal.pageSize.getWidth()
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
-  doc.text('Tabela de Preços — Sombrear', larguraPg / 2, 120, { align: 'center' })
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(120)
-  doc.text(`Gerada em ${carimbo()}`, larguraPg / 2, 140, { align: 'center' })
-  doc.setFontSize(11); doc.setTextColor(40)
-  blocos.forEach((b, i) => doc.text(`${i + 1}.  ${b.titulo}`, 150, 180 + i * 18))
+  // capa com sumário só faz sentido no pacote inteiro; tabela única já começa nela
+  const umaSo = blocos.length === 1
+  if (!umaSo) {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
+    doc.text('Tabela de Preços — Sombrear', larguraPg / 2, 120, { align: 'center' })
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(120)
+    doc.text(`Gerada em ${carimbo()}`, larguraPg / 2, 140, { align: 'center' })
+    doc.setFontSize(11); doc.setTextColor(40)
+    blocos.forEach((b, i) => doc.text(`${i + 1}.  ${b.titulo}`, 150, 180 + i * 18))
+  }
 
   const fmtBRL = (v: unknown) =>
     `R$ ${Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-  for (const b of blocos) {
-    doc.addPage()
+  blocos.forEach((b, i) => {
+    if (!(umaSo && i === 0)) doc.addPage()   // sem capa, a primeira tabela usa a página 1
     doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(20)
     doc.text(b.titulo, 40, 48)
     autoTable(doc, {
@@ -149,7 +164,7 @@ export async function baixarPrecosPDF() {
       alternateRowStyles: { fillColor: [250, 246, 242] },
       margin: { left: 32, right: 32, bottom: 40 },
     })
-  }
+  })
 
   const total = doc.getNumberOfPages()
   for (let p = 1; p <= total; p++) {
@@ -157,6 +172,6 @@ export async function baixarPrecosPDF() {
     doc.text(`Sombrear · ${carimbo()} · ${p}/${total}`,
       larguraPg / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' })
   }
-  doc.save(nomeArquivo('pdf'))
+  doc.save(nomeArquivo('pdf', apenas ? blocos[0].titulo : undefined))
   return blocos.length
 }

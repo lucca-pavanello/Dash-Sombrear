@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import PrecosGrid, { ColunaDef } from './PrecosGrid'
 import PrecosIA from './PrecosIA'
+import { TABELAS as TABELAS_EXPORT, baixarPrecosExcel, baixarPrecosPDF } from '@/lib/exportarPrecos'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import {
@@ -569,13 +570,12 @@ function BotaoBaixarTabelas({ toast }: { toast: Props['toast'] }) {
   const [aberto, setAberto] = useState(false)
   const [baixando, setBaixando] = useState<'xlsx' | 'pdf' | null>(null)
 
-  const baixar = async (formato: 'xlsx' | 'pdf') => {
+  const baixar = async (formato: 'xlsx' | 'pdf', apenas?: string) => {
     setAberto(false)
     setBaixando(formato)
     try {
-      const { baixarPrecosExcel, baixarPrecosPDF } = await import('@/lib/exportarPrecos')
-      const n = formato === 'xlsx' ? await baixarPrecosExcel() : await baixarPrecosPDF()
-      toast('success', `${n} tabelas baixadas`)
+      const n = formato === 'xlsx' ? await baixarPrecosExcel(apenas) : await baixarPrecosPDF(apenas)
+      toast('success', apenas ? 'Tabela baixada' : `${n} tabelas baixadas`)
     } catch (e) {
       toast('error', e instanceof Error ? e.message : 'Não deu para gerar o arquivo')
     } finally {
@@ -594,7 +594,10 @@ function BotaoBaixarTabelas({ toast }: { toast: Props['toast'] }) {
       {aberto && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-xl border-2 bg-card shadow-lg">
+          <div className="absolute right-0 z-20 mt-1 w-80 overflow-hidden rounded-xl border-2 bg-card shadow-lg">
+            <p className="border-b bg-muted/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Tudo junto
+            </p>
             <button onClick={() => baixar('xlsx')}
               className="flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/50">
               <FileSpreadsheet className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
@@ -611,6 +614,26 @@ function BotaoBaixarTabelas({ toast }: { toast: Props['toast'] }) {
                 <span className="block text-xs text-muted-foreground">Pronto pra imprimir ou mandar por e-mail</span>
               </span>
             </button>
+
+            <p className="border-y bg-muted/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Uma tabela só
+            </p>
+            <div className="max-h-64 overflow-y-auto">
+              {TABELAS_EXPORT.map(tb => (
+                <div key={tb.tabela}
+                  className="flex items-center gap-2 border-b border-border/40 px-3 py-1.5 last:border-b-0 hover:bg-muted/40">
+                  <span className="flex-1 truncate text-xs font-medium">{tb.titulo}</span>
+                  <button onClick={() => baixar('xlsx', tb.tabela)} title={`${tb.titulo} em Excel`}
+                    className="rounded-md p-1 text-emerald-600 transition-colors hover:bg-emerald-500/10 active:scale-95">
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => baixar('pdf', tb.tabela)} title={`${tb.titulo} em PDF`}
+                    className="rounded-md p-1 text-red-500 transition-colors hover:bg-red-500/10 active:scale-95">
+                    <FileText className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
