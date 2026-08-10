@@ -312,9 +312,17 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     }
   }, [loadingCrm, loadingOrc])
 
+  // Conversas históricas do WhatsApp da loja (status_lead='historico') existem para a
+  // leitura da IA — ficam FORA dos KPIs, do funil e da lista da operação viva da Stella,
+  // senão meses de conversa antiga distorceriam as métricas do atendimento atual.
+  const { leadsVivos, historicos } = useMemo(() => {
+    const eHistorico = (l: CrmLead) => (l.status_lead ?? '').toLowerCase().trim() === 'historico'
+    return { leadsVivos: leads.filter(l => !eHistorico(l)), historicos: leads.filter(eHistorico) }
+  }, [leads])
+
   const filtrados = useMemo(
-    () => filterByPeriod(leads, periodo, (l) => l.created_at, customFrom || undefined, customTo || undefined),
-    [leads, periodo, customFrom, customTo]
+    () => filterByPeriod(leadsVivos, periodo, (l) => l.created_at, customFrom || undefined, customTo || undefined),
+    [leadsVivos, periodo, customFrom, customTo]
   )
   const orcFiltrados = useMemo(
     () => filterByPeriod(orcamentosIA, periodo, (o) => o.created_at, customFrom || undefined, customTo || undefined),
@@ -488,8 +496,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       {/* ── Funil de conversão ── */}
       <FunnelChart stages={funnelStages} />
 
-      {/* ── Veredito da IA por conversa (venda / negociação / perdida + motivo) ── */}
-      <ClassificadorConversas leads={filtrados} toast={toast} />
+      {/* ── Veredito da IA por conversa (venda / negociação / perdida + motivo) ──
+           inclui as históricas de propósito: são o material mais rico de leitura */}
+      <ClassificadorConversas leads={[...filtrados, ...historicos]} toast={toast} />
 
       {/* ── Insights da Stella (síntese das conversas via Gemini) ── */}
       <InsightsStella leads={leads} orcamentosIA={orcamentosIA} toast={toast} />

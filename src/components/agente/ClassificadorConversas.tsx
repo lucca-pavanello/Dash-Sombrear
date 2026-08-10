@@ -52,8 +52,9 @@ export default function ClassificadorConversas({ leads, toast }: Props) {
   const qc = useQueryClient()
   const [rodando, setRodando] = useState(false)
 
-  const { contagem, classificadas, pendentes, motivosPerdidas } = useMemo(() => {
+  const { contagem, classificadas, pendentes, motivosPerdidas, nHistoricas } = useMemo(() => {
     const comConversa = leads.filter(l => (l.resumo_conversa ?? '').trim().length >= 20)
+    const nHistoricas = comConversa.filter(l => (l.status_lead ?? '').toLowerCase().trim() === 'historico').length
     const classificadas = comConversa.filter(l => !!l.classificacao_ia)
     const contagem = ORDEM.map(r => ({ r, n: classificadas.filter(l => l.classificacao_ia === r).length }))
       .filter(x => x.n > 0)
@@ -61,7 +62,7 @@ export default function ClassificadorConversas({ leads, toast }: Props) {
       .filter(l => l.classificacao_ia === 'perdida' && l.classificacao_motivo)
       .slice(0, 3)
       .map(l => ({ nome: l.nome ?? 'Lead', motivo: l.classificacao_motivo as string }))
-    return { contagem, classificadas, pendentes: comConversa.length - classificadas.length, motivosPerdidas }
+    return { contagem, classificadas, pendentes: comConversa.length - classificadas.length, motivosPerdidas, nHistoricas }
   }, [leads])
 
   async function analisar() {
@@ -98,6 +99,7 @@ export default function ClassificadorConversas({ leads, toast }: Props) {
         </p>
         <span className="text-[11px] text-muted-foreground">
           {classificadas.length} de {total} analisada{total > 1 ? 's' : ''}
+          {nHistoricas > 0 && <> · inclui {nHistoricas} do histórico da loja</>}
         </span>
         <button
           type="button"
