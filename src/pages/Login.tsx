@@ -55,7 +55,7 @@ export default function Login() {
     : (mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : 'Enviar link de redefinição')
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-dvh items-center justify-center bg-background p-4">
       {/* Background: dot grid + orbs (mesma linguagem do dashboard) */}
       <div className="dot-grid pointer-events-none fixed inset-0" />
       <div className="pointer-events-none fixed inset-0 overflow-hidden">

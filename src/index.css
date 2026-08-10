@@ -534,3 +534,22 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ── PWA / celular ─────────────────────────────────────────── */
+/* App instalado no iPhone: header respeita o notch, conteúdo respeita a home bar */
+.header-aurora {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* iOS dá zoom na página quando o campo focado tem fonte < 16px — trava em 16px no celular.
+   !important de propósito: precisa vencer utilitários como .text-sm nos inputs. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

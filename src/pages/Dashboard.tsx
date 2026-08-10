@@ -497,6 +497,10 @@ export default function Dashboard() {
         left: btnRect.left - barRect.left + bar.scrollLeft,
         width: btnRect.width,
       })
+      // mobile: a barra rola na horizontal — garante a aba ativa visível
+      if (bar.scrollWidth > bar.clientWidth) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      }
     })
   }, [activeTab, estoqueSub, isEstoquePath, adminSub, isAdminPath])
 
@@ -667,7 +671,7 @@ export default function Dashboard() {
       </div>
     )}
 
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       {/* Background: dot grid + orbs de glassmorphism */}
       <div className="dot-grid fixed inset-0 -z-10 pointer-events-none" />
       <div

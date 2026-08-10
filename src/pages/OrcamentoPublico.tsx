@@ -128,7 +128,7 @@ export default function OrcamentoPublico() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-dvh items-center justify-center bg-gray-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#E8701A] border-t-transparent" />
       </div>
     )
@@ -136,7 +136,7 @@ export default function OrcamentoPublico() {
 
   if (isError || !orcamento) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 p-6 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-gray-50 p-6 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg" style={{ backgroundColor: BRAND }}>
           <span className="text-2xl font-bold text-white">S</span>
         </div>
@@ -155,7 +155,7 @@ export default function OrcamentoPublico() {
   })
 
   return (
-    <div className="home-choreo relative min-h-screen overflow-hidden bg-gray-50">
+    <div className="home-choreo relative min-h-dvh overflow-hidden bg-gray-50">
       {/* Aurora clarinha da marca ao fundo */}
       <div className="pointer-events-none absolute inset-0 -z-0" aria-hidden>
         <div className="aurora-a absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full blur-3xl"

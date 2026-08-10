@@ -15,7 +15,7 @@ function AppRoutes({ session }: { session: Session }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-dvh items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
       </div>
     )
@@ -23,7 +23,7 @@ function AppRoutes({ session }: { session: Session }) {
 
   if (!profile?.approved) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background p-4 text-center">
+      <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-background p-4 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand">
           <span className="font-display text-2xl font-bold text-white">S</span>
         </div>
@@ -71,7 +71,7 @@ export default function App() {
 
   if (session === undefined) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-dvh items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
       </div>
     )

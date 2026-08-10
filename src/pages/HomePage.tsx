@@ -266,7 +266,7 @@ export default function HomePage() {
   const dataLonga = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className={cn('relative min-h-screen flex flex-col items-center justify-center bg-background px-4 py-10 overflow-hidden', coreo)}>
+    <div className={cn('relative min-h-dvh flex flex-col items-center justify-center bg-background px-4 py-10 overflow-hidden', coreo)}>
       {/* Aurora: dot grid + orbes da marca à deriva (mesma família visual do dash interno) */}
       <div ref={fundoRef} className="absolute inset-0 -z-10 pointer-events-none" aria-hidden>
         <div className="dot-grid absolute inset-0" />
