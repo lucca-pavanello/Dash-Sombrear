@@ -320,8 +320,17 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     return { leadsVivos: leads.filter(l => !eHistorico(l)), historicos: leads.filter(eHistorico) }
   }, [leads])
 
+  // O período do lead é a ATIVIDADE (última mensagem), não a criação da linha:
+  // um cliente antigo que volta a escrever hoje precisa aparecer em "hoje" — a linha
+  // dele pode ter sido criada meses atrás (importação do histórico da loja).
+  const dataAtividade = (l: CrmLead): string => {
+    const ultima = l.timestamp_ultima_msg ? new Date(l.timestamp_ultima_msg).getTime() : NaN
+    const criada = new Date(l.created_at).getTime()
+    return Number.isFinite(ultima) && ultima > criada ? (l.timestamp_ultima_msg as string) : l.created_at
+  }
+
   const filtrados = useMemo(
-    () => filterByPeriod(leadsVivos, periodo, (l) => l.created_at, customFrom || undefined, customTo || undefined),
+    () => filterByPeriod(leadsVivos, periodo, dataAtividade, customFrom || undefined, customTo || undefined),
     [leadsVivos, periodo, customFrom, customTo]
   )
   const orcFiltrados = useMemo(
