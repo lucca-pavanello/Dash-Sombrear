@@ -37,11 +37,16 @@ function pretaIndisponivel(modelo: string, cor: string, largura: string, altura:
 const PH50_ACABAMENTOS = ['Cadarço', 'Fita']
 const DRAFT_KEY = 'sombrear-cotacao-draft-v3'
 const MAIS_BARATO = 'MAIS BARATO (a partir de)'
-// Tipo de tecido no modo "mais barato" — vai no payload como economico_tipo
-const ECON_TIPOS = ['Qualquer', 'Blackout', 'Tela Solar', 'Decorativo']
-const ECON_TIPO_PAYLOAD: Record<string, string | null> = {
-  'Qualquer': null, 'Blackout': 'blackout', 'Tela Solar': 'tela_solar', 'Decorativo': 'decorativo',
+/**
+ * Categorias do "mais barato" (economico_tipo). Vêm do banco (view
+ * precos_tipos_tecido), então uma categoria nova criada pela loja aparece
+ * sozinha aqui — sem depender de alguém lembrar de mexer no código.
+ */
+const ROTULO_TIPO: Record<string, string> = {
+  blackout: 'Blackout', tela_solar: 'Tela Solar', decorativo: 'Decorativo',
 }
+const rotularTipo = (t: string) =>
+  ROTULO_TIPO[t] ?? t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 const normTecido = (s: string) => s.toUpperCase().replace(/\s+/g, ' ').trim()
 const fmtDataBR = (iso: string) => {
   const [y, m, d] = iso.split('-')
@@ -193,6 +198,25 @@ export default function TabCotacao() {
   }, [promoData])
 
   const { data: historicoCliente } = useHistoricoCliente(form.cliente)
+
+  /* categorias de tecido, do banco — alimentam o seletor do "mais barato" */
+  const { data: tiposTecido } = useQuery({
+    queryKey: ['tipos-tecido'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('precos_tipos_tecido').select('tipo, tecidos')
+      if (error) throw error
+      return data as { tipo: string; tecidos: number }[]
+    },
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+  const opcoesEconomico = useMemo(() => ([
+    { value: 'Qualquer', label: 'Qualquer tecido' },
+    ...(tiposTecido ?? []).map(t => ({
+      value: t.tipo,
+      label: `${rotularTipo(t.tipo)} (${t.tecidos} tecido${t.tecidos > 1 ? 's' : ''})`,
+    })),
+  ]), [tiposTecido])
 
   /* ── Auto-save draft ── */
   useEffect(() => {
@@ -403,7 +427,9 @@ export default function TabCotacao() {
             cor_ferragem: p.cor_ferragem.trim(),
             acabamento: p.acabamento.trim(),
             persiana_grupo: `a${aIdx}p${pIdx}`,
-            economico_tipo: p.tecido === MAIS_BARATO ? (ECON_TIPO_PAYLOAD[p.economico_tipo] ?? null) : null,
+            economico_tipo: p.tecido === MAIS_BARATO && p.economico_tipo !== 'Qualquer'
+              ? p.economico_tipo
+              : null,
           }))
         ),
       })),
@@ -791,7 +817,7 @@ export default function TabCotacao() {
                                           <CustomSelect
                                             value={p.economico_tipo}
                                             onChange={v => setPersianaField(a.id, p.id, 'economico_tipo', v)}
-                                            options={ECON_TIPOS}
+                                            options={opcoesEconomico}
                                           />
                                           <p className="mt-1 text-[11px] text-foreground/50">
                                             Ex.: Blackout = o BK mais barato do modelo, não o tecido mais barato em geral.
@@ -1070,7 +1096,7 @@ export default function TabCotacao() {
                                 <MiniRow k="Modelo" v={p.modelo} />
                                 <MiniRow k="Tecido" v={p.tecido} />
                                 {p.tecido === MAIS_BARATO && p.economico_tipo !== 'Qualquer' && (
-                                  <MiniRow k="Tipo" v={p.economico_tipo} />
+                                  <MiniRow k="Tipo" v={rotularTipo(p.economico_tipo)} />
                                 )}
                                 {p.tecido !== MAIS_BARATO && promoPorTecido.has(normTecido(p.tecido)) && (
                                   <MiniRow k="Promoção" v={`−${promoPorTecido.get(normTecido(p.tecido))!.desconto_pct}% até ${fmtDataBR(promoPorTecido.get(normTecido(p.tecido))!.promo_fim)}`} />
