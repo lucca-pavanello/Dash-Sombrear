@@ -210,7 +210,7 @@ export default function MoverItensView({ toast }: Props) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="dialog-mover-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-xl px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
         >
           <div className="w-full max-w-sm bg-card rounded-2xl shadow-elevated">
             {/* Header */}

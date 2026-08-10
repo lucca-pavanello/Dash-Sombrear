@@ -418,13 +418,13 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title-edit"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-[2px]"
     >
       <div
         ref={panelRef}
         tabIndex={-1}
         style={{ viewTransitionName: 'detalhe-orc' } as React.CSSProperties}
-        className="modal-enter relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
+        className="modal-enter relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl ring-1 ring-border/70 shadow-2xl max-h-[92dvh] flex flex-col outline-none"
       >
         <div className="border-b shrink-0">
           {/* Linha 1: título + fechar — sempre respirando */}
@@ -726,7 +726,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
         </form>
 
         {confirmDiscard && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-t-2xl sm:rounded-2xl bg-black/40 backdrop-blur-sm">
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-t-2xl sm:rounded-2xl bg-background/70 backdrop-blur-[2px]">
             <div className="mx-4 w-full max-w-xs rounded-xl bg-card p-5 shadow-elevated">
               <p className="text-sm font-semibold text-foreground">Descartar alterações?</p>
               <p className="mt-1 text-xs text-muted-foreground">As mudanças não salvas serão perdidas.</p>

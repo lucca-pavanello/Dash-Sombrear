@@ -68,7 +68,7 @@ export default function NovoUsuarioModal({ onClose, toast }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title-novo-usuario"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div

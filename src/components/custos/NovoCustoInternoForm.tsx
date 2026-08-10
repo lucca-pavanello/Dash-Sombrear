@@ -169,7 +169,7 @@ export default function NovoCustoInternoForm({ toast, open, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title-custo"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-[2px]"
     >
       <div
         ref={panelRef}

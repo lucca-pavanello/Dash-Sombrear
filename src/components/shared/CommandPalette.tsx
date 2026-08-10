@@ -51,7 +51,7 @@ export default function CommandPalette({ open, onClose, orcamentos }: Props) {
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm animate-in fade-in duration-150"
+        className="fixed inset-0 z-[200] bg-background/70 backdrop-blur-[2px] animate-in fade-in duration-150"
         onClick={onClose}
       />
 

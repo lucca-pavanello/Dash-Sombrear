@@ -169,7 +169,7 @@ export default function NovoProdutoForm({ open, onClose, toast, editando, respon
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title-produto"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-[2px] px-4"
     >
       <div
         ref={panelRef}

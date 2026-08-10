@@ -138,7 +138,7 @@ export default function EditProfileModal({ mode, targetProfile, onClose, toast }
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title-profile"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div
