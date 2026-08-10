@@ -11,7 +11,6 @@ import EditOrcamentoForm from './EditOrcamentoForm'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
 import type { ToastType } from '@/hooks/useToast'
-import Sparkline from '@/components/shared/Sparkline'
 import { haptic } from '@/lib/haptic'
 
 type ToastFn = (type: ToastType, message: string, opts?: { duration?: number; undoAction?: () => void }) => void
@@ -452,17 +451,6 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
   const now = Date.now()
   const RECENT_THRESHOLD_MS = 2 * 60 * 60 * 1000 // 2 horas
 
-  const clientHistory = useMemo(() => {
-    const map = new Map<string, number[]>()
-    ;[...data].reverse().forEach(o => {
-      const key = (o.cliente ?? o.responsavel).toLowerCase().trim()
-      const v = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(v)
-    })
-    return map
-  }, [data])
-
   return (
     <>
       {isFocused && (
@@ -660,15 +648,8 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         {vis('tecido') && <td className={cn('px-4 py-3 text-muted-foreground', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.tecido || <span className="opacity-30">—</span>}</td>}
                         {vis('qtd') && <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.quantidade}</td>}
                         <td className={cn('px-4 py-3 text-right', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
-                          <span className="flex flex-col items-end leading-tight">
-                            <span className="flex items-center gap-0">
-                              <span>{o.valor_venda ? formatCurrency(o.valor_venda) : <span className="text-muted-foreground/30">—</span>}</span>
-                              {(() => {
-                                const key = (o.cliente ?? o.responsavel).toLowerCase().trim()
-                                const hist = clientHistory.get(key) ?? []
-                                return hist.length >= 2 ? <Sparkline values={hist.slice(-6)} /> : null
-                              })()}
-                            </span>
+                          <span className="flex flex-col items-end leading-tight tabular-nums">
+                            <span>{o.valor_venda ? formatCurrency(o.valor_venda) : <span className="text-muted-foreground/30">—</span>}</span>
                             {o.instalacao ? (
                               <span className="text-xs text-primary/70">+{formatCurrency(o.instalacao)} inst.</span>
                             ) : null}

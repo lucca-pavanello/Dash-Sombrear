@@ -7,9 +7,11 @@
  * orçamento no formato que ela já manda pro cliente.
  */
 import { useMemo, useState } from 'react'
-import { Calculator, Check, ClipboardCopy, Ruler, TriangleAlert } from 'lucide-react'
+import { Calculator, Check, ClipboardCopy, Layers, Ruler, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import { Button, EmptyState } from '@/components/ui/primitives'
+import SectionHeader from '@/components/shared/SectionHeader'
 import { usePrecosCortinaTecidos, usePrecosCortinaValores } from '@/hooks/usePrecos'
 import { calcularCortina, type SuporteCortina } from '@/lib/cortina'
 
@@ -23,8 +25,12 @@ const SUPORTES: { id: SuporteCortina; label: string }[] = [
   { id: 'varao_duplo', label: 'Varão duplo' },
 ]
 
-const rotulo = 'mb-1 block text-[11px] font-bold uppercase tracking-wider text-foreground/45'
-const campo = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15'
+/* mesmos tokens do Calcular — ver DESIGN.md */
+const labelCls =
+  'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55'
+const inputCls =
+  'w-full rounded-lg border border-border bg-background px-3.5 py-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
+const cardCls = 'rounded-xl border bg-card p-4 shadow-sm sm:p-5'
 
 export default function CalculadoraCortina() {
   const { data: tecidos } = usePrecosCortinaTecidos()
@@ -97,44 +103,42 @@ export default function CalculadoraCortina() {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,380px)_1fr]">
       {/* ── entrada ── */}
-      <div className="space-y-3 rounded-2xl border-2 bg-card p-4">
-        <div className="flex items-center gap-2">
-          <Ruler className="h-4 w-4 text-primary" />
-          <h3 className="font-display text-sm font-semibold">Cortina Wave</h3>
-        </div>
-
+      <section>
+        <SectionHeader step="1" icon={<Ruler className="h-3.5 w-3.5" />} title="Cortina Wave"
+          hint="medida, tecido e acabamento" />
+        <div className={cn(cardCls, 'mt-3 space-y-3')}>
         <div>
-          <label className={rotulo}>Cliente</label>
-          <input className={campo} value={cliente} onChange={e => setCliente(e.target.value)}
+          <label className={labelCls}>Cliente</label>
+          <input className={inputCls} value={cliente} onChange={e => setCliente(e.target.value)}
             placeholder="Nome do cliente" />
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className={rotulo}>Largura (m)</label>
-            <input className={campo} inputMode="decimal" value={largura}
+            <label className={labelCls}>Largura (m)</label>
+            <input className={inputCls} inputMode="decimal" value={largura}
               onChange={e => setLargura(e.target.value)} placeholder="2,50" />
           </div>
           <div>
-            <label className={rotulo}>Altura (m)</label>
-            <input className={campo} inputMode="decimal" value={altura}
+            <label className={labelCls}>Altura (m)</label>
+            <input className={inputCls} inputMode="decimal" value={altura}
               onChange={e => setAltura(e.target.value)} placeholder="2,55" />
           </div>
         </div>
 
         <div>
-          <label className={rotulo}>Tecido</label>
+          <label className={labelCls}>Tecido</label>
           <CustomSelect value={tecido} onChange={setTecido} options={opcoesTecido}
             placeholder="Escolha o tecido" />
         </div>
 
         <div>
-          <label className={rotulo}>Forro / blackout</label>
+          <label className={labelCls}>Forro / blackout</label>
           <CustomSelect value={forro} onChange={setForro} options={opcoesForro} />
         </div>
 
         <div>
-          <label className={rotulo}>Trilho ou varão</label>
+          <label className={labelCls}>Trilho ou varão</label>
           <div className="grid grid-cols-2 gap-1.5">
             {SUPORTES.map(s => (
               <button key={s.id} type="button" onClick={() => setSuporte(s.id)}
@@ -150,8 +154,8 @@ export default function CalculadoraCortina() {
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className={rotulo}>Quantidade</label>
-            <input className={campo} inputMode="numeric" value={quantidade}
+            <label className={labelCls}>Quantidade</label>
+            <input className={inputCls} inputMode="numeric" value={quantidade}
               onChange={e => setQuantidade(e.target.value)} />
           </div>
           <label className="flex cursor-pointer items-end gap-2 pb-2">
@@ -161,32 +165,36 @@ export default function CalculadoraCortina() {
           </label>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2">
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/30">
           <input type="checkbox" checked={franzido} onChange={e => setFranzido(e.target.checked)}
             className="h-4 w-4 accent-[hsl(var(--primary))]" />
           <span className="text-xs font-medium">Wave na frente + franzido atrás</span>
         </label>
-      </div>
+        </div>
+      </section>
 
       {/* ── resultado ── */}
-      <div className="space-y-3">
+      <section>
+        <SectionHeader step="2" icon={<Layers className="h-3.5 w-3.5" />} title="Cálculo"
+          hint="confira antes de mandar pro cliente" />
+        <div className="mt-3 space-y-3">
         {resultado && 'erro' in resultado && (
-          <div className="flex items-start gap-2.5 rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <p className="text-sm text-foreground/80">{resultado.erro}</p>
           </div>
         )}
 
         {!resultado && (
-          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16 text-center">
-            <Calculator className="mb-2 h-6 w-6 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">Preencha medida e tecido para ver o cálculo.</p>
+          <div className="rounded-xl border border-dashed bg-card">
+            <EmptyState icon={Calculator} titulo="Sem cálculo ainda"
+              dica="Preencha largura, altura e tecido ao lado que o valor aparece aqui na hora." />
           </div>
         )}
 
         {ok && (
           <>
-            <div className="rounded-2xl border-2 bg-card p-4">
+            <div className={cardCls}>
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
                 Como o consumo foi calculado
               </p>
@@ -203,7 +211,7 @@ export default function CalculadoraCortina() {
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border-2 bg-card">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -233,11 +241,11 @@ export default function CalculadoraCortina() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border-2 bg-card p-4">
+              <div className={cardCls}>
                 <p className="text-[11px] font-bold uppercase tracking-wider text-foreground/45">Até 4x no cartão</p>
                 <p className="mt-1 font-display text-2xl font-bold tabular-nums">{brl(ok.parcelado)}</p>
               </div>
-              <div className="rounded-2xl border-2 border-emerald-500/25 bg-emerald-500/5 p-4">
+              <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.05] p-4 shadow-sm sm:p-5">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                   À vista (−5%)
                 </p>
@@ -248,21 +256,21 @@ export default function CalculadoraCortina() {
             </div>
 
             {ok.observacoes.length > 0 && (
-              <ul className="space-y-1 rounded-2xl border-2 bg-muted/20 p-3">
+              <ul className="space-y-1 rounded-xl border bg-muted/20 p-3">
                 {ok.observacoes.map((o, i) => (
                   <li key={i} className="text-xs text-muted-foreground">· {o}</li>
                 ))}
               </ul>
             )}
 
-            <button type="button" onClick={copiar}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient px-4 py-3 text-sm font-bold text-white shadow-brand transition-all hover:opacity-95 active:scale-[0.99]">
-              {copiado ? <Check className="h-4 w-4" /> : <ClipboardCopy className="h-4 w-4" />}
+            <Button variant="brand" size="lg" fullWidth onClick={copiar}>
+              {copiado ? <Check className="h-4 w-4" aria-hidden="true" /> : <ClipboardCopy className="h-4 w-4" aria-hidden="true" />}
               {copiado ? 'Copiado!' : 'Copiar orçamento pronto'}
-            </button>
+            </Button>
           </>
         )}
-      </div>
+        </div>
+      </section>
     </div>
   )
 }

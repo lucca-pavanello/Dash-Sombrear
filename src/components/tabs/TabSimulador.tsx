@@ -20,6 +20,7 @@ import Toaster from '@/components/ui/Toaster'
 import { SUGESTOES_AMBIENTE } from '@/lib/constants'
 import { useHistoricoCliente, resumoHistorico } from '@/hooks/useHistoricoCliente'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
+import SectionHeader from '@/components/shared/SectionHeader'
 
 const CalculadoraCortina = lazyComRecarga(() => import('@/components/cortina/CalculadoraCortina'))
 
@@ -61,22 +62,6 @@ const inputCls =
   'w-full rounded-lg border border-border bg-background px-3.5 py-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
 const labelCls =
   'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55'
-
-function SectionHeader({ step, icon, title, hint }: { step: string; icon: React.ReactNode; title: string; hint?: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-        {step}
-      </div>
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-foreground/40">{icon}</span>
-        <span className="text-sm font-bold text-foreground whitespace-nowrap">{title}</span>
-        {hint && <span className="hidden sm:inline truncate text-xs text-foreground/40">{hint}</span>}
-      </div>
-      <div className="flex-1 h-px bg-border/60" />
-    </div>
-  )
-}
 
 export default function TabSimulador({ modoVenda, aoSalvar }: {
   /** No Fechamento a simulação vira VENDA FECHADA direto (não um orçamento aberto). */
@@ -219,8 +204,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
   return (
     <>
-      {/* ── Cabeçalho (mesmo estilo do Calcular) ── */}
-      <div className="mb-6 flex flex-col items-center text-center gap-2">
+      {/* ── Cabeçalho: só como aba; dentro do Fechamento seria página dentro de página ── */}
+      <div className={cn('mb-6 flex-col items-center gap-2 text-center', modoVenda ? 'hidden' : 'flex')}>
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-medium text-foreground/40">Dashboard</span>
           <ChevronRight className="h-3 w-3 text-foreground/30" />

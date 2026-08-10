@@ -17,6 +17,7 @@ import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { useCountUp } from '@/hooks/useCountUp'
 import { supabase, type Orcamento } from '@/lib/supabase'
+import { Button, EmptyState } from '@/components/ui/primitives'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 
@@ -60,10 +61,10 @@ function Kpi({ rotulo, valor, hint, destaque, contar }: {
   const anim = useCountUp(valor, 700, contar)
   return (
     <div className={cn(
-      'rounded-xl border-2 bg-card p-4 shadow-sm',
-      destaque === 'primary' ? 'border-primary/25' :
-      destaque === 'emerald' ? 'border-emerald-500/25' :
-      destaque === 'amber' ? 'border-amber-500/25' : 'border-border',
+      'rounded-xl border bg-card p-4 shadow-sm transition-colors',
+      destaque === 'primary' ? 'border-primary/25 bg-primary/[0.04]' :
+      destaque === 'emerald' ? 'border-emerald-500/25 bg-emerald-500/[0.04]' :
+      destaque === 'amber' ? 'border-amber-500/25 bg-amber-500/[0.04]' : 'border-border',
     )}>
       <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">{rotulo}</p>
       <p className={cn(
@@ -241,7 +242,7 @@ export default function TabFechamento() {
       </div>
 
       {/* Filtros + ações */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
         <CustomSelect className="w-44 py-2" value={periodo} onChange={setPeriodo} options={PERIODOS} />
         {periodo === 'custom' && (
           <>
@@ -250,30 +251,21 @@ export default function TabFechamento() {
           </>
         )}
         <div className="flex-1" />
-        {(
-          <button
-            type="button"
-            onClick={() => setCalculando(v => !v)}
-            className="flex items-center gap-1.5 rounded-lg bg-brand-gradient px-4 py-2.5 text-sm font-bold text-white shadow-brand transition-all hover:opacity-95 active:scale-[0.98]"
-          >
-            <Plus className={cn('h-4 w-4 transition-transform', calculando && 'rotate-45')} />
-            {calculando ? 'Fechar calculadora' : 'Nova venda'}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={exportarPdf}
-          disabled={baixando || vendas.length === 0}
-          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-        >
-          {baixando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+        <Button variant="brand" onClick={() => setCalculando(v => !v)}>
+          <Plus className={cn('h-4 w-4 transition-transform duration-200', calculando && 'rotate-45')}
+            aria-hidden="true" />
+          {calculando ? 'Fechar calculadora' : 'Nova venda'}
+        </Button>
+        <Button variant="outline" onClick={exportarPdf} loading={baixando}
+          disabled={vendas.length === 0}>
+          {!baixando && <Download className="h-4 w-4" aria-hidden="true" />}
           PDF
-        </button>
+        </Button>
       </div>
 
       {/* Calculadora — a venda cai direto neste fechamento */}
       {calculando && (
-        <div className="mb-4 rounded-xl border-2 border-primary/25 bg-card p-4 shadow-sm sm:p-5">
+        <div className="mb-4 rounded-xl border border-primary/25 bg-primary/[0.03] p-4 shadow-sm sm:p-5">
           <Suspense fallback={<p className="py-8 text-center text-sm text-muted-foreground">Carregando calculadora…</p>}>
             <TabSimulador modoVenda aoSalvar={() => refetch()} />
           </Suspense>
@@ -304,19 +296,14 @@ export default function TabFechamento() {
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
           </div>
         ) : vendas.length === 0 ? (
-          <div className="px-6 py-14 text-center">
-            <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="text-sm font-semibold text-foreground">Nenhuma venda fechada neste período</p>
-            <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
-              Marque o orçamento como <strong>venda</strong> na Planilha (coluna Fechado) que ele aparece aqui —
-              venha da IA, do balcão ou de lançamento manual.
-            </p>
-          </div>
+          <EmptyState icon={CheckCircle2} titulo="Nenhuma venda fechada neste período"
+            dica="Marque o orçamento como venda na Planilha (coluna Fechado) que ele aparece aqui — venha da IA, do balcão ou de lançamento manual."
+            className="px-6 py-14" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
                   <th className="px-4 py-3 text-left font-bold">Data</th>
                   <th className="px-4 py-3 text-left font-bold">Cliente</th>
                   <th className="px-4 py-3 text-left font-bold">Produto</th>
@@ -423,13 +410,11 @@ export default function TabFechamento() {
                                     {formatCurrency(Number(o.custo_tecido ?? 0))}
                                     {Number(o.custo_acabamento) > 0 && <> e acabamento {formatCurrency(Number(o.custo_acabamento))}</>}.
                                   </p>
-                                  <button type="button" onClick={() => reconstruir(o.id)} disabled={reconstruindo === o.id}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-2.5 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/5 disabled:opacity-60">
-                                    {reconstruindo === o.id
-                                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                                      : <Wand2 className="h-3 w-3" />}
+                                  <Button variant="outline" size="sm" loading={reconstruindo === o.id}
+                                    onClick={() => reconstruir(o.id)}>
+                                    {reconstruindo !== o.id && <Wand2 className="h-3 w-3" aria-hidden="true" />}
                                     Reconstruir pelos dados da venda
-                                  </button>
+                                  </Button>
                                   {erroReconstruir[o.id] && (
                                     <p className="text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
                                       {erroReconstruir[o.id]}
@@ -465,15 +450,15 @@ export default function TabFechamento() {
                                 </label>
                               </div>
                               <div className="mt-3 flex gap-2">
-                                <button type="button" onClick={() => salvarAjuste(o.id)} disabled={salvandoAjuste}
-                                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-gradient px-3 py-2 text-xs font-bold text-white shadow-brand transition-all hover:opacity-95 disabled:opacity-60">
-                                  {salvandoAjuste ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                                <Button variant="brand" size="sm" className="flex-1"
+                                  loading={salvandoAjuste} onClick={() => salvarAjuste(o.id)}>
+                                  {!salvandoAjuste && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                                   Salvar
-                                </button>
-                                <button type="button" onClick={() => setEditando(null)}
-                                  className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted">
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => setEditando(null)}
+                                  aria-label="Cancelar ajuste">
+                                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                </Button>
                               </div>
                             </div>
                           </div>
