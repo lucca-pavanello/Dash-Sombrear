@@ -426,32 +426,29 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
         style={{ viewTransitionName: 'detalhe-orc' } as React.CSSProperties}
         className="modal-enter relative w-full sm:max-w-lg bg-card rounded-t-2xl sm:rounded-2xl shadow-elevated max-h-[92dvh] flex flex-col outline-none"
       >
-        <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 id="modal-title-edit" className="font-display text-base font-semibold">Editar Orçamento</h2>
-              {isDirty && (
-                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                  não salvo
-                </span>
-              )}
+        <div className="border-b shrink-0">
+          {/* Linha 1: título + fechar — sempre respirando */}
+          <div className="flex items-start justify-between px-5 pt-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 id="modal-title-edit" className="font-display text-base font-semibold whitespace-nowrap">Editar Orçamento</h2>
+                {isDirty && (
+                  <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                    não salvo
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Criado em {new Date(orcamento.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Criado em {new Date(orcamento.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-            </p>
+            <button onClick={handleClose} className="shrink-0 -mr-1.5 -mt-1 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Fechar">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <div className="flex items-center gap-1">
-            {ehAdmin && (
-              <button
-                type="button"
-                onClick={() => gerarPropostaPdf(orcamento)}
-                className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
-                title="Proposta em PDF (beta — visível só para admin)"
-              >
-                <FileDown className="h-3.5 w-3.5" />
-                Proposta
-              </button>
-            )}
+
+          {/* Linha 2: barra de ações — quebra linha sem apertar nada */}
+          <div className="flex flex-wrap items-center gap-1.5 px-5 pb-3.5 pt-2.5">
             <button
               type="button"
               onClick={handleShare}
@@ -460,7 +457,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
                 'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
                 orcamento.share_enabled
                   ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
                 'disabled:opacity-60',
               )}
               title={orcamento.share_enabled ? 'Link ativo — clique para copiar' : 'Gerar link público'}
@@ -476,7 +473,7 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               title="Copiar resumo"
             >
               {copied ? <CheckIcon className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
@@ -492,9 +489,17 @@ export default function EditOrcamentoForm({ orcamento, onClose, toast }: Props) 
               <MessageCircle className="h-3.5 w-3.5" />
               WhatsApp
             </button>
-            <button onClick={handleClose} className="rounded-lg p-1.5 hover:bg-muted transition-colors">
-              <X className="h-4 w-4" />
-            </button>
+            {ehAdmin && (
+              <button
+                type="button"
+                onClick={() => gerarPropostaPdf(orcamento)}
+                className="flex items-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                title="Proposta em PDF (beta — visível só para admin)"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Proposta
+              </button>
+            )}
           </div>
         </div>
 
