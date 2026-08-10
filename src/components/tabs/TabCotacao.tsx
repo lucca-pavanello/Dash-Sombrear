@@ -22,6 +22,18 @@ const ACABAMENTOS = [
   'Cadarço', 'Fita', 'Barra Niveladora',
 ]
 const MODEL_PH50 = 'PH_50'
+
+/**
+ * A loja só tem ferragem preta no tubo 38. Acima de 2,51m de largura (ou 3,01m
+ * de altura) a rolô exige tubo 50, que só existe em branca — avisamos aqui, na
+ * hora de digitar, em vez de deixar o orçamento quebrar no agente.
+ */
+function pretaIndisponivel(modelo: string, cor: string, largura: string, altura: string): boolean {
+  if (!/rolo/i.test(modelo) || !/pret/i.test(cor)) return false
+  const l = parseFloat(largura) || 0
+  const a = parseFloat(altura) || 0
+  return l >= 2.51 || a >= 3.01
+}
 const PH50_ACABAMENTOS = ['Cadarço', 'Fita']
 const DRAFT_KEY = 'sombrear-cotacao-draft-v3'
 const MAIS_BARATO = 'MAIS BARATO (a partir de)'
@@ -343,6 +355,11 @@ export default function TabCotacao() {
         const nP = a.persianas.length > 1 ? ` — P${j + 1}` : ''
         const n = `${nA}${nP}`
         if (!p.modelo) return `Modelo é obrigatório${n}.`
+        for (const m of p.medidas) {
+          if (pretaIndisponivel(p.modelo, p.cor_ferragem, m.largura, m.altura)) {
+            return `Ferragem preta não existe em ${m.largura}×${m.altura}m${n} — nessa medida o tubo é 50mm, que só tem em branca. Troque a ferragem para Branca ou ajuste a medida.`
+          }
+        }
         if (p.modelo === MODEL_PH50 && !PH50_ACABAMENTOS.includes(p.acabamento))
           return `Modelo ${MODEL_PH50} requer acabamento Cadarço ou Fita${n}.`
         if (!p.tecido.trim()) return `Tecido é obrigatório${n}.`
@@ -873,6 +890,26 @@ export default function TabCotacao() {
                                                     className={inputCls} />
                                                 </div>
                                               </div>
+                                              {pretaIndisponivel(p.modelo, p.cor_ferragem, m.largura, m.altura) && (
+                                                <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2">
+                                                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                                                  <div className="min-w-0 flex-1">
+                                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                                                      Nessa medida a ferragem preta não existe
+                                                    </p>
+                                                    <p className="mt-0.5 text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                                                      Acima de 2,51m de largura (ou 3,01m de altura) a rolô usa tubo de 50mm, que a loja só tem em <strong>branca</strong>.
+                                                    </p>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setPersianaField(a.id, p.id, 'cor_ferragem', 'Branca')}
+                                                      className="mt-1.5 rounded-md bg-amber-500/15 px-2 py-1 text-[11px] font-bold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300"
+                                                    >
+                                                      Trocar para branca
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              )}
                                               {area > 0 && p.medidas.length === 1 && (
                                                 <div className="mt-2 flex flex-wrap items-center gap-2">
                                                   <span className="text-xs text-foreground/50">{m.largura} × {m.altura} m =</span>

@@ -398,7 +398,19 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
             )}
 
             {pronto && resultado?.erro && !calculando && (
-              <p className="mt-3 text-sm font-medium text-amber-700 dark:text-amber-400">{resultado.erro}</p>
+              <div className="mt-3">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{resultado.erro}</p>
+                {/* atalho: a recusa da ferragem preta tem uma solução óbvia — dar ela pronta */}
+                {corFerragem === 'PRETA' && /branca/i.test(resultado.erro) && (
+                  <button
+                    type="button"
+                    onClick={() => setCorFerragem('BRANCA')}
+                    className="mt-2 rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300"
+                  >
+                    Cotar com ferragem branca
+                  </button>
+                )}
+              </div>
             )}
 
             {ok && (
