@@ -31,6 +31,41 @@ function resposta(status: number, body: unknown) {
   })
 }
 
+/**
+ * Acha o componente de ferragem da ação. O caminho feliz é o `id` vindo da
+ * listagem; quando a IA manda só o nome do item (ou um id que não existe),
+ * resolvemos por item + família/cor/espessura — e, se ainda assim sobrar mais
+ * de um candidato, devolvemos um erro que DIZ quais são, em vez de falhar seco.
+ */
+// deno-lint-ignore no-explicit-any
+async function acharComponente(db: any, acao: Record<string, unknown>): Promise<{ id: number } | { erro: string }> {
+  const id = Number(acao.id)
+  if (Number.isInteger(id) && id > 0) {
+    const { data } = await db.from('precos_ferragem_componentes').select('id').eq('id', id).maybeSingle()
+    if (data) return { id: data.id }
+  }
+
+  const item = String(acao.item ?? '').trim()
+  if (!item) {
+    return { erro: 'Não consegui identificar o componente de ferragem (faltou o item). Diga o nome do item, a família e a cor — ex.: "tubo 32 da ROLO BRANCA".' }
+  }
+
+  let q = db.from('precos_ferragem_componentes').select('id, familia, cor, espessura, item').ilike('item', item)
+  if (acao.familia) q = q.eq('familia', String(acao.familia).toUpperCase())
+  if (acao.cor) q = q.eq('cor', String(acao.cor).toUpperCase())
+  if (acao.espessura != null && Number.isFinite(Number(acao.espessura))) q = q.eq('espessura', Number(acao.espessura))
+
+  const { data, error } = await q
+  if (error) return { erro: `Falha ao procurar o componente "${item}": ${error.message}` }
+  if (!data?.length) return { erro: `Componente "${item}" não existe na tabela de ferragens.` }
+  if (data.length > 1) {
+    // deno-lint-ignore no-explicit-any
+    const onde = data.map((d: any) => `${d.familia} ${d.cor} ${d.espessura}mm`).join(' · ')
+    return { erro: `"${item}" existe em ${data.length} lugares (${onde}). Diga qual — ex.: "o da ROLO PRETA 32".` }
+  }
+  return { id: data[0].id }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -204,9 +239,10 @@ ROMANA: a ferragem é uma matriz largura×altura (31×31) editável na aba Ferra
           if (!count) return resposta(400, { error: `Artigo não encontrado: ${acao.nome}` })
         } else if (tipo === 'atualizar_componente_ferragem') {
           if (!(Number(acao.valor) > 0)) return resposta(400, { error: `Valor inválido no componente ${acao.item ?? acao.id}` })
-          const { count } = await db.from('precos_ferragem_componentes')
-            .select('id', { count: 'exact', head: true }).eq('id', Number(acao.id))
-          if (!count) return resposta(400, { error: `Componente de ferragem #${acao.id} não existe` })
+          // id é o caminho feliz; sem ele (ou com id inválido) resolvemos pelo nome do item
+          const alvo = await acharComponente(db, acao)
+          if ('erro' in alvo) return resposta(400, { error: alvo.erro })
+          acao.id = alvo.id // normaliza pra FASE 2 aplicar por id
         } else if (tipo === 'atualizar_ph50') {
           if (!CAMPOS_PH50.has(String(acao.campo))) return resposta(400, { error: `Campo inválido no PH 50: ${acao.campo}` })
           if (!(Number(acao.valor) > 0)) return resposta(400, { error: `Valor inválido em ${acao.modelo} ${acao.cor}` })

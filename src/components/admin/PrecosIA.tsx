@@ -5,7 +5,9 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { usePrecosMutations } from '@/hooks/usePrecos'
 
-interface Props { toast: (type: 'success' | 'error', message: string) => void }
+interface Props {
+  toast: (type: 'success' | 'error', message: string, opts?: { duration?: number }) => void
+}
 
 interface Acao { tipo: string; [k: string]: unknown }
 interface Mensagem { papel: 'user' | 'ia'; texto: string; acoes?: Acao[]; aplicado?: boolean }
@@ -188,13 +190,26 @@ export default function PrecosIA({ toast }: Props) {
       const { data, error } = await supabase.functions.invoke('precos-ia', {
         body: { modo: 'aplicar', acoes },
       })
-      if (error || !data?.ok) throw new Error()
+      if (error || !data?.ok) {
+        // o motivo real vem no corpo da resposta 4xx — sem isso o admin só via "deu erro"
+        let motivo = data?.error as string | undefined
+        try {
+          const ctx = (error as { context?: Response } | null)?.context
+          if (ctx) motivo = (await ctx.json())?.error ?? motivo
+        } catch { /* corpo não-JSON: fica no genérico */ }
+        throw new Error(motivo || '')
+      }
       setMensagens(m => m.map((msg, i) => i === indice ? { ...msg, aplicado: true } : msg))
       setMensagens(m => [...m, { papel: 'ia', texto: `Aplicado! ✅\n${(data.aplicadas as string[]).join('\n')}\nA planilha-espelho já está sincronizando.` }])
       queryClient.invalidateQueries({ queryKey: ['precos'] })
       toast('success', `${acoes.length} mudança${acoes.length > 1 ? 's' : ''} aplicada${acoes.length > 1 ? 's' : ''}!`)
-    } catch {
-      toast('error', 'Erro ao aplicar — confira o histórico ao lado para ver o que entrou')
+    } catch (err) {
+      const motivo = err instanceof Error && err.message ? err.message : null
+      toast('error', motivo ?? 'Erro ao aplicar — confira o histórico ao lado para ver o que entrou',
+        { duration: 9000 })
+      if (motivo) {
+        setMensagens(m => [...m, { papel: 'ia', texto: `Não consegui aplicar: ${motivo}` }])
+      }
     } finally {
       setAplicando(false)
     }
