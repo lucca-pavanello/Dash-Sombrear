@@ -13,6 +13,9 @@ import DatePicker from '@/components/ui/DatePicker'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
 import InsightsStella from '@/components/agente/InsightsStella'
+import FollowupControle from '@/components/agente/FollowupControle'
+import { useProfile } from '@/hooks/useProfile'
+import { ADMIN_EMAIL } from '@/lib/constants'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
@@ -245,6 +248,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
   const { mutate: marcarConvertido, isPending: marcando } = useMarcarConvertido()
   const { toasts, toast, dismiss } = useToast()
+  const { data: perfil } = useProfile()
+  const ehAdmin = perfil?.email === ADMIN_EMAIL || perfil?.is_admin === true
 
   const [periodo, setPeriodo] = useState('todos')
   const [customFrom, setCustomFrom] = useState('')
@@ -484,6 +489,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
       {/* ── Insights da Stella (síntese das conversas via Gemini) ── */}
       <InsightsStella leads={leads} orcamentosIA={orcamentosIA} toast={toast} />
+
+      {/* ── Follow-up automático (só admin controla) ── */}
+      {ehAdmin && <FollowupControle toast={toast} />}
 
       {/* ── Banner: aguardando atendimento ── */}
       {aguardando.length > 0 && (
