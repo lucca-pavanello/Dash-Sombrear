@@ -353,6 +353,16 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     return [...byId, ...byWa].filter(o => (seen.has(o.id) ? false : (seen.add(o.id), true)))
   }
 
+  /* De quem é cada orçamento — o caminho inverso de orcsDoLead */
+  const leadPorOrc = useMemo(() => {
+    const map = new Map<string, CrmLead>()
+    for (const lead of leads) {
+      for (const o of orcsDoLead(lead)) if (!map.has(o.id)) map.set(o.id, lead)
+    }
+    return map
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, orcsPorLead])
+
   const initialOrcamento = useMemo(
     () => (leadOrcamento ? leadToOrcamentoInitial(leadOrcamento) : undefined),
     [leadOrcamento]
@@ -1165,20 +1175,24 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <OrcTh label="Data"          k="created_at" />
-                      <OrcTh label="Modelo"         k="modelo" />
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Ambiente</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Medidas / Qtd</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Tecido / Acab.</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Custo</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Valor venda</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Colocação</th>
-                      <OrcTh label="Total"          k="valor" />
+                      <OrcTh label="Data" k="created_at" />
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Cliente</th>
+                      <OrcTh label="Modelo" k="modelo" />
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Medidas / Qtd</th>
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Tecido / Acab.</th>
+                      {/* custo e margem são de admin no dash inteiro — aqui não podia ser diferente */}
+                      {ehAdmin && (
+                        <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Custo</th>
+                      )}
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Produto</th>
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Colocação</th>
+                      <OrcTh label="Total" k="valor" />
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedOrcs.map((o, rowIdx) => {
                       const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
+                      const dono = leadPorOrc.get(o.id)
                       const custoBase = o.custo_total_base != null ? formatCurrency(o.custo_total_base) : null
                       const custoAcab = o.custo_acabamento_total != null ? formatCurrency(o.custo_acabamento_total) : null
                       return (
@@ -1187,8 +1201,23 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             <span className="block">{fmtDate(o.created_at)}</span>
                             <span className="text-xs opacity-70">{fmtTime(o.created_at)}</span>
                           </td>
-                          <td className="px-4 py-3.5 text-center font-medium border-r border-border/20">{o.modelo ?? '—'}</td>
-                          <td className="px-4 py-3.5 text-muted-foreground border-r border-border/20">{o.ambiente ?? '—'}</td>
+                          <td className="border-r border-border/20 px-4 py-3.5 text-center">
+                            {dono ? (
+                              <>
+                                <span className="block truncate font-medium" title={dono.nome ?? undefined}>
+                                  {dono.nome ?? 'Sem nome'}
+                                </span>
+                                <SeloOrigem origem={dono.origem} campanha={dono.origem_campanha}
+                                  className="mt-1" />
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/50">sem lead vinculado</span>
+                            )}
+                          </td>
+                          <td className="border-r border-border/20 px-4 py-3.5 text-center">
+                            <span className="block font-medium">{o.modelo ?? '—'}</span>
+                            {o.ambiente && <span className="text-xs text-muted-foreground">{o.ambiente}</span>}
+                          </td>
                           <td className="px-4 py-3.5 text-center tabular-nums whitespace-nowrap border-r border-border/20">
                             <span className="block">
                               {o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—'}
@@ -1199,11 +1228,17 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             <span className="block">{o.tecido ?? '—'}</span>
                             {o.acabamento && <span className="text-xs text-muted-foreground">{o.acabamento}</span>}
                           </td>
-                          <td className="px-4 py-3.5 text-center tabular-nums text-muted-foreground border-r border-border/20">
-                            {custoBase ? <span className="block">{custoBase}</span> : <span>—</span>}
-                            {custoAcab && <span className="text-xs opacity-70">{custoAcab}</span>}
+                          {ehAdmin && (
+                            <td className="border-r border-border/20 px-4 py-3.5 text-center tabular-nums text-muted-foreground">
+                              {custoBase ? <span className="block">{custoBase}</span> : <span>—</span>}
+                              {custoAcab && <span className="text-xs opacity-70">{custoAcab}</span>}
+                            </td>
+                          )}
+                          <td className="border-r border-border/20 px-4 py-3.5 text-center tabular-nums">
+                            {o.valor_venda_total_base != null
+                              ? formatCurrency((o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0))
+                              : '—'}
                           </td>
-                          <td className="px-4 py-3.5 tabular-nums border-r border-border/20">{o.valor_venda_total_base != null ? formatCurrency((o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0)) : '—'}</td>
                           <td className="px-4 py-3.5 text-center tabular-nums text-muted-foreground border-r border-border/20">{o.valor_colocacao != null ? formatCurrency(o.valor_colocacao) : '—'}</td>
                           <td className="px-4 py-3.5 font-bold text-primary tabular-nums">{total > 0 ? formatCurrency(total) : '—'}</td>
                         </tr>
@@ -1218,10 +1253,14 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                   const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
                   return (
                     <div key={o.id} className="px-4 py-4">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div>
-                          <p className="font-semibold text-sm">{o.modelo ?? '—'}</p>
-                          {o.ambiente && <p className="text-xs text-muted-foreground mt-0.5">{o.ambiente}</p>}
+                      <div className="mb-1 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">
+                            {leadPorOrc.get(o.id)?.nome ?? o.modelo ?? '—'}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {[o.modelo, o.ambiente].filter(Boolean).join(' · ') || '—'}
+                          </p>
                         </div>
                         {total > 0 && <span className="shrink-0 text-sm font-bold text-primary tabular-nums">{formatCurrency(total)}</span>}
                       </div>
@@ -1237,6 +1276,11 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
               {/* Footer centralizado */}
               <div className="border-t px-5 py-3 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
                 <span>Total cotado: <span className="font-semibold text-foreground">{formatCurrency(valorTotal)}</span></span>
+                {orcFiltrados.length > 0 && (
+                  <span>Ticket médio: <span className="font-semibold text-foreground">
+                    {formatCurrency(valorTotal / orcFiltrados.length)}
+                  </span></span>
+                )}
                 {orcFiltrados.some((o) => o.valor_colocacao) && (
                   <span>Colocação: <span className="font-semibold text-foreground">{formatCurrency(orcFiltrados.reduce((s, o) => s + (o.valor_colocacao ?? 0), 0))}</span></span>
                 )}
