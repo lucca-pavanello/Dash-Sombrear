@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, STATUS_AGUARDANDO, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
+import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
 import { cn, formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/primitives'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
+import SeloStatus, { precisaDeHumano } from '@/components/agente/SeloStatus'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useCountUp } from '@/hooks/useCountUp'
 import {
   Bot, DollarSign, FileText, Moon, Users, CalendarCheck,
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
-  Clock, MessageCircle, XCircle, Circle, ChevronLeft,
+  Clock, MessageCircle,  ChevronLeft,
   AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter,
 } from 'lucide-react'
 import DatePicker from '@/components/ui/DatePicker'
@@ -101,38 +102,15 @@ function fmtTime(iso: string | null) {
 }
 
 // ── Sistema de cores de status (paleta da marca) ──────────────────────────────
-type StatusInfo = { badge: string; label: string; Icon: React.ElementType }
 
-function getStatus(raw: string | null): StatusInfo {
-  const s = raw?.toLowerCase().trim() ?? ''
-  if (s === STATUS_CONVERTIDO || s === 'fechado')
-    return { badge: 'bg-primary/15 text-primary border border-primary/30', label: 'Convertido', Icon: CheckCircle2 }
-  if (s === STATUS_AGUARDANDO || s === 'aguardando_atendente' || s === 'transferido')
-    return { badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30', label: 'Aguardando atendimento', Icon: Clock }
-  if (s === 'qualificado')
-    return { badge: 'bg-amber-400/15 text-amber-700 dark:text-amber-400 border border-amber-400/20', label: 'Qualificado', Icon: Circle }
-  if (s === 'cotado')
-    return { badge: 'bg-primary/20 text-primary border border-primary/25', label: 'Cotado', Icon: FileText }
-  if (s === 'agendado')
-    return { badge: 'bg-amber-600/15 text-amber-800 dark:text-amber-300 border border-amber-600/20', label: 'Agendado', Icon: CalendarCheck }
-  if (s === 'em_atendimento' || s === 'em atendimento')
-    return { badge: 'bg-amber-300/20 text-amber-700 dark:text-amber-400 border border-amber-300/30', label: 'Em atendimento', Icon: MessageCircle }
-  if (s === 'perdido' || s === 'desistiu')
-    return { badge: 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20', label: 'Perdido', Icon: XCircle }
-  if (s === 'fora_horario' || s === 'fora do horário' || s === 'fora horario')
-    return { badge: 'bg-amber-400/15 text-amber-600 dark:text-amber-300 border border-amber-400/20', label: 'Fora do horário', Icon: Moon }
-  if (!s || s === 'aguardando' || s === 'novo')
-    return { badge: 'bg-muted text-muted-foreground', label: raw ? (raw.charAt(0).toUpperCase() + raw.slice(1)) : 'Sem status', Icon: Circle }
-  return { badge: 'bg-muted text-muted-foreground', label: raw!.charAt(0).toUpperCase() + raw!.slice(1).replace(/_/g, ' '), Icon: Circle }
-}
 
 function isConvertido(s: string | null) {
   const v = s?.toLowerCase().trim() ?? ''
   return v === STATUS_CONVERTIDO || v === 'fechado'
 }
 function isAguardando(s: string | null) {
-  const v = s?.toLowerCase().trim() ?? ''
-  return v === STATUS_AGUARDANDO || v === 'aguardando_atendente' || v === 'transferido'
+  // inclui o estágio "4" do agente: ele já fez o que podia, agora é humano
+  return precisaDeHumano(s)
 }
 
 // ── Componentes auxiliares ───────────────────────────────────────────────────
@@ -704,7 +682,6 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                       const foraMsg   = isForaDoHorario(lead.timestamp_ultima_msg)
                       const foraEntr  = isForaDoHorario(lead.created_at)
                       const expanded  = expandedId === lead.id
-                      const status    = getStatus(lead.status_lead)
                       const emEspera  = !conv && horasDecorridas(lead.timestamp_ultima_msg) > ESPERA_HORAS
 
                       return (
@@ -774,14 +751,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                               </span>
                             </td>
                             <td className="px-4 py-3.5 text-center border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                              <span
-                                role="status"
-                                aria-label={status.label}
-                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${status.badge}`}
-                              >
-                                <status.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
-                                {status.label}
-                              </span>
+                              <SeloStatus status={lead.status_lead} motivo={lead.status_motivo} />
                             </td>
                             <td className="px-4 py-3.5 text-center">
                               <div className="inline-flex items-center gap-1.5 justify-center">
@@ -880,6 +850,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                     </dd>
                                   </div>
                                   <CampoLead rotulo="Campanha" valor={lead.origem_campanha} />
+                                  <CampoLead rotulo="Por que está neste estágio" valor={lead.status_motivo} />
                                   <CampoLead rotulo="Medidas" valor={lead.medidas_coletadas} />
                                   <CampoLead rotulo="Tecido / Cor" valor={lead.tecido_cor} />
                                   <CampoLead rotulo="Acabamento" valor={lead.acabamento_desejado} />
@@ -961,7 +932,6 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                   const aguard   = isAguardando(lead.status_lead)
                   const conv     = isConvertido(lead.status_lead)
                   const expanded = expandedId === lead.id
-                  const status   = getStatus(lead.status_lead)
                   const emEspera = !conv && horasDecorridas(lead.timestamp_ultima_msg) > ESPERA_HORAS
                   return (
                     <div key={lead.id} className={`${aguard ? 'border-l-2 border-l-amber-400' : ''} ${conv ? 'opacity-60' : ''} ${emEspera ? 'bg-amber-500/5' : ''}`}>
@@ -990,14 +960,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                               </span>
                             )}
                           </div>
-                          <span
-                            role="status"
-                            aria-label={status.label}
-                            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${status.badge}`}
-                          >
-                            <status.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
-                            {status.label}
-                          </span>
+                          <SeloStatus status={lead.status_lead} motivo={lead.status_motivo} className="shrink-0" />
                         </div>
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">

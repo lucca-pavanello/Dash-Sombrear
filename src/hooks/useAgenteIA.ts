@@ -41,6 +41,8 @@ export type CrmLead = {
   // extraídos do histórico da loja: o que o cliente reclamou / o que destravou a venda
   objecoes: string | null
   gatilhos: string | null
+  // o que na conversa colocou o lead no estágio atual (frase curta, do agente)
+  status_motivo: string | null
   // de onde a pessoa veio antes do WhatsApp (capturado na primeira mensagem)
   origem: string | null
   origem_bruta: string | null
