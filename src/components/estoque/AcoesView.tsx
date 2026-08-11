@@ -65,9 +65,9 @@ export default function AcoesView({ onDrillDown }: Props) {
   return (
     <div className="space-y-6">
       {/* Header da página */}
-      <div>
+      <div className="text-center">
         <h3 className="font-display text-base font-semibold">Ações Recomendadas</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           O sistema analisa seus dados e te diz exatamente o que fazer pra otimizar o estoque.
         </p>
       </div>
@@ -99,6 +99,7 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
   const columns: EstoqueTableColumn<Row>[] = [
     {
       key: 'urgencia',
+      align: 'center',
       header: 'Urgência',
       cell: (r) => (
         <span className={cn(
@@ -111,11 +112,13 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
     },
     {
       key: 'sku',
+      align: 'center',
       header: 'SKU',
       cell: (r) => <span className="font-mono text-gray-500 dark:text-muted-foreground">{r.codigo ?? '—'}</span>,
     },
     {
       key: 'nome',
+      align: 'center',
       header: 'Nome',
       className: 'max-w-[140px]',
       cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
@@ -123,17 +126,18 @@ function SecaoSugestaoCompra({ onVerTodos }: { onVerTodos: () => void }) {
     {
       key: 'estoque',
       header: 'Estoque',
-      align: 'right',
+      align: 'center',
       cell: (r) => <span className="tabular-nums">{fmtNum(r.quantidade_atual)}</span>,
     },
     {
       key: 'lec',
       header: <InfoTooltip label="LEC" tip="Lote Econômico de Compra. Quantidade ideal a comprar de cada vez pra gastar menos com pedidos e armazenagem. Calculado pelo sistema com base nas vendas dos últimos 12 meses." />,
-      align: 'right',
+      align: 'center',
       cell: (r) => <span className="tabular-nums font-medium text-primary">{fmtNum(r.lec_sugerido)}</span>,
     },
     {
       key: 'fornecedor',
+      align: 'center',
       header: 'Fornecedor',
       className: 'max-w-[120px]',
       cell: (r) => <span className="block truncate text-gray-500 dark:text-muted-foreground">{r.fornecedor_nome ?? '—'}</span>,
@@ -192,16 +196,19 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
   const columns: EstoqueTableColumn<Row>[] = [
     {
       key: 'alerta',
+      align: 'center',
       header: 'Alerta',
       cell: (r) => <NivelBadge nivel={r.nivel_alerta} />,
     },
     {
       key: 'sku',
+      align: 'center',
       header: 'SKU',
       cell: (r) => <span className="font-mono text-gray-500 dark:text-muted-foreground">{r.sku ?? '—'}</span>,
     },
     {
       key: 'nome',
+      align: 'center',
       header: 'Nome',
       className: 'max-w-[140px]',
       cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
@@ -215,19 +222,19 @@ function SecaoPontoPedido({ onVerTodos }: { onVerTodos: () => void }) {
     {
       key: 'estoque',
       header: 'Estoque',
-      align: 'right',
+      align: 'center',
       cell: (r) => <span className="tabular-nums">{fmtNum(r.estoque_atual)}</span>,
     },
     {
       key: 'ponto_pedido',
       header: <InfoTooltip label="Ponto de Pedido" tip="O nível de estoque em que o sistema avisa: 'compra agora!'. Se esperar mais, o produto vai faltar antes do pedido chegar." />,
-      align: 'right',
+      align: 'center',
       cell: (r) => <span className="tabular-nums">{fmtNum(r.ponto_pedido)}</span>,
     },
     {
       key: 'cobertura',
       header: 'Cobertura',
-      align: 'right',
+      align: 'center',
       cell: (r) =>
         r.cobertura_dias > 0
           ? <span className="tabular-nums text-gray-500 dark:text-muted-foreground">{r.cobertura_dias}d</span>
@@ -277,6 +284,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
   const columns: EstoqueTableColumn<Row>[] = [
     {
       key: 'nome',
+      align: 'center',
       header: 'Nome',
       className: 'max-w-[180px]',
       cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
@@ -290,7 +298,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
     {
       key: 'dias',
       header: 'Dias parado',
-      align: 'right',
+      align: 'center',
       cell: (r) => {
         const dias = r.dias_em_estoque ?? 0
         const cls = dias > 180
@@ -308,7 +316,7 @@ function SecaoLeadTime({ onVerTodos }: { onVerTodos: () => void }) {
     {
       key: 'valor',
       header: 'Valor parado',
-      align: 'right',
+      align: 'center',
       cell: (r) =>
         r.valor_parado_reais !== null
           ? <span className="tabular-nums">{formatCurrency(Number(r.valor_parado_reais))}</span>
@@ -351,6 +359,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
   const columns: EstoqueTableColumn<Row>[] = [
     {
       key: 'nome',
+      align: 'center',
       header: 'Nome',
       className: 'max-w-[140px]',
       cell: (r) => <span className="block truncate font-medium">{r.nome}</span>,
@@ -363,6 +372,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
     },
     {
       key: 'local_atual',
+      align: 'center',
       header: 'Local atual',
       cell: (r) => (
         <span className="text-gray-700 dark:text-foreground/80">
@@ -372,6 +382,7 @@ function SecaoReorganizar({ onVerTodos }: { onVerTodos: () => void }) {
     },
     {
       key: 'sugestao',
+      align: 'center',
       header: 'Sugestão',
       cell: (r) => {
         const translated = r.nivel_sugerido
