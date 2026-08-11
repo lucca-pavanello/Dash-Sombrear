@@ -325,16 +325,16 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Data</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Cliente</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Responsável</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Modelo</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tecido</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo Total</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap hidden xl:table-cell">Custo Acab.</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Custo m²</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Valor Venda</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground whitespace-nowrap">Margem</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Data</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Cliente</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Responsável</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Modelo</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Tecido</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Custo Total</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap hidden xl:table-cell">Custo Acab.</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Custo m²</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Valor Venda</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">Margem</th>
               </tr>
             </thead>
             <tbody>
@@ -358,19 +358,19 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                       <td className="px-4 py-3 whitespace-nowrap">{o.responsavel}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{o.modelo}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{o.tecido}</td>
-                      <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                      <td className="px-4 py-3 text-center font-medium whitespace-nowrap">
                         {o.custo_tecido ? formatCurrency(o.custo_tecido) : <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap hidden xl:table-cell">
+                      <td className="px-4 py-3 text-center whitespace-nowrap hidden xl:table-cell">
                         {o.custo_acabamento ? formatCurrency(o.custo_acabamento) : <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         {o.custo_m2 ? formatCurrency(o.custo_m2) : <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         {o.valor_venda ? formatCurrency(o.valor_venda) : <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         {o.margem != null ? (
                           <span className={o.margem >= 30 ? 'text-primary font-medium' : o.margem >= 15 ? 'text-foreground font-medium' : 'text-destructive font-medium'}>
                             {formatPercent(o.margem)}
@@ -384,11 +384,11 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
                     <td colSpan={5} className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Total — {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatCurrency(totais.custoTotal)}</td>
-                    <td className="px-4 py-3 text-right font-semibold hidden xl:table-cell">{formatCurrency(totais.custoAcabamento)}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">—</td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatCurrency(totais.valorVenda)}</td>
-                    <td className="px-4 py-3 text-right font-semibold">
+                    <td className="px-4 py-3 text-center font-semibold">{formatCurrency(totais.custoTotal)}</td>
+                    <td className="px-4 py-3 text-center font-semibold hidden xl:table-cell">{formatCurrency(totais.custoAcabamento)}</td>
+                    <td className="px-4 py-3 text-center text-muted-foreground">—</td>
+                    <td className="px-4 py-3 text-center font-semibold">{formatCurrency(totais.valorVenda)}</td>
+                    <td className="px-4 py-3 text-center font-semibold">
                       {totais.margemMedia != null ? (
                         <span className={totais.margemMedia >= 30 ? 'text-primary' : totais.margemMedia >= 15 ? 'text-foreground' : 'text-destructive'}>
                           {formatPercent(totais.margemMedia)}

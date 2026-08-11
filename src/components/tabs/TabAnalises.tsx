@@ -990,13 +990,13 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
             <table className="w-full text-sm" style={{ minWidth: 700 }}>
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="px-6 py-3.5 text-left font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[22%]">Modelo</th>
+                  <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[22%]">Modelo</th>
                   <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[8%]">Orç.</th>
                   <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Conversão</th>
-                  <th className="px-6 py-3.5 text-right font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Faturamento</th>
-                  <th className="px-6 py-3.5 text-right font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Custo</th>
+                  <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Faturamento</th>
+                  <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Custo</th>
                   <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Margem</th>
-                  <th className="px-6 py-3.5 text-left font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Top Tecido</th>
+                  <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Top Tecido</th>
                 </tr>
               </thead>
               <tbody>
@@ -1011,8 +1011,8 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
                         {conv.toFixed(0)}%
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right tabular-nums font-medium whitespace-nowrap">{fat > 0 ? formatCurrency(fat) : <span className="text-muted-foreground/30">—</span>}</td>
-                    <td className="px-6 py-4 text-right tabular-nums text-muted-foreground whitespace-nowrap">{custo > 0 ? formatCurrency(custo) : <span className="text-muted-foreground/30">—</span>}</td>
+                    <td className="px-6 py-4 text-center tabular-nums font-medium whitespace-nowrap">{fat > 0 ? formatCurrency(fat) : <span className="text-muted-foreground/30">—</span>}</td>
+                    <td className="px-6 py-4 text-center tabular-nums text-muted-foreground whitespace-nowrap">{custo > 0 ? formatCurrency(custo) : <span className="text-muted-foreground/30">—</span>}</td>
                     <td className="px-6 py-4 text-center">
                       {margem !== null
                         ? <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
@@ -1037,8 +1037,8 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
                       {data.length > 0 ? ((fechados.length / data.length) * 100).toFixed(0) : 0}%
                     </span>
                   </td>
-                  <td className="px-6 py-3.5 text-right tabular-nums font-bold text-primary whitespace-nowrap">{formatCurrency(faturamentoGeral)}</td>
-                  <td className="px-6 py-3.5 text-right tabular-nums font-semibold text-muted-foreground whitespace-nowrap">{custoTotal > 0 ? formatCurrency(custoTotal) : '—'}</td>
+                  <td className="px-6 py-3.5 text-center tabular-nums font-bold text-primary whitespace-nowrap">{formatCurrency(faturamentoGeral)}</td>
+                  <td className="px-6 py-3.5 text-center tabular-nums font-semibold text-muted-foreground whitespace-nowrap">{custoTotal > 0 ? formatCurrency(custoTotal) : '—'}</td>
                   <td className="px-6 py-3.5 text-center">
                     {margemMedia !== null
                       ? <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${

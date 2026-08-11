@@ -215,9 +215,9 @@ export default function CalculadoraCortina() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    <th className="px-3 py-2 text-left font-bold">Item</th>
-                    <th className="px-3 py-2 text-left font-bold">Conta</th>
-                    <th className="px-3 py-2 text-right font-bold">Valor</th>
+                    <th className="px-3 py-2 text-center font-bold">Item</th>
+                    <th className="px-3 py-2 text-center font-bold">Conta</th>
+                    <th className="px-3 py-2 text-center font-bold">Valor</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -225,7 +225,7 @@ export default function CalculadoraCortina() {
                     <tr key={k}>
                       <td className="px-3 py-1.5 font-medium">{i.item}</td>
                       <td className="px-3 py-1.5 text-xs text-muted-foreground">{i.conta}</td>
-                      <td className="px-3 py-1.5 text-right font-semibold tabular-nums">{brl(i.valor)}</td>
+                      <td className="px-3 py-1.5 text-center font-semibold tabular-nums">{brl(i.valor)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -234,7 +234,7 @@ export default function CalculadoraCortina() {
                     <td colSpan={2} className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Subtotal
                     </td>
-                    <td className="px-3 py-2 text-right font-bold tabular-nums">{brl(ok.subtotal)}</td>
+                    <td className="px-3 py-2 text-center font-bold tabular-nums">{brl(ok.subtotal)}</td>
                   </tr>
                 </tfoot>
               </table>

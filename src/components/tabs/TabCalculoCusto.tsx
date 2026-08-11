@@ -515,7 +515,7 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                   <thead>
                     <tr className="border-b bg-muted/40">
                       {visibleCustoCols.map(c => (
-                        <th key={c.id} className={`px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 whitespace-nowrap ${c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'}`}>
+                        <th key={c.id} className={"whitespace-nowrap px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80"}>
                           {c.label}
                         </th>
                       ))}
@@ -538,11 +538,11 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                           {vis('tecido')      && <td className="px-4 py-3 text-muted-foreground">{c.tecido ?? <span className="opacity-30">—</span>}</td>}
                           {vis('lxa')         && <td className="px-4 py-3 text-center whitespace-nowrap">{lxa ?? <span className="text-muted-foreground/20">—</span>}</td>}
                           {vis('qtd')         && <td className="px-4 py-3 text-center">{c.quantidade ?? <span className="text-muted-foreground/20">—</span>}</td>}
-                          {vis('custo_mat')   && <td className="px-4 py-3 text-right whitespace-nowrap font-medium">{c.custo_material != null ? formatCurrency(c.custo_material) : <span className="text-muted-foreground/20">—</span>}</td>}
-                          {vis('custo_m2')    && <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_m2 != null ? formatCurrency(c.custo_m2) : <span className="text-muted-foreground/20">—</span>}</td>}
-                          {vis('custo_acab')  && <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_acabamento != null ? formatCurrency(c.custo_acabamento) : <span className="text-muted-foreground/20">—</span>}</td>}
-                          {vis('custo_inst')  && <td className="px-4 py-3 text-right whitespace-nowrap">{c.custo_instalacao != null ? formatCurrency(c.custo_instalacao) : <span className="text-muted-foreground/20">—</span>}</td>}
-                          {vis('total')       && <td className="px-4 py-3 text-right whitespace-nowrap font-bold text-primary">{formatCurrency(total)}</td>}
+                          {vis('custo_mat')   && <td className="px-4 py-3 text-center whitespace-nowrap font-medium">{c.custo_material != null ? formatCurrency(c.custo_material) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('custo_m2')    && <td className="px-4 py-3 text-center whitespace-nowrap">{c.custo_m2 != null ? formatCurrency(c.custo_m2) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('custo_acab')  && <td className="px-4 py-3 text-center whitespace-nowrap">{c.custo_acabamento != null ? formatCurrency(c.custo_acabamento) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('custo_inst')  && <td className="px-4 py-3 text-center whitespace-nowrap">{c.custo_instalacao != null ? formatCurrency(c.custo_instalacao) : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('total')       && <td className="px-4 py-3 text-center whitespace-nowrap font-bold text-primary">{formatCurrency(total)}</td>}
                         </tr>
                       )
                     })}
@@ -552,11 +552,11 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                       <td colSpan={visibleCustoCols.findIndex(c => c.id === 'custo_mat')} className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                         Totais — {filteredCI.length} registro{filteredCI.length !== 1 ? 's' : ''}
                       </td>
-                      {vis('custo_mat')  && <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0), 0))}</td>}
+                      {vis('custo_mat')  && <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0), 0))}</td>}
                       {vis('custo_m2')   && <td className="px-4 py-2.5" />}
-                      {vis('custo_acab') && <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_acabamento ?? 0), 0))}</td>}
-                      {vis('custo_inst') && <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_instalacao ?? 0), 0))}</td>}
-                      {vis('total')      && <td className="px-4 py-2.5 text-right font-bold text-primary whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0))}</td>}
+                      {vis('custo_acab') && <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_acabamento ?? 0), 0))}</td>}
+                      {vis('custo_inst') && <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_instalacao ?? 0), 0))}</td>}
+                      {vis('total')      && <td className="px-4 py-2.5 text-center font-bold text-primary whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0))}</td>}
                     </tr>
                   </tfoot>
                 </table>

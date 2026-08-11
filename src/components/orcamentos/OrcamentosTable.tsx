@@ -235,7 +235,7 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
     headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 8 },
     bodyStyles: { fontSize: 7.5 },
     footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245] as [number, number, number], textColor: [40, 40, 40] as [number, number, number], fontSize: 8 },
-    columnStyles: { 8: { halign: 'right' }, 9: { halign: 'right' }, 10: { halign: 'right', fontStyle: 'bold' }, 11: { halign: 'right' }, 12: { halign: 'right' } },
+    columnStyles: { 8: { halign: 'center' }, 9: { halign: 'center' }, 10: { halign: 'center', fontStyle: 'bold' }, 11: { halign: 'center' }, 12: { halign: 'center' } },
     margin: { left: 8, right: 8 },
   })
 
@@ -275,19 +275,19 @@ const ORC_SORT_KEY  = 'sombrear-orcamentos-sort'
 
 type ColId = 'num' | 'data' | 'cliente' | 'responsavel' | 'ambiente' | 'modelo' | 'tecido' | 'qtd' | 'valor' | 'margem' | 'status' | 'fechado'
 
-const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; align: 'left' | 'center' | 'right' }[] = [
+const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; align: 'center' | 'center' | 'right' }[] = [
   { id: 'num',         label: '#',          optional: false, align: 'center' },
-  { id: 'data',        label: 'Data',       key: 'created_at', optional: false, align: 'left' },
-  { id: 'cliente',     label: 'Cliente',    key: 'cliente',    optional: false, align: 'left' },
-  { id: 'responsavel', label: 'Responsável',key: 'responsavel',optional: false, align: 'left' },
-  { id: 'ambiente',    label: 'Ambiente',   optional: true,  align: 'left' },
-  { id: 'modelo',      label: 'Modelo',     optional: false, align: 'left' },
-  { id: 'tecido',      label: 'Tecido',     optional: true,  align: 'left' },
+  { id: 'data',        label: 'Data',       key: 'created_at', optional: false, align: 'center' },
+  { id: 'cliente',     label: 'Cliente',    key: 'cliente',    optional: false, align: 'center' },
+  { id: 'responsavel', label: 'Responsável',key: 'responsavel',optional: false, align: 'center' },
+  { id: 'ambiente',    label: 'Ambiente',   optional: true,  align: 'center' },
+  { id: 'modelo',      label: 'Modelo',     optional: false, align: 'center' },
+  { id: 'tecido',      label: 'Tecido',     optional: true,  align: 'center' },
   { id: 'qtd',         label: 'Qtd',        optional: true,  align: 'center' },
-  { id: 'valor',       label: 'Valor',      key: 'valor_venda', optional: false, align: 'right' },
-  { id: 'margem',      label: 'Margem',     key: 'margem',     optional: false, align: 'right' },
-  { id: 'status',      label: 'Status n8n', optional: true,  align: 'left' },
-  { id: 'fechado',     label: 'Fechado',    optional: false, align: 'left' },
+  { id: 'valor',       label: 'Valor',      key: 'valor_venda', optional: false, align: 'center' },
+  { id: 'margem',      label: 'Margem',     key: 'margem',     optional: false, align: 'center' },
+  { id: 'status',      label: 'Status n8n', optional: true,  align: 'center' },
+  { id: 'fechado',     label: 'Fechado',    optional: false, align: 'center' },
 ]
 
 const COL_DEFAULTS: Record<ColId, boolean> = {
@@ -647,7 +647,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         <td className={cn('px-4 py-3', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.modelo}</td>
                         {vis('tecido') && <td className={cn('px-4 py-3 text-muted-foreground', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.tecido || <span className="opacity-30">—</span>}</td>}
                         {vis('qtd') && <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>{o.quantidade}</td>}
-                        <td className={cn('px-4 py-3 text-right', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                        <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           <span className="flex flex-col items-end leading-tight tabular-nums">
                             <span>{o.valor_venda ? formatCurrency(o.valor_venda) : <span className="text-muted-foreground/30">—</span>}</span>
                             {o.instalacao ? (
@@ -655,7 +655,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                             ) : null}
                           </span>
                         </td>
-                        <td className={cn('px-4 py-3 text-right', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
+                        <td className={cn('px-4 py-3 text-center', i % 2 === 1 ? 'bg-muted/[0.15]' : '', 'group-hover:bg-primary/[0.04]')}>
                           {margem !== null ? (
                             <span className={cn(
                               'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
@@ -699,7 +699,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         : <>Total — {sorted.length} orçamento{sorted.length !== 1 ? 's' : ''}</>
                       }
                     </td>
-                    <td className="px-4 py-2.5 text-sm font-bold text-primary text-right">
+                    <td className="px-4 py-2.5 text-sm font-bold text-primary text-center">
                       {formatCurrency(sorted.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0))}
                     </td>
                     <td colSpan={visibleCols.length - visibleCols.findIndex(c => c.id === 'valor') - 1} />

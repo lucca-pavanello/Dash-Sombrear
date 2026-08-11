@@ -304,13 +304,13 @@ export default function TabFechamento() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
-                  <th className="px-4 py-3 text-left font-bold">Data</th>
-                  <th className="px-4 py-3 text-left font-bold">Cliente</th>
-                  <th className="px-4 py-3 text-left font-bold">Produto</th>
+                  <th className="px-4 py-3 text-center font-bold">Data</th>
+                  <th className="px-4 py-3 text-center font-bold">Cliente</th>
+                  <th className="px-4 py-3 text-center font-bold">Produto</th>
                   <th className="px-4 py-3 text-center font-bold">Medidas</th>
-                  <th className="px-4 py-3 text-right font-bold">Cliente pagou</th>
-                  <th className="px-4 py-3 text-right font-bold">À parceira</th>
-                  <th className="px-4 py-3 text-right font-bold">Sobra</th>
+                  <th className="px-4 py-3 text-center font-bold">Cliente pagou</th>
+                  <th className="px-4 py-3 text-center font-bold">À parceira</th>
+                  <th className="px-4 py-3 text-center font-bold">Sobra</th>
                   <th className="px-2 py-3" />
                 </tr>
               </thead>
@@ -336,7 +336,7 @@ export default function TabFechamento() {
                         {o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—'}
                         {Number(o.quantidade) > 1 && <span className="ml-1">× {o.quantidade}</span>}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
+                      <td className="px-4 py-3 text-center font-semibold tabular-nums text-foreground">
                         <ValorComReal calc={bruto} real={pago(o)} />
                         {o.forma_pagamento && (
                           <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
@@ -344,12 +344,12 @@ export default function TabFechamento() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400">
+                      <td className="px-4 py-3 text-center tabular-nums text-amber-600 dark:text-amber-400">
                         {parceira > 0 || o.valor_parceiro_pago != null
                           ? <ValorComReal calc={parceira} real={pagoParceira(o)} />
                           : <span className="text-muted-foreground/40">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      <td className="px-4 py-3 text-center tabular-nums">
                         {(() => {
                           const sobraCalc = bruto - custoReal(o)
                           const pctReal = pago(o) > 0 ? (sobra / pago(o)) * 100 : 0
@@ -365,7 +365,7 @@ export default function TabFechamento() {
                           )
                         })()}
                       </td>
-                      <td className="px-2 py-3 text-right">
+                      <td className="px-2 py-3 text-center">
                         <button type="button" onClick={() => abrirAjuste(o)}
                           title="Ver o custo item a item e ajustar valores"
                           className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
@@ -386,19 +386,19 @@ export default function TabFechamento() {
                                 <table className="w-full text-xs">
                                   <thead>
                                     <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                      <th className="pb-1 text-left font-bold">Parte</th>
-                                      <th className="pb-1 text-right font-bold">Tabela</th>
-                                      <th className="pb-1 text-right font-bold">Fator</th>
-                                      <th className="pb-1 text-right font-bold">Custo real</th>
+                                      <th className="pb-1 text-center font-bold">Parte</th>
+                                      <th className="pb-1 text-center font-bold">Tabela</th>
+                                      <th className="pb-1 text-center font-bold">Fator</th>
+                                      <th className="pb-1 text-center font-bold">Custo real</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-border/40">
                                     {o.custos_detalhe.map((p, i) => (
                                       <tr key={i}>
                                         <td className="py-1.5 text-foreground">{p.parte}</td>
-                                        <td className="py-1.5 text-right tabular-nums text-muted-foreground">{formatCurrency(p.tabela)}</td>
-                                        <td className="py-1.5 text-right tabular-nums text-muted-foreground">{p.fator}</td>
-                                        <td className="py-1.5 text-right font-semibold tabular-nums text-foreground">{formatCurrency(p.real)}</td>
+                                        <td className="py-1.5 text-center tabular-nums text-muted-foreground">{formatCurrency(p.tabela)}</td>
+                                        <td className="py-1.5 text-center tabular-nums text-muted-foreground">{p.fator}</td>
+                                        <td className="py-1.5 text-center font-semibold tabular-nums text-foreground">{formatCurrency(p.real)}</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -474,9 +474,9 @@ export default function TabFechamento() {
                   <td colSpan={4} className="px-4 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
                     Total do período
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-foreground">{formatCurrency(totais.bruto)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-amber-600 dark:text-amber-400">{formatCurrency(totais.parceira)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3 text-center tabular-nums text-foreground">{formatCurrency(totais.bruto)}</td>
+                  <td className="px-4 py-3 text-center tabular-nums text-amber-600 dark:text-amber-400">{formatCurrency(totais.parceira)}</td>
+                  <td className="px-4 py-3 text-center tabular-nums">
                     <span className="block text-emerald-600 dark:text-emerald-400">{formatCurrency(totais.sobra)}</span>
                     <span className={cn('block text-[11px] font-semibold',
                       Math.abs(totais.pctReal - totais.pctCalc) >= 0.5 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
