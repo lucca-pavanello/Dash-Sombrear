@@ -63,7 +63,7 @@ export default function PontoPedidoView(_: Props) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
+      <div className="text-center">
         <h3 className="font-display text-base font-semibold">
           <InfoTooltip
             label="Quando comprar — detalhe completo"

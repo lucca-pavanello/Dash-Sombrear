@@ -47,7 +47,7 @@ export default function VendaDetalheView({ vendaId, onVoltar }: Props) {
       </button>
 
       {/* Header */}
-      <div>
+      <div className="text-center">
         <h3 className="font-display text-base font-semibold">Venda #{shortId}</h3>
         <p className="text-xs text-muted-foreground mt-0.5">Detalhes do registro de venda</p>
       </div>

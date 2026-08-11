@@ -110,7 +110,7 @@ export default function LeadTimeView(_: Props) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
+      <div className="text-center">
         <h3 className="font-display text-base font-semibold">
           <InfoTooltip label="O que está parado — detalhe completo" tip="Tempo médio que o produto fica parado em estoque entre a compra e a venda. Quanto maior, mais dinheiro empatado." />
         </h3>

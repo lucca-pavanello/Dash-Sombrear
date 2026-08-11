@@ -73,9 +73,15 @@ function SecaoCurvaAbc({ toast }: { toast: (type: ToastType, message: string) =>
       defaultOpen
     >
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Curva ABC — Top 20 produtos (últimos 90 dias)</p>
-          <RecalcularABCButton toast={toast} />
+        {/* 3 colunas: a legenda fica no centro real, sem depender da largura do botão */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <span />
+          <p className="text-center text-xs text-muted-foreground">
+            Curva ABC — Top 20 produtos (últimos 90 dias)
+          </p>
+          <div className="flex justify-end">
+            <RecalcularABCButton toast={toast} />
+          </div>
         </div>
         {!hasData && !isLoading ? (
           <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">

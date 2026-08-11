@@ -122,7 +122,7 @@ export default function SugestaoCompraView({ toast }: Props) {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="text-center">
         <h3 className="font-display text-base font-semibold">O que comprar agora — detalhe completo</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
           Produtos classe A ranqueados por urgência.{' '}

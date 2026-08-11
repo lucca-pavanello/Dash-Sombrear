@@ -64,8 +64,8 @@ export default function MoverItensView({ toast }: Props) {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h3 className="font-display text-base font-semibold flex items-center gap-2">
+      <div className="text-center">
+        <h3 className="flex items-center justify-center gap-2 font-display text-base font-semibold">
           <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
           Sugestões de reorganização
         </h3>
