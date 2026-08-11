@@ -92,12 +92,12 @@ export default function EstoqueMovimentacoesTable({ defaultTipo = '', headerActi
         <table className="w-full text-sm" style={{ minWidth: '640px' }}>
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Data</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Produto</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Data</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Produto</th>
               <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tipo</th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Quantidade</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Responsável</th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Motivo</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Quantidade</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden md:table-cell">Responsável</th>
+              <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hidden lg:table-cell">Motivo</th>
             </tr>
           </thead>
           <tbody>
@@ -131,7 +131,7 @@ export default function EstoqueMovimentacoesTable({ defaultTipo = '', headerActi
                         {TIPO_LABEL[m.tipo] ?? m.tipo}
                       </span>
                     </td>
-                    <td className={cn('px-4 py-3 text-right font-semibold whitespace-nowrap tabular-nums', isNeg ? 'text-destructive' : m.tipo === 'ajuste' ? 'text-muted-foreground' : 'text-primary')}>
+                    <td className={cn('px-4 py-3 text-center font-semibold whitespace-nowrap tabular-nums', isNeg ? 'text-destructive' : m.tipo === 'ajuste' ? 'text-muted-foreground' : 'text-primary')}>
                       {sinal}{m.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">{unidade}</span>
                     </td>

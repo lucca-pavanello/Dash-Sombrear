@@ -235,18 +235,18 @@ export default function SugestaoCompraView({ toast }: Props) {
                       className="rounded border-input accent-primary"
                     />
                   </th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">Urgência</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">SKU</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">Nome</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Estoque</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Mínimo</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Déficit</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Urgência</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">SKU</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Nome</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Estoque</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Mínimo</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Déficit</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">
                     <InfoTooltip label="LEC sugerido" tip="Lote Econômico de Compra. Quantidade ideal a comprar de cada vez pra gastar menos com pedidos e armazenagem." />
                   </th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">Fornecedor</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Lead time</th>
-                  <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Custo estimado</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Fornecedor</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Lead time</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Custo estimado</th>
                 </tr>
               </thead>
               <tbody>
@@ -270,24 +270,24 @@ export default function SugestaoCompraView({ toast }: Props) {
                     </td>
                     <td className="px-3 py-2 font-mono text-xs">{row.codigo ?? '—'}</td>
                     <td className="px-3 py-2 max-w-[140px] truncate text-xs font-medium" title={row.nome}>{row.nome}</td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums">{fmtNum(row.quantidade_atual)}</td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">{fmtNum(row.quantidade_minima)}</td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums font-medium">
+                    <td className="px-3 py-2 text-center text-xs tabular-nums">{fmtNum(row.quantidade_atual)}</td>
+                    <td className="px-3 py-2 text-center text-xs tabular-nums text-muted-foreground">{fmtNum(row.quantidade_minima)}</td>
+                    <td className="px-3 py-2 text-center text-xs tabular-nums font-medium">
                       {row.deficit > 0
                         ? <span className="text-red-600">{fmtNum(row.deficit)}</span>
                         : <span className="text-muted-foreground">—</span>
                       }
                     </td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums font-medium text-primary">
+                    <td className="px-3 py-2 text-center text-xs tabular-nums font-medium text-primary">
                       {fmtNum(row.lec_sugerido)}
                     </td>
                     <td className="px-3 py-2 text-xs max-w-[120px] truncate" title={row.fornecedor_nome ?? ''}>
                       {row.fornecedor_nome ?? <span className="text-muted-foreground/60">—</span>}
                     </td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">
+                    <td className="px-3 py-2 text-center text-xs tabular-nums text-muted-foreground">
                       {row.prazo_entrega_dias !== null ? `${row.prazo_entrega_dias}d` : '—'}
                     </td>
-                    <td className="px-3 py-2 text-right text-xs tabular-nums font-medium">
+                    <td className="px-3 py-2 text-center text-xs tabular-nums font-medium">
                       {fmtBRL(row.custo_estimado)}
                     </td>
                   </tr>

@@ -174,7 +174,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
 
       {subTab === 'entradas' && (
         <div className="space-y-5">
-          <div>
+          <div className="text-center">
             <h3 className="font-display text-base font-semibold">Entradas</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Toda compra que chega na loja. O estoque sobe automaticamente.
@@ -190,7 +190,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
           ? <VendaDetalheView vendaId={vendaDetalheId} onVoltar={() => setVendaDetalheId(null)} />
           : (
             <div className="space-y-5">
-              <div>
+              <div className="text-center">
                 <h3 className="font-display text-base font-semibold">Vendas</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Registre vendas com um ou mais itens. O estoque desce automaticamente.
@@ -209,7 +209,7 @@ export default function TabEstoque({ toast, subTab }: Props) {
 
       {subTab === 'configuracao' && (
         <div className="space-y-5">
-          <div>
+          <div className="text-center">
             <h3 className="font-display text-base font-semibold">Configurações</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Parâmetros que afetam os cálculos do sistema. Mude com cuidado.

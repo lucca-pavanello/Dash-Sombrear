@@ -182,13 +182,13 @@ export default function TabPlanilhaCusto({ data, loading }: Props) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-base font-semibold">Planilha de Custo</h2>
-          <p className="text-xs text-muted-foreground">
-            {filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}
-          </p>
-        </div>
+      <div className="text-center">
+        <h2 className="font-display text-base font-semibold">Planilha de Custo</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}
+        </p>
+      </div>
+      <div className="flex items-center justify-end gap-2">
         <div className="hidden md:flex items-center gap-2">
           <button
             onClick={exportCSV}

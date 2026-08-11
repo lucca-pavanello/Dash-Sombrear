@@ -292,14 +292,14 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
     <div className="space-y-4">
 
       {/* Cabeçalho de seção — fora dos cards, igual ao padrão de Orçamentos */}
+      <div className="text-center">
+        <h2 className="font-display text-base font-semibold">Planilha de Custos</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {filteredCI.length} registro{filteredCI.length !== 1 ? 's' : ''}{isFilteredCI ? ' filtrados' : ''}
+        </p>
+      </div>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div>
-            <h2 className="font-display text-base font-semibold">Planilha de Custos</h2>
-            <p className="text-xs text-muted-foreground">
-              {filteredCI.length} registro{filteredCI.length !== 1 ? 's' : ''}{isFilteredCI ? ' filtrados' : ''}
-            </p>
-          </div>
           <button
             onClick={() => setCustosOpen(v => !v)}
             className="p-1 text-muted-foreground hover:text-foreground transition-colors"

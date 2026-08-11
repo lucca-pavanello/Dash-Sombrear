@@ -36,12 +36,12 @@ function MelhorGiroTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/30">
-                <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground w-7">#</th>
-                <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">SKU</th>
-                <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">Nome</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground w-7">#</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">SKU</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Nome</th>
                 <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Classe</th>
-                <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Vendas 90d</th>
-                <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Estoque</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Vendas 90d</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Estoque</th>
               </tr>
             </thead>
             <tbody>
@@ -51,8 +51,8 @@ function MelhorGiroTable() {
                   <td className="px-3 py-2 font-mono text-xs">{item.codigo}</td>
                   <td className="px-3 py-2 max-w-[120px] truncate text-xs font-medium" title={item.nome}>{item.nome}</td>
                   <td className="px-3 py-2 text-center"><ClasseABC classe={item.classificacao_abc} /></td>
-                  <td className="px-3 py-2 text-right text-xs tabular-nums font-medium">{fmtBRL(item.valor_vendido_90d)}</td>
-                  <td className="px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">{fmtNum(item.quantidade_atual)}</td>
+                  <td className="px-3 py-2 text-center text-xs tabular-nums font-medium">{fmtBRL(item.valor_vendido_90d)}</td>
+                  <td className="px-3 py-2 text-center text-xs tabular-nums text-muted-foreground">{fmtNum(item.quantidade_atual)}</td>
                 </tr>
               ))}
             </tbody>
@@ -81,13 +81,13 @@ function PiorGiroTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/30">
-                <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground w-7">#</th>
-                <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">SKU</th>
-                <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground">Nome</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground w-7">#</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">SKU</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Nome</th>
                 <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Classe</th>
-                <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Dias s/ vender</th>
-                <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Estoque</th>
-                <th className="px-3 py-2 text-right text-[11px] font-semibold text-muted-foreground">Valor parado</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Dias s/ vender</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Estoque</th>
+                <th className="px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">Valor parado</th>
               </tr>
             </thead>
             <tbody>
@@ -97,14 +97,14 @@ function PiorGiroTable() {
                   <td className="px-3 py-2 font-mono text-xs">{item.codigo}</td>
                   <td className="px-3 py-2 max-w-[110px] truncate text-xs font-medium" title={item.nome}>{item.nome}</td>
                   <td className="px-3 py-2 text-center"><ClasseABC classe={item.classificacao_abc} /></td>
-                  <td className="px-3 py-2 text-right text-xs tabular-nums">
+                  <td className="px-3 py-2 text-center text-xs tabular-nums">
                     {item.dias_sem_vender !== null
                       ? <span className={item.dias_sem_vender > 60 ? 'text-muted-foreground font-semibold' : ''}>{item.dias_sem_vender}d</span>
                       : <span className="text-muted-foreground/60">nunca</span>
                     }
                   </td>
-                  <td className="px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">{fmtNum(item.quantidade_atual)}</td>
-                  <td className="px-3 py-2 text-right text-xs tabular-nums font-medium text-foreground">{fmtBRL(item.valor_parado)}</td>
+                  <td className="px-3 py-2 text-center text-xs tabular-nums text-muted-foreground">{fmtNum(item.quantidade_atual)}</td>
+                  <td className="px-3 py-2 text-center text-xs tabular-nums font-medium text-foreground">{fmtBRL(item.valor_parado)}</td>
                 </tr>
               ))}
             </tbody>

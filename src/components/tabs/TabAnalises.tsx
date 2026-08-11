@@ -875,19 +875,20 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
   return (
     <div className="space-y-6" ref={containerRef}>
 
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="h-5 w-1 shrink-0 rounded-full bg-primary" />
-        <h2 className="font-display text-base font-semibold tracking-wide">Análises</h2>
-        <div className="flex-1 h-px bg-border" />
-        <button
-          onClick={() => exportPDF(data)}
-          title="Exportar relatório em PDF"
-          className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-150"
-        >
-          <FileDown className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Exportar PDF</span>
-        </button>
+      {/* Header — título ao centro, exportar ancorado à direita */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <span aria-hidden="true" />
+        <h2 className="text-center font-display text-base font-semibold tracking-wide">Análises</h2>
+        <div className="flex justify-end">
+          <button
+            onClick={() => exportPDF(data)}
+            title="Exportar relatório em PDF"
+            className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground active:scale-95"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Exportar PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* 1 — Hero KPIs */}

@@ -99,21 +99,23 @@ export default function TabPlanilha({ data, loading, toast }: Props) {
   return (
     <>
       <div className="space-y-4">
-        {/* Header com botão novo */}
+        {/* Título centralizado; os controles ficam na faixa de baixo */}
+        <div className="text-center">
+          <h2 className="font-display text-base font-semibold">Todos os Orçamentos</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}
+          </p>
+        </div>
+
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div>
-              <h2 className="font-display text-base font-semibold">Todos os Orçamentos</h2>
-              <p className="text-xs text-muted-foreground">{filtered.length} registro{filtered.length !== 1 ? 's' : ''}{isFiltered ? ' filtrados' : ''}</p>
-            </div>
-            <button
-              onClick={() => setTableOpen(v => !v)}
-              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-              title={tableOpen ? 'Minimizar tabela' : 'Expandir tabela'}
-            >
-              {tableOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-          </div>
+          <button
+            onClick={() => setTableOpen(v => !v)}
+            className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title={tableOpen ? 'Minimizar tabela' : 'Expandir tabela'}
+          >
+            {tableOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {tableOpen ? 'Minimizar' : 'Expandir'}
+          </button>
           <button
             id="novo-orcamento-btn"
             onClick={() => setFormOpen(true)}

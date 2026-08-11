@@ -376,11 +376,11 @@ function SecaoPerformanceCategoria() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-gray-200 dark:border-border">
-                  <th className="text-left py-2 pr-3 font-medium">Categoria</th>
-                  <th className="text-right py-2 px-2 font-medium">Produtos</th>
-                  <th className="text-right py-2 px-2 font-medium">Em estoque</th>
-                  <th className="text-right py-2 px-2 font-medium">Vendido 90d</th>
-                  <th className="text-right py-2 pl-2 font-medium">% total</th>
+                  <th className="text-center py-2 pr-3 font-medium">Categoria</th>
+                  <th className="text-center py-2 px-2 font-medium">Produtos</th>
+                  <th className="text-center py-2 px-2 font-medium">Em estoque</th>
+                  <th className="text-center py-2 px-2 font-medium">Vendido 90d</th>
+                  <th className="text-center py-2 pl-2 font-medium">% total</th>
                 </tr>
               </thead>
               <tbody>
@@ -403,17 +403,17 @@ function SecaoPerformanceCategoria() {
                           <span className="font-medium capitalize">{r.categoria ?? 'Sem tipo'}</span>
                         </div>
                       </td>
-                      <td className="text-right py-2 px-2 tabular-nums text-gray-600 dark:text-muted-foreground">
+                      <td className="text-center py-2 px-2 tabular-nums text-gray-600 dark:text-muted-foreground">
                         {r.total_produtos}
                       </td>
-                      <td className="text-right py-2 px-2 tabular-nums text-gray-600 dark:text-muted-foreground">
+                      <td className="text-center py-2 px-2 tabular-nums text-gray-600 dark:text-muted-foreground">
                         {r.valor_em_estoque !== null ? fmtBRL(r.valor_em_estoque) : '—'}
                       </td>
-                      <td className="text-right py-2 px-2 tabular-nums">
+                      <td className="text-center py-2 px-2 tabular-nums">
                         {fmtBRL(r.valor_vendido_90d)}
                       </td>
                       <td className={cn(
-                        'text-right py-2 pl-2 tabular-nums font-semibold',
+                        'text-center py-2 pl-2 tabular-nums font-semibold',
                         isMax ? 'text-orange-700 dark:text-orange-400' : 'text-gray-500 dark:text-muted-foreground',
                       )}>
                         {pct}%

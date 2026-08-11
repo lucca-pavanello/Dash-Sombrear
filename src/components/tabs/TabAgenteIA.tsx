@@ -1080,12 +1080,12 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                     <tr className="border-b bg-muted/40">
                       <OrcTh label="Data"          k="created_at" />
                       <OrcTh label="Modelo"         k="modelo" />
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Ambiente</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Medidas / Qtd</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Tecido / Acab.</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Custo</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Valor venda</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Colocação</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Ambiente</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Medidas / Qtd</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Tecido / Acab.</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Custo</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Valor venda</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground border-r border-border/30">Colocação</th>
                       <OrcTh label="Total"          k="valor" />
                     </tr>
                   </thead>
