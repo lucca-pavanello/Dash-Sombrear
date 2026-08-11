@@ -615,12 +615,12 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                     <tr className="border-b bg-muted/40">
                       <LeadTh label="Entrada"       k="created_at" />
                       <LeadTh label="Nome"           k="nome" />
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">WhatsApp</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Modelo / Ambiente</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Último valor</th>
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">WhatsApp</th>
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Modelo / Ambiente</th>
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Último valor</th>
                       <LeadTh label="Últ. mensagem"  k="timestamp_ultima_msg" />
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground border-r border-border/30">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Ação</th>
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Status</th>
+                      <th className="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -645,7 +645,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                           >
                             <td className="px-4 py-3.5 text-center text-muted-foreground tabular-nums whitespace-nowrap border-r border-border/20">
                               <span className="block">{fmtDate(lead.created_at)}</span>
-                              <span className="flex items-center gap-1 text-xs opacity-70">
+                              <span className="flex items-center justify-center gap-1 text-xs opacity-70">
                                 {fmtTime(lead.created_at)}
                                 {foraEntr && <Moon className="h-2.5 w-2.5 text-amber-500" />}
                               </span>
@@ -656,7 +656,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             </td>
                             <td className="px-4 py-3.5 text-center border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
                               {lead.whatsapp ? (
-                                <span className="flex items-center gap-1.5">
+                                <span className="flex items-center justify-center gap-1.5">
                                   <span className="text-muted-foreground text-xs flex items-center gap-1">
                                     <Phone className="h-3 w-3 shrink-0" />
                                     {lead.whatsapp}
@@ -687,11 +687,11 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                 : (lead.ultimo_valor_cotado ?? '—')}
                             </td>
                             <td className="px-4 py-3.5 text-center tabular-nums whitespace-nowrap border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                              <span className={`flex items-center gap-1 block text-sm ${foraMsg ? 'text-amber-600 dark:text-amber-400' : emEspera ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+                              <span className={`flex items-center justify-center gap-1 text-sm ${foraMsg ? 'text-amber-600 dark:text-amber-400' : emEspera ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
                                 {emEspera && <Clock className="h-3 w-3 text-amber-500 shrink-0" />}
                                 {fmtDate(lead.timestamp_ultima_msg)}
                               </span>
-                              <span className="flex items-center gap-1 text-xs opacity-70">
+                              <span className="flex items-center justify-center gap-1 text-xs opacity-70">
                                 {fmtTime(lead.timestamp_ultima_msg)}
                                 {foraMsg && <MessageSquare className="h-2.5 w-2.5 text-amber-500" />}
                               </span>
@@ -710,7 +710,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                               <div className="inline-flex items-center gap-1.5 justify-center">
                                 {!conv && (
                                   confirmId === lead.id ? (
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center justify-center gap-1">
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation()
