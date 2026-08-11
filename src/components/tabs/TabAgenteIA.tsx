@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, STATUS_AGUARDANDO, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
+import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, STATUS_AGUARDANDO, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
 import { cn, formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/primitives'
+import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useCountUp } from '@/hooks/useCountUp'
 import {
   Bot, DollarSign, FileText, Moon, Users, CalendarCheck,
@@ -245,6 +247,35 @@ type LeadSort = { key: 'created_at' | 'nome' | 'timestamp_ultima_msg'; dir: 'asc
 type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
 // ── Componente principal ─────────────────────────────────────────────────────
+/** Chip de canal: mostra quantos leads vieram dali e filtra a tela inteira */
+function FiltroOrigem({ id, rotulo, total, ativo, onClick }: {
+  id: string
+  rotulo: string
+  total: number
+  ativo: boolean
+  onClick: () => void
+}) {
+  const o = id === 'todas' ? null : acharOrigem(id)
+  const Icone = o?.icone
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all active:scale-95',
+        ativo
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-border text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground',
+      )}
+    >
+      {Icone && <Icone className="h-3 w-3 shrink-0" aria-hidden="true" />}
+      {rotulo}
+      <span className={cn('tabular-nums', ativo ? 'text-primary' : 'text-foreground/45')}>{total}</span>
+    </button>
+  )
+}
+
 /** Rótulo de bloco do painel do lead — um estilo só pra todos */
 function RotuloPainel({ children }: { children: React.ReactNode }) {
   return (
@@ -276,11 +307,14 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { data: leads = [], isLoading: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
   const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
   const { mutate: marcarConvertido, isPending: marcando } = useMarcarConvertido()
+  const { mutate: definirOrigem, isPending: salvandoOrigem } = useDefinirOrigem()
   const { toasts, toast, dismiss } = useToast()
   const { data: perfil } = useProfile()
   const ehAdmin = perfil?.email === ADMIN_EMAIL || perfil?.is_admin === true
 
   const [periodo, setPeriodo] = useState('todos')
+  // filtro de canal: o gestor de tráfego entra por aqui
+  const [origemFiltro, setOrigemFiltro] = useState('todas')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [leadSort, setLeadSort] = useState<LeadSort>({ key: 'created_at', dir: 'desc' })
@@ -325,7 +359,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   )
 
   // Reset pages when filters or sort changes
-  useEffect(() => { setLeadsPage(1) }, [periodo, leadSort, customFrom, customTo])
+  useEffect(() => { setLeadsPage(1) }, [periodo, leadSort, customFrom, customTo, origemFiltro])
   useEffect(() => { setOrcsPage(1) }, [periodo, orcSort, customFrom, customTo])
   useEffect(() => { setExpandedId(null) }, [leadsPage])
 
@@ -357,9 +391,26 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     return Number.isFinite(ultima) && ultima > criada ? (l.timestamp_ultima_msg as string) : l.created_at
   }
 
-  const filtrados = useMemo(
+  const doPeriodo = useMemo(
     () => filterByPeriod(leadsVivos, periodo, dataAtividade, customFrom || undefined, customTo || undefined),
     [leadsVivos, periodo, customFrom, customTo]
+  )
+
+  /* Quantos leads por canal — alimenta os chips e serve de leitura rápida */
+  const porOrigem = useMemo(() => {
+    const mapa = new Map<string, number>()
+    for (const l of doPeriodo) {
+      const id = acharOrigem(l.origem).id
+      mapa.set(id, (mapa.get(id) ?? 0) + 1)
+    }
+    return mapa
+  }, [doPeriodo])
+
+  const filtrados = useMemo(
+    () => origemFiltro === 'todas'
+      ? doPeriodo
+      : doPeriodo.filter(l => acharOrigem(l.origem).id === origemFiltro),
+    [doPeriodo, origemFiltro]
   )
   const orcFiltrados = useMemo(
     () => filterByPeriod(orcamentosIA, periodo, (o) => o.created_at, customFrom || undefined, customTo || undefined),
@@ -570,6 +621,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         />
       </div>
 
+      {/* ── Origem: leitura rápida por canal e filtro ── */}
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        <FiltroOrigem id="todas" rotulo="Todos os canais" total={doPeriodo.length}
+          ativo={origemFiltro === 'todas'} onClick={() => setOrigemFiltro('todas')} />
+        {[...ORIGENS, SEM_ORIGEM]
+          .filter(o => (porOrigem.get(o.id) ?? 0) > 0)
+          .map(o => (
+            <FiltroOrigem key={o.id} id={o.id} rotulo={o.rotulo} total={porOrigem.get(o.id) ?? 0}
+              ativo={origemFiltro === o.id} onClick={() => setOrigemFiltro(o.id)} />
+          ))}
+      </div>
+
       {/* ── Tabela de Leads ── */}
       {errorCrm && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
@@ -615,6 +678,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                     <tr className="border-b bg-muted/40">
                       <LeadTh label="Entrada"       k="created_at" />
                       <LeadTh label="Nome"           k="nome" />
+                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Origem</th>
                       <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">WhatsApp</th>
                       <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Modelo / Ambiente</th>
                       <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Último valor</th>
@@ -653,6 +717,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             <td className="px-4 py-3.5 text-center font-medium border-r border-border/20">
                               <span className="block">{lead.nome ?? '—'}</span>
                               <SeloClassificacao lead={lead} className="mt-1" />
+                            </td>
+                            <td className="border-r border-border/20 px-4 py-3.5 text-center">
+                              <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
                             </td>
                             <td className="px-4 py-3.5 text-center border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
                               {lead.whatsapp ? (
@@ -772,7 +839,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
                           {expanded && (
                             <tr key={`${lead.id}-exp`} className="border-b bg-muted/10">
-                              <td colSpan={8} className="px-6 py-5">
+                              <td colSpan={9} className="px-6 py-5">
                                 <div className="mx-auto w-full max-w-4xl space-y-4">
                                 {lead.resumo_conversa && (
                                   <div className="rounded-xl border bg-card p-4">
@@ -786,6 +853,23 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
                                 {/* auto-fit: os campos preenchem a linha em vez de deixar buraco */}
                                 <dl className="grid gap-x-6 gap-y-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
+                                  <div className="min-w-0">
+                                    <dt className="mb-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                                      Origem
+                                    </dt>
+                                    <dd onClick={e => e.stopPropagation()}>
+                                      <CustomSelect
+                                        value={acharOrigem(lead.origem).id === SEM_ORIGEM.id ? '' : acharOrigem(lead.origem).id}
+                                        onChange={(v: string) => definirOrigem({ id: lead.id, origem: v || null })}
+                                        options={[
+                                          { value: '', label: 'Sem origem' },
+                                          ...ORIGENS.map(o => ({ value: o.id, label: o.rotulo })),
+                                        ]}
+                                        className={cn('w-full py-1.5', salvandoOrigem && 'opacity-60')}
+                                      />
+                                    </dd>
+                                  </div>
+                                  <CampoLead rotulo="Campanha" valor={lead.origem_campanha} />
                                   <CampoLead rotulo="Medidas" valor={lead.medidas_coletadas} />
                                   <CampoLead rotulo="Tecido / Cor" valor={lead.tecido_cor} />
                                   <CampoLead rotulo="Acabamento" valor={lead.acabamento_desejado} />
@@ -875,7 +959,10 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div>
                             <p className="font-semibold text-sm">{lead.nome ?? 'Sem nome'}</p>
-                            <SeloClassificacao lead={lead} className="mt-1" />
+                            <div className="mt-1 flex flex-wrap items-center gap-1">
+                              <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
+                              <SeloClassificacao lead={lead} />
+                            </div>
                             {lead.whatsapp && (
                               <span className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-xs text-muted-foreground">{lead.whatsapp}</span>

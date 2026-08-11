@@ -41,6 +41,10 @@ export type CrmLead = {
   // extraídos do histórico da loja: o que o cliente reclamou / o que destravou a venda
   objecoes: string | null
   gatilhos: string | null
+  // de onde a pessoa veio antes do WhatsApp (capturado na primeira mensagem)
+  origem: string | null
+  origem_bruta: string | null
+  origem_campanha: string | null
 }
 
 export type OrcamentoIA = {
@@ -126,6 +130,21 @@ export function useMarcarConvertido() {
       if (error) {
         throw error
       }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['crm-sombrear-ia'] }),
+  })
+}
+
+/** Marca a origem na mão — usada enquanto/onde a captura automática não alcança */
+export function useDefinirOrigem() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, origem }: { id: string; origem: string | null }) => {
+      const { error } = await supabase
+        .from('crm_sombrear_ia')
+        .update({ origem, origem_bruta: origem ? 'marcado na mão pelo dash' : null })
+        .eq('id', id)
+      if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['crm-sombrear-ia'] }),
   })
