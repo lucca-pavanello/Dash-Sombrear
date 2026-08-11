@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, STATUS_AGUARDANDO, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
-import { formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
+import { Button } from '@/components/ui/primitives'
 import { useCountUp } from '@/hooks/useCountUp'
 import {
   Bot, DollarSign, FileText, Moon, Users, CalendarCheck,
@@ -244,6 +245,33 @@ type LeadSort = { key: 'created_at' | 'nome' | 'timestamp_ultima_msg'; dir: 'asc
 type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
 // ── Componente principal ─────────────────────────────────────────────────────
+/** Rótulo de bloco do painel do lead — um estilo só pra todos */
+function RotuloPainel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-foreground/45">
+      {children}
+    </p>
+  )
+}
+
+/** Campo do painel: some quando está vazio, sem deixar buraco no grid */
+function CampoLead({ rotulo, valor, destaque }: {
+  rotulo: string
+  valor: string | number | null | undefined
+  destaque?: boolean
+}) {
+  if (valor == null || valor === '') return null
+  return (
+    <div className="min-w-0">
+      <dt className="mb-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">{rotulo}</dt>
+      <dd className={cn('truncate text-sm', destaque ? 'font-bold tabular-nums text-primary' : 'font-medium')}
+        title={String(valor)}>
+        {valor}
+      </dd>
+    </div>
+  )
+}
+
 export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { data: leads = [], isLoading: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
   const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
@@ -744,45 +772,56 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
                           {expanded && (
                             <tr key={`${lead.id}-exp`} className="border-b bg-muted/10">
-                              <td colSpan={8} className="px-6 py-4">
-                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
-                                  {lead.resumo_conversa && (
-                                    <div className="col-span-2 sm:col-span-4">
-                                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Resumo da conversa</p>
-                                      <p className="text-sm text-muted-foreground leading-relaxed">{lead.resumo_conversa}</p>
-                                    </div>
-                                  )}
-                                  {lead.medidas_coletadas    && <div><p className="text-xs text-muted-foreground mb-0.5">Medidas</p><p className="font-medium">{lead.medidas_coletadas}</p></div>}
-                                  {lead.tecido_cor           && <div><p className="text-xs text-muted-foreground mb-0.5">Tecido / Cor</p><p className="font-medium">{lead.tecido_cor}</p></div>}
-                                  {lead.acabamento_desejado  && <div><p className="text-xs text-muted-foreground mb-0.5">Acabamento</p><p className="font-medium">{lead.acabamento_desejado}</p></div>}
-                                  {lead.precisa_instalacao   && <div><p className="text-xs text-muted-foreground mb-0.5">Instalação</p><p className="font-medium">{lead.precisa_instalacao}</p></div>}
-                                  {lead.data_medicao_instalacao && <div><p className="text-xs text-muted-foreground mb-0.5">Data medição</p><p className="font-medium text-primary">{lead.data_medicao_instalacao}</p></div>}
-                                  {lead.endereco_cep         && <div><p className="text-xs text-muted-foreground mb-0.5">CEP</p><p className="font-medium">{lead.endereco_cep}</p></div>}
-                                  {lead.cidade               && <div><p className="text-xs text-muted-foreground mb-0.5">Cidade</p><p className="font-medium">{lead.cidade}</p></div>}
-                                  {lead.tipo_imovel          && <div><p className="text-xs text-muted-foreground mb-0.5">Tipo de imóvel</p><p className="font-medium">{lead.tipo_imovel}</p></div>}
-                                  {lead.quantidade           && <div><p className="text-xs text-muted-foreground mb-0.5">Quantidade</p><p className="font-medium">{lead.quantidade}</p></div>}
-                                  {lead.ultimo_valor_cotado  && <div><p className="text-xs text-muted-foreground mb-0.5">Último valor cotado</p><p className="font-bold text-primary tabular-nums">{lead.ultimo_valor_cotado}</p></div>}
-                                </div>
+                              <td colSpan={8} className="px-6 py-5">
+                                <div className="mx-auto w-full max-w-4xl space-y-4">
+                                {lead.resumo_conversa && (
+                                  <div className="rounded-xl border bg-card p-4">
+                                    <RotuloPainel>Resumo da conversa</RotuloPainel>
+                                    {/* prosa longa fica presa em ~70ch: a tabela é larga demais pra ler corrido */}
+                                    <p className="max-w-[68ch] text-pretty text-sm leading-relaxed text-foreground/75">
+                                      {lead.resumo_conversa}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* auto-fit: os campos preenchem a linha em vez de deixar buraco */}
+                                <dl className="grid gap-x-6 gap-y-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
+                                  <CampoLead rotulo="Medidas" valor={lead.medidas_coletadas} />
+                                  <CampoLead rotulo="Tecido / Cor" valor={lead.tecido_cor} />
+                                  <CampoLead rotulo="Acabamento" valor={lead.acabamento_desejado} />
+                                  <CampoLead rotulo="Instalação" valor={lead.precisa_instalacao} />
+                                  <CampoLead rotulo="Data medição" valor={lead.data_medicao_instalacao} destaque />
+                                  <CampoLead rotulo="CEP" valor={lead.endereco_cep} />
+                                  <CampoLead rotulo="Cidade" valor={lead.cidade} />
+                                  <CampoLead rotulo="Tipo de imóvel" valor={lead.tipo_imovel} />
+                                  <CampoLead rotulo="Quantidade" valor={lead.quantidade} />
+                                  <CampoLead rotulo="Último valor cotado" valor={lead.ultimo_valor_cotado} destaque />
+                                </dl>
 
                                 {/* Orçamentos da IA vinculados a este lead */}
                                 {(() => {
                                   const orcs = orcsDoLead(lead)
                                   if (orcs.length === 0) return null
                                   return (
-                                    <div className="mt-4 border-t border-border/40 pt-3">
-                                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                                        Orçamentos da IA deste lead ({orcs.length})
-                                      </p>
+                                    <div className="border-t border-border/40 pt-4">
+                                      <RotuloPainel>Orçamentos da IA deste lead ({orcs.length})</RotuloPainel>
                                       <div className="flex flex-wrap gap-2">
                                         {orcs.map(o => {
                                           const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
                                           return (
-                                            <span key={o.id} className="inline-flex items-center gap-2 rounded-lg border bg-background px-2.5 py-1.5 text-xs">
-                                              <FileText className="h-3 w-3 text-primary shrink-0" />
+                                            <span key={o.id}
+                                              className="inline-flex items-center gap-2 rounded-lg border bg-background px-2.5 py-1.5 text-xs">
+                                              <FileText className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
                                               <span className="font-medium">{o.modelo ?? '—'}</span>
-                                              {o.largura && o.altura && <span className="text-muted-foreground">{o.largura}×{o.altura}m</span>}
-                                              {total > 0 && <span className="font-bold text-primary tabular-nums">{formatCurrency(total)}</span>}
-                                              <span className="text-muted-foreground/60">{fmtDate(o.created_at)}</span>
+                                              {o.largura && o.altura && (
+                                                <span className="tabular-nums text-muted-foreground">{o.largura}×{o.altura}m</span>
+                                              )}
+                                              {/* valor sempre no mesmo lugar: sem ele as pastilhas ficavam desencontradas */}
+                                              <span className={cn('ml-auto tabular-nums',
+                                                total > 0 ? 'font-bold text-primary' : 'text-muted-foreground/40')}>
+                                                {total > 0 ? formatCurrency(total) : 'sem valor'}
+                                              </span>
+                                              <span className="tabular-nums text-muted-foreground/60">{fmtDate(o.created_at)}</span>
                                             </span>
                                           )
                                         })}
@@ -792,26 +831,25 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                 })()}
 
                                 {/* Ações do lead */}
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setOrcFechado(false); setLeadOrcamento(lead) }}
-                                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 transition-colors active:scale-95"
-                                  >
-                                    <FilePlus2 className="h-3.5 w-3.5" />
+                                <div className="flex flex-wrap justify-center gap-2 border-t border-border/40 pt-4">
+                                  <Button size="sm"
+                                    onClick={(e) => { e.stopPropagation(); setOrcFechado(false); setLeadOrcamento(lead) }}>
+                                    <FilePlus2 className="h-3.5 w-3.5" aria-hidden="true" />
                                     Criar orçamento com estes dados
-                                  </button>
+                                  </Button>
                                   {chatwootUrl(lead) && (
                                     <a
                                       href={chatwootUrl(lead)!}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       onClick={(e) => e.stopPropagation()}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                                      className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
                                     >
-                                      <ExternalLink className="h-3.5 w-3.5" />
+                                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                                       Ver conversa no Chatwoot
                                     </a>
                                   )}
+                                </div>
                                 </div>
                               </td>
                             </tr>
