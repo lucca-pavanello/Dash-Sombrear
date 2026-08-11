@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase'
 const OCULTAS = new Set(['id', 'created_at', 'updated_at', 'criado_em', 'atualizado_em'])
 
 /** Em precos_parametros, "valor" é markup/fator (1,4 · 1,8) — não é dinheiro */
-const NAO_E_DINHEIRO = new Set(['precos_parametros.valor'])
+const NAO_E_DINHEIRO = new Set(['precos_parametros.valor', 'precos_cortina_valores.valor'])
 
 /** Colunas que são dinheiro — viram número com formato de real */
 const ehDinheiro = (campo: string, tabela: string): boolean =>
@@ -57,7 +57,7 @@ const comCampos = (r: RegraVenda, campos: string[], nota?: string): RegraVenda =
   ({ ...r, campos, nota: nota ?? r.nota })
 
 /** Grupos do menu: "baixar todas as ferragens de uma vez" */
-export const GRUPOS = ['Tecidos', 'Ferragens', 'Acabamentos', 'PV / PH', 'Motor', 'Regras'] as const
+export const GRUPOS = ['Tecidos', 'Ferragens', 'Acabamentos', 'PV / PH', 'Motor', 'Cortinas', 'Regras'] as const
 export type Grupo = typeof GRUPOS[number]
 
 /** As tabelas na mesma ordem em que aparecem na tela */
@@ -104,6 +104,12 @@ export const TABELAS: {
   { tabela: 'precos_motor_componentes', titulo: 'Motor — componentes', aba: 'Motor componentes', ordem: ['item'], grupo: 'Motor',
     venda: comCampos(VENDA_PERSIANA, ['custo'],
       'Preço final = custo × markup de venda × taxa de parcelamento² (mesma regra da persiana)') },
+  { tabela: 'precos_cortina_tecidos', titulo: 'Cortina — tecidos e forros', aba: 'Cortina tecidos',
+    ordem: ['tipo', 'nome'], grupo: 'Cortinas',
+    avisoVenda: 'A cortina é cobrada direto por estes valores — não passa por markup como a persiana.' },
+  { tabela: 'precos_cortina_valores', titulo: 'Cortina — valores e regras', aba: 'Cortina regras',
+    ordem: ['chave'], grupo: 'Cortinas',
+    avisoVenda: 'Linha sem valor = a loja ainda não informou; a calculadora recusa o orçamento em vez de chutar.' },
   { tabela: 'precos_parametros', titulo: 'Parâmetros e markups', aba: 'Parametros', ordem: ['chave'], grupo: 'Regras' },
 ]
 
