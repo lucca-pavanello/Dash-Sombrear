@@ -18,6 +18,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import { useCountUp } from '@/hooks/useCountUp'
 import { supabase, type Orcamento } from '@/lib/supabase'
 import { Button, EmptyState } from '@/components/ui/primitives'
+import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 
@@ -88,8 +89,8 @@ export default function TabFechamento() {
   const [ate, setAte] = useState('')
   const [baixando, setBaixando] = useState(false)
   const [editando, setEditando] = useState<string | null>(null)
-  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string }>(
-    { cobrado: '', parceira: '', formaReal: '' })
+  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; origem: string }>(
+    { cobrado: '', parceira: '', formaReal: '', origem: '' })
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
   const [erroReconstruir, setErroReconstruir] = useState<Record<string, string>>({})
@@ -124,6 +125,7 @@ export default function TabFechamento() {
       cobrado: String((o.valor_cobrado != null ? Number(o.valor_cobrado) : receita(o)).toFixed(2)),
       parceira: String((o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)).toFixed(2)),
       formaReal: o.forma_pagamento_real ?? '',
+      origem: acharOrigem(o.origem).id === SEM_ORIGEM.id ? '' : acharOrigem(o.origem).id,
     })
   }
 
@@ -147,6 +149,7 @@ export default function TabFechamento() {
         valor_cobrado: numero(rascunho.cobrado),
         valor_parceiro_pago: numero(rascunho.parceira),
         forma_pagamento_real: rascunho.formaReal.trim() || null,
+        origem: rascunho.origem || null,
       }).eq('id', id)
       if (error) throw error
       setEditando(null)
@@ -331,7 +334,10 @@ export default function TabFechamento() {
                     <Fragment key={o.id}>
                     <tr className={cn('transition-colors hover:bg-primary/[0.03]', emEdicao && 'bg-primary/[0.04]')}>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">{formatDate(o.created_at)}</td>
-                      <td className="px-4 py-3 font-medium text-foreground">{o.cliente ?? '—'}</td>
+                      <td className="px-4 py-3 text-center font-medium text-foreground">
+                        <span className="block">{o.cliente ?? '—'}</span>
+                        {o.origem && <SeloOrigem origem={o.origem} className="mt-1" />}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         <span className="block text-foreground">{o.modelo ?? '—'}</span>
                         {o.tecido && <span className="text-xs">{o.tecido}</span>}
@@ -446,6 +452,17 @@ export default function TabFechamento() {
                                   <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                                     inputMode="decimal" value={rascunho.parceira}
                                     onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] text-muted-foreground">De onde veio este cliente</span>
+                                  <select
+                                    className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                    value={rascunho.origem}
+                                    onChange={e => setRascunho(r => ({ ...r, origem: e.target.value }))}
+                                  >
+                                    <option value="">Não informada</option>
+                                    {ORIGENS.map(o => <option key={o.id} value={o.id}>{o.rotulo}</option>)}
+                                  </select>
                                 </label>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">Como o cliente pagou de verdade</span>

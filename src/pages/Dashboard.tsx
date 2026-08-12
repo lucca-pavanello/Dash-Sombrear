@@ -37,6 +37,7 @@ const TabCalculoCusto = lazyComRecarga(() => import('@/components/tabs/TabCalcul
 const TabAnalises     = lazyComRecarga(() => import('@/components/tabs/TabAnalises'))
 const TabSimulador    = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 const TabFechamento   = lazyComRecarga(() => import('@/components/tabs/TabFechamento'))
+const TabRelatorios   = lazyComRecarga(() => import('@/components/tabs/TabRelatorios'))
 const TabKanban       = lazyComRecarga(() => import('@/components/tabs/TabKanban'))
 const TabEstoque      = lazyComRecarga(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazyComRecarga(() => import('@/components/admin/PainelAdmin'))
@@ -544,6 +545,7 @@ export default function Dashboard() {
     { id: 'analises',           label: 'Análises',  icon: BarChart2     },
     { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
     { id: 'kanban',             label: 'Funil',     icon: Kanban        },
+    { id: 'relatorios',         label: 'Relatórios', icon: BarChart2    },
   ], [])
 
   const isEstoqueArea = isEstoquePath
@@ -1114,6 +1116,13 @@ export default function Dashboard() {
             <Suspense fallback={<SkeletonKPITable />}>
               <div className={activeTab === 'kanban' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabKanban data={focusedOrcamentos} onOpenCard={setKanbanEditOrc} />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('relatorios') && (
+            <Suspense fallback={<SkeletonKPITable />}>
+              <div className={activeTab === 'relatorios' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
+                <TabRelatorios />
               </div>
             </Suspense>
           )}

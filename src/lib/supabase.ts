@@ -21,6 +21,8 @@ export type Orcamento = {
   custo_acabamento?: number | null
   valor_parceiro?: number | null
   valor_cobrado?: number | null
+  /** canal que trouxe o cliente — herdado do lead ou marcado na mão no Fechamento */
+  origem?: string | null
   forma_pagamento?: string | null
   /** como pagou de verdade, em texto livre — a de cima é a condição que definiu o preço */
   forma_pagamento_real?: string | null
