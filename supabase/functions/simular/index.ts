@@ -132,6 +132,9 @@ Deno.serve(async (req) => {
       altura: num(e.altura),
       quantidade: Math.max(1, Math.round(num(e.quantidade) || 1)),
       acabamento: ACABAMENTOS.has(String(e.acabamento)) ? String(e.acabamento) : 'nenhum',
+      // bandô de peça única numa porta dividida: medida e quantidade próprias
+      bandoLargura: num(e.bandoLargura) > 0 ? num(e.bandoLargura) : undefined,
+      bandoQuantidade: num(e.bandoQuantidade) > 0 ? Math.round(num(e.bandoQuantidade)) : undefined,
       incluirInstalacao: e.incluirInstalacao === true,
     }
     if (!MODELOS.has(entrada.modelo)) return resposta(400, { error: 'Modelo inválido' })

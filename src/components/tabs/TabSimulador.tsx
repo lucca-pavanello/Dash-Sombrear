@@ -79,6 +79,9 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [altura, setAltura] = useState('')
   const [quantidade, setQuantidade] = useState('1')
   const [acabamento, setAcabamento] = useState('nenhum')
+  // porta dividida em peças leva um bandô só: medida e quantidade próprias
+  const [bandoLargura, setBandoLargura] = useState('')
+  const [bandoQtd, setBandoQtd] = useState('')
   const [instalacao, setInstalacao] = useState(false)
   const [cliente, setCliente] = useState('')
   const [telefone, setTelefone] = useState('')
@@ -124,8 +127,11 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     altura: num(altura),
     quantidade: Math.max(1, Math.round(num(quantidade))),
     acabamento,
+    bandoLargura: num(bandoLargura) || undefined,
+    bandoQuantidade: Math.round(num(bandoQtd)) || undefined,
     incluirInstalacao: instalacao,
-  }), [modelo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade, acabamento, instalacao])
+  }), [modelo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
+    acabamento, bandoLargura, bandoQtd, instalacao])
 
   const pronto = entrada.largura > 0 && entrada.altura > 0 &&
     (comTecido ? !!entrada.tecido : !!entrada.artigo)
@@ -134,6 +140,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   useEffect(() => {
     setSalvoAtual(false)
     setValorCobrado('')
+    setBandoLargura(''); setBandoQtd('')
     setFormaPagamento('cartao_4x')
     setFormaReal('')
     if (!pronto) { setResultado(null); return }
@@ -300,6 +307,30 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                           ...(modelo === 'Rolo' ? [{ value: 'kit_box', label: 'Kit Box' }] : []),
                         ]} />
                     </div>
+
+                    {/* Porta larga dividida em peças costuma levar UM bandô cobrindo tudo.
+                        Vazio = o bandô acompanha a persiana, como sempre foi. */}
+                    {(acabamento === 'bando_branco' || acabamento === 'bando_preto') && (
+                      <div className="sm:col-span-2 rounded-lg border border-dashed p-3">
+                        <p className="mb-2 text-xs text-foreground/60">
+                          O bandô é uma peça só, diferente da persiana? (ex.: porta de 5,20m em 3 rolôs)
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={labelCls}>Largura do bandô (m)</label>
+                            <input className={inputCls} inputMode="decimal" value={bandoLargura}
+                              onChange={e => setBandoLargura(e.target.value)}
+                              placeholder={largura ? `${largura} (a da persiana)` : 'igual à persiana'} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Quantos bandôs</label>
+                            <input className={inputCls} inputMode="numeric" value={bandoQtd}
+                              onChange={e => setBandoQtd(e.target.value)}
+                              placeholder={quantidade ? `${quantidade} (uma por peça)` : 'igual à quantidade'} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 

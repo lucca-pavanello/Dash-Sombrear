@@ -30,6 +30,10 @@ export interface EntradaSim {
   altura: number
   quantidade: number
   acabamento: AcabamentoSim
+  /** largura do bandô quando ele NÃO acompanha a persiana (porta dividida em peças) */
+  bandoLargura?: number
+  /** quantos bandôs — normalmente 1 quando a medida própria é informada */
+  bandoQuantidade?: number
   incluirInstalacao: boolean
 }
 
@@ -121,14 +125,16 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
 
   /* ── custo do bandô (fórmula: L×base + qtd_cd×(cd1+cd2) + par, degrau ≥ L) ── */
   let larguraBando = 0
-  const custoBando = (cor: 'BRANCO' | 'PRETO'): number | null => {
+  const custoBando = (cor: 'BRANCO' | 'PRETO', larguraAlvo: number): number | null => {
     const p = d.bandoParams.find(x => x.cor === cor)
     if (!p) return null
     const degraus = d.bandos.filter(b => b.cor === cor).sort((a, b) => a.largura - b.largura)
-    const degrau = degraus.find(b => Number(b.largura) >= L - 1e-9) ?? degraus[degraus.length - 1]
+    const degrau = degraus.find(b => Number(b.largura) >= larguraAlvo - 1e-9) ?? degraus[degraus.length - 1]
     if (!degrau) return null
     larguraBando = Number(degrau.largura)
-    if (Number(degrau.largura) < L) obs.push(`Bandô: largura acima da tabela (usei ${degrau.largura}m)`)
+    if (Number(degrau.largura) < larguraAlvo) {
+      obs.push(`Bandô: largura acima da tabela (usei ${degrau.largura}m)`)
+    }
     return Number(degrau.largura) * Number(p.preco_metro)
       + Number(degrau.qtd_cd) * (Number(p.cd1) + Number(p.cd2)) + Number(p.par)
   }
@@ -214,12 +220,22 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
 
     // acabamento
     if (e.acabamento === 'bando_branco' || e.acabamento === 'bando_preto') {
-      const cb = custoBando(e.acabamento === 'bando_branco' ? 'BRANCO' : 'PRETO')
+      // porta dividida em peças costuma levar UM bandô cobrindo tudo
+      const larguraProp = Number(e.bandoLargura)
+      const bandoL = Number.isFinite(larguraProp) && larguraProp > 0 ? larguraProp : L
+      const qtdProp = Math.round(Number(e.bandoQuantidade))
+      const bandoQtd = Number.isFinite(qtdProp) && qtdProp > 0 ? qtdProp : qtd
+
+      const cb = custoBando(e.acabamento === 'bando_branco' ? 'BRANCO' : 'PRETO', bandoL)
       if (cb == null) return { erro: 'Bandô sem parâmetros no banco' }
-      custoAcabamento = cb * qtd
+      custoAcabamento = cb * bandoQtd
+      if (bandoL !== L || bandoQtd !== qtd) {
+        obs.push(`Bandô medido à parte: ${fmtM(bandoL)}${bandoQtd > 1 ? ` × ${bandoQtd}` : ' (peça única)'}, `
+          + `em vez de acompanhar a persiana (${fmtM(L)} × ${qtd}).`)
+      }
       somaReal(custoAcabamento, `parceiro_bando_${e.acabamento === 'bando_branco' ? 'branco' : 'preto'}`, 'acabamento',
         `Bandô ${e.acabamento === 'bando_branco' ? 'branco' : 'preto'}${larguraBando ? ` — ${fmtM(larguraBando)}` : ''}`
-        + (qtd > 1 ? ` × ${qtd}` : ''))
+        + (bandoQtd > 1 ? ` × ${bandoQtd}` : ''))
     } else if (e.acabamento === 'barra') {
       custoAcabamento = custoBarra() * qtd
       somaReal(custoAcabamento, 'parceiro_barra', 'acabamento', `Barra niveladora — ${fmtM(L)}` + (qtd > 1 ? ` × ${qtd}` : ''))
