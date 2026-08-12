@@ -73,6 +73,9 @@ interface Persiana {
   tecido: string
   cor_ferragem: string
   acabamento: string
+  /** porta dividida em peças com UM bandô: medida e quantidade próprias */
+  bando_largura: string
+  bando_qtd: string
   economico_tipo: string
   medidas: Medida[]
 }
@@ -96,7 +99,7 @@ function newMedida(nextIdRef: React.MutableRefObject<number>): Medida {
 }
 
 function newPersiana(nextIdRef: React.MutableRefObject<number>): Persiana {
-  return { id: nextIdRef.current++, modelo: '', tecido: '', cor_ferragem: 'Sem', acabamento: 'Sem', economico_tipo: 'Qualquer', medidas: [newMedida(nextIdRef)] }
+  return { id: nextIdRef.current++, modelo: '', tecido: '', cor_ferragem: 'Sem', acabamento: 'Sem', bando_largura: '', bando_qtd: '', economico_tipo: 'Qualquer', medidas: [newMedida(nextIdRef)] }
 }
 
 function copyPersiana(p: Persiana, nextIdRef: React.MutableRefObject<number>): Persiana {
@@ -426,6 +429,9 @@ export default function TabCotacao() {
             quantidade: parseInt(m.quantidade) || 1,
             cor_ferragem: p.cor_ferragem.trim(),
             acabamento: p.acabamento.trim(),
+            // vazio = um bandô por peça, como sempre
+            bando_largura: parseFloat(p.bando_largura.replace(',', '.')) || null,
+            bando_quantidade: parseInt(p.bando_qtd) || null,
             persiana_grupo: `a${aIdx}p${pIdx}`,
             economico_tipo: p.tecido === MAIS_BARATO && p.economico_tipo !== 'Qualquer'
               ? p.economico_tipo
@@ -849,6 +855,39 @@ export default function TabCotacao() {
                                         />
                                       </div>
                                     </div>
+
+                                    {/* Vão largo dividido em peças costuma levar UM bandô cobrindo tudo.
+                                        Vazio = um bandô por peça, como sempre foi. */}
+                                    {p.acabamento.startsWith('Bando') && (
+                                      <div className="mt-3 rounded-lg border border-dashed p-3">
+                                        <p className="mb-2 text-xs text-foreground/60">
+                                          O bandô é uma peça só, diferente das persianas?
+                                          (ex.: porta de 5,20m dividida em 3 rolôs)
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div>
+                                            <label className={labelCls}>Largura do bandô (m)</label>
+                                            <input
+                                              className={inputCls}
+                                              inputMode="decimal"
+                                              value={p.bando_largura}
+                                              onChange={e => setPersianaField(a.id, p.id, 'bando_largura', e.target.value)}
+                                              placeholder="igual às persianas"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className={labelCls}>Quantos bandôs</label>
+                                            <input
+                                              className={inputCls}
+                                              inputMode="numeric"
+                                              value={p.bando_qtd}
+                                              onChange={e => setPersianaField(a.id, p.id, 'bando_qtd', e.target.value)}
+                                              placeholder="um por peça"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                   </FieldGroup>
 
                                   {/* Grupo: Medidas */}
@@ -1107,6 +1146,10 @@ export default function TabCotacao() {
                                 {pArea > 0 && <MiniRow k="Área total" v={`${pArea.toFixed(2)} m²`} />}
                                 {p.cor_ferragem !== 'Sem' && <MiniRow k="Ferragem" v={p.cor_ferragem} />}
                                 {p.acabamento !== 'Sem' && <MiniRow k="Acabamento" v={p.acabamento} />}
+                                {p.acabamento.startsWith('Bando') && (p.bando_largura || p.bando_qtd) && (
+                                  <MiniRow k="Bandô à parte"
+                                    v={`${p.bando_largura || '—'}m${p.bando_qtd ? ` × ${p.bando_qtd}` : ''}`} />
+                                )}
                               </div>
                             </div>
                           )
