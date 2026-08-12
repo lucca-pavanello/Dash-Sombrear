@@ -257,7 +257,7 @@ function FiltroOrigem({ id, rotulo, total, ativo, onClick }: {
 /** Rótulo de bloco do painel do lead — um estilo só pra todos */
 function RotuloPainel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-foreground/45">
+    <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-widest text-foreground/45">
       {children}
     </p>
   )
@@ -271,7 +271,7 @@ function CampoLead({ rotulo, valor, destaque }: {
 }) {
   if (valor == null || valor === '') return null
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 text-center">
       <dt className="mb-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">{rotulo}</dt>
       <dd className={cn('truncate text-sm', destaque ? 'font-bold tabular-nums text-primary' : 'font-medium')}
         title={String(valor)}>
@@ -825,7 +825,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                   <div className="rounded-xl border bg-card p-4">
                                     <RotuloPainel>Resumo da conversa</RotuloPainel>
                                     {/* prosa longa fica presa em ~70ch: a tabela é larga demais pra ler corrido */}
-                                    <p className="max-w-[68ch] text-pretty text-sm leading-relaxed text-foreground/75">
+                                    <p className="mx-auto max-w-[68ch] text-pretty text-center text-sm leading-relaxed text-foreground/75">
                                       {lead.resumo_conversa}
                                     </p>
                                   </div>
@@ -833,7 +833,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
                                 {/* auto-fit: os campos preenchem a linha em vez de deixar buraco */}
                                 <dl className="grid gap-x-6 gap-y-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
-                                  <div className="min-w-0">
+                                  <div className="min-w-0 text-center">
                                     <dt className="mb-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
                                       Origem
                                     </dt>
@@ -870,7 +870,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                   return (
                                     <div className="border-t border-border/40 pt-4">
                                       <RotuloPainel>Orçamentos da IA deste lead ({orcs.length})</RotuloPainel>
-                                      <div className="flex flex-wrap gap-2">
+                                      <div className="flex flex-wrap justify-center gap-2">
                                         {orcs.map(o => {
                                           const total = (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0)
                                           return (
