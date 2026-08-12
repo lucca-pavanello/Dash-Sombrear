@@ -204,9 +204,9 @@ export default function TabFechamento() {
           [o.modelo, o.tecido].filter(Boolean).join(' · '),
           o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—',
           o.forma_pagamento ? (ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento) : '—',
-          ajustado(receita(o), pago(o)) ? `${formatCurrency(receita(o))} → ${formatCurrency(pago(o))}` : formatCurrency(pago(o)),
+          ajustado(receita(o), pago(o)) ? `${formatCurrency(receita(o))} (pago ${formatCurrency(pago(o))})` : formatCurrency(pago(o)),
           ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
-            ? `${formatCurrency(Number(o.valor_parceiro ?? 0))} → ${formatCurrency(pagoParceira(o))}`
+            ? `${formatCurrency(Number(o.valor_parceiro ?? 0))} (pago ${formatCurrency(pagoParceira(o))})`
             : formatCurrency(pagoParceira(o)),
           formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
         ]),
