@@ -88,7 +88,8 @@ export default function TabFechamento() {
   const [ate, setAte] = useState('')
   const [baixando, setBaixando] = useState(false)
   const [editando, setEditando] = useState<string | null>(null)
-  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string }>({ cobrado: '', parceira: '' })
+  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string }>(
+    { cobrado: '', parceira: '', formaReal: '' })
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
   const [erroReconstruir, setErroReconstruir] = useState<Record<string, string>>({})
@@ -122,6 +123,7 @@ export default function TabFechamento() {
     setRascunho({
       cobrado: String((o.valor_cobrado != null ? Number(o.valor_cobrado) : receita(o)).toFixed(2)),
       parceira: String((o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)).toFixed(2)),
+      formaReal: o.forma_pagamento_real ?? '',
     })
   }
 
@@ -144,6 +146,7 @@ export default function TabFechamento() {
       const { error } = await supabase.from('orcamentos').update({
         valor_cobrado: numero(rascunho.cobrado),
         valor_parceiro_pago: numero(rascunho.parceira),
+        forma_pagamento_real: rascunho.formaReal.trim() || null,
       }).eq('id', id)
       if (error) throw error
       setEditando(null)
@@ -203,7 +206,8 @@ export default function TabFechamento() {
           o.cliente ?? '—',
           [o.modelo, o.tecido].filter(Boolean).join(' · '),
           o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—',
-          o.forma_pagamento ? (ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento) : '—',
+          o.forma_pagamento_real
+            || (o.forma_pagamento ? (ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento) : '—'),
           ajustado(receita(o), pago(o)) ? `${formatCurrency(receita(o))} (pago ${formatCurrency(pago(o))})` : formatCurrency(pago(o)),
           ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
             ? `${formatCurrency(Number(o.valor_parceiro ?? 0))} (pago ${formatCurrency(pagoParceira(o))})`
@@ -338,9 +342,11 @@ export default function TabFechamento() {
                       </td>
                       <td className="px-4 py-3 text-center font-semibold tabular-nums text-foreground">
                         <ValorComReal calc={bruto} real={pago(o)} />
-                        {o.forma_pagamento && (
+                        {(o.forma_pagamento_real || o.forma_pagamento) && (
                           <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
-                            {ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento}
+                            {o.forma_pagamento_real
+                              ? o.forma_pagamento_real
+                              : (ROTULO_PAGAMENTO[o.forma_pagamento!] ?? o.forma_pagamento)}
                           </span>
                         )}
                       </td>
@@ -440,6 +446,14 @@ export default function TabFechamento() {
                                   <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
                                     inputMode="decimal" value={rascunho.parceira}
                                     onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] text-muted-foreground">Como o cliente pagou de verdade</span>
+                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                    placeholder={o.forma_pagamento ? (ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento) : 'ex.: 5x no link'}
+                                    maxLength={120}
+                                    value={rascunho.formaReal}
+                                    onChange={e => setRascunho(r => ({ ...r, formaReal: e.target.value }))} />
                                 </label>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">Sobra da loja (ajusta o valor do cliente)</span>

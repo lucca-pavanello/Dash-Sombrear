@@ -94,6 +94,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [valorCobrado, setValorCobrado] = useState('')
   // à vista tem 5% de desconto; no cartão vale o valor em 4x
   const [formaPagamento, setFormaPagamento] = useState('cartao_4x')
+  // o que a loja combinou define o preço; isto aqui é como o cliente pagou
+  const [formaReal, setFormaReal] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chamadaRef = useRef(0)
 
@@ -133,6 +135,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setSalvoAtual(false)
     setValorCobrado('')
     setFormaPagamento('cartao_4x')
+    setFormaReal('')
     if (!pronto) { setResultado(null); return }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const id = ++chamadaRef.current
@@ -160,7 +163,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     try {
       const { data, error } = await supabase.functions.invoke('simular', {
         body: { acao: 'salvar', entrada, cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda,
-          valor_cobrado: num(valorCobrado) || null, forma_pagamento: formaPagamento },
+          valor_cobrado: num(valorCobrado) || null, forma_pagamento: formaPagamento,
+          forma_pagamento_real: formaReal.trim() || null },
       })
       if (error) throw error
       if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
@@ -189,7 +193,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setCorFerragem('BRANCA'); setLargura(''); setAltura(''); setQuantidade('1')
     setAcabamento('nenhum'); setInstalacao(false)
     setCliente(''); setTelefone(''); setAmbiente('')
-    setResultado(null); setSalvoAtual(false); setSalvos([]); setValorCobrado(''); setFormaPagamento('cartao_4x')
+    setResultado(null); setSalvoAtual(false); setSalvos([]); setValorCobrado(''); setFormaPagamento('cartao_4x'); setFormaReal('')
   }
 
   const ok = resultado && !resultado.erro ? resultado : null
@@ -498,6 +502,14 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                       </button>
                     ))}
                   </div>
+                  <label className={labelCls}>Pagou de outro jeito? (opcional)</label>
+                  <input
+                    className={cn(inputCls, 'mb-3')}
+                    placeholder="ex.: 5x no link, PIX + cartão"
+                    maxLength={120}
+                    value={formaReal}
+                    onChange={e => setFormaReal(e.target.value)}
+                  />
                   <label className={labelCls}>Valor cobrado do cliente</label>
                   <input
                     className={inputCls}

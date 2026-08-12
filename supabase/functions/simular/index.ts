@@ -250,6 +250,9 @@ Deno.serve(async (req) => {
         valor_parceiro: r.valorParceiro ?? 0,
         valor_cobrado: valorCobrado,
         forma_pagamento: formaPagamento,
+        forma_pagamento_real: typeof body.forma_pagamento_real === 'string' && body.forma_pagamento_real.trim()
+          ? String(body.forma_pagamento_real).trim().slice(0, 120)
+          : null,
         custos_detalhe: r.detalhe ?? null,
         margem,
         // 'FEITO' NÃO existe no check da tabela — venda vira 'fechado', consulta vira 'CALCULADO'

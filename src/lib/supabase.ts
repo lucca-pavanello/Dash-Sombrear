@@ -22,6 +22,8 @@ export type Orcamento = {
   valor_parceiro?: number | null
   valor_cobrado?: number | null
   forma_pagamento?: string | null
+  /** como pagou de verdade, em texto livre — a de cima é a condição que definiu o preço */
+  forma_pagamento_real?: string | null
   valor_parceiro_pago?: number | null
   custos_detalhe?: { parte: string; tabela: number; fator: number; real: number }[] | null
   custo_m2?: number | null
