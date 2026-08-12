@@ -8,7 +8,7 @@
 import { Fragment, Suspense, useMemo, useState } from 'react'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import {
-  Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Wallet, Wand2, X,
+  Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Trash2, Wallet, Wand2, X,
 } from 'lucide-react'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -93,6 +93,9 @@ export default function TabFechamento() {
     { cobrado: '', parceira: '', formaReal: '', origem: '' })
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
+  // exclusão em dois toques: o primeiro clique arma, o segundo confirma
+  const [confirmandoExcluir, setConfirmandoExcluir] = useState<string | null>(null)
+  const [excluindo, setExcluindo] = useState<string | null>(null)
   const [erroReconstruir, setErroReconstruir] = useState<Record<string, string>>({})
 
   /**
@@ -136,6 +139,36 @@ export default function TabFechamento() {
     const parceira = parseFloat(rascunho.parceira.replace(',', '.')) || 0
     if (!Number.isFinite(sobraNova)) return
     setRascunho(r => ({ ...r, cobrado: (parceira + sobraNova).toFixed(2) }))
+  }
+
+  /**
+   * Apaga a venda — guardando a linha inteira na lixeira antes.
+   * Vale pra registro feito errado; o dado continua recuperável.
+   */
+  async function excluirVenda(o: Orcamento) {
+    setExcluindo(o.id)
+    try {
+      const { data: perfil } = await supabase.auth.getUser()
+      const { error: erroLixeira } = await supabase.from('orcamentos_excluidos').insert({
+        orcamento_id: o.id,
+        excluido_por: perfil?.user?.email ?? null,
+        motivo: 'excluída pelo Fechamento',
+        dados: o,
+      })
+      if (erroLixeira) throw erroLixeira
+
+      const { error } = await supabase.from('orcamentos').delete().eq('id', o.id)
+      if (error) throw error
+
+      setConfirmandoExcluir(null)
+      setEditando(null)
+      await refetch()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Não deu para excluir'
+      setErroReconstruir(e => ({ ...e, [o.id]: msg }))
+    } finally {
+      setExcluindo(null)
+    }
   }
 
   async function salvarAjuste(id: string) {
@@ -378,14 +411,53 @@ export default function TabFechamento() {
                         })()}
                       </td>
                       <td className="px-2 py-3 text-center">
-                        <button type="button" onClick={() => abrirAjuste(o)}
-                          title="Ver o custo item a item e ajustar valores"
-                          className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
-                            emEdicao ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
-                          <PencilLine className="h-3.5 w-3.5" />
-                        </button>
+                        <span className="flex items-center justify-center gap-1">
+                          <button type="button" onClick={() => abrirAjuste(o)}
+                            title="Ver o custo item a item e ajustar valores"
+                            className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
+                              emEdicao ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
+                            <PencilLine className="h-3.5 w-3.5" />
+                          </button>
+                          {confirmandoExcluir === o.id ? (
+                            <span className="flex items-center gap-1">
+                              <button type="button" onClick={() => excluirVenda(o)} disabled={excluindo === o.id}
+                                title="Confirmar exclusão"
+                                className="rounded-md bg-destructive px-2 py-1 text-[10px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
+                                {excluindo === o.id
+                                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                                  : 'Excluir'}
+                              </button>
+                              <button type="button" onClick={() => setConfirmandoExcluir(null)} title="Cancelar"
+                                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ) : (
+                            <button type="button" onClick={() => setConfirmandoExcluir(o.id)}
+                              title="Excluir esta venda"
+                              className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </span>
                       </td>
                     </tr>
+                    {confirmandoExcluir === o.id && (
+                      <tr>
+                        <td colSpan={8} className="bg-destructive/[0.04] px-4 py-2 text-center">
+                          <p className="text-xs text-foreground/75">
+                            Apagar a venda de <b>{o.cliente ?? 'sem nome'}</b> de {formatCurrency(pago(o))}?
+                            Ela sai do fechamento e dos totais.{' '}
+                            <span className="text-muted-foreground">
+                              Guardamos uma cópia — se for engano, dá pra recuperar.
+                            </span>
+                          </p>
+                          {erroReconstruir[o.id] && (
+                            <p className="mt-1 text-xs font-medium text-destructive">{erroReconstruir[o.id]}</p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
                     {emEdicao && (
                       <tr>
                         <td colSpan={8} className="bg-muted/20 px-4 py-4">
