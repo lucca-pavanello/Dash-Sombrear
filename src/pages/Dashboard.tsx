@@ -2,8 +2,8 @@ import { useEffect, useState, useRef, Suspense, useMemo } from 'react'
 import { flushSync } from 'react-dom'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, Kanban, AlertTriangle, CircleDollarSign } from 'lucide-react'
-import { supabase, type Orcamento } from '@/lib/supabase'
+import { FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, AlertTriangle, CircleDollarSign } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useAgenteIARealtime } from '@/hooks/useAgenteIA'
@@ -38,14 +38,12 @@ const TabAnalises     = lazyComRecarga(() => import('@/components/tabs/TabAnalis
 const TabSimulador    = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 const TabFechamento   = lazyComRecarga(() => import('@/components/tabs/TabFechamento'))
 const TabRelatorios   = lazyComRecarga(() => import('@/components/tabs/TabRelatorios'))
-const TabKanban       = lazyComRecarga(() => import('@/components/tabs/TabKanban'))
 const TabEstoque      = lazyComRecarga(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazyComRecarga(() => import('@/components/admin/PainelAdmin'))
 const PermissoesView  = lazyComRecarga(() => import('@/components/admin/PermissoesView'))
 const TabPrecos       = lazyComRecarga(() => import('@/components/admin/TabPrecos'))
-const EditOrcamentoForm = lazyComRecarga(() => import('@/components/orcamentos/EditOrcamentoForm'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'kanban', 'precos', 'simulador', 'fechamento']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'relatorios', 'precos', 'simulador', 'fechamento']
 const DEFAULT_TAB = 'calcular-orcamento'
 function AskIATabBtn({ onMouseDown, onClick, active }: {
   onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void
@@ -84,7 +82,7 @@ const SECTION_LABELS: Record<string, string> = {
   'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
   'analises': 'Orçamentos',
-  'kanban': 'Orçamentos',
+  'relatorios': 'Orçamentos',
   'estoque': 'Estoque',
   'admin': 'Admin',
   'precos': 'Tabela de Preços',
@@ -111,7 +109,6 @@ export default function Dashboard() {
   )
   const [focusOpen, setFocusOpen] = useState(false)
   const [tabUpdatePulse, setTabUpdatePulse] = useState<Set<string>>(new Set())
-  const [kanbanEditOrc, setKanbanEditOrc] = useState<Orcamento | null>(null)
   // Ícone que viaja: a Home marca qual área recebeu o clique; o ícone de destino "recebe" o voo
   const [vtIcone, setVtIcone] = useState<string | null>(() => {
     try {
@@ -191,7 +188,7 @@ export default function Dashboard() {
     : isAdminPath ? 'admin'
     : isOrcamentoPath ? (orcamentoSub ?? DEFAULT_TAB)
     : (rawPath || DEFAULT_TAB)
-  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'kanban']
+  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'relatorios']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
@@ -406,7 +403,6 @@ export default function Dashboard() {
         import('@/components/tabs/TabCotacao')
         import('@/components/tabs/TabAnalises')
         import('@/components/tabs/TabCalculoCusto')
-        import('@/components/tabs/TabKanban')
       }
       if (canAgenteIA) import('@/components/tabs/TabAgenteIA')
       if (isAdmin) import('@/components/admin/PainelAdmin')
@@ -544,7 +540,6 @@ export default function Dashboard() {
     { id: 'calculo-custo',      label: 'Custos',    icon: ClipboardList },
     { id: 'analises',           label: 'Análises',  icon: BarChart2     },
     { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
-    { id: 'kanban',             label: 'Funil',     icon: Kanban        },
     { id: 'relatorios',         label: 'Relatórios', icon: BarChart2    },
   ], [])
 
@@ -1112,13 +1107,6 @@ export default function Dashboard() {
               </div>
             </Suspense>
           )}
-          {mountedTabs.has('kanban') && (
-            <Suspense fallback={<SkeletonKPITable />}>
-              <div className={activeTab === 'kanban' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                <TabKanban data={focusedOrcamentos} onOpenCard={setKanbanEditOrc} />
-              </div>
-            </Suspense>
-          )}
           {mountedTabs.has('relatorios') && (
             <Suspense fallback={<SkeletonKPITable />}>
               <div className={activeTab === 'relatorios' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
@@ -1166,16 +1154,6 @@ export default function Dashboard() {
           )}
         </div>
       </main>
-
-      {kanbanEditOrc && (
-        <Suspense fallback={null}>
-          <EditOrcamentoForm
-            orcamento={kanbanEditOrc}
-            onClose={() => setKanbanEditOrc(null)}
-            toast={toast}
-          />
-        </Suspense>
-      )}
 
       {profileModalOpen && profile && (
         <EditProfileModal
