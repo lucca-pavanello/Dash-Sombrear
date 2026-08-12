@@ -26,7 +26,9 @@ export const SEM_ORIGEM = {
 /** Normaliza o que veio do banco: aceita 'Google', 'google_ads', 'GOOGLE ' … */
 export function acharOrigem(valor: string | null | undefined) {
   const chave = (valor ?? '').toLowerCase().trim()
-  if (!chave) return SEM_ORIGEM
+  // o próprio id da ausência também precisa voltar como ausência: o relatório
+  // agrupa por id e reenvia 'sem_origem' pra cá
+  if (!chave || chave === SEM_ORIGEM.id) return SEM_ORIGEM
   return ORIGENS.find(o => chave === o.id || chave.startsWith(o.id)) ?? {
     id: chave, rotulo: valor as string, icone: HelpCircle,
     cor: 'border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300',

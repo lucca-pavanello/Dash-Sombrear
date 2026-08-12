@@ -67,16 +67,16 @@ function Kpi({ rotulo, valor, hint, destaque, contar }: {
       destaque === 'emerald' ? 'border-emerald-500/25 bg-emerald-500/[0.04]' :
       destaque === 'amber' ? 'border-amber-500/25 bg-amber-500/[0.04]' : 'border-border',
     )}>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">{rotulo}</p>
+      <p className="text-center text-[10px] font-bold uppercase tracking-widest text-foreground/45">{rotulo}</p>
       <p className={cn(
-        'font-display text-2xl font-bold tabular-nums',
+        'text-center font-display text-2xl font-bold tabular-nums',
         destaque === 'primary' ? 'text-primary' :
         destaque === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' :
         destaque === 'amber' ? 'text-amber-600 dark:text-amber-400' : 'text-foreground',
       )}>
         {formatCurrency(anim)}
       </p>
-      {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="mt-0.5 text-center text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   )
 }
@@ -282,7 +282,7 @@ export default function TabFechamento() {
       </div>
 
       {/* Filtros + ações */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
         <CustomSelect className="w-44 py-2" value={periodo} onChange={setPeriodo} options={PERIODOS} />
         {periodo === 'custom' && (
           <>
@@ -290,7 +290,6 @@ export default function TabFechamento() {
             <DatePicker value={ate} onChange={setAte} placeholder="Até" min={de || undefined} triggerClassName="py-2" className="w-40" />
           </>
         )}
-        <div className="flex-1" />
         <Button variant="brand" onClick={() => setCalculando(v => !v)}>
           <Plus className={cn('h-4 w-4 transition-transform duration-200', calculando && 'rotate-45')}
             aria-hidden="true" />
