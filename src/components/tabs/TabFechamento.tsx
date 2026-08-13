@@ -45,6 +45,27 @@ const ROTULO_PAGAMENTO: Record<string, string> = {
   a_vista: 'à vista (−5%)', cartao_4x: 'cartão 4x', outro: 'outro',
 }
 
+/** acha o "6x" dentro do texto real ("6x de R$ 350" ou "cartão 6x") */
+const parcelasDe = (s: string | null | undefined) => s?.match(/(\d+)\s*x/i)?.[1] ?? null
+
+/**
+ * Pgto em forma curta, pro PDF: "4x" · "à vista" · "4x / 6x" (calculado / pago).
+ * Só números, como a loja pediu — e sem o "−" que a fonte do PDF não tem.
+ */
+const pgtoCurto = (o: Orcamento): string => {
+  const real = parcelasDe(o.forma_pagamento_real)
+  const base = o.forma_pagamento === 'a_vista' ? 'à vista'
+    : o.forma_pagamento === 'cartao_4x' || o.forma_pagamento === 'outro' ? '4x'   // o preço nasce pra 4x
+    : null
+  if (real && base) return `${real}x` === base ? base : `${base} / ${real}x`
+  if (real) return `${real}x`
+  if (o.forma_pagamento === 'outro') {
+    // texto livre sem parcelas (ex.: "PIX") ainda aparece; sem nada, traço
+    return o.forma_pagamento_real ? o.forma_pagamento_real.slice(0, 18) : '—'
+  }
+  return base ?? '—'
+}
+
 /** "R$ 792,50 (R$ 750,00)" — calculado com o realmente pago entre parênteses */
 function ValorComReal({ calc, real, classe }: { calc: number; real: number; classe?: string }) {
   if (!ajustado(calc, real)) return <span className={classe}>{formatCurrency(calc)}</span>
@@ -242,8 +263,7 @@ export default function TabFechamento() {
           o.cliente ?? '—',
           [o.modelo, o.tecido].filter(Boolean).join(' · '),
           o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—',
-          o.forma_pagamento_real
-            || (o.forma_pagamento ? (ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento) : '—'),
+          pgtoCurto(o),
           ajustado(receita(o), pago(o)) ? `${formatCurrency(receita(o))} (pago ${formatCurrency(pago(o))})` : formatCurrency(pago(o)),
           ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
             ? `${formatCurrency(Number(o.valor_parceiro ?? 0))} (pago ${formatCurrency(pagoParceira(o))})`
@@ -381,10 +401,9 @@ export default function TabFechamento() {
                       <td className="px-4 py-3 text-center font-semibold tabular-nums text-foreground">
                         <ValorComReal calc={bruto} real={pago(o)} />
                         {(o.forma_pagamento_real || o.forma_pagamento) && (
-                          <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground">
-                            {o.forma_pagamento_real
-                              ? o.forma_pagamento_real
-                              : (ROTULO_PAGAMENTO[o.forma_pagamento!] ?? o.forma_pagamento)}
+                          <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground"
+                            title={o.forma_pagamento_real ?? undefined}>
+                            {pgtoCurto(o)}
                           </span>
                         )}
                       </td>
