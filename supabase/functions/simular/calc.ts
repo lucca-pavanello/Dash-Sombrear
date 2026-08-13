@@ -16,7 +16,7 @@ type PrecoMotorEstrutura = any
 type PrecoParametro = any
 type PrecoPh50 = any
 type PrecoRomanaMatriz = any
-type PrecoTecidoVigente = any'
+type PrecoTecidoVigente = any
 
 export type ModeloSim = 'Rolo' | 'Double' | 'Romana' | 'PV' | 'PH_Aluminio' | 'PH_50' | 'Rolo Motorizado'
 export type AcabamentoSim = 'nenhum' | 'bando_branco' | 'bando_preto' | 'barra' | 'kit_box'
