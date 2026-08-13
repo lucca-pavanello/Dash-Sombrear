@@ -56,8 +56,8 @@ export default function PermissoesView({ toast }: Props) {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/40">
               <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Usuário</th>

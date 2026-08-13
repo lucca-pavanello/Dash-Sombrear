@@ -509,7 +509,8 @@ export default function TabFechamento() {
                                 Custo item a item
                               </p>
                               {o.custos_detalhe?.length ? (
-                                <table className="w-full text-xs">
+                                <div className="overflow-x-auto">
+                                <table className="w-full min-w-[420px] text-xs">
                                   <thead>
                                     <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
                                       <th className="pb-1 text-center font-bold">Parte</th>
@@ -529,6 +530,7 @@ export default function TabFechamento() {
                                     ))}
                                   </tbody>
                                 </table>
+                                </div>
                               ) : (
                                 <div className="space-y-2">
                                   <p className="text-xs text-muted-foreground">

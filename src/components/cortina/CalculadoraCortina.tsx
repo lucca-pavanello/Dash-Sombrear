@@ -211,7 +211,7 @@ export default function CalculadoraCortina() {
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+            <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">

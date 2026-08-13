@@ -378,8 +378,8 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
         </button>
       </div>
 
-      <div className="rounded-xl border-2 bg-card shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border-2 bg-card shadow-sm">
+        <table className="w-full min-w-[600px] text-sm">
           <thead><tr className="bg-muted/40">
             <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Tecido</th>
             <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Desconto</th>
@@ -773,7 +773,7 @@ function EscadaCalculada({ titulo, linhas, colunasExtras, altura = 480 }: {
           <Printer className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="overflow-y-auto" style={{ maxHeight: altura }}>
+      <div className="overflow-auto" style={{ maxHeight: altura }}>
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/40">

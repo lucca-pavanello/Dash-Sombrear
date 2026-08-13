@@ -579,34 +579,34 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                     então nada desalinha. Ambiente por medida: Sala 1 + Quarto
                     na mesma venda, como no Calcular. */}
                 <div className="grid grid-cols-[1fr_1fr_0.55fr_1fr_1.75rem] items-center gap-x-2 gap-y-2 sm:gap-x-3">
-                  <label className={cn(labelCls, 'mb-0')}>Largura (m)</label>
-                  <label className={cn(labelCls, 'mb-0')}>Altura (m)</label>
+                  <label className={cn(labelCls, 'mb-0')}>Largura</label>
+                  <label className={cn(labelCls, 'mb-0')}>Altura</label>
                   <label className={cn(labelCls, 'mb-0')}>Qtd</label>
                   <label className={cn(labelCls, 'mb-0')}>Ambiente</label>
                   <span aria-hidden="true" />
 
-                  <input className={inputCls} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
+                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
                     value={largura} onChange={e => setLargura(e.target.value.replace(',', '.'))} />
-                  <input className={inputCls} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
+                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
                     value={altura} onChange={e => setAltura(e.target.value.replace(',', '.'))} />
-                  <input className={inputCls} inputMode="numeric" aria-label="Quantidade"
+                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="numeric" aria-label="Quantidade"
                     value={quantidade} onChange={e => setQuantidade(e.target.value)} />
-                  <input className={inputCls} placeholder="Sala…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
+                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} placeholder="Sala…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
                     value={ambiente} onChange={e => setAmbiente(e.target.value)} />
                   <span aria-hidden="true" />
 
                   {extras.map(x => (
                     <Fragment key={x.id}>
-                      <input className={inputCls} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
+                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
                         value={x.largura}
                         onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, largura: e.target.value.replace(',', '.'), resultado: null } : y))} />
-                      <input className={inputCls} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
+                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
                         value={x.altura}
                         onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, altura: e.target.value.replace(',', '.'), resultado: null } : y))} />
-                      <input className={inputCls} inputMode="numeric" aria-label="Quantidade"
+                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="numeric" aria-label="Quantidade"
                         value={x.qtd}
                         onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, qtd: e.target.value, resultado: null } : y))} />
-                      <input className={inputCls} placeholder="Quarto…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
+                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} placeholder="Quarto…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
                         value={x.amb}
                         onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, amb: e.target.value } : y))} />
                       <button type="button" onClick={() => setExtras(p => p.filter(y => y.id !== x.id))}
