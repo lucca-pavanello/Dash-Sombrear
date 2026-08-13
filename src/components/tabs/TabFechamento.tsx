@@ -41,10 +41,6 @@ const pago = (o: Orcamento) => o.valor_cobrado != null ? Number(o.valor_cobrado)
 const pagoParceira = (o: Orcamento) =>
   o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)
 const ajustado = (calc: number, real: number) => Math.abs(calc - real) >= 0.01
-const ROTULO_PAGAMENTO: Record<string, string> = {
-  a_vista: 'à vista (−5%)', cartao_4x: 'cartão 4x', outro: 'outro',
-}
-
 /** acha o "6x" dentro do texto real ("6x de R$ 350" ou "cartão 6x") */
 const parcelasDe = (s: string | null | undefined) => s?.match(/(\d+)\s*x/i)?.[1] ?? null
 
@@ -57,7 +53,8 @@ const pgtoCurto = (o: Orcamento): string => {
   const base = o.forma_pagamento === 'a_vista' ? 'à vista'
     : o.forma_pagamento === 'cartao_4x' || o.forma_pagamento === 'outro' ? '4x'   // o preço nasce pra 4x
     : null
-  if (real && base) return `${real}x` === base ? base : `${base} / ${real}x`
+  const juros = o.forma_pagamento_real?.match(/\+([\d.,]+)%/)?.[1]
+  if (real && base) return `${real}x` === base ? base : `${base} / ${real}x${juros ? ` (+${juros}%)` : ''}`
   if (real) return `${real}x`
   if (o.forma_pagamento === 'outro') {
     // texto livre sem parcelas (ex.: "PIX") ainda aparece; sem nada, traço
@@ -110,8 +107,8 @@ export default function TabFechamento() {
   const [ate, setAte] = useState('')
   const [baixando, setBaixando] = useState(false)
   const [editando, setEditando] = useState<string | null>(null)
-  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; origem: string }>(
-    { cobrado: '', parceira: '', formaReal: '', origem: '' })
+  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; parcelasReal: string; origem: string }>(
+    { cobrado: '', parceira: '', formaReal: '', parcelasReal: '', origem: '' })
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
   // exclusão em dois toques: o primeiro clique arma, o segundo confirma
@@ -148,7 +145,14 @@ export default function TabFechamento() {
     setRascunho({
       cobrado: String((o.valor_cobrado != null ? Number(o.valor_cobrado) : receita(o)).toFixed(2)),
       parceira: String((o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)).toFixed(2)),
-      formaReal: o.forma_pagamento_real ?? '',
+      // texto composto ("6x de R$ … · +x% de juros — nota") volta separado:
+      // o número pro campo de parcelas, a nota pro campo livre
+      ...(() => {
+        const bruto = o.forma_pagamento_real ?? ''
+        const composto = bruto.match(/^(\d+)x de [^—]*?(?:— (.*))?$/)
+        if (composto) return { parcelasReal: composto[1], formaReal: (composto[2] ?? '').trim() }
+        return { parcelasReal: parcelasDe(bruto) ?? '', formaReal: bruto }
+      })(),
       origem: acharOrigem(o.origem).id === SEM_ORIGEM.id ? '' : acharOrigem(o.origem).id,
     })
   }
@@ -192,19 +196,32 @@ export default function TabFechamento() {
     }
   }
 
-  async function salvarAjuste(id: string) {
+  async function salvarAjuste(o: Orcamento) {
     setSalvandoAjuste(true)
     try {
       const numero = (s: string) => {
         const v = parseFloat(s.replace(',', '.'))
         return Number.isFinite(v) && v > 0 ? v : null
       }
+      /* mesmo formato que o Simulador grava: "6x de R$ 330,67 · +6,0% de juros"
+         — o juro sai da diferença entre o cobrado e o preço calculado */
+      const nReal = Math.round(numero(rascunho.parcelasReal) ?? 0)
+      const cobradoEf = numero(rascunho.cobrado) ?? pago(o)
+      let formaRealFinal = rascunho.formaReal.trim()
+      if (nReal >= 2 && cobradoEf > 0) {
+        const base = receita(o)
+        const juros = base > 0 && cobradoEf > base + 0.009
+          ? ` · +${(((cobradoEf - base) / base) * 100).toFixed(1)}% de juros`
+          : ''
+        const auto = `${nReal}x de ${formatCurrency(cobradoEf / nReal)}${juros}`
+        formaRealFinal = formaRealFinal ? `${auto} — ${formaRealFinal}` : auto
+      }
       const { error } = await supabase.from('orcamentos').update({
         valor_cobrado: numero(rascunho.cobrado),
         valor_parceiro_pago: numero(rascunho.parceira),
-        forma_pagamento_real: rascunho.formaReal.trim() || null,
+        forma_pagamento_real: formaRealFinal || null,
         origem: rascunho.origem || null,
-      }).eq('id', id)
+      }).eq('id', o.id)
       if (error) throw error
       setEditando(null)
       await refetch()
@@ -407,7 +424,8 @@ export default function TabFechamento() {
                       <td className="px-4 py-3 text-center font-semibold tabular-nums text-foreground">
                         <ValorComReal calc={bruto} real={pago(o)} />
                         {(o.forma_pagamento_real || o.forma_pagamento) && (
-                          <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground"
+                          <span className={cn('mt-0.5 block text-[10px] font-medium',
+                            pgtoCurto(o).includes('/') ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}
                             title={o.forma_pagamento_real ?? undefined}>
                             {pgtoCurto(o)}
                           </span>
@@ -561,9 +579,30 @@ export default function TabFechamento() {
                                   </select>
                                 </label>
                                 <label className="block">
-                                  <span className="text-[11px] text-muted-foreground">Como o cliente pagou de verdade</span>
+                                  <span className="text-[11px] text-muted-foreground">Em quantas vezes saiu?</span>
+                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                    inputMode="numeric" placeholder="4"
+                                    value={rascunho.parcelasReal}
+                                    onChange={e => setRascunho(r => ({ ...r, parcelasReal: e.target.value }))} />
+                                  {(() => {
+                                    const n = Math.round(parseFloat(rascunho.parcelasReal) || 0)
+                                    const v = parseFloat(rascunho.cobrado.replace(',', '.')) || 0
+                                    if (n < 2 || v <= 0) return null
+                                    const base = receita(o)
+                                    const juros = base > 0 && v > base + 0.009
+                                      ? ` · +${(((v - base) / base) * 100).toFixed(1)}% de juros`
+                                      : ''
+                                    return (
+                                      <span className="mt-1 block text-[11px] text-muted-foreground">
+                                        Fica registrado: <b className="text-foreground/80">{n}x de {formatCurrency(v / n)}{juros}</b>
+                                      </span>
+                                    )
+                                  })()}
+                                </label>
+                                <label className="block">
+                                  <span className="text-[11px] text-muted-foreground">Observação do pagamento (opcional)</span>
                                   <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
-                                    placeholder={o.forma_pagamento ? (ROTULO_PAGAMENTO[o.forma_pagamento] ?? o.forma_pagamento) : 'ex.: 5x no link'}
+                                    placeholder="ex.: no link, PIX + cartão"
                                     maxLength={120}
                                     value={rascunho.formaReal}
                                     onChange={e => setRascunho(r => ({ ...r, formaReal: e.target.value }))} />
@@ -578,7 +617,7 @@ export default function TabFechamento() {
                               </div>
                               <div className="mt-3 flex gap-2">
                                 <Button variant="brand" size="sm" className="flex-1"
-                                  loading={salvandoAjuste} onClick={() => salvarAjuste(o.id)}>
+                                  loading={salvandoAjuste} onClick={() => salvarAjuste(o)}>
                                   {!salvandoAjuste && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                                   Salvar
                                 </Button>
