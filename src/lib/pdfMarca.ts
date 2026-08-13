@@ -17,11 +17,27 @@ const CINZA_TEXTO: [number, number, number] = [130, 130, 130]
 
 export const ENDERECO = 'Sombrear Cortinas e Persianas · Av. Fernando Costa, 984 – Vila Maceno'
 
+/* CNPJ e WhatsApp vêm do ambiente (Vercel) — a loja preenche, o código não
+   inventa. Vazios, o rodapé simplesmente não os mostra. */
+const fmtFone = (v: string | undefined): string | null => {
+  const d = (v ?? '').replace(/\D/g, '').replace(/^55/, '')
+  if (d.length < 10) return null
+  return `(${d.slice(0, 2)}) ${d.slice(2, -4)}-${d.slice(-4)}`
+}
+const FONE = fmtFone(import.meta.env.VITE_WHATSAPP_LOJA as string | undefined)
+const CNPJ = ((import.meta.env.VITE_CNPJ_LOJA as string | undefined) ?? '').trim() || null
+
 /** Estilos de tabela compartilhados (autoTable) */
+const LINHA_QUENTE: [number, number, number] = [226, 217, 208]
+
 export const TEMA_TABELA = {
   theme: 'striped' as const,
-  headStyles: { fillColor: LARANJA, textColor: 255 as const, fontStyle: 'bold' as const, fontSize: 9 },
-  footStyles: { fillColor: [243, 245, 247] as [number, number, number], textColor: [24, 28, 36] as [number, number, number], fontStyle: 'bold' as const },
+  // divisórias verticais finas + moldura, num tom quente — colunas firmes sem virar grade pesada
+  styles: { lineColor: LINHA_QUENTE, lineWidth: { right: 0.15 } },
+  tableLineColor: LINHA_QUENTE,
+  tableLineWidth: 0.2,
+  headStyles: { fillColor: LARANJA, textColor: 255 as const, fontStyle: 'bold' as const, fontSize: 9, lineWidth: 0 },
+  footStyles: { fillColor: [243, 245, 247] as [number, number, number], textColor: [24, 28, 36] as [number, number, number], fontStyle: 'bold' as const, lineWidth: 0 },
   alternateRowStyles: { fillColor: [252, 248, 245] as [number, number, number] },
   bodyStyles: { fontSize: 9 },
 }
@@ -42,6 +58,8 @@ export function faixaMarca(doc: jsPDF, titulo: string, subtitulo?: string): numb
   const M = 14
   doc.setFillColor(...LARANJA)
   doc.rect(0, 0, W, 30, 'F')
+  doc.setFillColor(196, 94, 20)          // #C45E14 — a ponta escura do gradiente da marca
+  doc.rect(0, 28.6, W, 1.4, 'F')
 
   // o "S" no quadrado branco — mesmo desenho do app e da proposta
   doc.setFillColor(255, 255, 255)
@@ -79,14 +97,18 @@ export function rodapeMarca(doc: jsPDF) {
   const quando = new Date().toLocaleString('pt-BR', {
     day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
   })
+  const contato = [CNPJ && `CNPJ ${CNPJ}`, FONE && `WhatsApp ${FONE}`].filter(Boolean).join('  ·  ')
   for (let p = 1; p <= total; p++) {
     doc.setPage(p)
-    doc.setDrawColor(230)
-    doc.line(14, H - 14, W - 14, H - 14)
+    doc.setDrawColor(...LARANJA)
+    doc.setLineWidth(0.4)
+    doc.line(14, H - 15.5, W - 14, H - 15.5)
+    doc.setLineWidth(0.2)
     doc.setFontSize(7.5)
     doc.setTextColor(...CINZA_TEXTO)
-    doc.text(ENDERECO, 14, H - 9)
-    doc.text(`Gerado em ${quando}`, W / 2, H - 9, { align: 'center' })
-    doc.text(`pág. ${p} de ${total}`, W - 14, H - 9, { align: 'right' })
+    doc.text(ENDERECO, 14, H - 11)
+    doc.text(`pág. ${p} de ${total}`, W - 14, H - 11, { align: 'right' })
+    if (contato) doc.text(contato, 14, H - 6.5)
+    doc.text(`Gerado em ${quando}`, W - 14, H - 6.5, { align: 'right' })
   }
 }

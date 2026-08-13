@@ -6,7 +6,7 @@
  * conteúdo em formato de leitura/impressão.
  */
 import { supabase } from '@/lib/supabase'
-import { faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 
 /** Colunas de controle do banco não interessam a quem abre a planilha */
 const OCULTAS = new Set(['id', 'created_at', 'updated_at', 'criado_em', 'atualizado_em'])
@@ -330,9 +330,9 @@ export async function baixarPrecosPDF(filtro?: string) {
         if (typeof v === 'boolean') return v ? 'Sim' : 'Não'
         return ehDinheiro(c, b.tabela) && Number.isFinite(Number(v)) ? fmtBRL(v) : String(v)
       })),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [232, 112, 26], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [250, 246, 242] },
+      ...TEMA_TABELA,
+      styles: { ...TEMA_TABELA.styles, fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontSize: 8 },
       margin: { left: 32, right: 32, bottom: 40 },
     })
   })

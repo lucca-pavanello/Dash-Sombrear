@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { formatCurrency } from '@/lib/utils'
-import { LARANJA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown, Columns3 } from 'lucide-react'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useCustosInternos } from '@/hooks/useCustosInternos'
@@ -265,10 +265,10 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
         formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_instalacao ?? 0), 0)),
         formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0)),
       ]],
-      theme: 'striped',
-      headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      ...TEMA_TABELA,
+      headStyles: { ...TEMA_TABELA.headStyles, fontSize: 8 },
       bodyStyles: { fontSize: 7.5 },
-      footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245] as [number, number, number], textColor: [40, 40, 40] as [number, number, number], fontSize: 8 },
+      footStyles: { ...TEMA_TABELA.footStyles, fontSize: 8 },
       columnStyles: { 8: { halign: 'right' }, 9: { halign: 'right' }, 10: { halign: 'right' }, 11: { halign: 'right' }, 12: { halign: 'right', fontStyle: 'bold' } },
       margin: { left: 8, right: 8 },
     })

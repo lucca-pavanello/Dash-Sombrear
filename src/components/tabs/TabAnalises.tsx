@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useScrollReveal } from '@/hooks/useScrollReveal'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
-import { LARANJA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -219,8 +219,7 @@ async function exportPDF(data: Orcamento[]) {
     startY: 42,
     head: [['Indicador', 'Valor']],
     body: kpis,
-    theme: 'grid',
-    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    ...TEMA_TABELA,
     bodyStyles: { fontSize: 9 },
     columnStyles: { 1: { fontStyle: 'bold', halign: 'right' } },
     margin: { left: 14, right: 14 },
@@ -250,8 +249,7 @@ async function exportPDF(data: Orcamento[]) {
     startY: afterKpi + 4,
     head: [['Responsável', 'Orçamentos', 'Fechados', 'Conversão', 'Faturamento']],
     body: byResp,
-    theme: 'striped',
-    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    ...TEMA_TABELA,
     bodyStyles: { fontSize: 9 },
     columnStyles: { 4: { fontStyle: 'bold', halign: 'right' } },
     margin: { left: 14, right: 14 },
@@ -279,8 +277,8 @@ async function exportPDF(data: Orcamento[]) {
     startY: afterRanking + 4,
     head: [['Data', 'Cliente', 'Responsável', 'Modelo', 'Tecido', 'Valor']],
     body: fechadosRows,
-    theme: 'striped',
-    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    ...TEMA_TABELA,
+    headStyles: { ...TEMA_TABELA.headStyles, fontSize: 8 },
     bodyStyles: { fontSize: 8 },
     columnStyles: { 5: { fontStyle: 'bold', halign: 'right' } },
     margin: { left: 14, right: 14 },

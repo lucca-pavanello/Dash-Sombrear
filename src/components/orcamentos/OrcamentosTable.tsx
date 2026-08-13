@@ -8,7 +8,7 @@ import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
 
 import EditOrcamentoForm from './EditOrcamentoForm'
-import { LARANJA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
 import type { ToastType } from '@/hooks/useToast'
@@ -219,10 +219,10 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
       ]
     }),
     foot: [['', '', '', '', '', '', `${fechados} fechados`, '', formatCurrency(totalVenda), formatCurrency(totalInst), formatCurrency(totalGeral), '', '', '']],
-    theme: 'striped',
-    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    ...TEMA_TABELA,
+    headStyles: { ...TEMA_TABELA.headStyles, fontSize: 8 },
     bodyStyles: { fontSize: 7.5 },
-    footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245] as [number, number, number], textColor: [40, 40, 40] as [number, number, number], fontSize: 8 },
+    footStyles: { ...TEMA_TABELA.footStyles, fontSize: 8 },
     columnStyles: { 8: { halign: 'center' }, 9: { halign: 'center' }, 10: { halign: 'center', fontStyle: 'bold' }, 11: { halign: 'center' }, 12: { halign: 'center' } },
     margin: { left: 8, right: 8 },
   })
