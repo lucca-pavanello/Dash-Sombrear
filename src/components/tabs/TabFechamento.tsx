@@ -267,7 +267,7 @@ export default function TabFechamento() {
 
       autoTable(doc, {
         startY: inicioY,
-        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pagamento\nfechado / feito', 'Cliente pagou', 'À parceira', 'Sobra']],
+        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pagamento\norçado / feito', 'Cliente pagou', 'À parceira', 'Sobra']],
         body: vendas.map(o => [
           formatDate(o.created_at),
           o.cliente ?? '—',
@@ -279,10 +279,10 @@ export default function TabFechamento() {
           /* o valor REAL na frente; o combinado vira linha de baixo — toda
              célula com a mesma cara, sem larguras caóticas */
           ajustado(receita(o), pago(o))
-            ? `${formatCurrency(pago(o))}\n(fechado em ${formatCurrency(receita(o))})`
+            ? `${formatCurrency(pago(o))}\n(orçado em ${formatCurrency(receita(o))})`
             : formatCurrency(pago(o)),
           ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
-            ? `${formatCurrency(pagoParceira(o))}\n(fechado em ${formatCurrency(Number(o.valor_parceiro ?? 0))})`
+            ? `${formatCurrency(pagoParceira(o))}\n(orçado em ${formatCurrency(Number(o.valor_parceiro ?? 0))})`
             : formatCurrency(pagoParceira(o)),
           formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
         ]),
@@ -298,7 +298,7 @@ export default function TabFechamento() {
       const fimTabela = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40
       doc.setFontSize(8); doc.setTextColor(130)
       doc.text(
-        'Pagamento: como a venda foi fechada / como o cliente pagou. Ex.: "4x / 6x" = fechada em 4x, paga em 6x. "à vista" já inclui 5% de desconto.',
+        'Pagamento: como foi orçado / como foi feito. Ex.: "4x / 6x" = orçado em 4x, pago em 6x. "à vista" já inclui 5% de desconto.',
         14, fimTabela + 8)
       rodapeMarca(doc)
       doc.save(`fechamento-sombrear-${new Date().toISOString().slice(0, 10)}.pdf`)
