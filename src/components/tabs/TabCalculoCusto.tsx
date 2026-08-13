@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { formatCurrency } from '@/lib/utils'
+import { LARANJA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown, Columns3 } from 'lucide-react'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useCustosInternos } from '@/hooks/useCustosInternos'
@@ -230,24 +231,11 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
       import('jspdf-autotable'),
     ])
     const doc = new jsPDF({ orientation: 'landscape' })
-    const now = new Date()
-    const orange: [number, number, number] = [232, 112, 26]
-
-    doc.setFillColor(...orange)
-    doc.rect(0, 0, 297, 22, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(15)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Sombrear — Planilha de Custos', 10, 10)
-    doc.setFontSize(8.5)
-    doc.setFont('helvetica', 'normal')
-    doc.text(
-      `${isFilteredCI ? 'Com filtros aplicados · ' : ''}${filteredCI.length} registro${filteredCI.length !== 1 ? 's' : ''} · ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
-      10, 17
-    )
+    const inicioY = faixaMarca(doc, 'Planilha de Custos',
+      `${isFilteredCI ? 'Com filtros aplicados · ' : ''}${filteredCI.length} registro${filteredCI.length !== 1 ? 's' : ''}`)
 
     autoTable(doc, {
-      startY: 26,
+      startY: inicioY,
       head: [['Data', 'Cliente', 'Responsável', 'Modelo', 'Ambiente', 'Tecido', 'L×A', 'Qtd', 'Custo Mat.', 'Custo M²', 'Custo Acab.', 'Custo Inst.', 'Total']],
       body: filteredCI.map((c) => {
         const total = (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0)
@@ -278,13 +266,14 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
         formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0) + (c.custo_acabamento ?? 0) + (c.custo_instalacao ?? 0), 0)),
       ]],
       theme: 'striped',
-      headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 8 },
       bodyStyles: { fontSize: 7.5 },
       footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245] as [number, number, number], textColor: [40, 40, 40] as [number, number, number], fontSize: 8 },
       columnStyles: { 8: { halign: 'right' }, 9: { halign: 'right' }, 10: { halign: 'right' }, 11: { halign: 'right' }, 12: { halign: 'right', fontStyle: 'bold' } },
       margin: { left: 8, right: 8 },
     })
 
+    rodapeMarca(doc)
     doc.save(`custos-internos-${new Date().toISOString().slice(0, 10)}.pdf`)
   }
 

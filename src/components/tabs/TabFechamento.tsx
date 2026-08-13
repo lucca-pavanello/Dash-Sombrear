@@ -18,6 +18,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import { useCountUp } from '@/hooks/useCountUp'
 import { supabase, type Orcamento } from '@/lib/supabase'
 import { Button, EmptyState } from '@/components/ui/primitives'
+import { TEMA_TABELA, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
@@ -260,20 +261,12 @@ export default function TabFechamento() {
         import('jspdf'), import('jspdf-autotable'),
       ])
       const doc = new jsPDF({ orientation: 'landscape' })
-      const laranja: [number, number, number] = [232, 112, 26]
-      doc.setFillColor(...laranja)
-      doc.rect(0, 0, 297, 22, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(14)
-      doc.text('Sombrear — Fechamento de vendas', 14, 14)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(9)
       const rotuloPeriodo = PERIODOS.find(p => p.value === periodo)?.label ?? ''
-      doc.text(`${rotuloPeriodo}${de || ate ? ` (${de} a ${ate})` : ''} · ${vendas.length} venda(s)`, 283, 14, { align: 'right' })
+      const inicioY = faixaMarca(doc, 'Fechamento de vendas',
+        `${rotuloPeriodo}${de || ate ? ` (${de} a ${ate})` : ''} · ${vendas.length} venda(s)`)
 
       autoTable(doc, {
-        startY: 28,
+        startY: inicioY,
         head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pgto', 'Cliente pagou', 'À parceira', 'Sobra']],
         body: vendas.map(o => [
           formatDate(o.created_at),
@@ -289,11 +282,10 @@ export default function TabFechamento() {
         ]),
         foot: [['', '', '', '', 'TOTAIS',
           formatCurrency(totais.bruto), formatCurrency(totais.parceira), formatCurrency(totais.sobra)]],
-        theme: 'striped',
-        headStyles: { fillColor: laranja, textColor: 255, fontSize: 9 },
-        footStyles: { fillColor: [243, 245, 247], textColor: [24, 28, 36], fontStyle: 'bold' },
-        bodyStyles: { fontSize: 9 },
-        margin: { left: 14, right: 14 },
+        ...TEMA_TABELA,
+        // dinheiro à direita (vírgulas empilham), medidas e pgto centrados
+        columnStyles: { ...colunasDireita([5, 6, 7]), ...colunasCentro([3, 4]) },
+        margin: { left: 14, right: 14, bottom: 20 },
       })
       // "4x / 6x" sem explicação é código de programador — o papel explica a si mesmo
       const fimTabela = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40
@@ -301,6 +293,7 @@ export default function TabFechamento() {
       doc.text(
         'Pgto: como o preço foi calculado / como o cliente pagou. Ex.: "4x / 6x" = calculado em 4x, pago em 6x. "à vista" já inclui 5% de desconto.',
         14, fimTabela + 8)
+      rodapeMarca(doc)
       doc.save(`fechamento-sombrear-${new Date().toISOString().slice(0, 10)}.pdf`)
     } finally {
       setBaixando(false)

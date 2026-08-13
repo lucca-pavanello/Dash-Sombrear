@@ -20,6 +20,7 @@ import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
+import { TEMA_TABELA, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import type { Orcamento } from '@/lib/supabase'
 
 const PERIODOS = [
@@ -118,13 +119,10 @@ export default function TabRelatorios() {
         import('jspdf'), import('jspdf-autotable'),
       ])
       const doc = new jsPDF()
-      doc.setFillColor(232, 112, 26); doc.rect(0, 0, 210, 24, 'F')
-      doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(14)
-      doc.text('Sombrear — Resultado por canal', 14, 13)
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9)
-      doc.text(PERIODOS.find(p => p.value === periodo)?.label ?? '', 196, 13, { align: 'right' })
+      const inicioY = faixaMarca(doc, 'Resultado por canal',
+        PERIODOS.find(p => p.value === periodo)?.label ?? '')
       autoTable(doc, {
-        startY: 32,
+        startY: inicioY,
         head: [['Canal', 'Leads', 'Orçamentos', 'Fechamentos', 'Conversão', 'Faturamento', 'Ticket médio']],
         body: porCanal.map(c => [
           acharOrigem(c.id).rotulo, String(c.leads), String(c.orcamentos), String(c.fechamentos),
@@ -134,11 +132,11 @@ export default function TabRelatorios() {
         foot: [['TOTAL', String(totais.leads), String(totais.orcamentos), String(totais.fechamentos),
           totais.orcamentos > 0 ? `${((totais.fechamentos / totais.orcamentos) * 100).toFixed(0)}%` : '—',
           formatCurrency(totais.faturamento), '']],
-        theme: 'striped',
-        headStyles: { fillColor: [232, 112, 26], textColor: 255, fontSize: 9 },
-        footStyles: { fillColor: [243, 245, 247], textColor: [24, 28, 36], fontStyle: 'bold' },
-        bodyStyles: { fontSize: 9 },
+        ...TEMA_TABELA,
+        columnStyles: { ...colunasCentro([1, 2, 3, 4]), ...colunasDireita([5, 6]) },
+        margin: { left: 14, right: 14, bottom: 20 },
       })
+      rodapeMarca(doc)
       doc.save(`resultado-por-canal-${new Date().toISOString().slice(0, 10)}.pdf`)
     } finally {
       setBaixando(false)

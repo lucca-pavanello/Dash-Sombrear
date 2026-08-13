@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useScrollReveal } from '@/hooks/useScrollReveal'
 import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn } from '@/lib/utils'
+import { LARANJA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { TrendingUp, TrendingDown, Minus, FileDown, AlertCircle } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -188,19 +189,7 @@ async function exportPDF(data: Orcamento[]) {
   ])
   const doc = new jsPDF()
   const now = new Date()
-  const orange: [number, number, number] = [232, 112, 26]
-
-  // Header
-  doc.setFillColor(...orange)
-  doc.rect(0, 0, 210, 28, 'F')
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Loja Sombrear', 14, 12)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Relatório de Orçamentos', 14, 20)
-  doc.text(`Gerado em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, 210 - 14, 20, { align: 'right' })
+  faixaMarca(doc, 'Relatório de análises')
 
   const thisFat = calcFaturamentoPorMes(data, now.getFullYear(), now.getMonth())
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
@@ -231,7 +220,7 @@ async function exportPDF(data: Orcamento[]) {
     head: [['Indicador', 'Valor']],
     body: kpis,
     theme: 'grid',
-    headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 9 },
     bodyStyles: { fontSize: 9 },
     columnStyles: { 1: { fontStyle: 'bold', halign: 'right' } },
     margin: { left: 14, right: 14 },
@@ -262,7 +251,7 @@ async function exportPDF(data: Orcamento[]) {
     head: [['Responsável', 'Orçamentos', 'Fechados', 'Conversão', 'Faturamento']],
     body: byResp,
     theme: 'striped',
-    headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 9 },
     bodyStyles: { fontSize: 9 },
     columnStyles: { 4: { fontStyle: 'bold', halign: 'right' } },
     margin: { left: 14, right: 14 },
@@ -291,20 +280,13 @@ async function exportPDF(data: Orcamento[]) {
     head: [['Data', 'Cliente', 'Responsável', 'Modelo', 'Tecido', 'Valor']],
     body: fechadosRows,
     theme: 'striped',
-    headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 8 },
     bodyStyles: { fontSize: 8 },
     columnStyles: { 5: { fontStyle: 'bold', halign: 'right' } },
     margin: { left: 14, right: 14 },
   })
 
-  // Footer on each page
-  const pageCount = doc.getNumberOfPages()
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i)
-    doc.setFontSize(8)
-    doc.setTextColor(160, 160, 160)
-    doc.text(`Loja Sombrear · Página ${i} de ${pageCount}`, 105, 290, { align: 'center' })
-  }
+  rodapeMarca(doc)
 
   doc.save(`relatorio-sombrear-${now.toISOString().slice(0, 10)}.pdf`)
 }

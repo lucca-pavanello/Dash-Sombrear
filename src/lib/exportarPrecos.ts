@@ -6,6 +6,7 @@
  * conteúdo em formato de leitura/impressão.
  */
 import { supabase } from '@/lib/supabase'
+import { faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 
 /** Colunas de controle do banco não interessam a quem abre a planilha */
 const OCULTAS = new Set(['id', 'created_at', 'updated_at', 'criado_em', 'atualizado_em'])
@@ -231,7 +232,6 @@ async function buscarTudo(filtro?: string): Promise<Bloco[]> {
   return resultado
 }
 
-const carimbo = () => new Date().toLocaleString('pt-BR')
 /** Vira nome de arquivo: "PV / PH Alumínio" → "PV-PH-Aluminio" */
 const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -301,18 +301,13 @@ export async function baixarPrecosPDF(filtro?: string) {
   if (!blocos.length) throw vazia(filtro)
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-  const larguraPg = doc.internal.pageSize.getWidth()
 
   // capa com sumário só faz sentido no pacote inteiro; tabela única já começa nela
   const umaSo = blocos.length === 1
   if (!umaSo) {
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
-    doc.text(filtro?.startsWith('grupo:') ? `${filtro.slice(6)} — Sombrear` : 'Tabela de Preços — Sombrear',
-      larguraPg / 2, 120, { align: 'center' })
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(120)
-    doc.text(`Gerada em ${carimbo()}`, larguraPg / 2, 140, { align: 'center' })
+    faixaMarca(doc, filtro?.startsWith('grupo:') ? filtro.slice(6) : 'Tabela de Preços')
     doc.setFontSize(11); doc.setTextColor(40)
-    blocos.forEach((b, i) => doc.text(`${i + 1}.  ${b.titulo}`, 150, 180 + i * 18))
+    blocos.forEach((b, i) => doc.text(`${i + 1}.  ${b.titulo}`, 60, 60 + i * 9))
   }
 
   const fmtBRL = (v: unknown) =>
@@ -342,12 +337,7 @@ export async function baixarPrecosPDF(filtro?: string) {
     })
   })
 
-  const total = doc.getNumberOfPages()
-  for (let p = 1; p <= total; p++) {
-    doc.setPage(p); doc.setFontSize(8); doc.setTextColor(150)
-    doc.text(`Sombrear · ${carimbo()} · ${p}/${total}`,
-      larguraPg / 2, doc.internal.pageSize.getHeight() - 20, { align: 'center' })
-  }
+  rodapeMarca(doc)
   doc.save(nomeArquivo('pdf', tituloDoArquivo(filtro, blocos)))
   return blocos.length
 }

@@ -8,6 +8,7 @@ import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
 
 import EditOrcamentoForm from './EditOrcamentoForm'
+import { LARANJA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
 import type { ToastType } from '@/hooks/useToast'
@@ -187,21 +188,8 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
     import('jspdf-autotable'),
   ])
   const doc = new jsPDF({ orientation: 'landscape' })
-  const now = new Date()
-  const orange: [number, number, number] = [232, 112, 26]
-
-  doc.setFillColor(...orange)
-  doc.rect(0, 0, 297, 22, 'F')
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(15)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Sombrear — Orçamentos', 10, 10)
-  doc.setFontSize(8.5)
-  doc.setFont('helvetica', 'normal')
-  doc.text(
-    `${isFiltered ? 'Com filtros aplicados · ' : ''}${data.length} registro${data.length !== 1 ? 's' : ''} · ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
-    10, 17
-  )
+  const inicioY = faixaMarca(doc, 'Orçamentos',
+    `${isFiltered ? 'Com filtros aplicados · ' : ''}${data.length} registro${data.length !== 1 ? 's' : ''}`)
 
   const totalVenda = data.reduce((s, o) => s + (o.valor_venda ?? 0), 0)
   const totalInst = data.reduce((s, o) => s + (o.instalacao ?? 0), 0)
@@ -209,7 +197,7 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
   const fechados = data.filter((o) => o.fechado === true).length
 
   autoTable(doc, {
-    startY: 26,
+    startY: inicioY,
     head: [['#', 'Data', 'Cliente', 'Responsável', 'Ambiente', 'Modelo', 'Tecido', 'Qtd', 'Valor Venda', 'Instalação', 'Total', 'Custo', 'Margem', 'Fechado']],
     body: data.map((o, i) => {
       const m = calcMargem(o)
@@ -232,22 +220,15 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
     }),
     foot: [['', '', '', '', '', '', `${fechados} fechados`, '', formatCurrency(totalVenda), formatCurrency(totalInst), formatCurrency(totalGeral), '', '', '']],
     theme: 'striped',
-    headStyles: { fillColor: orange, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    headStyles: { fillColor: LARANJA, textColor: 255, fontStyle: 'bold', fontSize: 8 },
     bodyStyles: { fontSize: 7.5 },
     footStyles: { fontStyle: 'bold', fillColor: [245, 245, 245] as [number, number, number], textColor: [40, 40, 40] as [number, number, number], fontSize: 8 },
     columnStyles: { 8: { halign: 'center' }, 9: { halign: 'center' }, 10: { halign: 'center', fontStyle: 'bold' }, 11: { halign: 'center' }, 12: { halign: 'center' } },
     margin: { left: 8, right: 8 },
   })
 
-  const pageCount = doc.getNumberOfPages()
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i)
-    doc.setFontSize(7)
-    doc.setTextColor(160, 160, 160)
-    doc.text(`Sombrear · Página ${i} de ${pageCount}`, 148, 205, { align: 'center' })
-  }
-
-  doc.save(`orcamentos-${now.toISOString().slice(0, 10)}.pdf`)
+  rodapeMarca(doc)
+  doc.save(`orcamentos-${new Date().toISOString().slice(0, 10)}.pdf`)
 }
 
 function calcMargem(o: Orcamento) {
