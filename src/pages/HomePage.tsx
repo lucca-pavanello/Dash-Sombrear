@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Bot, Calculator, CircleDollarSign, Wallet, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
+import { ClipboardCheck, ArrowRight, Bot, Calculator, CircleDollarSign, Wallet, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useCrmLeads } from '@/hooks/useAgenteIA'
@@ -218,7 +218,11 @@ export default function HomePage() {
       const v = l.status_lead?.toLowerCase().trim() ?? ''
       return v === 'aguardando_atendimento' || v === 'aguardando_atendente' || v === 'transferido'
     })
-    return { deHoje: deHoje.length, cotadoHoje, fechadosSemana: fechadosSemana.length, aguardando: aguardando.length }
+    // orçamentos recentes que ainda esperam um "fechou/não fechou/sumiu"
+    const semResposta = orcamentos.filter(o => !o.desfecho && !o.fechado
+      && new Date(o.created_at) >= semana).length
+    return { deHoje: deHoje.length, cotadoHoje, fechadosSemana: fechadosSemana.length,
+      aguardando: aguardando.length, semResposta }
   }, [orcamentos, leads])
 
   const recentes = useMemo(
@@ -318,6 +322,10 @@ export default function HomePage() {
               )}
               <PulsoPill icon={CheckCircle2} numero={pulso.fechadosSemana} contar={contarPulso}
                 delay={300} rotulo="fechados na semana" />
+              {pulso.semResposta > 0 && (
+                <PulsoPill icon={ClipboardCheck} numero={pulso.semResposta} contar={contarPulso}
+                  delay={325} rotulo="esperando resposta" atencao />
+              )}
             </>
           )}
           {canAgenteIA && pulso.aguardando > 0 && (

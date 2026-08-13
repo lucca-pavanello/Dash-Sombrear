@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, Suspense, useMemo } from 'react'
 import { flushSync } from 'react-dom'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, AlertTriangle, CircleDollarSign } from 'lucide-react'
+import { ClipboardCheck, FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, AlertTriangle, CircleDollarSign } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -39,12 +39,13 @@ const TabAnalises     = lazyComRecarga(() => import('@/components/tabs/TabAnalis
 const TabSimulador    = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 const TabFechamento   = lazyComRecarga(() => import('@/components/tabs/TabFechamento'))
 const TabRelatorios   = lazyComRecarga(() => import('@/components/tabs/TabRelatorios'))
+const TabAcompanhar   = lazyComRecarga(() => import('@/components/tabs/TabAcompanhar'))
 const TabEstoque      = lazyComRecarga(() => import('@/components/tabs/TabEstoque'))
 const PainelAdmin     = lazyComRecarga(() => import('@/components/admin/PainelAdmin'))
 const PermissoesView  = lazyComRecarga(() => import('@/components/admin/PermissoesView'))
 const TabPrecos       = lazyComRecarga(() => import('@/components/admin/TabPrecos'))
 
-const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'relatorios', 'precos', 'simulador', 'fechamento']
+const VALID_TABS = ['calcular-orcamento', 'planilha', 'calculo-custo', 'agente-ia', 'orcamentos', 'admin', 'analises', 'estoque', 'relatorios', 'precos', 'simulador', 'fechamento', 'acompanhar']
 const DEFAULT_TAB = 'calcular-orcamento'
 function AskIATabBtn({ onMouseDown, onClick, active }: {
   onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => void
@@ -84,6 +85,7 @@ const SECTION_LABELS: Record<string, string> = {
   'orcamentos': 'Orçamentos',
   'analises': 'Orçamentos',
   'relatorios': 'Orçamentos',
+  'acompanhar': 'Orçamentos',
   'estoque': 'Estoque',
   'admin': 'Admin',
   'precos': 'Tabela de Preços',
@@ -189,7 +191,7 @@ export default function Dashboard() {
     : isAdminPath ? 'admin'
     : isOrcamentoPath ? (orcamentoSub ?? DEFAULT_TAB)
     : (rawPath || DEFAULT_TAB)
-  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'relatorios']
+  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'acompanhar', 'relatorios']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
@@ -534,6 +536,14 @@ export default function Dashboard() {
     { id: 'configuracao', label: 'Config.',        icon: Settings        },
   ], [])
 
+  /* Quantos orçamentos recentes ainda esperam resposta. De propósito só os
+     dos últimos 7 dias: com 492 em aberto, um contador do total viraria um
+     "9+" permanente — ruído. Assim o número é sempre o que dá pra recuperar. */
+  const aguardandoResposta = useMemo(
+    () => orcamentos.filter(o => !o.desfecho && !o.fechado
+      && Date.now() - new Date(o.created_at).getTime() <= 7 * 86_400_000).length,
+    [orcamentos])
+
   const ORCAMENTO_SUBTABS = useMemo(() => [
     { id: 'calcular-orcamento', label: 'Calcular',  icon: Calculator    },
     { id: 'simulador',          label: 'Simulador', icon: Zap           },
@@ -541,8 +551,9 @@ export default function Dashboard() {
     { id: 'calculo-custo',      label: 'Custos',    icon: ClipboardList },
     { id: 'analises',           label: 'Análises',  icon: BarChart2     },
     { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
+    { id: 'acompanhar',         label: 'Acompanhar', icon: ClipboardCheck, badge: aguardandoResposta },
     { id: 'relatorios',         label: 'Relatórios', icon: BarChart2    },
-  ], [])
+  ], [aguardandoResposta])
 
   const isEstoqueArea = isEstoquePath
   const isAdminArea = isAdminPath && isAdmin
@@ -987,7 +998,7 @@ export default function Dashboard() {
             </button>
           ))}
           {/* ORÇAMENTO SUBTABS */}
-          {isOrcamentoArea && ORCAMENTO_SUBTABS.map(({ id, label, icon: Icon }) => (
+          {isOrcamentoArea && ORCAMENTO_SUBTABS.map(({ id, label, icon: Icon, badge }) => (
             <button
               key={id}
               data-tab={id}
@@ -1008,6 +1019,11 @@ export default function Dashboard() {
             >
               <Icon className="h-4 w-4 shrink-0" style={vtStyle((vtIcone === 'orcamento' || vtVolta) && activeTab === id)} />
               <span className="hidden sm:inline truncate">{label}</span>
+              {!!badge && badge > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                  {badge > 9 ? '9+' : badge}
+                </span>
+              )}
               {tabUpdatePulse.has(id) && (
                 <span className="absolute inset-0 rounded-lg border-2 border-primary/50 pointer-events-none animate-[tabPulseHalo_800ms_ease-out_forwards]" />
               )}
@@ -1106,6 +1122,13 @@ export default function Dashboard() {
               <div className={activeTab === 'orcamentos' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabOrcamentos data={focusedOrcamentos} loading={isLoading} resetKey={tabVersions['orcamentos']} />
                 <JanelaDados className="mt-4" />
+              </div>
+            </Suspense>
+          )}
+          {mountedTabs.has('acompanhar') && (
+            <Suspense fallback={<SkeletonKPITable />}>
+              <div className={activeTab === 'acompanhar' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
+                <TabAcompanhar />
               </div>
             </Suspense>
           )}

@@ -42,6 +42,11 @@ export type Orcamento = {
   updated_at?: string | null
   share_enabled?: boolean | null
   aceito_em?: string | null
+  /** o que aconteceu depois do orçamento: fechou | perdido | sumiu (null = aguardando) */
+  desfecho?: string | null
+  desfecho_em?: string | null
+  desfecho_por?: string | null
+  desfecho_motivo?: string | null
 }
 
 export type CustoInterno = {
