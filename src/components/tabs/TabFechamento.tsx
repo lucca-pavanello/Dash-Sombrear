@@ -267,7 +267,8 @@ export default function TabFechamento() {
 
       autoTable(doc, {
         startY: inicioY,
-        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pgto', 'Cliente pagou', 'À parceira', 'Sobra']],
+        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pagamento
+fechado / feito', 'Cliente pagou', 'À parceira', 'Sobra']],
         body: vendas.map(o => [
           formatDate(o.created_at),
           o.cliente ?? '—',
@@ -298,7 +299,7 @@ export default function TabFechamento() {
       const fimTabela = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40
       doc.setFontSize(8); doc.setTextColor(130)
       doc.text(
-        'Pgto: como o preço foi calculado / como o cliente pagou. Ex.: "4x / 6x" = calculado em 4x, pago em 6x. "à vista" já inclui 5% de desconto.',
+        'Pagamento: como a venda foi fechada / como o cliente pagou. Ex.: "4x / 6x" = fechada em 4x, paga em 6x. "à vista" já inclui 5% de desconto.',
         14, fimTabela + 8)
       rodapeMarca(doc)
       doc.save(`fechamento-sombrear-${new Date().toISOString().slice(0, 10)}.pdf`)
