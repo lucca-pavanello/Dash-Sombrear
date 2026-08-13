@@ -36,20 +36,20 @@ export const TEMA_TABELA = {
   styles: { lineColor: LINHA_QUENTE, lineWidth: { right: 0.15 } },
   tableLineColor: LINHA_QUENTE,
   tableLineWidth: 0.2,
-  headStyles: { fillColor: LARANJA, textColor: 255 as const, fontStyle: 'bold' as const, fontSize: 9, lineWidth: 0 },
+  headStyles: { fillColor: LARANJA, textColor: 255 as const, fontStyle: 'bold' as const, fontSize: 9, lineWidth: 0, halign: 'center' as const },
   footStyles: { fillColor: [243, 245, 247] as [number, number, number], textColor: [24, 28, 36] as [number, number, number], fontStyle: 'bold' as const, lineWidth: 0 },
   alternateRowStyles: { fillColor: [252, 248, 245] as [number, number, number] },
   bodyStyles: { fontSize: 9 },
 }
 
 /**
- * columnStyles do autoTable só alinha o CORPO — cabeçalho e totais ficam à
- * esquerda e descolam da coluna. Este hook aplica a mesma régua às três
- * seções: passe o mapa índice→alinhamento junto com colunasDireita/Centro.
+ * columnStyles do autoTable só alinha o CORPO. Os nomes de coluna são sempre
+ * centrados (headStyles); este hook alinha a linha de TOTAIS pela régua das
+ * colunas de dinheiro, pra soma cair embaixo dos números que soma.
  */
 export const alinharSecoes = (mapa: Record<number, 'left' | 'center' | 'right'>) =>
   (data: { section: string; column: { index: number }; cell: { styles: { halign?: string } } }) => {
-    if (data.section === 'head' || data.section === 'foot') {
+    if (data.section === 'foot') {
       const h = mapa[data.column.index]
       if (h) data.cell.styles.halign = h
     }
