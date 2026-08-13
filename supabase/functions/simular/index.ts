@@ -18,7 +18,7 @@ const corsHeaders = {
 }
 
 const ADMIN_EMAIL = 'luccapavanallo@gmail.com'
-const MODELOS = new Set(['Rolo', 'Double', 'Romana', 'PV', 'PH_Aluminio', 'PH_50'])
+const MODELOS = new Set(['Rolo', 'Double', 'Romana', 'PV', 'PH_Aluminio', 'PH_50', 'Rolo Motorizado'])
 const ACABAMENTOS = new Set(['nenhum', 'bando_branco', 'bando_preto', 'barra', 'kit_box'])
 /** caminho inverso do rótulo: o que está salvo em orcamentos.acabamentos */
 const ACABAMENTO_DA_VENDA: Record<string, string> = {
@@ -132,6 +132,7 @@ Deno.serve(async (req) => {
       altura: num(e.altura),
       quantidade: Math.max(1, Math.round(num(e.quantidade) || 1)),
       acabamento: ACABAMENTOS.has(String(e.acabamento)) ? String(e.acabamento) : 'nenhum',
+      motorWifi: e.motorWifi === true,
       // bandô de peça única numa porta dividida: medida e quantidade próprias
       bandoLargura: num(e.bandoLargura) > 0 ? num(e.bandoLargura) : undefined,
       bandoQuantidade: num(e.bandoQuantidade) > 0 ? Math.round(num(e.bandoQuantidade)) : undefined,
@@ -143,7 +144,7 @@ Deno.serve(async (req) => {
     const [
       { data: tecidos }, { data: componentes }, { data: bandos }, { data: bandoParams },
       { data: barraFaixas }, { data: colocacao }, { data: artigos }, { data: ph50 },
-      { data: parametros }, { data: romana },
+      { data: parametros }, { data: romana }, { data: motorEstrutura }, { data: motorComponentes },
     ] = await Promise.all([
       db.from('precos_tecidos_vigentes').select('*'),
       db.from('precos_ferragem_componentes').select('*'),
@@ -155,6 +156,8 @@ Deno.serve(async (req) => {
       db.from('precos_ph50').select('*'),
       db.from('precos_parametros').select('*'),
       db.from('precos_romana_matriz').select('*'),
+      db.from('precos_motor_estrutura').select('*'),
+      db.from('precos_motor_componentes').select('*'),
     ])
 
     // deno-lint-ignore no-explicit-any
@@ -162,6 +165,7 @@ Deno.serve(async (req) => {
       tecidos: tecidos ?? [], componentes: componentes ?? [], bandos: bandos ?? [],
       bandoParams: bandoParams ?? [], barraFaixas: barraFaixas ?? [], colocacao: colocacao ?? [],
       artigos: artigos ?? [], ph50: ph50 ?? [], parametros: parametros ?? [], romana: romana ?? [],
+      motorEstrutura: motorEstrutura ?? [], motorComponentes: motorComponentes ?? [],
       // deno-lint-ignore no-explicit-any
     } as any)
     if ('erro' in r) return resposta(200, { erro: r.erro })

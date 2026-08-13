@@ -28,6 +28,7 @@ const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigi
 
 const MODELOS = [
   { id: 'Rolo', label: 'Rolô' },
+  { id: 'Rolo Motorizado', label: 'Rolô Motorizado' },
   { id: 'Double', label: 'Double' },
   { id: 'Romana', label: 'Romana' },
   { id: 'PV', label: 'PV' },
@@ -75,6 +76,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [ph50Acab, setPh50Acab] = useState<'cadarco' | 'fita'>('cadarco')
   const [ph50Bando, setPh50Bando] = useState(false)
   const [corFerragem, setCorFerragem] = useState<'BRANCA' | 'PRETA'>('BRANCA')
+  const [motorWifi, setMotorWifi] = useState(false)
   const [largura, setLargura] = useState('')
   const [altura, setAltura] = useState('')
   const [quantidade, setQuantidade] = useState('1')
@@ -165,7 +167,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   }, [cliente, clientesConhecidos])
 
   const num = (s: string) => parseFloat(s.replace(',', '.')) || 0
-  const comTecido = modelo === 'Rolo' || modelo === 'Double' || modelo === 'Romana'
+  const comTecido = modelo === 'Rolo' || modelo === 'Double' || modelo === 'Romana' || modelo === 'Rolo Motorizado'
+  const motorizado = modelo === 'Rolo Motorizado'
   const entrada = useMemo(() => ({
     modelo,
     tecido: comTecido ? (tecido || undefined) : undefined,
@@ -177,11 +180,12 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     altura: num(altura),
     quantidade: Math.max(1, Math.round(num(quantidade))),
     acabamento,
+    motorWifi: motorizado ? motorWifi : undefined,
     bandoLargura: num(bandoLargura) || undefined,
     bandoQuantidade: Math.round(num(bandoQtd)) || undefined,
     incluirInstalacao: instalacao,
   }), [modelo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
-    acabamento, bandoLargura, bandoQtd, instalacao])
+    acabamento, motorizado, motorWifi, bandoLargura, bandoQtd, instalacao])
 
   const pronto = entrada.largura > 0 && entrada.altura > 0 &&
     (comTecido ? !!entrada.tecido : !!entrada.artigo)
@@ -493,13 +497,23 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                         options={opcoes?.tecidos ?? []}
                         placeholder={opcoes ? 'Escolha o tecido…' : 'Carregando…'} />
                     </div>
-                    {modelo !== 'Romana' && (
+                    {motorizado ? (
+                      <div>
+                        <label className={labelCls}>Motor</label>
+                        <CustomSelect value={motorWifi ? 'wifi' : 'canal'}
+                          onChange={v => setMotorWifi(v === 'wifi')}
+                          options={[
+                            { value: 'canal', label: 'Controle (canal)' },
+                            { value: 'wifi', label: 'WiFi' },
+                          ]} />
+                      </div>
+                    ) : modelo !== 'Romana' ? (
                       <div>
                         <label className={labelCls}>Ferragem</label>
                         <CustomSelect value={corFerragem} onChange={v => setCorFerragem(v as 'BRANCA' | 'PRETA')}
                           options={[{ value: 'BRANCA', label: 'Branca' }, { value: 'PRETA', label: 'Preta' }]} />
                       </div>
-                    )}
+                    ) : null}
                     <div>
                       <label className={labelCls}>Acabamento</label>
                       <CustomSelect value={acabamento} onChange={setAcabamento}
@@ -508,7 +522,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                           { value: 'bando_branco', label: 'Bandô branco' },
                           { value: 'bando_preto', label: 'Bandô preto' },
                           { value: 'barra', label: 'Barra niveladora' },
-                          ...(modelo === 'Rolo' ? [{ value: 'kit_box', label: 'Kit Box' }] : []),
+                          ...(modelo === 'Rolo' || motorizado ? [{ value: 'kit_box', label: 'Kit Box' }] : []),
                         ]} />
                     </div>
 

@@ -11,12 +11,14 @@ type PrecoBandoParams = any
 type PrecoBarraFaixa = any
 type PrecoColocacao = any
 type PrecoFerragemComponente = any
+type PrecoMotorComponente = any
+type PrecoMotorEstrutura = any
 type PrecoParametro = any
 type PrecoPh50 = any
 type PrecoRomanaMatriz = any
-type PrecoTecidoVigente = any
+type PrecoTecidoVigente = any'
 
-export type ModeloSim = 'Rolo' | 'Double' | 'Romana' | 'PV' | 'PH_Aluminio' | 'PH_50'
+export type ModeloSim = 'Rolo' | 'Double' | 'Romana' | 'PV' | 'PH_Aluminio' | 'PH_50' | 'Rolo Motorizado'
 export type AcabamentoSim = 'nenhum' | 'bando_branco' | 'bando_preto' | 'barra' | 'kit_box'
 
 export interface EntradaSim {
@@ -30,6 +32,8 @@ export interface EntradaSim {
   altura: number
   quantidade: number
   acabamento: AcabamentoSim
+  /** motorizado: motor WiFi em vez do de canal */
+  motorWifi?: boolean
   /** largura do bandô quando ele NÃO acompanha a persiana (porta dividida em peças) */
   bandoLargura?: number
   /** quantos bandôs — normalmente 1 quando a medida própria é informada */
@@ -48,6 +52,8 @@ export interface DadosSim {
   ph50: PrecoPh50[]
   parametros: PrecoParametro[]
   romana: PrecoRomanaMatriz[]
+  motorEstrutura: PrecoMotorEstrutura[]
+  motorComponentes: PrecoMotorComponente[]
 }
 
 export interface DetalheCusto {
@@ -148,7 +154,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
   }
 
   /* ── modelos com tecido: Rolo, Double e Romana ── */
-  if (e.modelo === 'Rolo' || e.modelo === 'Double' || e.modelo === 'Romana') {
+  if (e.modelo === 'Rolo' || e.modelo === 'Double' || e.modelo === 'Romana' || e.modelo === 'Rolo Motorizado') {
     if (!e.tecido) return { erro: 'Escolha o tecido' }
     const rolos = d.tecidos.filter(t => t.nome === e.tecido).sort((a, b) => a.largura - b.largura)
     if (rolos.length === 0) return { erro: `Tecido ${e.tecido} não encontrado` }
@@ -163,7 +169,56 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     let custoFerragem: number
     let chaveFerragem: string
     let rotuloFerragem = 'Ferragem'
-    if (e.modelo === 'Romana') {
+    /** peças da motorização — viram linhas próprias no custo item a item */
+    let motorPartes: { rotulo: string; custo: number }[] | null = null
+    if (e.modelo === 'Rolo Motorizado') {
+      // regras do resolver do n8n, ao pé da letra
+      if (L > 6.0 + 1e-9 || A > 6.0 + 1e-9) {
+        return { erro: `Medidas ${fmtM(L)} × ${fmtM(A)} acima do limite 6,00m da estrutura motorizada — orçamento manual.` }
+      }
+      const est = [...d.motorEstrutura].sort((x, y) => Number(x.ordem) - Number(y.ordem))
+      if (est.length === 0) return { erro: 'Tabela de estrutura motorizada vazia no banco' }
+      const largs = [...new Set(est.map(x => Number(x.largura)))].sort((x, y) => x - y)
+      const lgE = largs.find(x => x >= L - 1e-9)
+      if (lgE == null) return { erro: `Estrutura motorizada: nenhuma largura disponível ≥ ${fmtM(L)}` }
+      const cobre = (faixa: string | null | undefined): boolean => {
+        const fx = String(faixa ?? '').toUpperCase().replace(/,/g, '.')
+        let m = fx.match(/AT[EÉ]\s*([\d.]+)/)
+        if (m) return A <= Number(m[1]) + 1e-9
+        m = fx.match(/([\d.]+)\s*A\s*([\d.]+)/)
+        if (m) return A >= Number(m[1]) - 1e-9 && A <= Number(m[2]) + 1e-9
+        return false
+      }
+      const linhaE = est.find(x => Math.abs(Number(x.largura) - lgE) < 1e-9 && cobre(x.alt_faixa))
+      if (!linhaE) return { erro: `Estrutura motorizada: nenhuma faixa de altura cobre ${fmtM(A)} na largura ${fmtM(lgE)}` }
+      // grupo em branco herda o da linha anterior (a planilha só marca na primeira)
+      let grupo = String(linhaE.grupo ?? '').toUpperCase().trim()
+      if (!grupo) {
+        for (let i = est.indexOf(linhaE) - 1; i >= 0; i--) {
+          const g = String(est[i].grupo ?? '').toUpperCase().trim()
+          if (g) { grupo = g; break }
+        }
+      }
+      const comps = d.motorComponentes
+      const acha = (pred: (s: string) => boolean) =>
+        comps.find(c => pred(String(c.item ?? '').toUpperCase()))
+      const motor = e.motorWifi
+        ? acha(s => s.includes('WIFI'))
+        : grupo.endsWith('/10N') ? acha(s => s.includes('10N'))
+        : acha(s => s.includes('6N') && !s.includes('16'))
+      const controle = acha(s => s.includes('CONTROLE 1 CANAL'))
+      if (!motor) return { erro: e.motorWifi ? 'Motor WiFi não encontrado na tabela' : 'Motor não encontrado na tabela' }
+      if (!controle) return { erro: 'Controle 1 canal não encontrado na tabela' }
+
+      custoFerragem = Number(linhaE.valor) + Number(motor.custo) + Number(controle.custo)
+      chaveFerragem = 'parceiro_motorizacao'
+      motorPartes = [
+        { rotulo: `Estrutura motorizada — ${fmtM(lgE)}, ${String(linhaE.alt_faixa ?? '').toLowerCase()}${grupo ? ` (grupo ${grupo.toLowerCase()})` : ''}`, custo: Number(linhaE.valor) },
+        { rotulo: `Motor ${String(motor.item ?? '').toLowerCase()}`, custo: Number(motor.custo) },
+        { rotulo: `Controle 1 canal`, custo: Number(controle.custo) },
+      ]
+      obs.push(`Motorizada: estrutura ${fmtM(lgE)} · ${String(linhaE.alt_faixa ?? '')}${grupo ? ` · grupo ${grupo}` : ''} · ${e.motorWifi ? 'motor WiFi' : String(motor.item ?? '')}`)
+    } else if (e.modelo === 'Romana') {
       // matriz L×A: coluna e linha mais próximas PARA CIMA
       const largs = [...new Set(d.romana.map(r => Number(r.largura)))].sort((a, b) => a - b)
       const alts = [...new Set(d.romana.map(r => Number(r.altura)))].sort((a, b) => a - b)
@@ -216,7 +271,13 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     custoProduto = (custoTecido + custoFerragem) * qtd
     somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto',
       `Tecido ${e.tecido} — rolo ${fmtM(Number(rolo.largura))} a ${fmtR$(Number(rolo.preco))}/m²` + (qtd > 1 ? ` × ${qtd}` : ''))
-    somaReal(custoFerragem * qtd, chaveFerragem, 'produto', rotuloFerragem + (qtd > 1 ? ` × ${qtd}` : ''))
+    if (motorPartes) {
+      for (const p of motorPartes) {
+        somaReal(p.custo * qtd, chaveFerragem, 'produto', p.rotulo + (qtd > 1 ? ` × ${qtd}` : ''))
+      }
+    } else {
+      somaReal(custoFerragem * qtd, chaveFerragem, 'produto', rotuloFerragem + (qtd > 1 ? ` × ${qtd}` : ''))
+    }
 
     // acabamento
     if (e.acabamento === 'bando_branco' || e.acabamento === 'bando_preto') {
@@ -240,7 +301,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       custoAcabamento = custoBarra() * qtd
       somaReal(custoAcabamento, 'parceiro_barra', 'acabamento', `Barra niveladora — ${fmtM(L)}` + (qtd > 1 ? ` × ${qtd}` : ''))
     } else if (e.acabamento === 'kit_box') {
-      if (e.modelo !== 'Rolo') return { erro: 'Kit Box é exclusivo da Rolô' }
+      if (e.modelo !== 'Rolo' && e.modelo !== 'Rolo Motorizado') return { erro: 'Kit Box é exclusivo da Rolô' }
       custoAcabamento = (L * param('kitbox_ml_largura', 88.7) + param('kitbox_fixo1', 20.3)
         + (L + 2 * A) * param('kitbox_ml_perimetro', 30) + param('kitbox_fixo2', 12.28)
         + 4 * A * param('kitbox_ml_altura', 0.82)) * qtd
@@ -249,7 +310,13 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
 
     const mkVenda = param('markup_venda', 2.8)
     const mkAcab = param('markup_acabamento', 2.2)
-    if (e.acabamento === 'kit_box') {
+    if (e.modelo === 'Rolo Motorizado') {
+      /* como no n8n: base (tecido) leva markup cheio; a motorização tem
+         markup próprio e é arredondada em separado antes de somar */
+      const mkMot = param('markup_motorizacao', 2.24)
+      vendaProduto = ceil10c(custoTecido * qtd * mkVenda * taxa2) + ceil10c(custoFerragem * qtd * mkMot)
+      vendaAcabamento = custoAcabamento > 0 ? ceil10c(custoAcabamento * mkAcab * taxa2) : 0
+    } else if (e.acabamento === 'kit_box') {
       // Kit Box entra no valor da persiana, com o markup cheio
       vendaProduto = ceil10c((custoProduto + custoAcabamento) * mkVenda * taxa2)
       vendaAcabamento = 0
