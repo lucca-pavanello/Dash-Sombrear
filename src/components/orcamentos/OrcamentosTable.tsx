@@ -8,7 +8,7 @@ import type { Orcamento } from '@/lib/supabase'
 import { formatCurrency, cn, calcularMargem, formatDate } from '@/lib/utils'
 
 import EditOrcamentoForm from './EditOrcamentoForm'
-import { TEMA_TABELA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, alinharSecoes, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
 import type { ToastType } from '@/hooks/useToast'
@@ -224,6 +224,7 @@ async function exportPDF(data: Orcamento[], isFiltered: boolean) {
     bodyStyles: { fontSize: 7.5 },
     footStyles: { ...TEMA_TABELA.footStyles, fontSize: 8 },
     columnStyles: { 8: { halign: 'center' }, 9: { halign: 'center' }, 10: { halign: 'center', fontStyle: 'bold' }, 11: { halign: 'center' }, 12: { halign: 'center' } },
+    didParseCell: alinharSecoes({ 8: 'center', 9: 'center', 10: 'center', 11: 'center', 12: 'center' }),
     margin: { left: 8, right: 8 },
   })
 

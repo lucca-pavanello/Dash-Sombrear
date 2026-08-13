@@ -18,7 +18,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import { useCountUp } from '@/hooks/useCountUp'
 import { supabase, type Orcamento } from '@/lib/supabase'
 import { Button, EmptyState } from '@/components/ui/primitives'
-import { TEMA_TABELA, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
@@ -272,11 +272,17 @@ export default function TabFechamento() {
           formatDate(o.created_at),
           o.cliente ?? '—',
           [o.modelo, o.tecido].filter(Boolean).join(' · '),
-          o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—',
+          o.largura && o.altura
+            ? `${String(o.largura).replace('.', ',')}×${String(o.altura).replace('.', ',')}m`
+            : '—',
           pgtoCurto(o),
-          ajustado(receita(o), pago(o)) ? `${formatCurrency(receita(o))} (pago ${formatCurrency(pago(o))})` : formatCurrency(pago(o)),
+          /* o valor REAL na frente; o combinado vira linha de baixo — toda
+             célula com a mesma cara, sem larguras caóticas */
+          ajustado(receita(o), pago(o))
+            ? `${formatCurrency(pago(o))}\n(combinado ${formatCurrency(receita(o))})`
+            : formatCurrency(pago(o)),
           ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
-            ? `${formatCurrency(Number(o.valor_parceiro ?? 0))} (pago ${formatCurrency(pagoParceira(o))})`
+            ? `${formatCurrency(pagoParceira(o))}\n(combinado ${formatCurrency(Number(o.valor_parceiro ?? 0))})`
             : formatCurrency(pagoParceira(o)),
           formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
         ]),
@@ -285,6 +291,7 @@ export default function TabFechamento() {
         ...TEMA_TABELA,
         // dinheiro à direita (vírgulas empilham), medidas e pgto centrados
         columnStyles: { ...colunasDireita([5, 6, 7]), ...colunasCentro([3, 4]) },
+        didParseCell: alinharSecoes({ 3: 'center', 4: 'center', 5: 'right', 6: 'right', 7: 'right' }),
         margin: { left: 14, right: 14, bottom: 20 },
       })
       // "4x / 6x" sem explicação é código de programador — o papel explica a si mesmo

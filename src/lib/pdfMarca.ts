@@ -42,6 +42,19 @@ export const TEMA_TABELA = {
   bodyStyles: { fontSize: 9 },
 }
 
+/**
+ * columnStyles do autoTable só alinha o CORPO — cabeçalho e totais ficam à
+ * esquerda e descolam da coluna. Este hook aplica a mesma régua às três
+ * seções: passe o mapa índice→alinhamento junto com colunasDireita/Centro.
+ */
+export const alinharSecoes = (mapa: Record<number, 'left' | 'center' | 'right'>) =>
+  (data: { section: string; column: { index: number }; cell: { styles: { halign?: string } } }) => {
+    if (data.section === 'head' || data.section === 'foot') {
+      const h = mapa[data.column.index]
+      if (h) data.cell.styles.halign = h
+    }
+  }
+
 /** halign à direita para as colunas de dinheiro — papel lê número pela vírgula */
 export const colunasDireita = (indices: number[]) =>
   Object.fromEntries(indices.map(i => [i, { halign: 'right' as const }]))

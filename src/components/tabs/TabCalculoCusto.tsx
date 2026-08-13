@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { formatCurrency } from '@/lib/utils'
-import { TEMA_TABELA, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, alinharSecoes, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown, Columns3 } from 'lucide-react'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useCustosInternos } from '@/hooks/useCustosInternos'
@@ -270,6 +270,7 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
       bodyStyles: { fontSize: 7.5 },
       footStyles: { ...TEMA_TABELA.footStyles, fontSize: 8 },
       columnStyles: { 8: { halign: 'right' }, 9: { halign: 'right' }, 10: { halign: 'right' }, 11: { halign: 'right' }, 12: { halign: 'right', fontStyle: 'bold' } },
+      didParseCell: alinharSecoes({ 8: 'right', 9: 'right', 10: 'right', 11: 'right', 12: 'right' }),
       margin: { left: 8, right: 8 },
     })
 

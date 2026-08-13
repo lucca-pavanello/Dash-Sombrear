@@ -20,7 +20,7 @@ import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
-import { TEMA_TABELA, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
+import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import type { Orcamento } from '@/lib/supabase'
 
 const PERIODOS = [
@@ -134,6 +134,7 @@ export default function TabRelatorios() {
           formatCurrency(totais.faturamento), '']],
         ...TEMA_TABELA,
         columnStyles: { ...colunasCentro([1, 2, 3, 4]), ...colunasDireita([5, 6]) },
+        didParseCell: alinharSecoes({ 1: 'center', 2: 'center', 3: 'center', 4: 'center', 5: 'right', 6: 'right' }),
         margin: { left: 14, right: 14, bottom: 20 },
       })
       rodapeMarca(doc)
