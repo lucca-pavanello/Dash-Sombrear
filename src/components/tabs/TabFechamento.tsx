@@ -20,6 +20,7 @@ import { supabase, type Orcamento } from '@/lib/supabase'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
+import JanelaDados from '@/components/orcamentos/JanelaDados'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 
@@ -665,6 +666,8 @@ export default function TabFechamento() {
         <span className="inline-flex items-center gap-1"><PencilLine className="h-3 w-3" /> Deu desconto ou acréscimo na mão? Clique no lápis da linha: o valor calculado fica riscado e o realmente pago aparece entre parênteses — os totais usam o real.</span>
         <span className="inline-flex items-center gap-1"><HandCoins className="h-3 w-3" /> "À parceira" é o custo de produção das persianas de tecido (PV, PH Alumínio e PH 50mm não passam por ela).</span>
       </div>
+
+      <JanelaDados className="mt-4" />
     </>
   )
 }

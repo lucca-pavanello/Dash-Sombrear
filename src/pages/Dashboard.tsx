@@ -27,6 +27,7 @@ import AICopilot from '@/components/shared/AICopilot'
 import PresentationMode from '@/components/shared/PresentationMode'
 import { useChatStore } from '@/components/estoque/chat/store'
 import { isAIEstoqueEnabled } from '@/components/estoque/chat/featureFlag'
+import JanelaDados from '@/components/orcamentos/JanelaDados'
 
 const TabOrcamentos   = lazyComRecarga(() => import('@/components/tabs/TabOrcamentos'))
 const TabPlanilha     = lazyComRecarga(() => import('@/components/tabs/TabPlanilha'))
@@ -1104,6 +1105,7 @@ export default function Dashboard() {
             <Suspense fallback={<SkeletonKPITable />}>
               <div className={activeTab === 'orcamentos' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
                 <TabOrcamentos data={focusedOrcamentos} loading={isLoading} resetKey={tabVersions['orcamentos']} />
+                <JanelaDados className="mt-4" />
               </div>
             </Suspense>
           )}

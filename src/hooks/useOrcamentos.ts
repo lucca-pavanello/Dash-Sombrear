@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { supabase, type Orcamento } from '@/lib/supabase'
+import { inicioDaJanela, useJanela } from '@/lib/janelaDados'
 
 export type RealtimeStatus = 'connecting' | 'connected' | 'error'
 
@@ -50,7 +51,7 @@ export function useOrcamentos(
       const userId = authData.user?.id ?? null
       currentUserIdRef.current = userId
 
-      // Sem userId não abre subscription
+      // Sem sessão não abre subscription (a RLS bloquearia tudo mesmo)
       if (!userId) return
 
       channel = supabase
@@ -61,9 +62,10 @@ export function useOrcamentos(
             event: '*',
             schema: 'public',
             table: 'orcamentos',
-            // Filtra no servidor por user_id — captura tanto rows do dash
-            // quanto rows inseridas pelo n8n (que agora recebe user_id no payload)
-            filter: `user_id=eq.${userId}`,
+            // SEM filtro por user_id de propósito: 492 dos 498 orçamentos em
+            // produção (13/08/2026) vêm do n8n com user_id NULO, então o filtro
+            // antigo silenciava exatamente os que mais importam chegar na hora.
+            // Quem pode ver o quê já é decidido pela RLS da tabela.
           },
           (payload) => {
             qc.invalidateQueries({ queryKey: ['orcamentos'] })
@@ -91,24 +93,40 @@ export function useOrcamentos(
     }
   }, [qc])
 
+  const janela = useJanela()
+
   const query = useQuery({
-    queryKey: ['orcamentos'],
+    queryKey: ['orcamentos', janela],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orcamentos')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data as Orcamento[]
+      // Busca limitada por período no servidor (src/lib/janelaDados.ts) e
+      // paginada: o PostgREST devolve no máximo 1.000 linhas por resposta e
+      // NÃO avisa que cortou — sem paginar, o dash esconderia os mais antigos
+      // em silêncio assim que a loja passasse desse volume.
+      const desde = inicioDaJanela(janela)
+      const PAGINA = 1000
+      const todos: Orcamento[] = []
+      for (let inicio = 0; ; inicio += PAGINA) {
+        let q = supabase
+          .from('orcamentos')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(inicio, inicio + PAGINA - 1)
+        if (desde) q = q.gte('created_at', desde)
+        const { data, error } = await q
+        if (error) throw error
+        const lote = (data ?? []) as Orcamento[]
+        todos.push(...lote)
+        if (lote.length < PAGINA) break
+      }
+      return todos
     },
-    // Polling de fallback: garante que rows inseridas pelo n8n aparecem
-    // mesmo que o realtime falhe ou o user_id não tenha chegado a tempo.
-    // ATENÇÃO: a publication supabase_realtime estava vazia em produção (2026-07-13),
-    // então este polling é o mecanismo real de atualização até a migration
-    // supabase/migration_realtime_publication.sql ser aplicada.
-    refetchInterval: 30000,
+    // Polling de fallback. A publication supabase_realtime já inclui
+    // `orcamentos` (conferido em 13/08/2026), então com o canal conectado o
+    // polling é só rede de segurança e pode ser espaçado; se o canal cair,
+    // ele volta a ser o mecanismo real de atualização.
+    refetchInterval: realtimeStatus === 'connected' ? 120000 : 30000,
   })
-  return { ...query, realtimeStatus }
+  return { ...query, realtimeStatus, janela }
 }
 
 export function useMonthlyComparison() {

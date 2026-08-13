@@ -22,6 +22,7 @@ import { Button, EmptyState } from '@/components/ui/primitives'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import type { Orcamento } from '@/lib/supabase'
+import JanelaDados from '@/components/orcamentos/JanelaDados'
 
 const PERIODOS = [
   { value: 'mes', label: 'Este mês' },
@@ -315,6 +316,8 @@ export default function TabRelatorios() {
           </div>
         </div>
       )}
+
+      <JanelaDados className="mt-6" />
     </>
   )
 }
