@@ -4,6 +4,7 @@
  * Aprovada, substitui o PDF básico da página pública (OrcamentoPublico.handlePdf).
  */
 import type { Orcamento } from '@/lib/supabase'
+import { contatoLoja } from '@/lib/pdfMarca'
 import { formatCurrency } from '@/lib/utils'
 
 const LARANJA: [number, number, number] = [232, 112, 26]
@@ -140,13 +141,16 @@ export async function gerarPropostaPdf(orc: Orcamento) {
     y += 8
   }
 
-  /* ── Rodapé ── */
-  doc.setDrawColor(225, 228, 233)
+  /* ── Rodapé: o PDF que o CLIENTE recebe é onde CNPJ e WhatsApp mais importam ── */
+  doc.setDrawColor(...LARANJA)
+  doc.setLineWidth(0.4)
   doc.line(M, 278, W - M, 278)
+  doc.setLineWidth(0.2)
   doc.setFontSize(8)
   doc.setTextColor(...CINZA)
-  doc.text('Valores sujeitos a confirmação de medidas no local.', M, 284)
-  doc.text(`Sombrear — Cortinas e Persianas  ·  proposta ${numero}`, M, 289)
+  doc.text('Valores sujeitos a confirmação de medidas no local.', M, 283.5)
+  doc.text(`proposta ${numero}`, W - M, 283.5, { align: 'right' })
+  doc.text(contatoLoja(), M, 288.5)
 
   const nomeArquivo = `proposta-sombrear-${(orc.cliente ?? 'cliente').toLowerCase().replace(/\s+/g, '-')}.pdf`
   doc.save(nomeArquivo)

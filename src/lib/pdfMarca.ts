@@ -89,6 +89,10 @@ export function faixaMarca(doc: jsPDF, titulo: string, subtitulo?: string): numb
   return 38
 }
 
+/** Linha de contato completa — endereço + CNPJ + WhatsApp (o que existir) */
+export const contatoLoja = () =>
+  [ENDERECO, CNPJ && `CNPJ ${CNPJ}`, FONE && `WhatsApp ${FONE}`].filter(Boolean).join('  ·  ')
+
 /** Rodapé em TODAS as páginas: endereço, geração e "pág X de Y". Chamar por último. */
 export function rodapeMarca(doc: jsPDF) {
   const W = doc.internal.pageSize.getWidth()
