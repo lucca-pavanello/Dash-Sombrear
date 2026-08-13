@@ -279,10 +279,10 @@ export default function TabFechamento() {
           /* o valor REAL na frente; o combinado vira linha de baixo — toda
              célula com a mesma cara, sem larguras caóticas */
           ajustado(receita(o), pago(o))
-            ? `${formatCurrency(pago(o))}\n(combinado ${formatCurrency(receita(o))})`
+            ? `${formatCurrency(pago(o))}\n(fechado em ${formatCurrency(receita(o))})`
             : formatCurrency(pago(o)),
           ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
-            ? `${formatCurrency(pagoParceira(o))}\n(combinado ${formatCurrency(Number(o.valor_parceiro ?? 0))})`
+            ? `${formatCurrency(pagoParceira(o))}\n(fechado em ${formatCurrency(Number(o.valor_parceiro ?? 0))})`
             : formatCurrency(pagoParceira(o)),
           formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
         ]),
