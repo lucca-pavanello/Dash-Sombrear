@@ -107,6 +107,15 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [extras, setExtras] = useState<{ id: number; largura: string; altura: string; qtd: string; amb: string; resultado: Resultado | null }[]>([])
   const extraIdRef = useRef(1)
   const [sugestoesAbertas, setSugestoesAbertas] = useState(false)
+  /* A venda pode ter PRODUTOS diferentes (Rolô BK + Romana, cada um com suas
+     medidas). "Guardar produto" congela as linhas do atual aqui, com a entrada
+     já pronta pra salvar — os campos ficam livres pro próximo. */
+  const [carrinho, setCarrinho] = useState<{
+    id: number; rotuloModelo: string; detalhe: string; ambiente: string
+    entradaFinal: Record<string, unknown>; resultado: Resultado
+  }[]>([])
+  const carrinhoIdRef = useRef(1)
+  const ignorarResetCarrinho = useRef(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chamadaRef = useRef(0)
 
@@ -245,19 +254,68 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const extrasOk = extrasValidas.filter(x => x.resultado && !x.resultado.erro)
   const extrasPendentes = extrasValidas.length !== extrasOk.length
 
+  // mexer no carrinho invalida o "salvo" e o valor cobrado — menos ao esvaziar após salvar
+  useEffect(() => {
+    if (ignorarResetCarrinho.current) { ignorarResetCarrinho.current = false; return }
+    setSalvoAtual(false)
+    setValorCobrado('')
+  }, [carrinho])
+
+  /** As linhas do produto ATUAL (principal + extras), com a entrada pronta pra salvar. */
+  function montarLinhasAtuais() {
+    if (!resultado || resultado.erro) return null
+    const detalheProduto = comTecido ? tecido
+      : modelo === 'PH_50' ? (opcoes?.ph50.find(i => i.valor === artigo)?.label ?? artigo)
+      : artigo
+    const rotuloModelo = MODELOS.find(m => m.id === modelo)?.label ?? modelo
+    const base = [
+      { largura, altura, qtd: quantidade, amb: ambiente, resultado: resultado as Resultado, principal: true },
+      // extra sem ambiente herda o da linha principal
+      ...extrasOk.map(x => ({ largura: x.largura, altura: x.altura, qtd: x.qtd, amb: x.amb || ambiente, resultado: x.resultado as Resultado, principal: false })),
+    ]
+    return base.map(l => ({
+      rotuloModelo,
+      detalhe: `${detalheProduto} · ${l.largura}×${l.altura}m${Math.round(num(l.qtd)) > 1 ? ` ×${Math.round(num(l.qtd))}` : ''}`,
+      ambiente: l.amb.trim(),
+      resultado: l.resultado,
+      entradaFinal: { ...entrada,
+        largura: num(l.largura), altura: num(l.altura),
+        quantidade: Math.max(1, Math.round(num(l.qtd))),
+        // bandô de peça única é um por produto — só a linha principal leva
+        bandoLargura: l.principal ? entrada.bandoLargura : undefined,
+        bandoQuantidade: l.principal ? entrada.bandoQuantidade : undefined,
+      } as Record<string, unknown>,
+    }))
+  }
+
+  /** Congela o produto atual no carrinho e libera os campos pro próximo. */
+  function guardarProduto() {
+    const linhas = montarLinhasAtuais()
+    if (!linhas || extrasPendentes) return
+    setCarrinho(prev => [...prev, ...linhas.map(l => ({ ...l, id: carrinhoIdRef.current++ }))])
+    setTecido(''); setArtigo(''); setLargura(''); setAltura(''); setQuantidade('1'); setAmbiente('')
+    setExtras([]); setAcabamento('nenhum'); setBandoLargura(''); setBandoQtd('')
+    setResultado(null)
+  }
+
   async function salvar() {
-    if (!resultado || resultado.erro || salvando || salvoAtual || !soma) return
+    if (salvando || salvoAtual || !soma) return
     if (extrasPendentes) {
       toast('error', 'Tem medida extra incompleta ou com erro — confira antes de salvar.')
       return
     }
+    if (pronto && (calculando || !resultado)) {
+      toast('error', 'Aguarde o cálculo do produto atual terminar.')
+      return
+    }
+    if (resultado?.erro && pronto) {
+      toast('error', 'O produto atual está com erro — corrija ou tire as medidas dele.')
+      return
+    }
     setSalvando(true)
     try {
-      const linhas = [
-        { largura, altura, qtd: quantidade, amb: ambiente, resultado: resultado as Resultado, principal: true },
-        // extra sem ambiente herda o da linha principal
-        ...extrasOk.map(x => ({ largura: x.largura, altura: x.altura, qtd: x.qtd, amb: x.amb || ambiente, resultado: x.resultado as Resultado, principal: false })),
-      ]
+      const linhas = [...carrinho, ...(montarLinhasAtuais() ?? [])]
+      if (linhas.length === 0) { setSalvando(false); return }
 
       /* Parcelas + juros: o preço nasce pra 4x; se saiu em 5x/6x, registramos
          quantas vezes e o juro embutido — a taxa é o que a loja quer olhar depois. */
@@ -289,30 +347,23 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
         }
         const { data, error } = await supabase.functions.invoke('simular', {
           body: { acao: 'salvar',
-            entrada: { ...entrada,
-              largura: num(l.largura), altura: num(l.altura),
-              quantidade: Math.max(1, Math.round(num(l.qtd))),
-              // bandô de peça única é um por venda — só a linha principal leva
-              bandoLargura: l.principal ? entrada.bandoLargura : undefined,
-              bandoQuantidade: l.principal ? entrada.bandoQuantidade : undefined,
-            },
-            cliente: cliente.trim(), telefone: telefone.trim(), ambiente: l.amb.trim(), fechado: !!modoVenda,
+            entrada: l.entradaFinal,
+            cliente: cliente.trim(), telefone: telefone.trim(), ambiente: l.ambiente, fechado: !!modoVenda,
             valor_cobrado: cobradoLinha, forma_pagamento: formaPagamento,
             forma_pagamento_real: formaRealFinal || null },
         })
         if (error) throw error
         if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
-        const detalheProduto = comTecido ? tecido
-          : modelo === 'PH_50' ? (opcoes?.ph50.find(i => i.valor === artigo)?.label ?? artigo)
-          : artigo
         novos.push({
           id: (data as { id: string }).id,
-          modelo: MODELOS.find(m => m.id === modelo)?.label ?? modelo,
-          detalhe: `${detalheProduto} · ${l.largura}×${l.altura}m${Math.round(num(l.qtd)) > 1 ? ` ×${Math.round(num(l.qtd))}` : ''}`,
+          modelo: l.rotuloModelo,
+          detalhe: l.detalhe,
           total: l.resultado.total4x,
         })
       }
       setSalvos(prev => [...prev, ...novos])
+      ignorarResetCarrinho.current = true
+      setCarrinho([])
       setSalvoAtual(true)
       toast('success', modoVenda
         ? `Venda registrada no Fechamento! (${linhas.length} ${linhas.length > 1 ? 'itens' : 'item'})`
@@ -333,14 +384,18 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setCliente(''); setTelefone(''); setAmbiente('')
     setResultado(null); setSalvoAtual(false); setSalvos([]); setValorCobrado(''); setFormaPagamento('cartao_4x'); setFormaReal('')
     setExtras([]); setParcelas('4'); setBandoLargura(''); setBandoQtd('')
+    setCarrinho([])
   }
 
   const ok = resultado && !resultado.erro ? resultado : null
 
-  /* Totais da VENDA (linha principal + extras válidas) — é o que a tela mostra */
+  /* Totais da VENDA (carrinho + produto atual) — é o que a tela mostra */
   const soma = useMemo(() => {
-    if (!ok) return null
-    const rs = [ok, ...extrasOk.map(x => x.resultado as Resultado)]
+    const rs = [
+      ...carrinho.map(c => c.resultado),
+      ...(ok ? [ok, ...extrasOk.map(x => x.resultado as Resultado)] : []),
+    ]
+    if (rs.length === 0) return null
     const t4 = rs.reduce((s, r) => s + r.total4x, 0)
     const av = rs.reduce((s, r) => s + r.totalAvista, 0)
     const sobConsulta = rs.some(r => r.instalacao === 'sob_consulta')
@@ -352,7 +407,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
       : null
     return { rs, t4, av, inst, custo }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ok, extrasChave, extras])
+  }, [ok, extrasChave, extras, carrinho])
 
   const ehAdminView = soma?.custo != null
   const margem = soma && soma.custo != null
@@ -641,7 +696,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
               {calculando && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
             </div>
 
-            {!pronto && !ok && (
+            {!pronto && !ok && carrinho.length === 0 && (
               <p className="mt-3 flex items-center gap-2 text-sm text-foreground/40">
                 <Calculator className="h-4 w-4 shrink-0" />
                 Escolha o produto e as medidas — o preço aparece aqui na hora.
@@ -664,23 +719,46 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
               </div>
             )}
 
-            {ok && (
+            {soma && (
               <>
                 <p className="mt-1 font-display text-4xl font-bold tabular-nums text-primary">{brl(soma!.t4)}</p>
-                {/* mais de uma medida: mostra o que compõe o total */}
-                {soma!.rs.length > 1 && (
+                {/* o que compõe a venda: produtos guardados + o atual */}
+                {(carrinho.length > 0 || soma!.rs.length > 1) && (
                   <div className="mt-2 space-y-0.5 rounded-lg bg-muted/30 px-2.5 py-2">
-                    <p className="flex justify-between gap-2 text-xs text-foreground/70">
-                      <span className="tabular-nums">{largura}×{altura}m ×{quantidade || 1}</span>
-                      <span className="font-semibold tabular-nums">{brl(ok.total4x)}</span>
-                    </p>
-                    {extrasOk.map(x => (
+                    {carrinho.map(c => (
+                      <p key={c.id} className="flex items-center justify-between gap-2 text-xs text-foreground/70">
+                        <span className="min-w-0 truncate">{c.rotuloModelo} · {c.detalhe}</span>
+                        <span className="flex shrink-0 items-center gap-1.5">
+                          <span className="font-semibold tabular-nums">{brl(c.resultado.total4x)}</span>
+                          <button type="button" onClick={() => setCarrinho(p => p.filter(y => y.id !== c.id))}
+                            title="Tirar da venda"
+                            className="text-muted-foreground/50 transition-colors hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      </p>
+                    ))}
+                    {ok && (
+                      <p className="flex justify-between gap-2 text-xs text-foreground/70">
+                        <span className="tabular-nums">{largura}×{altura}m ×{quantidade || 1}</span>
+                        <span className="font-semibold tabular-nums">{brl(ok.total4x)}</span>
+                      </p>
+                    )}
+                    {ok && extrasOk.map(x => (
                       <p key={x.id} className="flex justify-between gap-2 text-xs text-foreground/70">
                         <span className="tabular-nums">{x.largura}×{x.altura}m ×{x.qtd || 1}</span>
                         <span className="font-semibold tabular-nums">{brl((x.resultado as Resultado).total4x)}</span>
                       </p>
                     ))}
                   </div>
+                )}
+                {/* produto novo pro MESMO cliente — modelo e tecido diferentes */}
+                {ok && !extrasPendentes && (
+                  <button type="button" onClick={guardarProduto}
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/5">
+                    <Plus className="h-3.5 w-3.5" />
+                    Guardar e adicionar outro produto (modelo/tecido)
+                  </button>
                 )}
                 {extrasPendentes && (
                   <p className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
@@ -700,12 +778,12 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   </p>
                 )}
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  {ok.emPromocao && (
+                  {ok?.emPromocao && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-bold text-primary">
                       <Tag className="h-3 w-3" /> em promoção{ok.descontoPct != null && ` (−${ok.descontoPct}%)`} — avise o cliente!
                     </span>
                   )}
-                  {ok.observacoes.map((o, i) => <span key={i}>{o}</span>)}
+                  {ok?.observacoes.map((o, i) => <span key={i}>{o}</span>)}
                 </div>
 
                 {ehAdminView && (

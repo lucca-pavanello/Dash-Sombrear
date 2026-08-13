@@ -278,6 +278,12 @@ export default function TabFechamento() {
         bodyStyles: { fontSize: 9 },
         margin: { left: 14, right: 14 },
       })
+      // "4x / 6x" sem explicação é código de programador — o papel explica a si mesmo
+      const fimTabela = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40
+      doc.setFontSize(8); doc.setTextColor(130)
+      doc.text(
+        'Pgto: como o preço foi calculado / como o cliente pagou. Ex.: "4x / 6x" = calculado em 4x, pago em 6x. "à vista" já inclui 5% de desconto.',
+        14, fimTabela + 8)
       doc.save(`fechamento-sombrear-${new Date().toISOString().slice(0, 10)}.pdf`)
     } finally {
       setBaixando(false)
