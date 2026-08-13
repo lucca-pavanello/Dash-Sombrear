@@ -118,7 +118,11 @@ export function useOrcamentos(
         todos.push(...lote)
         if (lote.length < PAGINA) break
       }
-      return todos
+      /* O harness de QA grava 8 orçamentos de mentira (cliente QA_HARNESS)
+         toda vez que roda — 7h todo dia — e só apaga uns 4 minutos depois,
+         quando termina de conferir. Nessa janela eles apareceriam na fila do
+         Acompanhar, nos KPIs e no faturamento como se fossem clientes. */
+      return todos.filter(o => o.cliente !== 'QA_HARNESS')
     },
     // Polling de fallback. A publication supabase_realtime já inclui
     // `orcamentos` (conferido em 13/08/2026), então com o canal conectado o
