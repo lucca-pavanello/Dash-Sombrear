@@ -6,7 +6,7 @@
  * outro (cliente quer ver 3 modelos → troca o modelo e salva de novo);
  * "Limpar" zera a visita inteira.
  */
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Calculator, CheckCircle2, ChevronRight, Eraser, History, Layers, Loader2, Plus, X,
@@ -104,7 +104,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   /* Mesmo pedido, mais de um tamanho (caso clássico: 3 de 0,96 e 1 de 1,20).
      A linha principal continua sendo largura/altura/quantidade; estas são as
      medidas EXTRAS do mesmo produto, calculadas e salvas junto. */
-  const [extras, setExtras] = useState<{ id: number; largura: string; altura: string; qtd: string; resultado: Resultado | null }[]>([])
+  const [extras, setExtras] = useState<{ id: number; largura: string; altura: string; qtd: string; amb: string; resultado: Resultado | null }[]>([])
   const extraIdRef = useRef(1)
   const [sugestoesAbertas, setSugestoesAbertas] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -254,8 +254,9 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setSalvando(true)
     try {
       const linhas = [
-        { largura, altura, qtd: quantidade, resultado: resultado as Resultado, principal: true },
-        ...extrasOk.map(x => ({ largura: x.largura, altura: x.altura, qtd: x.qtd, resultado: x.resultado as Resultado, principal: false })),
+        { largura, altura, qtd: quantidade, amb: ambiente, resultado: resultado as Resultado, principal: true },
+        // extra sem ambiente herda o da linha principal
+        ...extrasOk.map(x => ({ largura: x.largura, altura: x.altura, qtd: x.qtd, amb: x.amb || ambiente, resultado: x.resultado as Resultado, principal: false })),
       ]
 
       /* Parcelas + juros: o preço nasce pra 4x; se saiu em 5x/6x, registramos
@@ -295,7 +296,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
               bandoLargura: l.principal ? entrada.bandoLargura : undefined,
               bandoQuantidade: l.principal ? entrada.bandoQuantidade : undefined,
             },
-            cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda,
+            cliente: cliente.trim(), telefone: telefone.trim(), ambiente: l.amb.trim(), fechado: !!modoVenda,
             valor_cobrado: cobradoLinha, forma_pagamento: formaPagamento,
             forma_pagamento_real: formaRealFinal || null },
         })
@@ -519,46 +520,54 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-foreground/35">Medidas</span>
                   <div className="flex-1 h-px bg-border/50" />
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  <div>
-                    <label className={labelCls}>Largura (m)</label>
-                    <input className={inputCls} inputMode="decimal" placeholder="1,20"
-                      value={largura} onChange={e => setLargura(e.target.value.replace(',', '.'))} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Altura (m)</label>
-                    <input className={inputCls} inputMode="decimal" placeholder="1,50"
-                      value={altura} onChange={e => setAltura(e.target.value.replace(',', '.'))} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Qtd</label>
-                    <input className={inputCls} inputMode="numeric"
-                      value={quantidade} onChange={e => setQuantidade(e.target.value)} />
-                  </div>
-                </div>
+                {/* Todas as linhas na MESMA grade — o X tem coluna própria,
+                    então nada desalinha. Ambiente por medida: Sala 1 + Quarto
+                    na mesma venda, como no Calcular. */}
+                <div className="grid grid-cols-[1fr_1fr_0.55fr_1fr_1.75rem] items-center gap-x-2 gap-y-2 sm:gap-x-3">
+                  <label className={cn(labelCls, 'mb-0')}>Largura (m)</label>
+                  <label className={cn(labelCls, 'mb-0')}>Altura (m)</label>
+                  <label className={cn(labelCls, 'mb-0')}>Qtd</label>
+                  <label className={cn(labelCls, 'mb-0')}>Ambiente</label>
+                  <span aria-hidden="true" />
 
-                {/* Mais tamanhos do MESMO produto na mesma venda (caso Moraes) */}
-                {extras.map(x => (
-                  <div key={x.id} className="mt-2 grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2 sm:gap-3">
-                    <input className={inputCls} inputMode="decimal" placeholder="Largura" aria-label="Largura (m)"
-                      value={x.largura}
-                      onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, largura: e.target.value.replace(',', '.'), resultado: null } : y))} />
-                    <input className={inputCls} inputMode="decimal" placeholder="Altura" aria-label="Altura (m)"
-                      value={x.altura}
-                      onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, altura: e.target.value.replace(',', '.'), resultado: null } : y))} />
-                    <input className={inputCls} inputMode="numeric" placeholder="Qtd" aria-label="Quantidade"
-                      value={x.qtd}
-                      onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, qtd: e.target.value, resultado: null } : y))} />
-                    <button type="button" onClick={() => setExtras(p => p.filter(y => y.id !== x.id))}
-                      title="Remover esta medida"
-                      className="rounded-lg p-2 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                  <input className={inputCls} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
+                    value={largura} onChange={e => setLargura(e.target.value.replace(',', '.'))} />
+                  <input className={inputCls} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
+                    value={altura} onChange={e => setAltura(e.target.value.replace(',', '.'))} />
+                  <input className={inputCls} inputMode="numeric" aria-label="Quantidade"
+                    value={quantidade} onChange={e => setQuantidade(e.target.value)} />
+                  <input className={inputCls} placeholder="Sala…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
+                    value={ambiente} onChange={e => setAmbiente(e.target.value)} />
+                  <span aria-hidden="true" />
+
+                  {extras.map(x => (
+                    <Fragment key={x.id}>
+                      <input className={inputCls} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
+                        value={x.largura}
+                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, largura: e.target.value.replace(',', '.'), resultado: null } : y))} />
+                      <input className={inputCls} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
+                        value={x.altura}
+                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, altura: e.target.value.replace(',', '.'), resultado: null } : y))} />
+                      <input className={inputCls} inputMode="numeric" aria-label="Quantidade"
+                        value={x.qtd}
+                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, qtd: e.target.value, resultado: null } : y))} />
+                      <input className={inputCls} placeholder="Quarto…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
+                        value={x.amb}
+                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, amb: e.target.value } : y))} />
+                      <button type="button" onClick={() => setExtras(p => p.filter(y => y.id !== x.id))}
+                        title="Remover esta medida"
+                        className="justify-self-center rounded-lg p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </Fragment>
+                  ))}
+                </div>
+                <datalist id="sugestoes-ambiente-sim">
+                  {SUGESTOES_AMBIENTE.map(s => <option key={s} value={s} />)}
+                </datalist>
                 <button type="button"
-                  onClick={() => setExtras(p => [...p, { id: extraIdRef.current++, largura: '', altura: '', qtd: '1', resultado: null }])}
-                  className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary transition-opacity hover:opacity-80">
+                  onClick={() => setExtras(p => [...p, { id: extraIdRef.current++, largura: '', altura: '', qtd: '1', amb: '', resultado: null }])}
+                  className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-primary transition-opacity hover:opacity-80">
                   <Plus className="h-3.5 w-3.5" />
                   Adicionar outra medida — mesmo modelo e tecido
                 </button>
@@ -577,7 +586,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
             <SectionHeader step="2" icon={<User className="h-3.5 w-3.5" />} title="Cliente"
               hint="— opcional; vale pra todos os modelos que salvar nesta visita" />
             <div className="mt-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="relative">
                   <label className={labelCls}>Nome</label>
                   <input className={inputCls} placeholder="Balcão" autoComplete="off"
@@ -614,14 +623,6 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   <label className={labelCls}>Telefone</label>
                   <input className={inputCls} inputMode="tel" placeholder="(00) 00000-0000"
                     value={telefone} onChange={e => setTelefone(e.target.value)} />
-                </div>
-                <div>
-                  <label className={labelCls}>Ambiente</label>
-                  <input className={inputCls} placeholder="Sala, Quarto…" list="sugestoes-ambiente-sim"
-                    value={ambiente} onChange={e => setAmbiente(e.target.value)} />
-                  <datalist id="sugestoes-ambiente-sim">
-                    {SUGESTOES_AMBIENTE.map(s => <option key={s} value={s} />)}
-                  </datalist>
                 </div>
               </div>
             </div>
