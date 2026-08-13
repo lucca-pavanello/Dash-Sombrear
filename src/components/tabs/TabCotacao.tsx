@@ -91,6 +91,8 @@ interface FormState {
   responsavel: string
   whatsapp: boolean
   cliente: string
+  /** WhatsApp do cliente — opcional, mas é o que permite cobrar depois */
+  telefone: string
 }
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -121,7 +123,7 @@ function ambienteFilled(a: Ambiente) {
   return a.persianas.length > 0 && a.persianas.every(persianaFilled)
 }
 
-const INITIAL_FORM: FormState = { responsavel: DEFAULT_RESPONSAVEL, whatsapp: false, cliente: '' }
+const INITIAL_FORM: FormState = { responsavel: DEFAULT_RESPONSAVEL, whatsapp: false, cliente: '', telefone: '' }
 
 function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
   try {
@@ -416,6 +418,7 @@ export default function TabCotacao() {
       responsavel: form.responsavel,
       whatsapp: form.whatsapp,
       cliente: form.cliente.trim(),
+      telefone: form.telefone.replace(/\D/g, '') || null,
       fonte: 'planilha',
       user_id: userId,
       ambientes: ambientes.map((a, aIdx) => ({
@@ -567,6 +570,17 @@ export default function TabCotacao() {
                           Cliente conhecido: {resumoHistorico(historicoCliente)}
                         </p>
                       )}
+                    </div>
+                    <div>
+                      <label className={labelCls}>WhatsApp do cliente</label>
+                      <input
+                        type="tel" inputMode="tel" value={form.telefone}
+                        onChange={e => setField('telefone', e.target.value)}
+                        className={inputCls} placeholder="(17) 99999-9999" autoComplete="off"
+                      />
+                      <p className="mt-1.5 text-[11px] text-foreground/45">
+                        Opcional — com ele dá pra cobrar a resposta pelo WhatsApp lá em Acompanhar.
+                      </p>
                     </div>
                     <div className="sm:col-span-2">
                       <label className={labelCls}>
