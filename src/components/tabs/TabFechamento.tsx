@@ -267,8 +267,7 @@ export default function TabFechamento() {
 
       autoTable(doc, {
         startY: inicioY,
-        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pagamento
-fechado / feito', 'Cliente pagou', 'À parceira', 'Sobra']],
+        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pagamento\nfechado / feito', 'Cliente pagou', 'À parceira', 'Sobra']],
         body: vendas.map(o => [
           formatDate(o.created_at),
           o.cliente ?? '—',
