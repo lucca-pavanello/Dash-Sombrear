@@ -9,7 +9,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Calculator, CheckCircle2, ChevronRight, Eraser, History, Layers, Loader2,
+  Calculator, CheckCircle2, ChevronRight, Eraser, History, Layers, Loader2, Plus, X,
   Ruler, Save, Sparkles, Tag, User, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -99,6 +99,14 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [formaPagamento, setFormaPagamento] = useState('cartao_4x')
   // o que a loja combinou define o preço; isto aqui é como o cliente pagou
   const [formaReal, setFormaReal] = useState('')
+  // em quantas vezes saiu de verdade — o juro embutido é derivado disto
+  const [parcelas, setParcelas] = useState('4')
+  /* Mesmo pedido, mais de um tamanho (caso clássico: 3 de 0,96 e 1 de 1,20).
+     A linha principal continua sendo largura/altura/quantidade; estas são as
+     medidas EXTRAS do mesmo produto, calculadas e salvas junto. */
+  const [extras, setExtras] = useState<{ id: number; largura: string; altura: string; qtd: string; resultado: Resultado | null }[]>([])
+  const extraIdRef = useRef(1)
+  const [sugestoesAbertas, setSugestoesAbertas] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const chamadaRef = useRef(0)
 
@@ -113,6 +121,39 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   })
+
+  /* Clientes que já passaram pela loja — pro "Moraes" completar sozinho.
+     Uma busca só, deduplicada por nome; o telefone vem do registro mais recente. */
+  const { data: clientesConhecidos } = useQuery({
+    queryKey: ['clientes-conhecidos'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('orcamentos')
+        .select('cliente, telefone, created_at')
+        .not('cliente', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(800)
+      if (error) throw error
+      const mapa = new Map<string, { nome: string; telefone: string | null }>()
+      for (const r of data ?? []) {
+        const nome = (r.cliente ?? '').trim()
+        if (!nome || nome.toLowerCase() === 'balcão') continue
+        const chave = nome.toLowerCase()
+        const atual = mapa.get(chave)
+        if (!atual) mapa.set(chave, { nome, telefone: r.telefone ?? null })
+        else if (!atual.telefone && r.telefone) atual.telefone = r.telefone
+      }
+      return [...mapa.values()]
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+  const sugestoesCliente = useMemo(() => {
+    const q = cliente.trim().toLowerCase()
+    if (q.length < 2 || !clientesConhecidos) return []
+    return clientesConhecidos
+      .filter(c => c.nome.toLowerCase().includes(q) && c.nome.toLowerCase() !== q)
+      .slice(0, 5)
+  }, [cliente, clientesConhecidos])
 
   const num = (s: string) => parseFloat(s.replace(',', '.')) || 0
   const comTecido = modelo === 'Rolo' || modelo === 'Double' || modelo === 'Romana'
@@ -140,7 +181,6 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   useEffect(() => {
     setSalvoAtual(false)
     setValorCobrado('')
-    setBandoLargura(''); setBandoQtd('')
     setFormaPagamento('cartao_4x')
     setFormaReal('')
     if (!pronto) { setResultado(null); return }
@@ -164,28 +204,118 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [entrada, pronto])
 
+  /* ── medidas extras: mesmo produto, outros tamanhos ── */
+  // a chave ignora o resultado de propósito: depender dele criaria loop
+  const extrasChave = JSON.stringify(extras.map(x => [x.id, x.largura, x.altura, x.qtd]))
+  const extrasDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    setSalvoAtual(false)
+    setValorCobrado('')
+    if (extrasDebounceRef.current) clearTimeout(extrasDebounceRef.current)
+    extrasDebounceRef.current = setTimeout(async () => {
+      const alvos = extras.filter(x => num(x.largura) > 0 && num(x.altura) > 0)
+      if (alvos.length === 0) return
+      const respostas = await Promise.all(alvos.map(async x => {
+        try {
+          const { data, error } = await supabase.functions.invoke('simular', {
+            body: { acao: 'calcular', entrada: {
+              ...entrada,
+              largura: num(x.largura), altura: num(x.altura),
+              quantidade: Math.max(1, Math.round(num(x.qtd))),
+              // o bandô de peça única vale UMA vez por venda — vai só na linha principal
+              bandoLargura: undefined, bandoQuantidade: undefined,
+            } },
+          })
+          if (error) throw error
+          return { id: x.id, resultado: data as Resultado }
+        } catch {
+          return { id: x.id, resultado: { erro: 'Não consegui calcular esta medida.' } as Resultado }
+        }
+      }))
+      setExtras(prev => prev.map(x => {
+        const r = respostas.find(y => y.id === x.id)
+        return r ? { ...x, resultado: r.resultado } : x
+      }))
+    }, 500)
+    return () => { if (extrasDebounceRef.current) clearTimeout(extrasDebounceRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extrasChave, entrada])
+
+  const extrasValidas = extras.filter(x => num(x.largura) > 0 && num(x.altura) > 0)
+  const extrasOk = extrasValidas.filter(x => x.resultado && !x.resultado.erro)
+  const extrasPendentes = extrasValidas.length !== extrasOk.length
+
   async function salvar() {
-    if (!resultado || resultado.erro || salvando || salvoAtual) return
+    if (!resultado || resultado.erro || salvando || salvoAtual || !soma) return
+    if (extrasPendentes) {
+      toast('error', 'Tem medida extra incompleta ou com erro — confira antes de salvar.')
+      return
+    }
     setSalvando(true)
     try {
-      const { data, error } = await supabase.functions.invoke('simular', {
-        body: { acao: 'salvar', entrada, cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda,
-          valor_cobrado: num(valorCobrado) || null, forma_pagamento: formaPagamento,
-          forma_pagamento_real: formaReal.trim() || null },
-      })
-      if (error) throw error
-      if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
-      const detalheProduto = comTecido ? tecido
-        : modelo === 'PH_50' ? (opcoes?.ph50.find(i => i.valor === artigo)?.label ?? artigo)
-        : artigo
-      setSalvos(prev => [...prev, {
-        id: (data as { id: string }).id,
-        modelo: MODELOS.find(m => m.id === modelo)?.label ?? modelo,
-        detalhe: `${detalheProduto} · ${largura}×${altura}m`,
-        total: resultado.total4x,
-      }])
+      const linhas = [
+        { largura, altura, qtd: quantidade, resultado: resultado as Resultado, principal: true },
+        ...extrasOk.map(x => ({ largura: x.largura, altura: x.altura, qtd: x.qtd, resultado: x.resultado as Resultado, principal: false })),
+      ]
+
+      /* Parcelas + juros: o preço nasce pra 4x; se saiu em 5x/6x, registramos
+         quantas vezes e o juro embutido — a taxa é o que a loja quer olhar depois. */
+      const cobradoTotal = num(valorCobrado) || null
+      const cobradoEfetivo = cobradoTotal ?? soma.t4
+      const nParcelas = Math.round(num(parcelas))
+      let formaRealFinal = formaReal.trim()
+      if (formaPagamento === 'outro' && nParcelas >= 2) {
+        const juros = cobradoEfetivo > soma.t4 + 0.009
+          ? ` · +${(((cobradoEfetivo - soma.t4) / soma.t4) * 100).toFixed(1)}% de juros`
+          : ''
+        const auto = `${nParcelas}x de ${brl(cobradoEfetivo / nParcelas)}${juros}`
+        formaRealFinal = formaRealFinal ? `${auto} — ${formaRealFinal}` : auto
+      }
+
+      /* Valor cobrado diferente do calculado se distribui proporcionalmente
+         entre as linhas, pra soma no Fechamento bater com o combinado. */
+      const somaT4 = linhas.reduce((s, l) => s + l.resultado.total4x, 0)
+      let acumulado = 0
+      const novos: Salvo[] = []
+      for (let i = 0; i < linhas.length; i++) {
+        const l = linhas[i]
+        let cobradoLinha: number | null = null
+        if (cobradoTotal != null) {
+          cobradoLinha = i === linhas.length - 1
+            ? Math.round((cobradoTotal - acumulado) * 100) / 100
+            : Math.round(cobradoTotal * (l.resultado.total4x / somaT4) * 100) / 100
+          acumulado += cobradoLinha
+        }
+        const { data, error } = await supabase.functions.invoke('simular', {
+          body: { acao: 'salvar',
+            entrada: { ...entrada,
+              largura: num(l.largura), altura: num(l.altura),
+              quantidade: Math.max(1, Math.round(num(l.qtd))),
+              // bandô de peça única é um por venda — só a linha principal leva
+              bandoLargura: l.principal ? entrada.bandoLargura : undefined,
+              bandoQuantidade: l.principal ? entrada.bandoQuantidade : undefined,
+            },
+            cliente: cliente.trim(), telefone: telefone.trim(), ambiente: ambiente.trim(), fechado: !!modoVenda,
+            valor_cobrado: cobradoLinha, forma_pagamento: formaPagamento,
+            forma_pagamento_real: formaRealFinal || null },
+        })
+        if (error) throw error
+        if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
+        const detalheProduto = comTecido ? tecido
+          : modelo === 'PH_50' ? (opcoes?.ph50.find(i => i.valor === artigo)?.label ?? artigo)
+          : artigo
+        novos.push({
+          id: (data as { id: string }).id,
+          modelo: MODELOS.find(m => m.id === modelo)?.label ?? modelo,
+          detalhe: `${detalheProduto} · ${l.largura}×${l.altura}m${Math.round(num(l.qtd)) > 1 ? ` ×${Math.round(num(l.qtd))}` : ''}`,
+          total: l.resultado.total4x,
+        })
+      }
+      setSalvos(prev => [...prev, ...novos])
       setSalvoAtual(true)
-      toast('success', modoVenda ? 'Venda registrada no Fechamento!' : 'Orçamento salvo na Planilha!')
+      toast('success', modoVenda
+        ? `Venda registrada no Fechamento! (${linhas.length} ${linhas.length > 1 ? 'itens' : 'item'})`
+        : `Orçamento salvo na Planilha! (${linhas.length} ${linhas.length > 1 ? 'itens' : 'item'})`)
       aoSalvar?.()
     } catch (err) {
       toast('error', err instanceof Error ? err.message : 'Erro ao salvar. Tente de novo.')
@@ -201,15 +331,33 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     setAcabamento('nenhum'); setInstalacao(false)
     setCliente(''); setTelefone(''); setAmbiente('')
     setResultado(null); setSalvoAtual(false); setSalvos([]); setValorCobrado(''); setFormaPagamento('cartao_4x'); setFormaReal('')
+    setExtras([]); setParcelas('4'); setBandoLargura(''); setBandoQtd('')
   }
 
   const ok = resultado && !resultado.erro ? resultado : null
-  const ehAdminView = ok?.custoProduto != null
-  const margem = ehAdminView && ok
+
+  /* Totais da VENDA (linha principal + extras válidas) — é o que a tela mostra */
+  const soma = useMemo(() => {
+    if (!ok) return null
+    const rs = [ok, ...extrasOk.map(x => x.resultado as Resultado)]
+    const t4 = rs.reduce((s, r) => s + r.total4x, 0)
+    const av = rs.reduce((s, r) => s + r.totalAvista, 0)
+    const sobConsulta = rs.some(r => r.instalacao === 'sob_consulta')
+    const instNums = rs.map(r => r.instalacao).filter((v): v is number => typeof v === 'number')
+    const inst: number | 'sob_consulta' | null =
+      sobConsulta ? 'sob_consulta' : instNums.length ? instNums.reduce((a, b) => a + b, 0) : null
+    const custo = rs.every(r => r.custoProduto != null)
+      ? rs.reduce((s, r) => s + (r.custoProduto ?? 0) + (r.custoAcabamento ?? 0), 0)
+      : null
+    return { rs, t4, av, inst, custo }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ok, extrasChave, extras])
+
+  const ehAdminView = soma?.custo != null
+  const margem = soma && soma.custo != null
     ? (() => {
-        const receita = ok.total4x + (typeof ok.instalacao === 'number' ? ok.instalacao : 0)
-        const custo = (ok.custoProduto ?? 0) + (ok.custoAcabamento ?? 0)
-        return receita > 0 ? ((receita - custo) / receita) * 100 : null
+        const receita = soma.t4 + (typeof soma.inst === 'number' ? soma.inst : 0)
+        return receita > 0 ? ((receita - soma.custo!) / receita) * 100 : null
       })()
     : null
 
@@ -388,6 +536,33 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                       value={quantidade} onChange={e => setQuantidade(e.target.value)} />
                   </div>
                 </div>
+
+                {/* Mais tamanhos do MESMO produto na mesma venda (caso Moraes) */}
+                {extras.map(x => (
+                  <div key={x.id} className="mt-2 grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2 sm:gap-3">
+                    <input className={inputCls} inputMode="decimal" placeholder="Largura" aria-label="Largura (m)"
+                      value={x.largura}
+                      onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, largura: e.target.value.replace(',', '.'), resultado: null } : y))} />
+                    <input className={inputCls} inputMode="decimal" placeholder="Altura" aria-label="Altura (m)"
+                      value={x.altura}
+                      onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, altura: e.target.value.replace(',', '.'), resultado: null } : y))} />
+                    <input className={inputCls} inputMode="numeric" placeholder="Qtd" aria-label="Quantidade"
+                      value={x.qtd}
+                      onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, qtd: e.target.value, resultado: null } : y))} />
+                    <button type="button" onClick={() => setExtras(p => p.filter(y => y.id !== x.id))}
+                      title="Remover esta medida"
+                      className="rounded-lg p-2 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button type="button"
+                  onClick={() => setExtras(p => [...p, { id: extraIdRef.current++, largura: '', altura: '', qtd: '1', resultado: null }])}
+                  className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary transition-opacity hover:opacity-80">
+                  <Plus className="h-3.5 w-3.5" />
+                  Adicionar outra medida — mesmo modelo e tecido
+                </button>
+
                 <label className="mt-3 flex items-center gap-2 text-sm font-medium">
                   <input type="checkbox" checked={instalacao} onChange={e => setInstalacao(e.target.checked)}
                     className="h-4 w-4 accent-primary" />
@@ -403,10 +578,31 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
               hint="— opcional; vale pra todos os modelos que salvar nesta visita" />
             <div className="mt-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div>
+                <div className="relative">
                   <label className={labelCls}>Nome</label>
                   <input className={inputCls} placeholder="Balcão" autoComplete="off"
-                    value={cliente} onChange={e => setCliente(e.target.value)} />
+                    value={cliente}
+                    onChange={e => { setCliente(e.target.value); setSugestoesAbertas(true) }}
+                    onFocus={() => setSugestoesAbertas(true)}
+                    onBlur={() => setTimeout(() => setSugestoesAbertas(false), 150)} />
+                  {/* cliente conhecido: clica e preenche, sem remontar cadastro */}
+                  {sugestoesAbertas && sugestoesCliente.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border bg-card shadow-elevated">
+                      {sugestoesCliente.map(s => (
+                        <button key={s.nome} type="button"
+                          onMouseDown={e => {
+                            e.preventDefault()
+                            setCliente(s.nome)
+                            if (s.telefone && !telefone.trim()) setTelefone(s.telefone)
+                            setSugestoesAbertas(false)
+                          }}
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-primary/[0.06]">
+                          <span className="truncate font-medium">{s.nome}</span>
+                          {s.telefone && <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{s.telefone}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {historicoCliente && (
                     <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-primary">
                       <History className="h-3 w-3 shrink-0" />
@@ -469,17 +665,37 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
             {ok && (
               <>
-                <p className="mt-1 font-display text-4xl font-bold tabular-nums text-primary">{brl(ok.total4x)}</p>
+                <p className="mt-1 font-display text-4xl font-bold tabular-nums text-primary">{brl(soma!.t4)}</p>
+                {/* mais de uma medida: mostra o que compõe o total */}
+                {soma!.rs.length > 1 && (
+                  <div className="mt-2 space-y-0.5 rounded-lg bg-muted/30 px-2.5 py-2">
+                    <p className="flex justify-between gap-2 text-xs text-foreground/70">
+                      <span className="tabular-nums">{largura}×{altura}m ×{quantidade || 1}</span>
+                      <span className="font-semibold tabular-nums">{brl(ok.total4x)}</span>
+                    </p>
+                    {extrasOk.map(x => (
+                      <p key={x.id} className="flex justify-between gap-2 text-xs text-foreground/70">
+                        <span className="tabular-nums">{x.largura}×{x.altura}m ×{x.qtd || 1}</span>
+                        <span className="font-semibold tabular-nums">{brl((x.resultado as Resultado).total4x)}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {extrasPendentes && (
+                  <p className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    Calculando as medidas extras…
+                  </p>
+                )}
                 <p className="mt-0.5 text-sm text-foreground/60">
-                  em até <strong>4x de {brl(ok.total4x / 4)}</strong> sem juros
+                  em até <strong>4x de {brl(soma!.t4 / 4)}</strong> sem juros
                 </p>
                 <p className="text-sm text-foreground/60">
-                  à vista <strong>{brl(ok.totalAvista)}</strong> (−5%)
+                  à vista <strong>{brl(soma!.av)}</strong> (−5%)
                 </p>
-                {ok.instalacao != null && (
+                {soma!.inst != null && (
                   <p className="mt-1 text-sm text-foreground/60">
-                    Instalação: <strong>{ok.instalacao === 'sob_consulta' ? 'sob consulta' : brl(ok.instalacao)}</strong>
-                    {typeof ok.instalacao === 'number' && <> · total <strong>{brl(ok.total4x + ok.instalacao)}</strong></>}
+                    Instalação: <strong>{soma!.inst === 'sob_consulta' ? 'sob consulta' : brl(soma!.inst)}</strong>
+                    {typeof soma!.inst === 'number' && <> · total <strong>{brl(soma!.t4 + soma!.inst)}</strong></>}
                   </p>
                 )}
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -494,7 +710,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                 {ehAdminView && (
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
                     <span className="rounded-full bg-muted px-2 py-0.5">
-                      Custo: {brl((ok.custoProduto ?? 0) + (ok.custoAcabamento ?? 0))}
+                      Custo: {brl(soma!.custo ?? 0)}
                     </span>
                     {margem != null && (
                       <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
@@ -509,15 +725,16 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   <label className={labelCls}>Forma de pagamento</label>
                   <div className="mb-3 grid grid-cols-3 gap-1.5">
                     {[
-                      { id: 'cartao_4x', rotulo: 'Cartão 4x', valor: () => ok?.total4x },
-                      { id: 'a_vista', rotulo: 'À vista −5%', valor: () => ok?.totalAvista },
-                      { id: 'outro', rotulo: 'Outro', valor: () => undefined },
+                      { id: 'cartao_4x', rotulo: 'Cartão 4x', valor: () => soma?.t4, vezes: '4' },
+                      { id: 'a_vista', rotulo: 'À vista −5%', valor: () => soma?.av, vezes: '1' },
+                      { id: 'outro', rotulo: 'Outro', valor: () => undefined, vezes: '' },
                     ].map(op => (
                       <button
                         key={op.id}
                         type="button"
                         onClick={() => {
                           setFormaPagamento(op.id)
+                          if (op.vezes) setParcelas(op.vezes)
                           const v = op.valor()
                           // a forma escolhida já preenche o valor real da venda
                           setValorCobrado(v != null ? v.toFixed(2) : '')
@@ -533,6 +750,13 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                       </button>
                     ))}
                   </div>
+                  {formaPagamento === 'outro' && (
+                    <div className="mb-3">
+                      <label className={labelCls}>Em quantas vezes?</label>
+                      <input className={inputCls} inputMode="numeric" placeholder="5"
+                        value={parcelas} onChange={e => setParcelas(e.target.value)} />
+                    </div>
+                  )}
                   <label className={labelCls}>Pagou de outro jeito? (opcional)</label>
                   <input
                     className={cn(inputCls, 'mb-3')}
@@ -545,31 +769,45 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   <input
                     className={inputCls}
                     inputMode="decimal"
-                    placeholder={ok ? brl(ok.total4x).replace('R$ ', '') : ''}
+                    placeholder={soma ? brl(soma.t4).replace('R$ ', '') : ''}
                     value={valorCobrado}
                     onChange={e => setValorCobrado(e.target.value.replace(',', '.'))}
                   />
                   {(() => {
                     const cobrado = num(valorCobrado)
-                    if (!ok || !cobrado || Math.abs(cobrado - ok.total4x) < 0.01) {
-                      return <p className="mt-1 mb-3 text-[11px] text-foreground/40">Deixe vazio para cobrar o valor calculado.</p>
-                    }
-                    const dif = cobrado - ok.total4x
-                    const pct = (dif / ok.total4x) * 100
-                    return (
-                      <p className={cn('mt-1 mb-3 text-[11px] font-semibold',
-                        dif < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
-                        {dif < 0 ? 'Desconto' : 'Acréscimo'} de {brl(Math.abs(dif))} ({Math.abs(pct).toFixed(1)}%)
-                        {dif < 0 && ok.custoProduto != null && (
-                          <> · margem cai para {(((cobrado - (ok.custoProduto + (ok.custoAcabamento ?? 0))) / cobrado) * 100).toFixed(0)}%</>
-                        )}
+                    const efetivo = cobrado || soma!.t4
+                    const n = Math.round(num(parcelas))
+                    // "no valor real tem que aparecer embaixo os quatro vezes" — sempre visível
+                    const linhaParcela = n >= 2 && efetivo > 0 ? (
+                      <p className="mt-1 text-[11px] font-semibold text-foreground/70 tabular-nums">
+                        {n}x de {brl(efetivo / n)}
                       </p>
+                    ) : null
+                    if (!cobrado || Math.abs(cobrado - soma!.t4) < 0.01) {
+                      return <>{linhaParcela}<p className="mt-1 mb-3 text-[11px] text-foreground/40">Deixe vazio para cobrar o valor calculado.</p></>
+                    }
+                    const dif = cobrado - soma!.t4
+                    const pct = (dif / soma!.t4) * 100
+                    // acréscimo em "Outro" é juros de parcelamento — e é assim que fica gravado
+                    const ehJuros = formaPagamento === 'outro' && dif > 0
+                    return (
+                      <>
+                        {linhaParcela}
+                        <p className={cn('mt-1 mb-3 text-[11px] font-semibold',
+                          dif < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400')}>
+                          {dif < 0 ? 'Desconto' : ehJuros ? 'Juros' : 'Acréscimo'} de {brl(Math.abs(dif))} ({Math.abs(pct).toFixed(1)}%)
+                          {dif < 0 && soma!.custo != null && (
+                            <> · margem cai para {(((cobrado - soma!.custo!) / cobrado) * 100).toFixed(0)}%</>
+                          )}
+                          {ehJuros && ' — fica registrado na venda'}
+                        </p>
+                      </>
                     )
                   })()}
                   <button
                     type="button"
                     onClick={salvar}
-                    disabled={salvando || calculando || salvoAtual}
+                    disabled={salvando || calculando || salvoAtual || extrasPendentes}
                     className={cn(
                       'flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3.5 text-sm font-bold transition-all duration-150 active:scale-[0.98]',
                       salvoAtual
