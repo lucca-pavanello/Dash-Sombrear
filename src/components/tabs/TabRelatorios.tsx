@@ -23,6 +23,7 @@ import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agent
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import type { Orcamento } from '@/lib/supabase'
 import JanelaDados from '@/components/orcamentos/JanelaDados'
+import ResumosIA from '@/components/relatorios/ResumosIA'
 
 const PERIODOS = [
   { value: 'mes', label: 'Este mês' },
@@ -316,6 +317,8 @@ export default function TabRelatorios() {
           </div>
         </div>
       )}
+
+      <ResumosIA />
 
       <JanelaDados className="mt-6" />
     </>
