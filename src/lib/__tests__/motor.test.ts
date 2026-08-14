@@ -11,7 +11,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { simular, type DadosSim, type EntradaSim } from '../simulador'
-import { calcularCortina, type DadosCortina, type EntradaCortina } from '../cortina'
+import { calcularAmbientesCortina, calcularCortina, type DadosCortina, type EntradaCortina } from '../cortina'
 import persianaFix from './fixtures/precos-persiana.json'
 import cortinaFix from './fixtures/precos-cortina.json'
 
@@ -227,5 +227,46 @@ describe('cortina — regras da rodada 2 (respostas da loja, 14/08 à tarde)', (
     }, dRodada2))
     expect(alto.fator).toBe(3)
     expect(alto.corte).toBeCloseTo(3.8, 2)                    // wave mantém 0,12
+  })
+})
+
+describe('cortina — orçamento de vários ambientes (o desenho do Calcular)', () => {
+  const cortinaBase = {
+    id: 1, modelo: 'wave' as const, tecido: 'Tecido padrão', forro: null,
+    suporte: 'trilho_simples' as const, franzido: false, franzidoTecido: null,
+    incluirColocacao: false,
+  }
+
+  it('soma os ambientes e aplica o acréscimo UMA vez, sobre a soma crua', () => {
+    const r = calcularAmbientesCortina([
+      { id: 1, nome: 'Sala', cortinas: [{ ...cortinaBase, medidas: [{ largura: '2,50', altura: '2,55', quantidade: '1' }] }] },
+      { id: 2, nome: 'Suíte', cortinas: [{ ...cortinaBase, id: 2, medidas: [{ largura: '1,60', altura: '2,55', quantidade: '1' }] }] },
+    ], dCortina)
+    expect(r.ok).toHaveLength(2)
+    // 610,42 + 390,67 nos goldens individuais
+    expect(r.subtotal).toBeCloseTo(1001.08, 2)
+    // 6% sobre a soma SEM arredondar antes — não sobre os subtotais arredondados
+    expect(r.parcelado).toBeCloseTo(1061.15, 2)
+  })
+
+  it('medida vazia não vira item; erro de um item não derruba os outros', () => {
+    const r = calcularAmbientesCortina([
+      { id: 1, nome: '', cortinas: [{ ...cortinaBase, medidas: [
+        { largura: '2,50', altura: '2,55', quantidade: '1' },
+        { largura: '', altura: '', quantidade: '1' },          // em branco: ignora
+      ] }] },
+      { id: 2, nome: 'Varanda', cortinas: [{ ...cortinaBase, id: 3, suporte: 'varao_duplo',
+        medidas: [{ largura: '2,00', altura: '2,30', quantidade: '1' }] }] },   // sem preço: erro
+    ], dCortina)
+    expect(r.ok).toHaveLength(1)
+    expect(r.erros).toHaveLength(1)
+    expect(r.subtotal).toBeCloseTo(610.42, 2)
+  })
+
+  it('quantidade 2 na medida dobra o item', () => {
+    const r = calcularAmbientesCortina([
+      { id: 1, nome: 'Sala', cortinas: [{ ...cortinaBase, medidas: [{ largura: '2,50', altura: '2,55', quantidade: '2' }] }] },
+    ], dCortina)
+    expect(r.subtotal).toBeCloseTo(1220.83, 2)   // 2 × 610,4166…, arredondado no fim
   })
 })

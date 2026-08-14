@@ -68,6 +68,8 @@ export interface ItemCortina {
 
 export interface ResultadoCortina {
   wave: 'regular' | 'irregular'
+  /** subtotal SEM arredondar — o agregador de ambientes soma estes e só arredonda no fim */
+  subtotalPreciso: number
   fator: number
   consumo: number         // metros de tecido de UMA cortina
   alturas: number | null  // só existe no Wave irregular
@@ -276,9 +278,96 @@ export function calcularCortina(
 
   return {
     wave: irregular ? 'irregular' : 'regular',
+    subtotalPreciso: subtotalCru,
     fator, consumo: r2(consumo), alturas, corte: corte != null ? r2(corte) : null,
     memorial,
     itens: itens.map(i => ({ ...i, valor: r2(i.valor * qtd) })),
     quantidade: qtd, subtotal, parcelado, avista, observacoes,
+  }
+}
+
+/* ── orçamento com vários ambientes — o mesmo desenho do Calcular ───────── */
+
+export interface MedidaCortina { largura: string; altura: string; quantidade: string }
+export interface CortinaConfig {
+  id: number
+  modelo: ModeloCortina
+  tecido: string
+  forro: string | null
+  suporte: SuporteCortina
+  franzido: boolean
+  franzidoTecido: string | null
+  incluirColocacao: boolean
+  medidas: MedidaCortina[]
+}
+export interface AmbienteCortina { id: number; nome: string; cortinas: CortinaConfig[] }
+
+export interface ItemOrcamentoCortina {
+  ambiente: string
+  cortina: CortinaConfig
+  medida: MedidaCortina
+  resultado: ResultadoCortina | { erro: string }
+}
+export interface OrcamentoCortinas {
+  itens: ItemOrcamentoCortina[]
+  /** só os que calcularam */
+  ok: (ItemOrcamentoCortina & { resultado: ResultadoCortina })[]
+  erros: string[]
+  subtotal: number
+  parcelado: number
+  avista: number
+}
+
+const numBR = (v: string) => {
+  const n = parseFloat(String(v).replace(',', '.'))
+  return Number.isFinite(n) ? n : 0
+}
+
+/**
+ * Roda o motor medida a medida e fecha o total do orçamento inteiro.
+ * O acréscimo/desconto entra UMA vez, sobre a soma crua — mesmo princípio
+ * do arredondar-no-fim que vale para uma cortina só.
+ */
+export function calcularAmbientesCortina(
+  ambientes: AmbienteCortina[], d: DadosCortina,
+): OrcamentoCortinas {
+  const itens: ItemOrcamentoCortina[] = []
+  for (const a of ambientes) {
+    for (const c of a.cortinas) {
+      for (const m of c.medidas) {
+        if (!(numBR(m.largura) > 0) || !(numBR(m.altura) > 0)) continue
+        if (!c.tecido) continue
+        itens.push({
+          ambiente: a.nome, cortina: c, medida: m,
+          resultado: calcularCortina({
+            modelo: c.modelo,
+            largura: numBR(m.largura), altura: numBR(m.altura),
+            tecido: c.tecido, forro: c.forro || null,
+            suporte: c.suporte, franzido: c.franzido,
+            franzidoTecido: c.franzidoTecido,
+            quantidade: Math.max(1, Math.round(numBR(m.quantidade) || 1)),
+            incluirColocacao: c.incluirColocacao,
+          }, d),
+        })
+      }
+    }
+  }
+  const ok = itens.filter((i): i is ItemOrcamentoCortina & { resultado: ResultadoCortina } =>
+    !('erro' in i.resultado))
+  const erros = [...new Set(itens.flatMap(i => 'erro' in i.resultado ? [i.resultado.erro] : []))]
+  const cru = ok.reduce((s, i) => s + i.resultado.subtotalPreciso, 0)
+  const parcPct = (() => {
+    const p = d.valores.find(v => v.chave === 'acrescimo_parcelado_pct')
+    const n = Number(p?.valor); return Number.isFinite(n) && p?.valor != null ? n : 6
+  })()
+  const avPct = (() => {
+    const p = d.valores.find(v => v.chave === 'desconto_avista_pct')
+    const n = Number(p?.valor); return Number.isFinite(n) && p?.valor != null ? n : 5
+  })()
+  return {
+    itens, ok, erros,
+    subtotal: r2(cru),
+    parcelado: r2(cru * (1 + parcPct / 100)),
+    avista: r2(cru * (1 - avPct / 100)),
   }
 }
