@@ -116,27 +116,24 @@ function generateInsights(data: Orcamento[]): string[] {
     insights.push(`${modelosMargem[0].modelo} tem margem média de ${modelosMargem[0].margem.toFixed(1)}% nos pedidos fechados com custo registrado.`)
   }
 
-  // 4. Melhor vendedor com faturamento gerado
+  // 4. Melhor vendedor por vendas registradas (a "taxa de conversão" antiga
+  // dividia vendas por uso da calculadora — número sem significado)
   const vendedores = Object.entries(
-    data.reduce<Record<string, { total: number; feitos: number; fat: number }>>((acc, o) => {
-      if (!acc[o.responsavel]) acc[o.responsavel] = { total: 0, feitos: 0, fat: 0 }
-      acc[o.responsavel].total++
-      if (o.fechado === true) {
-        acc[o.responsavel].feitos++
-        acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
-      }
+    fechados.reduce<Record<string, { feitos: number; fat: number }>>((acc, o) => {
+      if (!acc[o.responsavel]) acc[o.responsavel] = { feitos: 0, fat: 0 }
+      acc[o.responsavel].feitos++
+      acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
       return acc
     }, {})
   )
-    .map(([name, s]) => ({ name, ...s, taxa: s.total > 0 ? s.feitos / s.total : 0 }))
-    .filter((r) => r.total >= 3)
-    .sort((a, b) => b.taxa - a.taxa)
+    .map(([name, s]) => ({ name, ...s }))
+    .sort((a, b) => b.fat - a.fat)
 
   if (vendedores.length >= 2) {
     const best = vendedores[0]
-    insights.push(`${best.name} lidera em conversão: ${(best.taxa * 100).toFixed(0)}% (${best.feitos}/${best.total} fechados) e ${formatCurrency(best.fat)} em faturamento total.`)
+    insights.push(`${best.name} lidera em vendas registradas: ${best.feitos} venda${best.feitos !== 1 ? 's' : ''} somando ${formatCurrency(best.fat)}.`)
   } else if (vendedores.length === 1) {
-    insights.push(`${vendedores[0].name}: ${(vendedores[0].taxa * 100).toFixed(0)}% de conversão e ${formatCurrency(vendedores[0].fat)} em faturamento.`)
+    insights.push(`${vendedores[0].name}: ${vendedores[0].feitos} venda${vendedores[0].feitos !== 1 ? 's' : ''} registrada${vendedores[0].feitos !== 1 ? 's' : ''} somando ${formatCurrency(vendedores[0].fat)}.`)
   }
 
   // 5. Ticket médio este mês vs histórico geral
@@ -149,18 +146,17 @@ function generateInsights(data: Orcamento[]): string[] {
     else if (diff < -5) insights.push(`Ticket médio este mês (${formatCurrency(ticketMes)}) está ${Math.abs(diff).toFixed(0)}% abaixo da média histórica (${formatCurrency(ticketGeral)}) — oportunidade para oferecer upgrades de produto.`)
   }
 
-  // 6. Volume de orçamentos vs mês anterior
+  // 6. Ritmo de cotações (uso da calculadora) vs mês anterior — sinal de
+  // movimento no balcão, não de funil de vendas
   if (thisMonth.length > 0 && lastMonth.length > 0) {
     const pct = ((thisMonth.length - lastMonth.length) / lastMonth.length) * 100
-    if (pct > 15) insights.push(`Pipeline aquecido: ${thisMonth.length} orçamentos este mês vs ${lastMonth.length} no anterior (+${pct.toFixed(0)}%). Mais leads entrando no funil.`)
-    else if (pct < -15) insights.push(`Volume de orçamentos caiu ${Math.abs(pct).toFixed(0)}% — ${thisMonth.length} este mês vs ${lastMonth.length} no anterior. Intensifique a prospecção.`)
+    if (pct > 15) insights.push(`Movimento aquecido: ${thisMonth.length} cotações calculadas este mês vs ${lastMonth.length} no anterior (+${pct.toFixed(0)}%).`)
+    else if (pct < -15) insights.push(`Cotações calculadas caíram ${Math.abs(pct).toFixed(0)}% — ${thisMonth.length} este mês vs ${lastMonth.length} no anterior.`)
   }
 
-  // 7. Taxa de conversão geral com contexto
-  if (data.length >= 10) {
-    const conv = (fechados.length / data.length) * 100
-    if (conv < 25) insights.push(`Taxa de conversão geral de ${conv.toFixed(0)}% (${fechados.length}/${data.length}) está abaixo do ideal — qualificar melhor os leads antes de orçar pode aumentar esse número.`)
-    else if (conv >= 50) insights.push(`Taxa de conversão de ${conv.toFixed(0)}% (${fechados.length}/${data.length}) — excelente aproveitamento do pipeline. Acima da média do setor.`)
+  // 7. Poucas vendas registradas = estatística frágil; avisar em vez de fingir precisão
+  if (fechados.length > 0 && fechados.length < 15) {
+    insights.push(`Só ${fechados.length} venda${fechados.length !== 1 ? 's' : ''} registrada${fechados.length !== 1 ? 's' : ''} no sistema até agora — registre cada fechamento (inclusive os de loja) na aba Fechamento para os números acima ganharem força.`)
   }
 
   if (insights.length === 0) insights.push('Continue registrando orçamentos para ver os insights automáticos.')
@@ -195,7 +191,6 @@ async function exportPDF(data: Orcamento[]) {
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const lastFat = calcFaturamentoPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
   const thisMonth = filterOrcamentosPorMes(data, now.getFullYear(), now.getMonth())
-  const thisConv = thisMonth.length > 0 ? (thisMonth.filter((o) => o.fechado === true).length / thisMonth.length) * 100 : 0
   const fechados = data.filter((o) => o.fechado === true)
   const faturamentoTotal = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
 
@@ -205,14 +200,13 @@ async function exportPDF(data: Orcamento[]) {
   doc.text('Resumo do Período', 14, 38)
 
   const kpis = [
-    ['Total de orçamentos', String(data.length)],
-    ['Orçamentos fechados', String(fechados.length)],
-    ['Taxa de conversão', `${data.length > 0 ? ((fechados.length / data.length) * 100).toFixed(0) : 0}%`],
+    ['Cotações calculadas (total)', String(data.length)],
+    ['Vendas registradas', String(fechados.length)],
     ['Faturamento total', formatCurrency(faturamentoTotal)],
     ['Faturamento mês atual', formatCurrency(thisFat)],
     ['Faturamento mês anterior', formatCurrency(lastFat)],
-    ['Orçamentos este mês', String(thisMonth.length)],
-    ['Conversão mês atual', `${thisConv.toFixed(0)}%`],
+    ['Cotações este mês', String(thisMonth.length)],
+    ['Vendas este mês', String(thisMonth.filter((o) => o.fechado === true).length)],
   ]
 
   autoTable(doc, {
@@ -225,7 +219,8 @@ async function exportPDF(data: Orcamento[]) {
     margin: { left: 14, right: 14 },
   })
 
-  // Ranking responsáveis
+  // Ranking responsáveis — cotações e vendas lado a lado, sem "conversão"
+  // (dividir vendas por uso da calculadora punia quem mais calcula)
   const byResp = Object.entries(
     data.reduce<Record<string, { total: number; feitos: number; fat: number }>>((acc, o) => {
       if (!acc[o.responsavel]) acc[o.responsavel] = { total: 0, feitos: 0, fat: 0 }
@@ -236,7 +231,7 @@ async function exportPDF(data: Orcamento[]) {
   )
     .map(([name, s]) => ({ name, ...s }))
     .sort((a, b) => b.fat - a.fat)
-    .map(({ name, total, feitos, fat }) => [name, String(total), String(feitos), `${total > 0 ? ((feitos / total) * 100).toFixed(0) : 0}%`, formatCurrency(fat)])
+    .map(({ name, total, feitos, fat }) => [name, String(total), String(feitos), formatCurrency(fat)])
 
   const afterKpi = (doc as typeof doc & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
 
@@ -247,11 +242,11 @@ async function exportPDF(data: Orcamento[]) {
 
   autoTable(doc, {
     startY: afterKpi + 4,
-    head: [['Responsável', 'Orçamentos', 'Fechados', 'Conversão', 'Faturamento']],
+    head: [['Responsável', 'Cotações', 'Vendas', 'Faturamento']],
     body: byResp,
     ...TEMA_TABELA,
     bodyStyles: { fontSize: 9 },
-    columnStyles: { 4: { fontStyle: 'bold', halign: 'right' } },
+    columnStyles: { 3: { fontStyle: 'bold', halign: 'right' } },
     margin: { left: 14, right: 14 },
   })
 
@@ -289,22 +284,23 @@ async function exportPDF(data: Orcamento[]) {
   doc.save(`relatorio-sombrear-${now.toISOString().slice(0, 10)}.pdf`)
 }
 
-function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
-  const byModelo = useMemo(() => Object.entries(
-    data.reduce<Record<string, { total: number; fechados: number }>>((acc, o) => {
-      if (!acc[o.modelo]) acc[o.modelo] = { total: 0, fechados: 0 }
-      acc[o.modelo].total++
-      if (o.fechado === true) acc[o.modelo].fechados++
-      return acc
-    }, {})
-  )
-    .map(([modelo, s]) => ({
-      modelo,
-      total: s.total,
-      fechados: s.fechados,
-      taxa: s.total > 0 ? (s.fechados / s.total) * 100 : 0,
-    }))
-    .sort((a, b) => b.taxa - a.taxa), [data])
+function DemandaPorModelo({ data }: { data: Orcamento[] }) {
+  // Volume de cotações = o que o balcão mais calcula. Não é conversão:
+  // cotação aqui é uso interno da calculadora, não proposta enviada.
+  const byModelo = useMemo(() => {
+    const rows = Object.entries(
+      data.reduce<Record<string, { total: number; vendas: number }>>((acc, o) => {
+        if (!acc[o.modelo]) acc[o.modelo] = { total: 0, vendas: 0 }
+        acc[o.modelo].total++
+        if (o.fechado === true) acc[o.modelo].vendas++
+        return acc
+      }, {})
+    )
+      .map(([modelo, s]) => ({ modelo, total: s.total, vendas: s.vendas }))
+      .sort((a, b) => b.total - a.total)
+    const max = Math.max(...rows.map(r => r.total), 1)
+    return rows.map(r => ({ ...r, pct: (r.total / max) * 100 }))
+  }, [data])
 
   if (byModelo.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-6">Sem dados suficientes</p>
@@ -312,20 +308,20 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
 
   return (
     <div className="space-y-2.5">
-      {byModelo.map(({ modelo, total, fechados, taxa }) => (
+      {byModelo.map(({ modelo, total, vendas, pct }) => (
         <div key={modelo} className="flex items-center gap-3">
           <span className="w-28 shrink-0 text-xs font-medium truncate">{modelo}</span>
           <div className="flex-1 relative h-5 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-primary/70 transition-all duration-700"
-              style={{ width: `${taxa}%` }}
+              style={{ width: `${pct}%` }}
             />
           </div>
           <span className="w-10 shrink-0 text-right text-xs font-bold tabular-nums text-primary">
-            {taxa.toFixed(0)}%
+            {total}
           </span>
           <span className="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-            {fechados}/{total}
+            {vendas > 0 ? `${vendas} venda${vendas !== 1 ? 's' : ''}` : '—'}
           </span>
         </div>
       ))}
@@ -333,34 +329,37 @@ function ConversaoPorModelo({ data }: { data: Orcamento[] }) {
   )
 }
 
-function ConversaoPorResponsavel({ data }: { data: Orcamento[] }) {
-  const byResp = useMemo(() => Object.entries(
-    data.reduce<Record<string, { total: number; fechados: number; fat: number }>>((acc, o) => {
-      if (!acc[o.responsavel]) acc[o.responsavel] = { total: 0, fechados: 0, fat: 0 }
-      acc[o.responsavel].total++
-      if (o.fechado === true) {
-        acc[o.responsavel].fechados++
-        acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
-      }
-      return acc
-    }, {})
-  )
-    .map(([resp, s]) => ({ resp, total: s.total, fechados: s.fechados, fat: s.fat, taxa: s.total > 0 ? (s.fechados / s.total) * 100 : 0 }))
-    .sort((a, b) => b.taxa - a.taxa), [data])
+function VendasPorResponsavel({ data }: { data: Orcamento[] }) {
+  // Só vendas registradas. A "taxa de conversão" antiga dividia vendas pelo
+  // total de cálculos que a pessoa fez na calculadora — punia quem mais usa.
+  const byResp = useMemo(() => {
+    const rows = Object.entries(
+      data.filter((o) => o.fechado === true)
+        .reduce<Record<string, { vendas: number; fat: number }>>((acc, o) => {
+          if (!acc[o.responsavel]) acc[o.responsavel] = { vendas: 0, fat: 0 }
+          acc[o.responsavel].vendas++
+          acc[o.responsavel].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
+          return acc
+        }, {})
+    )
+      .map(([resp, s]) => ({ resp, vendas: s.vendas, fat: s.fat }))
+      .sort((a, b) => b.fat - a.fat)
+    const max = Math.max(...rows.map(r => r.fat), 1)
+    return rows.map(r => ({ ...r, pct: (r.fat / max) * 100 }))
+  }, [data])
 
-  if (byResp.length === 0) return <p className="text-sm text-muted-foreground text-center py-6">Sem dados suficientes</p>
+  if (byResp.length === 0) return <p className="text-sm text-muted-foreground text-center py-6">Nenhuma venda registrada ainda</p>
 
   return (
     <div className="space-y-2.5">
-      {byResp.map(({ resp, total, fechados, taxa, fat }) => (
+      {byResp.map(({ resp, vendas, fat, pct }) => (
         <div key={resp} className="flex items-center gap-3">
           <span className="w-28 shrink-0 text-xs font-medium truncate">{resp}</span>
           <div className="flex-1 relative h-5 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary/70 transition-all duration-700" style={{ width: `${taxa}%` }} />
+            <div className="h-full rounded-full bg-primary/70 transition-all duration-700" style={{ width: `${pct}%` }} />
           </div>
-          <span className="w-10 shrink-0 text-right text-xs font-bold tabular-nums text-primary">{taxa.toFixed(0)}%</span>
-          <span className="w-14 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{fechados}/{total}</span>
-          <span className="w-24 shrink-0 text-right text-xs text-muted-foreground tabular-nums hidden sm:block">{formatCurrency(fat)}</span>
+          <span className="w-14 shrink-0 text-right text-xs font-bold tabular-nums text-primary">{vendas} vd</span>
+          <span className="w-24 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{formatCurrency(fat)}</span>
         </div>
       ))}
     </div>
@@ -766,7 +765,7 @@ function ActivityHeatmap({ data }: { data: Orcamento[] }) {
 
 export default function TabAnalises({ data, isLoading, error, resetKey }: Props) {
   // useMemo deve ficar antes dos early returns para não violar Rules of Hooks
-  const { monthly, daily, insights, now, fechados, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth } = useMemo(() => {
+  const { monthly, daily, insights, now, fechados, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, vendasMes, vendasPct, volPct, thisMonth } = useMemo(() => {
     const now = new Date()
     const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const monthly = getMonthlyDataSeries(data)
@@ -783,11 +782,11 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
     const thisFat = calcFaturamentoPorMes(data, now.getFullYear(), now.getMonth())
     const lastFat = calcFaturamentoPorMes(data, lastMonthDate.getFullYear(), lastMonthDate.getMonth())
     const fatPct = lastFat > 0 ? ((thisFat - lastFat) / lastFat) * 100 : null
-    const thisConv = thisMonth.length > 0 ? (thisMonth.filter((o) => o.fechado === true).length / thisMonth.length) * 100 : 0
-    const lastConv = lastMonth.length > 0 ? (lastMonth.filter((o) => o.fechado === true).length / lastMonth.length) * 100 : 0
-    const convPct = lastConv > 0 ? thisConv - lastConv : null
+    const vendasMes = thisMonth.filter((o) => o.fechado === true).length
+    const vendasMesAnt = lastMonth.filter((o) => o.fechado === true).length
+    const vendasPct = vendasMesAnt > 0 ? ((vendasMes - vendasMesAnt) / vendasMesAnt) * 100 : null
     const volPct = lastMonth.length > 0 ? ((thisMonth.length - lastMonth.length) / lastMonth.length) * 100 : null
-    return { monthly, daily, insights, now, fechados, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, thisConv, convPct, volPct, thisMonth }
+    return { monthly, daily, insights, now, fechados, faturamentoGeral, fechadosComMargem, margemMedia, thisFat, lastFat, fatPct, vendasMes, vendasPct, volPct, thisMonth }
   }, [data])
 
   const comCusto = useMemo(() => data.filter((o) => o.custo_tecido != null && o.custo_tecido > 0), [data])
@@ -798,29 +797,32 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
   const mediaDiaria = diasDecorridosCusto > 0 ? totalMesCusto / diasDecorridosCusto : 0
 
   const rentabilidadePorModelo = useMemo(() => {
-    const map: Record<string, { count: number; fat: number; custo: number; fechados: number; tecidos: Record<string, number> }> = {}
+    // Faturamento, custo e margem saem SÓ das vendas fechadas — misturar o
+    // custo das cotações da calculadora com a receita das vendas dava margem
+    // de -1851%. Cotações entram como coluna própria (demanda), nada mais.
+    const map: Record<string, { cotacoes: number; fat: number; custo: number; fechados: number; tecidos: Record<string, number> }> = {}
     for (const o of data) {
-      if (!map[o.modelo]) map[o.modelo] = { count: 0, fat: 0, custo: 0, fechados: 0, tecidos: {} }
-      map[o.modelo].count++
+      if (!map[o.modelo]) map[o.modelo] = { cotacoes: 0, fat: 0, custo: 0, fechados: 0, tecidos: {} }
       if (o.fechado === true) {
         map[o.modelo].fat += (o.valor_venda ?? 0) + (o.instalacao ?? 0)
         map[o.modelo].fechados++
+        if (o.custo_tecido != null && o.custo_tecido > 0) map[o.modelo].custo += o.custo_tecido
+      } else {
+        map[o.modelo].cotacoes++
       }
-      if (o.custo_tecido != null && o.custo_tecido > 0) map[o.modelo].custo += o.custo_tecido
       if (o.tecido) map[o.modelo].tecidos[o.tecido] = (map[o.modelo].tecidos[o.tecido] ?? 0) + 1
     }
     return Object.entries(map)
       .map(([modelo, s]) => ({
         modelo,
-        count: s.count,
+        cotacoes: s.cotacoes,
         fechados: s.fechados,
         fat: s.fat,
         custo: s.custo,
         margem: s.fat > 0 && s.custo > 0 ? ((s.fat - s.custo) / s.fat) * 100 : null,
-        conv: s.count > 0 ? (s.fechados / s.count) * 100 : 0,
         topTecido: Object.entries(s.tecidos).sort(([, a], [, b]) => b - a)[0] ?? null,
       }))
-      .sort((a, b) => b.fat - a.fat)
+      .sort((a, b) => b.fat - a.fat || b.cotacoes - a.cotacoes)
   }, [data])
 
   if (isLoading) {
@@ -891,8 +893,8 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
         {[
           { label: 'Faturamento este mês', value: formatCurrency(thisFat), delta: <Delta pct={fatPct} suffix="%" /> },
           { label: 'Mês anterior', value: formatCurrency(lastFat), delta: null },
-          { label: 'Orçamentos este mês', value: String(thisMonth.length), delta: <Delta pct={volPct} suffix="%" /> },
-          { label: 'Conversão este mês', value: `${thisConv.toFixed(0)}%`, delta: <Delta pct={convPct} suffix="pp" /> },
+          { label: 'Vendas este mês', value: String(vendasMes), delta: <Delta pct={vendasPct} suffix="%" /> },
+          { label: 'Cotações este mês', value: String(thisMonth.length), delta: <Delta pct={volPct} suffix="%" /> },
         ].map(({ label, value, delta }) => (
           <div key={label} className="rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">{label}</p>
@@ -942,8 +944,8 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
           )}
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="font-display text-sm font-medium tracking-wide">Volume de orçamentos</h3>
-          <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Últimos 6 meses — todos os registros</p>
+          <h3 className="font-display text-sm font-medium tracking-wide">Uso da calculadora</h3>
+          <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Últimos 6 meses — cotações calculadas pela equipe</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart key={resetKey} data={monthly} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
               <XAxis dataKey="mes" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
@@ -959,7 +961,7 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
       <div className="reveal rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="border-b px-5 py-4">
           <h3 className="font-display text-sm font-medium tracking-wide">Rentabilidade por Modelo</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Faturamento, custo, margem e top tecido por tipo de produto</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Faturamento, custo e margem das vendas registradas — cotações da calculadora contam só como demanda</p>
         </div>
         {rentabilidadePorModelo.length === 0 ? (
           <div className="px-5 py-12 text-center">
@@ -971,25 +973,23 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[22%]">Modelo</th>
-                  <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[8%]">Orç.</th>
-                  <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Conversão</th>
+                  <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[10%]">Cotações</th>
+                  <th className="px-4 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[10%]">Vendas</th>
                   <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Faturamento</th>
-                  <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Custo</th>
+                  <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[17%]">Custo das vendas</th>
                   <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Margem</th>
                   <th className="px-6 py-3.5 text-center font-semibold text-muted-foreground tracking-wide text-xs uppercase w-[12%]">Top Tecido</th>
                 </tr>
               </thead>
               <tbody>
-                {rentabilidadePorModelo.map(({ modelo, count, fat, custo, margem, conv, topTecido }) => (
+                {rentabilidadePorModelo.map(({ modelo, cotacoes, fechados: nVendas, fat, custo, margem, topTecido }) => (
                   <tr key={modelo} className="border-b last:border-0 hover:bg-muted/20 transition-colors group">
                     <td className="px-6 py-4 font-semibold whitespace-nowrap">{modelo}</td>
-                    <td className="px-4 py-4 text-center tabular-nums text-muted-foreground">{count}</td>
+                    <td className="px-4 py-4 text-center tabular-nums text-muted-foreground">{cotacoes}</td>
                     <td className="px-4 py-4 text-center">
-                      <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
-                        conv >= 50 ? 'bg-primary/10 text-primary' : conv >= 25 ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {conv.toFixed(0)}%
-                      </span>
+                      {nVendas > 0
+                        ? <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold tabular-nums text-primary">{nVendas}</span>
+                        : <span className="text-muted-foreground/30">—</span>}
                     </td>
                     <td className="px-6 py-4 text-center tabular-nums font-medium whitespace-nowrap">{fat > 0 ? formatCurrency(fat) : <span className="text-muted-foreground/30">—</span>}</td>
                     <td className="px-6 py-4 text-center tabular-nums text-muted-foreground whitespace-nowrap">{custo > 0 ? formatCurrency(custo) : <span className="text-muted-foreground/30">—</span>}</td>
@@ -1011,19 +1011,21 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
               <tfoot>
                 <tr className="border-t-2 bg-muted/30">
                   <td className="px-6 py-3.5 text-xs font-bold text-muted-foreground uppercase tracking-widest">Total</td>
-                  <td className="px-4 py-3.5 text-center tabular-nums font-semibold">{data.length}</td>
+                  <td className="px-4 py-3.5 text-center tabular-nums font-semibold">{rentabilidadePorModelo.reduce((s, r) => s + r.cotacoes, 0)}</td>
                   <td className="px-4 py-3.5 text-center">
                     <span className="inline-flex items-center justify-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary tabular-nums">
-                      {data.length > 0 ? ((fechados.length / data.length) * 100).toFixed(0) : 0}%
+                      {fechados.length}
                     </span>
                   </td>
                   <td className="px-6 py-3.5 text-center tabular-nums font-bold text-primary whitespace-nowrap">{formatCurrency(faturamentoGeral)}</td>
                   <td className="px-6 py-3.5 text-center tabular-nums font-semibold text-muted-foreground whitespace-nowrap">{custoTotal > 0 ? formatCurrency(custoTotal) : '—'}</td>
                   <td className="px-6 py-3.5 text-center">
-                    {margemMedia !== null
-                      ? <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
-                          margemMedia >= 40 ? 'bg-primary/10 text-primary' : margemMedia >= 20 ? 'bg-muted text-foreground' : 'bg-destructive/10 text-destructive'
-                        }`}>{margemMedia.toFixed(1)}%</span>
+                    {faturamentoGeral > 0 && custoTotal > 0
+                      ? (() => { const m = ((faturamentoGeral - custoTotal) / faturamentoGeral) * 100; return (
+                          <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
+                            m >= 40 ? 'bg-primary/10 text-primary' : m >= 20 ? 'bg-muted text-foreground' : 'bg-destructive/10 text-destructive'
+                          }`}>{m.toFixed(1)}%</span>
+                        ) })()
                       : <span className="text-muted-foreground/30">—</span>}
                   </td>
                   <td className="px-6 py-3.5" />
@@ -1052,14 +1054,14 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
       {/* 6 — Performance por Vendedor + Conversão por Modelo */}
       <div className="reveal grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="font-display text-sm font-medium tracking-wide">Performance por Vendedor</h3>
-          <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Conversão e faturamento por responsável</p>
-          <ConversaoPorResponsavel data={data} />
+          <h3 className="font-display text-sm font-medium tracking-wide">Vendas por Vendedor</h3>
+          <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Vendas registradas e faturamento por responsável</p>
+          <VendasPorResponsavel data={data} />
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-elevated">
-          <h3 className="font-display text-sm font-medium tracking-wide">Conversão por Modelo</h3>
-          <p className="mt-0.5 mb-4 text-xs text-muted-foreground">% de orçamentos fechados por modelo</p>
-          <ConversaoPorModelo data={data} />
+          <h3 className="font-display text-sm font-medium tracking-wide">Demanda por Modelo</h3>
+          <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Cotações calculadas por modelo — o que o balcão mais pede</p>
+          <DemandaPorModelo data={data} />
         </div>
       </div>
 
@@ -1071,7 +1073,7 @@ export default function TabAnalises({ data, isLoading, error, resetKey }: Props)
             {now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
           </span>
         </div>
-        <p className="mb-4 text-xs text-muted-foreground">Orçamentos criados por dia no mês atual</p>
+        <p className="mb-4 text-xs text-muted-foreground">Cotações e registros criados por dia no mês atual</p>
         {daily.length === 0 ? (
           <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">Sem dados este mês</div>
         ) : (

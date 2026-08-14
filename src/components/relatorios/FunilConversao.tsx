@@ -16,9 +16,9 @@ import { ArrowDown } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 
 const ETAPAS = [
-  { rotulo: 'Leads',       hint: 'chegaram no WhatsApp', barra: 'bg-sky-500/70 dark:bg-sky-400/60'         },
-  { rotulo: 'Orçamentos',  hint: 'receberam valor',      barra: 'bg-amber-500/75 dark:bg-amber-400/65'     },
-  { rotulo: 'Fechamentos', hint: 'viraram venda',        barra: 'bg-emerald-500/80 dark:bg-emerald-400/70' },
+  { rotulo: 'Leads',   hint: 'chegaram no WhatsApp',           barra: 'bg-sky-500/70 dark:bg-sky-400/60'         },
+  { rotulo: 'Orçados', hint: 'receberam preço no WhatsApp',    barra: 'bg-amber-500/75 dark:bg-amber-400/65'     },
+  { rotulo: 'Vendas',  hint: 'registradas — todos os canais',  barra: 'bg-emerald-500/80 dark:bg-emerald-400/70' },
 ] as const
 
 export default function FunilConversao({ leads, orcados, fechados, faturamento }: {
@@ -82,7 +82,7 @@ export default function FunilConversao({ leads, orcados, fechados, faturamento }
               {[
                 { rotulo: 'Faturou', valor: formatCurrency(faturamento), destaque: true },
                 { rotulo: 'Ticket médio', valor: ticket > 0 ? formatCurrency(ticket) : '—' },
-                { rotulo: 'Orçamento → venda', valor: pct(orcados, fechados) ?? '—' },
+                { rotulo: 'Orçado → venda', valor: pct(orcados, fechados) ?? '—' },
               ].map(s => (
                 <div key={s.rotulo}
                   className="flex items-baseline justify-between gap-3 bg-card px-3 py-2.5 sm:block sm:text-center">

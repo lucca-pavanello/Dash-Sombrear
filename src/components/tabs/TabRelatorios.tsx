@@ -63,29 +63,44 @@ export default function TabRelatorios() {
     () => filterByPeriod(leads, periodo, l => l.created_at, de || undefined, ate || undefined),
     [leads, periodo, de, ate])
 
-  /** Uma linha por canal: quantos chegaram, quantos fecharam, quanto entrou */
+  /**
+   * Uma linha por canal: quantos chegaram, quantos receberam preço, quantos
+   * fecharam. "Orçados" vem do LEAD (recebeu valor no WhatsApp) — a tabela
+   * `orcamentos` não serve de meio de funil porque 98% dela é uso interno da
+   * calculadora, não proposta a cliente. Venda conta de qualquer canal,
+   * inclusive balcão (aí só fechamento e faturamento, sem lead).
+   */
   const porCanal = useMemo(() => {
-    const vazio = () => ({ leads: 0, orcamentos: 0, fechamentos: 0, faturamento: 0 })
+    const recebeuPreco = (v: unknown) => {
+      const s = String(v ?? '').trim()
+      return s !== '' && s !== '0' && s.toLowerCase() !== 'null'
+    }
+    const vazio = () => ({ leads: 0, orcados: 0, fechamentos: 0, faturamento: 0 })
     const mapa = new Map<string, ReturnType<typeof vazio>>()
     const pega = (id: string) => {
       const atual = mapa.get(id) ?? vazio()
       mapa.set(id, atual)
       return atual
     }
-    for (const l of leadsNoPeriodo) pega(acharOrigem(l.origem).id).leads++
+    for (const l of leadsNoPeriodo) {
+      const linha = pega(acharOrigem(l.origem).id)
+      linha.leads++
+      if (recebeuPreco(l.ultimo_valor_cotado)) linha.orcados++
+    }
     for (const o of noPeriodo) {
+      if (!o.fechado) continue
       const linha = pega(acharOrigem(o.origem).id)
-      linha.orcamentos++
-      if (o.fechado) { linha.fechamentos++; linha.faturamento += receita(o) }
+      linha.fechamentos++
+      linha.faturamento += receita(o)
     }
     const ordem: string[] = [...ORIGENS.map(o => o.id), SEM_ORIGEM.id]
     return [...mapa.entries()]
-      .filter(([, v]) => v.leads > 0 || v.orcamentos > 0)
+      .filter(([, v]) => v.leads > 0 || v.fechamentos > 0)
       .sort((a, b) => b[1].faturamento - a[1].faturamento
         || ordem.indexOf(a[0]) - ordem.indexOf(b[0]))
       .map(([id, v]) => ({ id, ...v,
         ticket: v.fechamentos > 0 ? v.faturamento / v.fechamentos : 0,
-        conversao: v.orcamentos > 0 ? (v.fechamentos / v.orcamentos) * 100 : null,
+        conversao: v.leads > 0 ? (v.fechamentos / v.leads) * 100 : null,
       }))
   }, [noPeriodo, leadsNoPeriodo])
 
@@ -96,10 +111,10 @@ export default function TabRelatorios() {
 
   const totais = useMemo(() => porCanal.reduce((s, c) => ({
     leads: s.leads + c.leads,
-    orcamentos: s.orcamentos + c.orcamentos,
+    orcados: s.orcados + c.orcados,
     fechamentos: s.fechamentos + c.fechamentos,
     faturamento: s.faturamento + c.faturamento,
-  }), { leads: 0, orcamentos: 0, fechamentos: 0, faturamento: 0 }), [porCanal])
+  }), { leads: 0, orcados: 0, fechamentos: 0, faturamento: 0 }), [porCanal])
 
   /** Mês a mês — o "resultado que ele mostra pro cliente" */
   const porMes = useMemo(() => {
@@ -126,14 +141,14 @@ export default function TabRelatorios() {
         PERIODOS.find(p => p.value === periodo)?.label ?? '')
       autoTable(doc, {
         startY: inicioY,
-        head: [['Canal', 'Leads', 'Orçamentos', 'Fechamentos', 'Conversão', 'Faturamento', 'Ticket médio']],
+        head: [['Canal', 'Leads', 'Orçados', 'Vendas', 'Conversão', 'Faturamento', 'Ticket médio']],
         body: porCanal.map(c => [
-          acharOrigem(c.id).rotulo, String(c.leads), String(c.orcamentos), String(c.fechamentos),
+          acharOrigem(c.id).rotulo, String(c.leads), String(c.orcados), String(c.fechamentos),
           c.conversao != null ? `${c.conversao.toFixed(0)}%` : '—',
           formatCurrency(c.faturamento), c.ticket > 0 ? formatCurrency(c.ticket) : '—',
         ]),
-        foot: [['TOTAL', String(totais.leads), String(totais.orcamentos), String(totais.fechamentos),
-          totais.orcamentos > 0 ? `${((totais.fechamentos / totais.orcamentos) * 100).toFixed(0)}%` : '—',
+        foot: [['TOTAL', String(totais.leads), String(totais.orcados), String(totais.fechamentos),
+          totais.leads > 0 ? `${((totais.fechamentos / totais.leads) * 100).toFixed(0)}%` : '—',
           formatCurrency(totais.faturamento), '']],
         ...TEMA_TABELA,
         columnStyles: { ...colunasCentro([1, 2, 3, 4]), ...colunasDireita([5, 6]) },
@@ -177,7 +192,7 @@ export default function TabRelatorios() {
         </Button>
       </div>
 
-      <FunilConversao leads={totais.leads} orcados={totais.orcamentos}
+      <FunilConversao leads={totais.leads} orcados={totais.orcados}
         fechados={totais.fechamentos} faturamento={totais.faturamento} />
 
       {semCanal > 0 && (
@@ -208,8 +223,8 @@ export default function TabRelatorios() {
                 <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
                   <th className="px-4 py-3 text-center font-bold">Canal</th>
                   <th className="px-4 py-3 text-center font-bold">Leads</th>
-                  <th className="px-4 py-3 text-center font-bold">Orçamentos</th>
-                  <th className="px-4 py-3 text-center font-bold">Fechamentos</th>
+                  <th className="px-4 py-3 text-center font-bold">Orçados</th>
+                  <th className="px-4 py-3 text-center font-bold">Vendas</th>
                   <th className="px-4 py-3 text-center font-bold">Conversão</th>
                   <th className="px-4 py-3 text-center font-bold">Faturamento</th>
                   <th className="px-4 py-3 text-center font-bold">Ticket médio</th>
@@ -220,7 +235,7 @@ export default function TabRelatorios() {
                   <tr key={c.id} className="transition-colors hover:bg-primary/[0.03]">
                     <td className="px-4 py-3 text-center"><SeloOrigem origem={c.id} /></td>
                     <td className="px-4 py-3 text-center tabular-nums">{c.leads || '—'}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{c.orcamentos || '—'}</td>
+                    <td className="px-4 py-3 text-center tabular-nums">{c.orcados || '—'}</td>
                     <td className="px-4 py-3 text-center font-semibold tabular-nums">{c.fechamentos || '—'}</td>
                     <td className="px-4 py-3 text-center tabular-nums">
                       {c.conversao != null ? (
@@ -245,11 +260,11 @@ export default function TabRelatorios() {
                 <tr className="border-t-2 bg-muted/20 font-bold">
                   <td className="px-4 py-3 text-center text-xs uppercase tracking-wider text-muted-foreground">Total</td>
                   <td className="px-4 py-3 text-center tabular-nums">{totais.leads}</td>
-                  <td className="px-4 py-3 text-center tabular-nums">{totais.orcamentos}</td>
+                  <td className="px-4 py-3 text-center tabular-nums">{totais.orcados}</td>
                   <td className="px-4 py-3 text-center tabular-nums">{totais.fechamentos}</td>
                   <td className="px-4 py-3 text-center tabular-nums">
-                    {totais.orcamentos > 0
-                      ? `${((totais.fechamentos / totais.orcamentos) * 100).toFixed(0)}%`
+                    {totais.leads > 0
+                      ? `${((totais.fechamentos / totais.leads) * 100).toFixed(0)}%`
                       : '—'}
                   </td>
                   <td className="px-4 py-3 text-center tabular-nums">{formatCurrency(totais.faturamento)}</td>
