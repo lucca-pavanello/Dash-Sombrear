@@ -1,5 +1,6 @@
 /**
- * Cálculo de cortina Wave — as regras da Sombrear em código.
+ * Cálculo de cortina — as regras da Sombrear em código (Wave, Pregas e
+ * Franzida, os três modelos que a loja vende).
  *
  * O ponto da existência deste arquivo: a conta é aritmética pura, com uma única
  * bifurcação (altura acima ou abaixo do limite). Feita à mão ou por um modelo de
@@ -26,6 +27,10 @@ export interface PrecoCortinaTecido {
   tipo: string            // 'tecido' | 'forro'
   preco: number
   largura_rolo: number
+  /** custo de compra por metro — informativo (venda = custo × margem) */
+  custo?: number | null
+  /** fator de franzimento quando este forro vai FRANZIDO atrás (BK100 = 1,5; BK70/Classic = 1,8) */
+  fator_franzido?: number | null
 }
 export interface PrecoCortinaValor {
   chave: string
@@ -38,8 +43,11 @@ export interface DadosCortina {
 }
 
 export type SuporteCortina = 'trilho_simples' | 'trilho_duplo' | 'varao_simples' | 'varao_duplo'
+export type ModeloCortina = 'wave' | 'pregas' | 'franzida'
 
 export interface EntradaCortina {
+  /** wave (padrão), pregas ou franzida — resposta da loja de 14/08 */
+  modelo?: ModeloCortina
   largura: number
   altura: number
   tecido: string
@@ -125,12 +133,21 @@ export function calcularCortina(
   const memorial: string[] = []
 
   /* ── consumo de tecido ─────────────────────────────────────── */
+  const modelo: ModeloCortina = e.modelo ?? 'wave'
   const limite = param('altura_limite_wave', 2.8)
   const larguraRolo = Number(tecido.largura_rolo) || param('largura_rolo_padrao', 3)
   const irregular = A > limite
-  const fator = irregular ? param('fator_wave_irregular', 3) : param('fator_wave_regular', 2.5)
+  // Wave: a altura decide a fita — regular ×2,5, irregular ×3 (loja, 14/08).
+  // Pregas e Franzida: sempre ×3, não importa a altura.
+  const fator = modelo === 'wave'
+    ? (irregular ? param('fator_wave_irregular', 3) : param('fator_wave_regular', 2.5))
+    : param('fator_prega_franzida', 3)
 
-  memorial.push(`Altura ${fmtM(A)} ${irregular ? 'passa de' : 'não passa de'} ${fmtM(limite)} → Wave ${irregular ? 'irregular' : 'regular'}, fator ${String(fator).replace('.', ',')}`)
+  if (modelo === 'wave') {
+    memorial.push(`Altura ${fmtM(A)} ${irregular ? 'passa de' : 'não passa de'} ${fmtM(limite)} → Wave ${irregular ? 'irregular' : 'regular'}, fator ${String(fator).replace('.', ',')}`)
+  } else {
+    memorial.push(`Modelo ${modelo === 'pregas' ? 'Pregas' : 'Franzida'}: fator ${String(fator).replace('.', ',')} em qualquer altura`)
+  }
   const bruto = L * fator
   memorial.push(`${fmtM(L)} × ${String(fator).replace('.', ',')} = ${fmtM(bruto)}`)
 
@@ -148,10 +165,14 @@ export function calcularCortina(
     const passo = param('passo_alturas', 0.5)
     const brutas = bruto / larguraRolo
     alturas = subirAoPasso(brutas, passo)
-    corte = A + param('acrescimo_entretela', 0.12) + param('acrescimo_barra', 0.18)
+    // barra 18cm sempre; entretela 12cm no Wave/Pregas, 10cm na Franzida
+    const entretelaCorte = modelo === 'franzida'
+      ? param('acrescimo_entretela_franzido', 0.10)
+      : param('acrescimo_entretela', 0.12)
+    corte = A + entretelaCorte + param('acrescimo_barra', 0.18)
     consumo = alturas * corte
     memorial.push(`${fmtM(bruto)} ÷ ${fmtM(larguraRolo)} = ${brutas.toFixed(2).replace('.', ',')} alturas → ${String(alturas).replace('.', ',')} alturas`)
-    memorial.push(`Corte por altura: ${fmtM(A)} + 0,12 (entretela) + 0,18 (barra) = ${fmtM(corte)}`)
+    memorial.push(`Corte por altura: ${fmtM(A)} + ${entretelaCorte.toFixed(2).replace('.', ',')} (entretela) + 0,18 (barra) = ${fmtM(corte)}`)
     memorial.push(`${String(alturas).replace('.', ',')} × ${fmtM(corte)} = ${fmtM(consumo)} de consumo`)
     if (alturas > brutas + 1e-9) {
       observacoes.push(`Aproveitamento: ${brutas.toFixed(2).replace('.', ',')} alturas subiram para ${String(alturas).replace('.', ',')}, não para ${Math.ceil(brutas)}.`)
@@ -179,8 +200,10 @@ export function calcularCortina(
       : `${fmtM(consumo)} ÷ ${fmtM(moFaixa)} × ${fmtR$(moValor)}`,
     metragemMo / moFaixa * moValor)
 
-  const fita = param('preco_fita_wave', 31.4)
-  add('Fita/entretela', `${fmtM(consumo)} × ${fmtR$(fita)}/m`, consumo * fita)
+  // Wave leva a fita/entretela; Pregas e Franzida levam franzidor (loja, 14/08)
+  const fita = modelo === 'wave' ? param('preco_fita_wave', 31.4) : param('preco_franzidor', 2.5)
+  add(modelo === 'wave' ? 'Fita/entretela' : 'Franzidor',
+    `${fmtM(consumo)} × ${fmtR$(fita)}/m`, consumo * fita)
 
   /* ── painel franzido atrás (regras vêm do banco, não daqui) ── */
   if (e.franzido) {
@@ -196,8 +219,14 @@ export function calcularCortina(
     const tecidoFr = d.tecidos.find(x => x.nome === e.franzidoTecido)
       ?? d.tecidos.find(x => x.nome === (forro?.nome ?? ''))
       ?? tecido
-    const consumoFr = L * param('fator_franzido', 1.5)
-    memorial.push(`Franzido atrás: ${fmtM(L)} × ${String(param('fator_franzido', 1.5)).replace('.', ',')} = ${fmtM(consumoFr)}`)
+    // o fator mora no tecido do forro (BK100 = 1,5; BK70/Classic = 1,8);
+    // sem fator no cadastro, vale o padrão da loja (1,8 — decisão de 14/08,
+    // por mais que o orçamento histórico daquela data tenha usado 1,5)
+    const fatorFr = Number(tecidoFr.fator_franzido) > 0
+      ? Number(tecidoFr.fator_franzido)
+      : param('fator_franzido', 1.8)
+    const consumoFr = L * fatorFr
+    memorial.push(`Franzido atrás: ${fmtM(L)} × ${String(fatorFr).replace('.', ',')} = ${fmtM(consumoFr)}`)
     add(`Franzido — ${tecidoFr.nome}`, `${fmtM(consumoFr)} × ${fmtR$(Number(tecidoFr.preco))}/m`,
       consumoFr * Number(tecidoFr.preco))
     if (moIgual === 1) {
@@ -205,7 +234,8 @@ export function calcularCortina(
         consumoFr / moFaixa * moValor)
     }
     if (levaFita === 1) {
-      add('Fita do franzido', `${fmtM(consumoFr)} × ${fmtR$(fita)}/m`, consumoFr * fita)
+      const franzidor = param('preco_franzidor', 2.5)
+      add('Franzidor do franzido', `${fmtM(consumoFr)} × ${fmtR$(franzidor)}/m`, consumoFr * franzidor)
     }
     observacoes.push('Franzido: a loja arredonda o consumo para menos quando o corte permite — confira antes de fechar.')
   }
@@ -240,6 +270,9 @@ export function calcularCortina(
   const parcelado = r2(subtotalCru * (1 + param('acrescimo_parcelado_pct', 6) / 100))
   const avista = r2(subtotalCru * (1 - param('desconto_avista_pct', 5) / 100))
   if (qtd > 1) observacoes.push(`Valor de ${qtd} cortinas iguais.`)
+  if (modelo !== 'wave') {
+    observacoes.push('Pregas/Franzida seguem as regras passadas pela loja em 14/08, mas ainda não foram conferidas contra um orçamento real — confira antes de fechar.')
+  }
 
   return {
     wave: irregular ? 'irregular' : 'regular',

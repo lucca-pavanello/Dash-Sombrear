@@ -110,7 +110,42 @@ compra→venda ainda precisa da loja — não chutar.
 
 *Referência de margem: trilho vendido a R$ 24/m custa R$ 6,49/m.*
 
-## 5. Divergências e perguntas abertas (mandar pra loja)
+## 5. Rodada 2 (14/08 à tarde) — a loja respondeu as 8 perguntas
+
+| pergunta | resposta | aplicado |
+|---|---|---|
+| D1 fator BK70 | **1,8** vale (o exemplo real usou 1,5) | fator no cadastro do forro: BK70/Classic 1,8, BK100 1,5; o golden histórico ficou documentado como exceção |
+| D2 valor comercial | "6% parcelado, 5% à vista" | sem camada extra — os saltos dos exemplos (1.009,20/920,84) não são regra e foram ignorados |
+| P1 fita do Wave | **altura** decide | confirmou o motor como estava |
+| P2 bainha 3cm | é **lateral**; barra é na altura | não entra no corte — chave virou informativa |
+| P3 varão duplo | explicou componentes, **sem preço/m** | segue PENDENTE (única trava da calculadora) |
+| P4 pregas | ×3 sempre; usa **franzidor 2,50/m**, não a fita | modelos Pregas e Franzida entraram no motor + calculadora |
+| P5 venda | **margem ×2 sobre o custo** | catálogo cadastrado (seção 6) |
+| P6 | emenda sem cobrança própria; motorizado = próxima etapa; prazo **20–25 d.u.** (entrou no texto do orçamento); margem 2x | — |
+
+Mapeamento confirmado: **Flame = Gaze de linho** · **Natural Look = Gaze de linho cru**.
+
+## 6. Catálogo cadastrado (venda = custo × 2)
+
+7 tecidos (Gaze de linho pesado/leve 3,00m e 3,30m; Gaze cru 2865–2868) e
+5 forros (BK70 2,80m/3,00m; BK100; Microfibra 90g 3,00m/3,30m) — nomes de
+venda, custo guardado ao lado, fator de franzido no forro. Os 4 placeholders
+antigos (Tecido padrão etc.) saíram do banco; os testes golden usam fixture
+congelada e não dependem deles.
+
+## 7. Ainda aberto
+
+- **Varão duplo**: preço de venda por metro (a loja explicou os componentes —
+  suportes conforme a largura + 1 par de ponteiras por cortina; trilho não
+  leva nenhum — mas não fechou o preço).
+- **Microfibra = Forro Classic?** — assumido que sim, conferir.
+- **Gaze 2,80m** da lista de venda ficou sem custo correspondente.
+- **Pregas/Franzida sem orçamento real de prova** — o motor segue as regras
+  declaradas e avisa isso nas observações; validar com a primeira venda real.
+- Linhos (irlandês/wide) apareceram nas fotos mas não na lista refinada — fora
+  do catálogo por ora.
+
+## 8. Perguntas da rodada 1 (respondidas — mantidas pra histórico)
 
 - **D1 — fator do forro BK70**: você falou ×1,8 pra BK70/Classic, mas o seu
   orçamento real (Opção 02) usa BK70 franzido com ×1,5. Qual vale? *(o sistema

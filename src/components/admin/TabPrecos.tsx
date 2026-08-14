@@ -566,9 +566,10 @@ function PainelAjustes({ titulo, children }: { titulo: string; children: React.R
 }
 
 /**
- * Cortina Wave. Diferente das persianas, aqui os números da tabela JÁ SÃO o
- * preço que vai no orçamento do cliente — não passam por markup. Por isso a
- * seção fica separada: misturar as duas lógicas na mesma tela confunde.
+ * Cortinas (Wave, Pregas e Franzida). Os números da tabela JÁ SÃO o preço do
+ * orçamento do cliente; o custo fica ao lado só de referência (venda = custo
+ * × margem — hoje 2x, decisão da loja de 14/08). Por isso a seção fica
+ * separada das persianas: misturar as duas lógicas na mesma tela confunde.
  */
 function SecaoCortinas({ salvar, excluir, adicionar }: SecaoProps) {
   const { data: tecidos, isLoading: l1 } = usePrecosCortinaTecidos()
@@ -596,16 +597,20 @@ function SecaoCortinas({ salvar, excluir, adicionar }: SecaoProps) {
           Tecidos e forros de cortina
         </p>
         <p className="mb-2 text-xs text-muted-foreground">
-          Preço por metro de consumo. Use <b>tecido</b> para o pano da frente e <b>forro</b> para
-          forro comum e blackouts.
+          Preço por metro de consumo (venda = custo × 2, regra da loja de 14/08). Use{' '}
+          <b>tecido</b> para o pano da frente e <b>forro</b> para forro comum e blackouts.
+          O <b>fator franzido</b> só vale para forro que vai franzido atrás: BK 100% = 1,5,
+          os demais = 1,8 (vazio usa 1,8).
         </p>
         <PrecosGrid
           colunas={[
             { key: 'nome', label: 'Nome', tipo: 'texto' },
             { key: 'tipo', label: 'Uso', tipo: 'select', options: [
               { value: 'tecido', label: 'Tecido' }, { value: 'forro', label: 'Forro / blackout' }] },
-            { key: 'preco', label: 'R$/m', tipo: 'numero', formato: fmtBRL },
+            { key: 'custo', label: 'Custo R$/m', tipo: 'numero', formato: fmtBRL },
+            { key: 'preco', label: 'Venda R$/m', tipo: 'numero', formato: fmtBRL },
             { key: 'largura_rolo', label: 'Largura do rolo', tipo: 'numero', formato: fmtNum },
+            { key: 'fator_franzido', label: 'Fator franzido', tipo: 'numero', formato: fmtNum },
           ]}
           linhas={tecidos ?? []}
           chave={r => ({ id: r.id })}
@@ -616,7 +621,7 @@ function SecaoCortinas({ salvar, excluir, adicionar }: SecaoProps) {
 
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Valores e regras do Wave
+          Valores e regras das cortinas
         </p>
         <PrecosGrid
           colunas={[
