@@ -11,10 +11,14 @@
  *  2. o arredondamento para centavos só acontece NO FIM. Aplicar os 6% sobre um
  *     subtotal já arredondado dá R$ 647,05 onde a loja cobra R$ 647,04.
  *
- * Onde a loja ainda não respondeu (varão, trilho duplo, franzido), o cálculo
- * PARA e diz o que falta — preço inventado aqui vira prejuízo lá na frente.
- * Nenhuma dessas pendências exige mexer neste arquivo de novo: todas são
- * valores em precos_cortina_valores, preenchidos pela tela de preços.
+ * Onde a loja ainda não respondeu (hoje: só o varão duplo), o cálculo PARA e
+ * diz o que falta — preço inventado aqui vira prejuízo lá na frente. Nenhuma
+ * dessas pendências exige mexer neste arquivo de novo: todas são valores em
+ * precos_cortina_valores, preenchidos pela tela de preços.
+ *
+ * Validado ao centavo (14/08/2026) contra dois orçamentos reais da loja:
+ * Wave+BK70 costurado junto em varão (R$ 879,17) e Wave + franzido atrás em
+ * trilho duplo (R$ 790,83) — ver src/lib/__tests__/cortina.test.ts.
  */
 
 export interface PrecoCortinaTecido {
@@ -163,9 +167,17 @@ export function calcularCortina(
     add(forro.nome, `${fmtM(consumo)} × ${fmtR$(Number(forro.preco))}/m`, consumo * Number(forro.preco))
   }
 
+  // Forro costurado junto passa na máquina junto: a mão de obra conta a
+  // metragem dos DOIS panos. Provado no orçamento real de 14/08:
+  // (5,00 + 5,00) ÷ 1,50 × R$ 40 = R$ 266,67 — não 133,33 só da frente.
+  const metragemMo = consumo * (forro ? 2 : 1)
   const moFaixa = param('mo_metragem', 1.5)
   const moValor = param('mo_valor', 40)
-  add('Mão de obra', `${fmtM(consumo)} ÷ ${fmtM(moFaixa)} × ${fmtR$(moValor)}`, consumo / moFaixa * moValor)
+  add('Mão de obra',
+    forro
+      ? `(${fmtM(consumo)} + ${fmtM(consumo)}) ÷ ${fmtM(moFaixa)} × ${fmtR$(moValor)}`
+      : `${fmtM(consumo)} ÷ ${fmtM(moFaixa)} × ${fmtR$(moValor)}`,
+    metragemMo / moFaixa * moValor)
 
   const fita = param('preco_fita_wave', 31.4)
   add('Fita/entretela', `${fmtM(consumo)} × ${fmtR$(fita)}/m`, consumo * fita)
