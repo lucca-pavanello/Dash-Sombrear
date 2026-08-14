@@ -439,7 +439,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
       {/* ── Persiana ou cortina: contas diferentes, telas diferentes ── */}
       <div className="mx-auto mb-5 flex w-full max-w-xs gap-1 rounded-xl border border-border bg-muted/30 p-1">
-        {([['persiana', 'Persiana'], ['cortina', 'Cortina Wave']] as const).map(([id, label]) => (
+        {([['persiana', 'Persiana'], ['cortina', 'Cortina']] as const).map(([id, label]) => (
           <button key={id} type="button" onClick={() => setProduto(id)}
             className={cn('flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all active:scale-95',
               produto === id ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
