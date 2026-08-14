@@ -383,7 +383,7 @@ export default function HomePage() {
           )}
           {(canOrcamento || canFechamento) && (
             <AreaCard titulo="Relatórios" icon={BarChart2} animIcone="icon-press" delay={522}
-              descricao="Resultado por canal e os resumos escritos pela IA — da semana ou do período que você pedir."
+              descricao="Funil por canal, análises e os resumos escritos pela IA — da semana ou do período que você pedir."
               viajando={viajante === 'relatorios'}
               onClick={() => irArea('relatorios', '/relatorios')} />
           )}

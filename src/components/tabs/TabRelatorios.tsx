@@ -24,6 +24,7 @@ import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, 
 import type { Orcamento } from '@/lib/supabase'
 import JanelaDados from '@/components/orcamentos/JanelaDados'
 import ResumosIA from '@/components/relatorios/ResumosIA'
+import FunilConversao from '@/components/relatorios/FunilConversao'
 
 const PERIODOS = [
   { value: 'mes', label: 'Este mês' },
@@ -176,22 +177,8 @@ export default function TabRelatorios() {
         </Button>
       </div>
 
-      <div className="kpi-cascade mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          { rotulo: 'Leads no período', valor: String(totais.leads), hint: 'contatos que chegaram' },
-          { rotulo: 'Orçamentos', valor: String(totais.orcamentos), hint: 'pedidos calculados' },
-          { rotulo: 'Fechamentos', valor: String(totais.fechamentos), hint: 'viraram venda', destaque: true },
-          { rotulo: 'Faturamento', valor: formatCurrency(totais.faturamento), hint: 'o que entrou', destaque: true },
-        ].map(k => (
-          <div key={k.rotulo} className={cn('rounded-xl border bg-card p-4 text-center shadow-sm transition-colors',
-            k.destaque && 'border-emerald-500/25 bg-emerald-500/[0.04]')}>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">{k.rotulo}</p>
-            <p className={cn('mt-1 font-display text-2xl font-bold tabular-nums',
-              k.destaque && 'text-emerald-600 dark:text-emerald-400')}>{k.valor}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{k.hint}</p>
-          </div>
-        ))}
-      </div>
+      <FunilConversao leads={totais.leads} orcados={totais.orcamentos}
+        fechados={totais.fechamentos} faturamento={totais.faturamento} />
 
       {semCanal > 0 && (
         <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.05] px-4 py-3 text-center">
