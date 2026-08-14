@@ -113,8 +113,45 @@ describe('cortina Wave — os 4 orçamentos fechados à mão pela loja', () => {
     expect(r.consumo).toBeCloseTo(31.80, 2)
   })
 
-  it('varão sem preço cadastrado é recusado, não chutado', () => {
-    const r = calcularCortina(cortina({ suporte: 'varao_simples' }), dCortina)
+  it('varão duplo sem preço cadastrado é recusado, não chutado', () => {
+    const r = calcularCortina(cortina({ suporte: 'varao_duplo' }), dCortina)
     expect('erro' in r).toBe(true)
+  })
+})
+
+describe('cortina — os 2 orçamentos reais da resposta da loja (14/08/2026)', () => {
+  const okC = (r: ReturnType<typeof calcularCortina>) => {
+    if ('erro' in r) throw new Error(`cortina recusou: ${r.erro}`)
+    return r
+  }
+
+  it('Opção 01 — Wave 2,00×2,30 + BK70 costurado junto, varão, colocada: 879,17 · 931,92', () => {
+    // a MO conta os dois panos: (5,00 + 5,00) ÷ 1,50 × 40 = 266,67
+    const r = okC(calcularCortina({
+      largura: 2, altura: 2.3, tecido: 'Tecido padrão', forro: 'Blackout 70%',
+      suporte: 'varao_simples', incluirColocacao: true,
+    }, dCortina))
+    expect(r.consumo).toBeCloseTo(5, 2)
+    const mo = r.itens.find(i => i.item === 'Mão de obra')
+    expect(mo?.valor).toBeCloseTo(266.67, 2)
+    expect(r.subtotal).toBeCloseTo(879.17, 2)
+    expect(r.parcelado).toBeCloseTo(931.92, 2)
+  })
+
+  it('Opção 02 — Wave 2,00×2,30 + franzido BK70 atrás, trilho duplo, colocada: 790,83 · 838,28', () => {
+    // frente sem forro (MO só dela: 133,33); franzido 3,00m sem fita, MO 80;
+    // trilho duplo = 2× a largura no preço do trilho (4,00m × 24 = 96)
+    const r = okC(calcularCortina({
+      largura: 2, altura: 2.3, tecido: 'Tecido padrão',
+      franzido: true, franzidoTecido: 'Blackout 70%',
+      suporte: 'trilho_duplo', incluirColocacao: true,
+    }, dCortina))
+    expect(r.itens.find(i => i.item === 'Mão de obra')?.valor).toBeCloseTo(133.33, 2)
+    expect(r.itens.find(i => i.item.startsWith('Franzido'))?.valor).toBeCloseTo(124.5, 2)
+    expect(r.itens.find(i => i.item === 'Mão de obra do franzido')?.valor).toBeCloseTo(80, 2)
+    expect(r.itens.some(i => i.item === 'Fita do franzido')).toBe(false)
+    expect(r.itens.find(i => i.item === 'Trilho duplo')?.valor).toBeCloseTo(96, 2)
+    expect(r.subtotal).toBeCloseTo(790.83, 2)
+    expect(r.parcelado).toBeCloseTo(838.28, 2)
   })
 })
