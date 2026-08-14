@@ -82,6 +82,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [quantidade, setQuantidade] = useState('1')
   const [acabamento, setAcabamento] = useState('nenhum')
   // porta dividida em peças leva um bandô só: medida e quantidade próprias
+  const [bandoUnico, setBandoUnico] = useState(false)
   const [bandoLargura, setBandoLargura] = useState('')
   const [bandoQtd, setBandoQtd] = useState('')
   const [instalacao, setInstalacao] = useState(false)
@@ -181,11 +182,11 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     quantidade: Math.max(1, Math.round(num(quantidade))),
     acabamento,
     motorWifi: motorizado ? motorWifi : undefined,
-    bandoLargura: num(bandoLargura) || undefined,
-    bandoQuantidade: Math.round(num(bandoQtd)) || undefined,
+    bandoLargura: bandoUnico ? num(bandoLargura) || undefined : undefined,
+    bandoQuantidade: bandoUnico ? Math.round(num(bandoQtd)) || undefined : undefined,
     incluirInstalacao: instalacao,
   }), [modelo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
-    acabamento, motorizado, motorWifi, bandoLargura, bandoQtd, instalacao])
+    acabamento, motorizado, motorWifi, bandoUnico, bandoLargura, bandoQtd, instalacao])
 
   const pronto = entrada.largura > 0 && entrada.altura > 0 &&
     (comTecido ? !!entrada.tecido : !!entrada.artigo)
@@ -530,23 +531,38 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                         Vazio = o bandô acompanha a persiana, como sempre foi. */}
                     {(acabamento === 'bando_branco' || acabamento === 'bando_preto') && (
                       <div className="sm:col-span-2 rounded-lg border border-dashed p-3">
-                        <p className="mb-2 text-xs text-foreground/60">
-                          O bandô é uma peça só, diferente da persiana? (ex.: porta de 5,20m em 3 rolôs)
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className={labelCls}>Largura do bandô (m)</label>
-                            <input className={inputCls} inputMode="decimal" value={bandoLargura}
-                              onChange={e => setBandoLargura(e.target.value)}
-                              placeholder={largura ? `${largura} (a da persiana)` : 'igual à persiana'} />
+                        <label className="flex cursor-pointer items-start gap-2.5">
+                          <input type="checkbox" checked={bandoUnico}
+                            onChange={e => {
+                              const marcado = e.target.checked
+                              setBandoUnico(marcado)
+                              if (!marcado) { setBandoLargura(''); setBandoQtd('') }
+                              else if (!bandoQtd) setBandoQtd('1')
+                            }}
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--primary))]" />
+                          <span>
+                            <span className="block text-sm font-medium">Bandô é uma peça só, diferente da persiana</span>
+                            <span className="block text-xs text-foreground/60">
+                              ex.: porta de 5,20m em 3 rolôs leva UM bandô de 5,20m. Desmarcado, vai um por peça.
+                            </span>
+                          </span>
+                        </label>
+                        {bandoUnico && (
+                          <div className="mt-3 grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={labelCls}>Largura do bandô (m)</label>
+                              <input className={inputCls} inputMode="decimal" value={bandoLargura}
+                                onChange={e => setBandoLargura(e.target.value)}
+                                placeholder={largura ? `${largura} (a da persiana)` : 'ex.: 5,20'} />
+                            </div>
+                            <div>
+                              <label className={labelCls}>Quantos bandôs</label>
+                              <input className={inputCls} inputMode="numeric" value={bandoQtd}
+                                onChange={e => setBandoQtd(e.target.value)}
+                                placeholder="1" />
+                            </div>
                           </div>
-                          <div>
-                            <label className={labelCls}>Quantos bandôs</label>
-                            <input className={inputCls} inputMode="numeric" value={bandoQtd}
-                              onChange={e => setBandoQtd(e.target.value)}
-                              placeholder={quantidade ? `${quantidade} (uma por peça)` : 'igual à quantidade'} />
-                          </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </>

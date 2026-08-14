@@ -74,6 +74,7 @@ interface Persiana {
   cor_ferragem: string
   acabamento: string
   /** porta dividida em peças com UM bandô: medida e quantidade próprias */
+  bando_unico: boolean
   bando_largura: string
   bando_qtd: string
   economico_tipo: string
@@ -101,7 +102,7 @@ function newMedida(nextIdRef: React.MutableRefObject<number>): Medida {
 }
 
 function newPersiana(nextIdRef: React.MutableRefObject<number>): Persiana {
-  return { id: nextIdRef.current++, modelo: '', tecido: '', cor_ferragem: 'Sem', acabamento: 'Sem', bando_largura: '', bando_qtd: '', economico_tipo: 'Qualquer', medidas: [newMedida(nextIdRef)] }
+  return { id: nextIdRef.current++, modelo: '', tecido: '', cor_ferragem: 'Sem', acabamento: 'Sem', bando_unico: false, bando_largura: '', bando_qtd: '', economico_tipo: 'Qualquer', medidas: [newMedida(nextIdRef)] }
 }
 
 function copyPersiana(p: Persiana, nextIdRef: React.MutableRefObject<number>): Persiana {
@@ -136,7 +137,11 @@ function loadDraft(): { form: FormState; ambientes: Ambiente[] } | null {
       draft.ambientes = draft.ambientes.map((a: Ambiente) => ({
         ...a,
         collapsed: false,
-        persianas: a.persianas.map(p => ({ ...p, economico_tipo: p.economico_tipo ?? 'Qualquer' })),
+        persianas: a.persianas.map(p => ({
+          ...p,
+          economico_tipo: p.economico_tipo ?? 'Qualquer',
+          bando_unico: p.bando_unico ?? !!(p.bando_largura || p.bando_qtd),
+        })),
       }))
     }
     // Aceita qualquer nome não-vazio — a lista agora é dinâmica (useResponsaveis)
@@ -239,7 +244,7 @@ export default function TabCotacao() {
     setForm(f => ({ ...f, [key]: value }))
   }
 
-  function setPersianaField(ambienteId: number, persianaId: number, key: keyof Omit<Persiana, 'id' | 'medidas'>, value: string) {
+  function setPersianaField(ambienteId: number, persianaId: number, key: keyof Omit<Persiana, 'id' | 'medidas'>, value: string | boolean) {
     setAmbientes(prev => prev.map(a =>
       a.id === ambienteId
         ? { ...a, persianas: a.persianas.map(p => p.id === persianaId ? { ...p, [key]: value } : p) }
@@ -432,9 +437,9 @@ export default function TabCotacao() {
             quantidade: parseInt(m.quantidade) || 1,
             cor_ferragem: p.cor_ferragem.trim(),
             acabamento: p.acabamento.trim(),
-            // vazio = um bandô por peça, como sempre
-            bando_largura: parseFloat(p.bando_largura.replace(',', '.')) || null,
-            bando_quantidade: parseInt(p.bando_qtd) || null,
+            // desmarcado = um bandô por peça, como sempre
+            bando_largura: p.bando_unico ? parseFloat(p.bando_largura.replace(',', '.')) || null : null,
+            bando_quantidade: p.bando_unico ? parseInt(p.bando_qtd) || null : null,
             persiana_grupo: `a${aIdx}p${pIdx}`,
             economico_tipo: p.tecido === MAIS_BARATO && p.economico_tipo !== 'Qualquer'
               ? p.economico_tipo
@@ -871,35 +876,60 @@ export default function TabCotacao() {
                                     </div>
 
                                     {/* Vão largo dividido em peças costuma levar UM bandô cobrindo tudo.
-                                        Vazio = um bandô por peça, como sempre foi. */}
+                                        A loja pediu escolha marcável (14/08): desmarcado = um bandô
+                                        por peça, como sempre; marcado abre medida e quantidade. */}
                                     {p.acabamento.startsWith('Bando') && (
                                       <div className="mt-3 rounded-lg border border-dashed p-3">
-                                        <p className="mb-2 text-xs text-foreground/60">
-                                          O bandô é uma peça só, diferente das persianas?
-                                          (ex.: porta de 5,20m dividida em 3 rolôs)
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                          <div>
-                                            <label className={labelCls}>Largura do bandô (m)</label>
-                                            <input
-                                              className={inputCls}
-                                              inputMode="decimal"
-                                              value={p.bando_largura}
-                                              onChange={e => setPersianaField(a.id, p.id, 'bando_largura', e.target.value)}
-                                              placeholder="igual às persianas"
-                                            />
+                                        <label className="flex cursor-pointer items-start gap-2.5">
+                                          <input
+                                            type="checkbox"
+                                            checked={p.bando_unico}
+                                            onChange={e => {
+                                              const marcado = e.target.checked
+                                              setPersianaField(a.id, p.id, 'bando_unico', marcado)
+                                              if (!marcado) {
+                                                setPersianaField(a.id, p.id, 'bando_largura', '')
+                                                setPersianaField(a.id, p.id, 'bando_qtd', '')
+                                              } else if (!p.bando_qtd) {
+                                                setPersianaField(a.id, p.id, 'bando_qtd', '1')
+                                              }
+                                            }}
+                                            className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--primary))]"
+                                          />
+                                          <span>
+                                            <span className="block text-sm font-medium">
+                                              Bandô é uma peça só, diferente das persianas
+                                            </span>
+                                            <span className="block text-xs text-foreground/60">
+                                              ex.: porta de 5,20m dividida em 3 rolôs leva UM bandô de 5,20m.
+                                              Desmarcado, vai um bandô por peça.
+                                            </span>
+                                          </span>
+                                        </label>
+                                        {p.bando_unico && (
+                                          <div className="mt-3 grid grid-cols-2 gap-3">
+                                            <div>
+                                              <label className={labelCls}>Largura do bandô (m)</label>
+                                              <input
+                                                className={inputCls}
+                                                inputMode="decimal"
+                                                value={p.bando_largura}
+                                                onChange={e => setPersianaField(a.id, p.id, 'bando_largura', e.target.value)}
+                                                placeholder="ex.: 5,20"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className={labelCls}>Quantos bandôs</label>
+                                              <input
+                                                className={inputCls}
+                                                inputMode="numeric"
+                                                value={p.bando_qtd}
+                                                onChange={e => setPersianaField(a.id, p.id, 'bando_qtd', e.target.value)}
+                                                placeholder="1"
+                                              />
+                                            </div>
                                           </div>
-                                          <div>
-                                            <label className={labelCls}>Quantos bandôs</label>
-                                            <input
-                                              className={inputCls}
-                                              inputMode="numeric"
-                                              value={p.bando_qtd}
-                                              onChange={e => setPersianaField(a.id, p.id, 'bando_qtd', e.target.value)}
-                                              placeholder="um por peça"
-                                            />
-                                          </div>
-                                        </div>
+                                        )}
                                       </div>
                                     )}
                                   </FieldGroup>
@@ -1160,7 +1190,7 @@ export default function TabCotacao() {
                                 {pArea > 0 && <MiniRow k="Área total" v={`${pArea.toFixed(2)} m²`} />}
                                 {p.cor_ferragem !== 'Sem' && <MiniRow k="Ferragem" v={p.cor_ferragem} />}
                                 {p.acabamento !== 'Sem' && <MiniRow k="Acabamento" v={p.acabamento} />}
-                                {p.acabamento.startsWith('Bando') && (p.bando_largura || p.bando_qtd) && (
+                                {p.acabamento.startsWith('Bando') && p.bando_unico && (p.bando_largura || p.bando_qtd) && (
                                   <MiniRow k="Bandô à parte"
                                     v={`${p.bando_largura || '—'}m${p.bando_qtd ? ` × ${p.bando_qtd}` : ''}`} />
                                 )}
