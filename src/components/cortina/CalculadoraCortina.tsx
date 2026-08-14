@@ -1,5 +1,5 @@
 /**
- * Calculadora de cortina Wave — o que hoje a loja faz no GPT.
+ * Calculadora de cortina (Wave, Pregas e Franzida) — o que hoje a loja faz no GPT.
  *
  * A conta roda aqui no navegador com o motor de `@/lib/cortina`, lendo os
  * preços do banco. Mostra o memorial passo a passo porque é isso que a loja
@@ -13,10 +13,16 @@ import { CustomSelect } from '@/components/ui/CustomSelect'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import SectionHeader from '@/components/shared/SectionHeader'
 import { usePrecosCortinaTecidos, usePrecosCortinaValores } from '@/hooks/usePrecos'
-import { calcularCortina, type SuporteCortina } from '@/lib/cortina'
+import { calcularCortina, type ModeloCortina, type SuporteCortina } from '@/lib/cortina'
 
 const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const num = (s: string) => { const n = parseFloat(s.replace(',', '.')); return Number.isFinite(n) ? n : 0 }
+
+const MODELOS: { id: ModeloCortina; label: string }[] = [
+  { id: 'wave', label: 'Wave' },
+  { id: 'pregas', label: 'Pregas' },
+  { id: 'franzida', label: 'Franzida' },
+]
 
 const SUPORTES: { id: SuporteCortina; label: string }[] = [
   { id: 'trilho_simples', label: 'Trilho simples' },
@@ -37,6 +43,7 @@ export default function CalculadoraCortina() {
   const { data: valores } = usePrecosCortinaValores()
 
   const [cliente, setCliente] = useState('')
+  const [modelo, setModelo] = useState<ModeloCortina>('wave')
   const [largura, setLargura] = useState('')
   const [altura, setAltura] = useState('')
   const [tecido, setTecido] = useState('')
@@ -56,12 +63,12 @@ export default function CalculadoraCortina() {
     if (!tecidos?.length || !valores?.length) return null
     if (!(num(largura) > 0) || !(num(altura) > 0) || !tecido) return null
     return calcularCortina({
-      largura: num(largura), altura: num(altura), tecido,
+      modelo, largura: num(largura), altura: num(altura), tecido,
       forro: forro === 'Sem forro' ? null : forro,
       suporte, quantidade: Math.max(1, Math.round(num(quantidade) || 1)),
       incluirColocacao: colocacao, franzido,
     }, { tecidos, valores })
-  }, [tecidos, valores, largura, altura, tecido, forro, suporte, quantidade, colocacao, franzido])
+  }, [tecidos, valores, modelo, largura, altura, tecido, forro, suporte, quantidade, colocacao, franzido])
 
   const ok = resultado && !('erro' in resultado) ? resultado : null
 
@@ -77,7 +84,7 @@ export default function CalculadoraCortina() {
       `Cliente: ${cliente || '—'}`,
       '',
       'Descrição:',
-      `${qtd}Cortina modelo Wave em ${desc}, em ${sup}${colocacao ? ', colocada' : ''}.`,
+      `${qtd}Cortina modelo ${MODELOS.find(m => m.id === modelo)?.label ?? 'Wave'} em ${desc}, em ${sup}${colocacao ? ', colocada' : ''}.`,
       '',
       `Medida: ${largura.replace('.', ',')} × ${altura.replace('.', ',')}`,
       '',
@@ -88,6 +95,7 @@ export default function CalculadoraCortina() {
       `À vista com 5% de desconto: ${brl(ok.avista)}.`,
       '',
       `Observação: ${colocacao ? 'Colocação inclusa (sob consulta de localidade).' : 'Colocação não inclusa.'}`,
+      'Prazo de produção: 20 a 25 dias úteis.',
       '',
       'Sombrear Cortinas e Persianas',
       'Avenida Fernando Costa, 984 – Vila Maceno.',
@@ -104,13 +112,19 @@ export default function CalculadoraCortina() {
     <div className="grid gap-4 lg:grid-cols-[minmax(0,380px)_1fr]">
       {/* ── entrada ── */}
       <section>
-        <SectionHeader step="1" icon={<Ruler className="h-3.5 w-3.5" />} title="Cortina Wave"
-          hint="medida, tecido e acabamento" />
+        <SectionHeader step="1" icon={<Ruler className="h-3.5 w-3.5" />} title="Cortina"
+          hint="modelo, medida, tecido e acabamento" />
         <div className={cn(cardCls, 'mt-3 space-y-3')}>
         <div>
           <label className={labelCls}>Cliente</label>
           <input className={inputCls} value={cliente} onChange={e => setCliente(e.target.value)}
             placeholder="Nome do cliente" />
+        </div>
+
+        <div>
+          <label className={labelCls}>Modelo</label>
+          <CustomSelect value={modelo} onChange={v => setModelo(v as ModeloCortina)}
+            options={MODELOS.map(m => ({ value: m.id, label: m.label }))} />
         </div>
 
         <div className="grid grid-cols-2 gap-2">

@@ -140,7 +140,9 @@ describe('cortina — os 2 orçamentos reais da resposta da loja (14/08/2026)', 
 
   it('Opção 02 — Wave 2,00×2,30 + franzido BK70 atrás, trilho duplo, colocada: 790,83 · 838,28', () => {
     // frente sem forro (MO só dela: 133,33); franzido 3,00m sem fita, MO 80;
-    // trilho duplo = 2× a largura no preço do trilho (4,00m × 24 = 96)
+    // trilho duplo = 2× a largura no preço do trilho (4,00m × 24 = 96).
+    // HISTÓRICO: cobrado com fator 1,5 — no mesmo dia a loja fixou 1,8 como
+    // regra (a fixture congela o 1,5 daquele orçamento; ver teste seguinte)
     const r = okC(calcularCortina({
       largura: 2, altura: 2.3, tecido: 'Tecido padrão',
       franzido: true, franzidoTecido: 'Blackout 70%',
@@ -153,5 +155,77 @@ describe('cortina — os 2 orçamentos reais da resposta da loja (14/08/2026)', 
     expect(r.itens.find(i => i.item === 'Trilho duplo')?.valor).toBeCloseTo(96, 2)
     expect(r.subtotal).toBeCloseTo(790.83, 2)
     expect(r.parcelado).toBeCloseTo(838.28, 2)
+  })
+})
+
+describe('cortina — regras da rodada 2 (respostas da loja, 14/08 à tarde)', () => {
+  const okC = (r: ReturnType<typeof calcularCortina>) => {
+    if ('erro' in r) throw new Error(`cortina recusou: ${r.erro}`)
+    return r
+  }
+  /** fixture do dia + as decisões da tarde: fator 1,8 no forro, franzidor 2,50 */
+  const dRodada2: DadosCortina = {
+    tecidos: dCortina.tecidos.map(t =>
+      t.nome === 'Blackout 70%' ? { ...t, fator_franzido: 1.8 }
+      : t.nome === 'Blackout 100%' ? { ...t, fator_franzido: 1.5 }
+      : t),
+    valores: [
+      ...dCortina.valores.map(v => v.chave === 'fator_franzido' ? { ...v, valor: 1.8 } : v),
+      { chave: 'preco_franzidor', valor: 2.5 },
+      { chave: 'fator_prega_franzida', valor: 3 },
+      { chave: 'acrescimo_entretela_franzido', valor: 0.1 },
+      { chave: 'preco_trilho_duplo', valor: 48 },
+    ],
+  }
+
+  it('franzido BK70 atrás agora usa 1,8 (decisão da loja): 3,60m, subtotal 831,73', () => {
+    const r = okC(calcularCortina({
+      largura: 2, altura: 2.3, tecido: 'Tecido padrão',
+      franzido: true, franzidoTecido: 'Blackout 70%',
+      suporte: 'trilho_duplo', incluirColocacao: true,
+    }, dRodada2))
+    // frente 150 + 133,33 + 157; franzido 3,6×41,5=149,40 + MO 96; trilho 96; coloc 50
+    expect(r.itens.find(i => i.item.startsWith('Franzido'))?.valor).toBeCloseTo(149.4, 2)
+    expect(r.itens.find(i => i.item === 'Mão de obra do franzido')?.valor).toBeCloseTo(96, 2)
+    expect(r.subtotal).toBeCloseTo(831.73, 2)
+  })
+
+  it('franzido BK100 atrás fica em 1,5 (fator no cadastro do tecido)', () => {
+    const r = okC(calcularCortina({
+      largura: 2, altura: 2.3, tecido: 'Tecido padrão',
+      franzido: true, franzidoTecido: 'Blackout 100%',
+      suporte: 'trilho_duplo',
+    }, dRodada2))
+    // 2,00 × 1,5 = 3,00m × 69,90
+    expect(r.itens.find(i => i.item.startsWith('Franzido'))?.valor).toBeCloseTo(209.7, 2)
+  })
+
+  it('Pregas 2,00×2,30: fator 3 em qualquer altura e franzidor de 2,50 no lugar da fita', () => {
+    const r = okC(calcularCortina({
+      modelo: 'pregas', largura: 2, altura: 2.3, tecido: 'Tecido padrão',
+      suporte: 'trilho_simples',
+    }, dRodada2))
+    expect(r.consumo).toBeCloseTo(6, 2)                       // 2,00 × 3
+    const franzidor = r.itens.find(i => i.item === 'Franzidor')
+    expect(franzidor?.valor).toBeCloseTo(15, 2)               // 6,00 × 2,50
+    expect(r.itens.some(i => i.item === 'Fita/entretela')).toBe(false)
+    // 180 (tecido) + 160 (MO) + 15 (franzidor) + 48 (trilho) = 403
+    expect(r.subtotal).toBeCloseTo(403, 2)
+  })
+
+  it('Franzida alta (2,00×3,50): corte usa entretela de 10cm, não 12', () => {
+    const r = okC(calcularCortina({
+      modelo: 'franzida', largura: 2, altura: 3.5, tecido: 'Tecido padrão',
+      suporte: 'trilho_simples',
+    }, dRodada2))
+    expect(r.corte).toBeCloseTo(3.78, 2)                      // 3,50 + 0,10 + 0,18
+  })
+
+  it('Wave segue decidindo a fita pela altura (confirmado pela loja)', () => {
+    const alto = okC(calcularCortina({
+      largura: 2, altura: 3.5, tecido: 'Tecido padrão', suporte: 'trilho_simples',
+    }, dRodada2))
+    expect(alto.fator).toBe(3)
+    expect(alto.corte).toBeCloseTo(3.8, 2)                    // wave mantém 0,12
   })
 })
