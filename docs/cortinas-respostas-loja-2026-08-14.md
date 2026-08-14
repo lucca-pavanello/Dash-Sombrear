@@ -69,18 +69,31 @@ calculadora. Quando os preços vierem, entra tudo pela tela Preços → Cortinas
 ⚠️ Fotos de tela, algumas linhas desalinhadas — **conferir antes de usar**.
 São custo de COMPRA, não preço de venda.
 
-**Tecidos** (Corttex, pedido 012246 de 17/06; Zepama, listagem 01–06/26):
+**Tecidos — REFINADO PELA LOJA (WhatsApp, 14/08)**, substitui a leitura das
+fotos:
 
 | tecido | custo/m |
 |---|---|
-| Natural Look 3,00m cru | 16,00 |
-| Voil Flame 3,00m (bege, prata) | 11,50 |
-| Microfibra 3,00m (bege, branca) | 7,70 |
-| Blackout liso 2,80m (marfim, prata) | ~15,50–16,80 |
-| Semi blackout 3,00m palha | ~14,50 |
-| Voil Flame 3,30m prata II | ~13,00 |
-| Linho irlandês 3,00m (marfim/trigo) | 15,73 |
-| Linho wide jaspe 3,30m (trigo) | 19,27 |
+| Flame pesado | 11,50 |
+| Flame leve | 10,50 |
+| Flame pesado 3,30m | 13,50 |
+| Semi black 70% 2,80m | 13,50 |
+| Semi black 70% 3,00m | 15,50 |
+| Black 100% | 15,20 |
+| Natural Look 2865 | 16,00 |
+| Natural Look 2868 | 18,90 |
+| Natural Look 2866 | 16,00 |
+| Natural Look 2867 | 13,90 |
+| Microfibra 90g 3,00m | 7,00 |
+| Microfibra 90g 3,30m | 7,80 |
+| Linho irlandês 3,00m (marfim/trigo)* | 15,73 |
+| Linho wide jaspe 3,30m (trigo)* | 19,27 |
+
+*\*linhos vieram só nas fotos, a loja não repetiu na lista refinada.*
+
+⚠️ Estes nomes são os de COMPRA (fornecedor) e não casam 1:1 com o catálogo
+de venda da seção 3 (Gaze de linho, Forro Classic…). O mapeamento
+compra→venda ainda precisa da loja — não chutar.
 
 **Suportes e aviamentos** (pedido M.A.V. 07/07/2026):
 
@@ -116,6 +129,8 @@ São custo de COMPRA, não preço de venda.
 - **P4 — modelo Pregas**: consumo ×3,0 como o franzido-frente? Fita/entretela
   de prega tem preço próprio ou usa os mesmos R$ 31,40/m do Wave?
 - **P5 — preços de venda dos tecidos**: a tabela da seção 3, com os R$ em
-  branco.
+  branco. A loja respondeu com a tabela de CUSTO refinada (seção 4) — segue
+  faltando o preço de venda, OU a margem sobre o custo (P6/markup), OU o
+  mapeamento nome de compra → nome de venda.
 - **P6 — emenda, motorizado, prazo e markup**: perguntas 8–11 do questionário
   ficaram sem resposta.
