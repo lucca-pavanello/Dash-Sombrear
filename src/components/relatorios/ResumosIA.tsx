@@ -48,12 +48,15 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
   if (n(kpis.receita_fechada) && (kpis.receita_fechada ?? 0) > 0)
     cards.push({ rotulo: 'Receita', valor: formatCurrency(kpis.receita_fechada!), destaque: true })
   if (n(kpis.passados_pro_humano)) cards.push({ rotulo: 'Pro time', valor: String(kpis.passados_pro_humano) })
+  if (n(kpis.perdidos_ou_sumiram)) cards.push({ rotulo: 'Perdidos', valor: String(kpis.perdidos_ou_sumiram) })
   if (n(kpis.aguardando_atendente_agora) && (kpis.aguardando_atendente_agora ?? 0) > 0)
     cards.push({ rotulo: 'Aguardando', valor: String(kpis.aguardando_atendente_agora) })
   if (n(kpis.sla_medio_horas)) cards.push({ rotulo: 'Resposta média', valor: `${kpis.sla_medio_horas}h` })
   if (cards.length === 0) return null
 
   const origens = Object.entries(kpis.por_origem ?? {}).filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+  const temperaturas = Object.entries(kpis.por_temperatura ?? {}).filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])
 
   return (
@@ -72,6 +75,12 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
         <p className="text-[11px] text-muted-foreground">
           <span className="font-semibold">Origem:</span>{' '}
           {origens.map(([k, v]) => `${k} (${v})`).join(' · ')}
+        </p>
+      )}
+      {temperaturas.length > 0 && (
+        <p className="text-[11px] text-muted-foreground">
+          <span className="font-semibold">Temperatura:</span>{' '}
+          {temperaturas.map(([k, v]) => `${k} (${v})`).join(' · ')}
         </p>
       )}
       {(kpis.objecoes_top?.length ?? 0) > 0 && (
