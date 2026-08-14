@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, Suspense, useMemo } from 'react'
 import { flushSync } from 'react-dom'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ClipboardCheck, FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, AlertTriangle, CircleDollarSign } from 'lucide-react'
+import { ClipboardCheck, FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, TrendingUp, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, AlertTriangle, CircleDollarSign } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -83,7 +83,7 @@ const SECTION_LABELS: Record<string, string> = {
   'calculo-custo': 'Orçamentos',
   'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
-  'analises': 'Orçamentos',
+  'analises': 'Relatórios',
   'relatorios': 'Relatórios',
   'acompanhar': 'Orçamentos',
   'estoque': 'Estoque',
@@ -191,7 +191,8 @@ export default function Dashboard() {
     : isAdminPath ? 'admin'
     : isOrcamentoPath ? (orcamentoSub ?? DEFAULT_TAB)
     : (rawPath || DEFAULT_TAB)
-  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'acompanhar']
+  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'orcamentos', 'acompanhar']
+  const RELATORIOS_TABS = ['relatorios', 'analises']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
@@ -199,7 +200,7 @@ export default function Dashboard() {
     && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
     && (tabFromUrl !== 'agente-ia' || canAgenteIA || profileLoading)
     && (tabFromUrl !== 'fechamento' || canFechamento || profileLoading)
-    && (tabFromUrl !== 'relatorios' || canOrcamento || canFechamento || profileLoading)
+    && (!RELATORIOS_TABS.includes(tabFromUrl) || canOrcamento || canFechamento || profileLoading)
     && (!ORCAMENTO_TABS.includes(tabFromUrl) || canOrcamento || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
@@ -258,7 +259,7 @@ export default function Dashboard() {
       : activeTab === 'agente-ia' ? 'agente-ia'
       : activeTab === 'precos' ? 'precos'
       : activeTab === 'fechamento' ? 'fechamento'
-      : activeTab === 'relatorios' ? 'relatorios'
+      : RELATORIOS_TABS.includes(activeTab) ? 'relatorios'
       : isOrcamentoArea ? 'orcamento' : null
     if (area) {
       try { sessionStorage.setItem('sombrear-vt-icone', area) } catch { /* voa sem aviso */ }
@@ -521,6 +522,11 @@ export default function Dashboard() {
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: ShieldCheck, badge: pendingCount }] : []),
   ], [isAdmin, canOrcamento, canEstoque, pendingCount, estoqueAlertas.length, unreadCount])
 
+  const RELATORIOS_SUBTABS = useMemo(() => [
+    { id: 'relatorios', label: 'Por canal', icon: BarChart2  },
+    { id: 'analises',   label: 'Análises',  icon: TrendingUp },
+  ], [])
+
   const ADMIN_SUBTABS = useMemo(() => [
     { id: 'usuarios',   label: 'Usuários',   icon: Users },
     { id: 'permissoes', label: 'Permissões', icon: ShieldCheck },
@@ -551,7 +557,6 @@ export default function Dashboard() {
     { id: 'simulador',          label: 'Simulador', icon: Zap           },
     { id: 'planilha',           label: 'Planilha',  icon: ClipboardList },
     { id: 'calculo-custo',      label: 'Custos',    icon: ClipboardList },
-    { id: 'analises',           label: 'Análises',  icon: BarChart2     },
     { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
     { id: 'acompanhar',         label: 'Acompanhar', icon: ClipboardCheck, badge: aguardandoResposta },
   ], [aguardandoResposta])
@@ -559,6 +564,7 @@ export default function Dashboard() {
   const isEstoqueArea = isEstoquePath
   const isAdminArea = isAdminPath && isAdmin
   const isOrcamentoArea = isOrcamentoPath || ORCAMENTO_TABS.includes(rawPath)
+  const isRelatoriosArea = RELATORIOS_TABS.includes(activeTab) && !isOrcamentoPath
 
   function MagneticBtn({ children, style, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
     const [off, setOff] = useState({ x: 0, y: 0 })
@@ -1038,23 +1044,45 @@ export default function Dashboard() {
             />
           )}
 
+          {/* RELATÓRIOS SUBTABS */}
+          {isRelatoriosArea && RELATORIOS_SUBTABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              data-tab={id}
+              onClick={() => {
+                uiSound.play('tab')
+                haptic('light')
+                navigate(`/${id}`)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              onMouseDown={handleTabRipple}
+              title={label}
+              className={cn(
+                'relative flex shrink-0 min-w-[60px] md:flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+                activeTab === id
+                  ? 'bg-card text-primary shadow-elevated'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" style={vtStyle((vtIcone === 'relatorios' || vtVolta) && activeTab === id)} />
+              <span className="hidden sm:inline truncate">{label}</span>
+            </button>
+          ))}
           {/* ÁREAS SOLO: dentro delas só existe a própria área — navegação entre áreas é pelo Início */}
-          {(activeTab === 'agente-ia' || activeTab === 'precos' || activeTab === 'fechamento' || activeTab === 'relatorios') ? (
+          {(activeTab === 'agente-ia' || activeTab === 'precos' || activeTab === 'fechamento') ? (
             <button
               data-tab={activeTab}
               className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
             >
               {activeTab === 'fechamento'
                 ? <><Wallet className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'fechamento' || (vtVolta && activeTab === 'fechamento'))} />Fechamento</>
-                : activeTab === 'relatorios'
-                ? <><BarChart2 className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'relatorios' || (vtVolta && activeTab === 'relatorios'))} />Relatórios</>
                 : activeTab === 'agente-ia'
                 ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia' || (vtVolta && activeTab === 'agente-ia'))} />Agente IA</>
                 : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos' || (vtVolta && activeTab === 'precos'))} />Tabela de Preços</>}
             </button>
           ) : (
           /* SECTION TABS (fallback) */
-          !isOrcamentoArea && !isEstoqueArea && !isAdminArea && (
+          !isOrcamentoArea && !isEstoqueArea && !isAdminArea && !isRelatoriosArea && (
             TABS.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
