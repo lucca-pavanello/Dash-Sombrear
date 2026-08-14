@@ -84,7 +84,7 @@ const SECTION_LABELS: Record<string, string> = {
   'agente-ia': 'Agente IA',
   'orcamentos': 'Orçamentos',
   'analises': 'Orçamentos',
-  'relatorios': 'Orçamentos',
+  'relatorios': 'Relatórios',
   'acompanhar': 'Orçamentos',
   'estoque': 'Estoque',
   'admin': 'Admin',
@@ -191,7 +191,7 @@ export default function Dashboard() {
     : isAdminPath ? 'admin'
     : isOrcamentoPath ? (orcamentoSub ?? DEFAULT_TAB)
     : (rawPath || DEFAULT_TAB)
-  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'acompanhar', 'relatorios']
+  const ORCAMENTO_TABS = ['calcular-orcamento', 'simulador', 'planilha', 'calculo-custo', 'analises', 'orcamentos', 'acompanhar']
   // Enquanto o perfil carrega, não redireciona — evita flash para admins acessando /admin diretamente
   const activeTab = VALID_TABS.includes(tabFromUrl)
     && (tabFromUrl !== 'admin' || isAdmin || profileLoading)
@@ -199,6 +199,7 @@ export default function Dashboard() {
     && (tabFromUrl !== 'estoque' || canEstoque || profileLoading)
     && (tabFromUrl !== 'agente-ia' || canAgenteIA || profileLoading)
     && (tabFromUrl !== 'fechamento' || canFechamento || profileLoading)
+    && (tabFromUrl !== 'relatorios' || canOrcamento || canFechamento || profileLoading)
     && (!ORCAMENTO_TABS.includes(tabFromUrl) || canOrcamento || profileLoading)
     ? tabFromUrl
     : DEFAULT_TAB
@@ -257,6 +258,7 @@ export default function Dashboard() {
       : activeTab === 'agente-ia' ? 'agente-ia'
       : activeTab === 'precos' ? 'precos'
       : activeTab === 'fechamento' ? 'fechamento'
+      : activeTab === 'relatorios' ? 'relatorios'
       : isOrcamentoArea ? 'orcamento' : null
     if (area) {
       try { sessionStorage.setItem('sombrear-vt-icone', area) } catch { /* voa sem aviso */ }
@@ -552,7 +554,6 @@ export default function Dashboard() {
     { id: 'analises',           label: 'Análises',  icon: BarChart2     },
     { id: 'orcamentos',         label: 'Lista',     icon: FileText      },
     { id: 'acompanhar',         label: 'Acompanhar', icon: ClipboardCheck, badge: aguardandoResposta },
-    { id: 'relatorios',         label: 'Relatórios', icon: BarChart2    },
   ], [aguardandoResposta])
 
   const isEstoqueArea = isEstoquePath
@@ -1038,13 +1039,15 @@ export default function Dashboard() {
           )}
 
           {/* ÁREAS SOLO: dentro delas só existe a própria área — navegação entre áreas é pelo Início */}
-          {(activeTab === 'agente-ia' || activeTab === 'precos' || activeTab === 'fechamento') ? (
+          {(activeTab === 'agente-ia' || activeTab === 'precos' || activeTab === 'fechamento' || activeTab === 'relatorios') ? (
             <button
               data-tab={activeTab}
               className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
             >
               {activeTab === 'fechamento'
                 ? <><Wallet className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'fechamento' || (vtVolta && activeTab === 'fechamento'))} />Fechamento</>
+                : activeTab === 'relatorios'
+                ? <><BarChart2 className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'relatorios' || (vtVolta && activeTab === 'relatorios'))} />Relatórios</>
                 : activeTab === 'agente-ia'
                 ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia' || (vtVolta && activeTab === 'agente-ia'))} />Agente IA</>
                 : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos' || (vtVolta && activeTab === 'precos'))} />Tabela de Preços</>}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { ClipboardCheck, ArrowRight, Bot, Calculator, CircleDollarSign, Wallet, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
+import { ClipboardCheck, ArrowRight, BarChart2, Bot, Calculator, CircleDollarSign, Wallet, Package, ShieldCheck, FileText, CheckCircle2, Clock, TrendingUp, Command } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useCrmLeads } from '@/hooks/useAgenteIA'
@@ -380,6 +380,12 @@ export default function HomePage() {
               descricao="Vendas efetivadas, quanto vai para a parceira e o que sobra para a loja."
               viajando={viajante === 'fechamento'}
               onClick={() => irArea('fechamento', '/fechamento')} />
+          )}
+          {(canOrcamento || canFechamento) && (
+            <AreaCard titulo="Relatórios" icon={BarChart2} animIcone="icon-press" delay={522}
+              descricao="Resultado por canal e os resumos escritos pela IA — da semana ou do período que você pedir."
+              viajando={viajante === 'relatorios'}
+              onClick={() => irArea('relatorios', '/relatorios')} />
           )}
           {isAdmin && (
             <AreaCard titulo="Admin" icon={ShieldCheck} animIcone="icon-guard" delay={540}
