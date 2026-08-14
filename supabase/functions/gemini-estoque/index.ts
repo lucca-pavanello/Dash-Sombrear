@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     // Recebe o body completo que seria enviado à API do Gemini
     // { model, contents, tools?, systemInstruction? }
     const body = await req.json()
-    const model = body.model ?? 'gemini-2.5-flash-preview-05-20'
+    const model = body.model ?? 'gemini-3.7-flash'
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 

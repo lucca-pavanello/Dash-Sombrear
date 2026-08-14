@@ -5,7 +5,7 @@ import { buildSystemPrompt } from "./systemPrompt"
 import { executarTool, gerarPreviewAcao } from "./executors"
 import type { MensagemChat, NivelConfirmacao, ChatContextoEstoque } from "./types"
 
-const MODELO = "gemini-2.5-flash-preview-05-20"
+const MODELO = "gemini-3.7-flash"
 
 interface PendingConfirmation {
   tool_name: NomeTool
