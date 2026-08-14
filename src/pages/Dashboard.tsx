@@ -1058,7 +1058,7 @@ export default function Dashboard() {
               onMouseDown={handleTabRipple}
               title={label}
               className={cn(
-                'relative flex shrink-0 min-w-[60px] md:flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+                'relative flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
                 activeTab === id
                   ? 'bg-card text-primary shadow-elevated'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
