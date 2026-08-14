@@ -19,7 +19,10 @@ export default function FunilConversao({ leads, orcados, fechados, faturamento }
   leads: number; orcados: number; fechados: number; faturamento: number
 }) {
   const valores = [leads, orcados, fechados]
-  const topo = Math.max(leads, 1)
+  // a base é o MAIOR estágio, não o primeiro: quando entram orçamentos sem lead
+  // rastreado (balcão, histórico), o meio do funil é maior que o topo e a barra
+  // estourava o card
+  const topo = Math.max(...valores, 1)
   const largura = (v: number) => `${Math.max((v / topo) * 100, 14)}%`
   const pct = (de: number, para: number) =>
     de > 0 ? `${((para / de) * 100).toFixed(0)}%` : null
