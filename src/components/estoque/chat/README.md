@@ -38,7 +38,7 @@ SELECT estoque_chat_contexto();
 Deve retornar JSON com resumo, giro, top_produtos, sugestoes_compra, produtos_parados, fornecedores, localizacoes, configuracoes.
 
 ### Modelo Gemini
-`gemini-2.5-flash-preview-05-20`
+`gemini-3.7-flash`
 
 ## Limitações conhecidas
 - O snapshot é gerado a cada pergunta — pode adicionar 200–500ms de latência

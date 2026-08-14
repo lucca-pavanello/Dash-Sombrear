@@ -6,7 +6,7 @@ import { executarTool, gerarPreviewAcao } from "./executors"
 import { useChatStore } from "./store"
 import type { MensagemChat, NivelConfirmacao, ChatContextoEstoque } from "./types"
 
-const MODELO = "gemini-2.5-flash-preview-05-20"
+const MODELO = "gemini-3.7-flash"
 
 function makeId(): string {
   return Math.random().toString(36).slice(2)

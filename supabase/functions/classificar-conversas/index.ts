@@ -27,7 +27,7 @@ function resposta(status: number, body: unknown) {
 
 async function chamarGemini(apiKey: string, prompt: string): Promise<string> {
   let ultimoErro = 'sem resposta'
-  for (const modelo of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+  for (const modelo of ['gemini-3.7-flash', 'gemini-flash-latest']) {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
       {

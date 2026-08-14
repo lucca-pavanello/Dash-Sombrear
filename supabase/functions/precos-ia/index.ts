@@ -246,7 +246,7 @@ admin um valor que já está aqui. Se o item não aparecer na lista, aí sim dig
       // modelos em ordem de preferência (1.5 foi aposentado; mantém fallback)
       let data: Record<string, unknown> | null = null
       let ultimoErro: unknown = null
-      for (const modelo of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+      for (const modelo of ['gemini-3.7-flash', 'gemini-flash-latest']) {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: corpo },

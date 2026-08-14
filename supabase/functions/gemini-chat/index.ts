@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // (gemini-1.5-flash foi aposentado pelo Google — não usar)
     let data: unknown = null
     let status = 500
-    for (const modelo of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+    for (const modelo of ['gemini-3.7-flash', 'gemini-flash-latest']) {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`
       const res = await fetch(endpoint, {
         method: 'POST',
