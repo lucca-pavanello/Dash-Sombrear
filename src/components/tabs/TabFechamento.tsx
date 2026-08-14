@@ -21,6 +21,9 @@ import { Button, EmptyState } from '@/components/ui/primitives'
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 import JanelaDados from '@/components/orcamentos/JanelaDados'
+import ConfirmarExclusaoVenda from '@/components/orcamentos/ConfirmarExclusaoVenda'
+import { useProfile } from '@/hooks/useProfile'
+import { ADMIN_EMAIL } from '@/lib/constants'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 
@@ -103,6 +106,9 @@ function Kpi({ rotulo, valor, hint, destaque, contar }: {
 
 export default function TabFechamento() {
   const { data: todos = [], isLoading, refetch } = useOrcamentos()
+  // apagar venda é só do admin — o RLS repete a regra, aqui só evita o botão morto
+  const { data: profile } = useProfile()
+  const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
   const [calculando, setCalculando] = useState(false)
   const [periodo, setPeriodo] = useState('mes')
   const [de, setDe] = useState('')
@@ -113,9 +119,10 @@ export default function TabFechamento() {
     { cobrado: '', parceira: '', formaReal: '', parcelasReal: '', origem: '' })
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
-  // exclusão em dois toques: o primeiro clique arma, o segundo confirma
+  // exclusão passa por modal: mexe em faturamento, não pode sair num clique torto
   const [confirmandoExcluir, setConfirmandoExcluir] = useState<string | null>(null)
   const [excluindo, setExcluindo] = useState<string | null>(null)
+  const [erroExcluir, setErroExcluir] = useState<string | null>(null)
   const [erroReconstruir, setErroReconstruir] = useState<Record<string, string>>({})
 
   /**
@@ -174,6 +181,7 @@ export default function TabFechamento() {
    */
   async function excluirVenda(o: Orcamento) {
     setExcluindo(o.id)
+    setErroExcluir(null)
     try {
       const { data: perfil } = await supabase.auth.getUser()
       const { error: erroLixeira } = await supabase.from('orcamentos_excluidos').insert({
@@ -191,8 +199,7 @@ export default function TabFechamento() {
       setEditando(null)
       await refetch()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Não deu para excluir'
-      setErroReconstruir(e => ({ ...e, [o.id]: msg }))
+      setErroExcluir(err instanceof Error ? err.message : 'Não deu para excluir')
     } finally {
       setExcluindo(null)
     }
@@ -461,21 +468,7 @@ export default function TabFechamento() {
                               emEdicao ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
                             <PencilLine className="h-3.5 w-3.5" />
                           </button>
-                          {confirmandoExcluir === o.id ? (
-                            <span className="flex items-center gap-1">
-                              <button type="button" onClick={() => excluirVenda(o)} disabled={excluindo === o.id}
-                                title="Confirmar exclusão"
-                                className="rounded-md bg-destructive px-2 py-1 text-[10px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
-                                {excluindo === o.id
-                                  ? <Loader2 className="h-3 w-3 animate-spin" />
-                                  : 'Excluir'}
-                              </button>
-                              <button type="button" onClick={() => setConfirmandoExcluir(null)} title="Cancelar"
-                                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted">
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ) : (
+                          {isAdmin && (
                             <button type="button" onClick={() => setConfirmandoExcluir(o.id)}
                               title="Excluir esta venda"
                               className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
@@ -485,22 +478,6 @@ export default function TabFechamento() {
                         </span>
                       </td>
                     </tr>
-                    {confirmandoExcluir === o.id && (
-                      <tr>
-                        <td colSpan={8} className="bg-destructive/[0.04] px-4 py-2 text-center">
-                          <p className="text-xs text-foreground/75">
-                            Apagar a venda de <b>{o.cliente ?? 'sem nome'}</b> de {formatCurrency(pago(o))}?
-                            Ela sai do fechamento e dos totais.{' '}
-                            <span className="text-muted-foreground">
-                              Guardamos uma cópia — se for engano, dá pra recuperar.
-                            </span>
-                          </p>
-                          {erroReconstruir[o.id] && (
-                            <p className="mt-1 text-xs font-medium text-destructive">{erroReconstruir[o.id]}</p>
-                          )}
-                        </td>
-                      </tr>
-                    )}
                     {emEdicao && (
                       <tr>
                         <td colSpan={8} className="bg-muted/20 px-4 py-4">
@@ -668,6 +645,24 @@ export default function TabFechamento() {
       </div>
 
       <JanelaDados className="mt-4" />
+
+      {(() => {
+        // só admin chega aqui, mas a checagem repete: o estado sobrevive a um
+        // rebaixamento de permissão no meio da sessão
+        const alvo = isAdmin ? vendas.find(v => v.id === confirmandoExcluir) : undefined
+        if (!alvo) return null
+        return (
+          <ConfirmarExclusaoVenda
+            cliente={alvo.cliente}
+            valor={pago(alvo)}
+            data={alvo.created_at}
+            excluindo={excluindo === alvo.id}
+            erro={erroExcluir}
+            onConfirmar={() => excluirVenda(alvo)}
+            onCancelar={() => { setConfirmandoExcluir(null); setErroExcluir(null) }}
+          />
+        )
+      })()}
     </>
   )
 }
