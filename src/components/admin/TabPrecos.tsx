@@ -199,7 +199,9 @@ function Carregando() {
 }
 
 const CATEGORIAS_TECIDO = [
-  { value: 'blackout', label: 'Blackout' }, { value: 'tela_solar', label: 'Tela Solar' },
+  { value: 'blackout', label: 'Blackout' },
+  { value: 'tela_solar_1', label: 'Tela Solar 1%' }, { value: 'tela_solar_3', label: 'Tela Solar 3%' },
+  { value: 'tela_solar', label: 'Tela Solar (genérico — evitar)' },
   { value: 'decorativo', label: 'Decorativo' }, { value: 'outro', label: 'Outro' },
 ] as const
 
