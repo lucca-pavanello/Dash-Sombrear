@@ -28,6 +28,10 @@ export type Orcamento = {
   forma_pagamento_real?: string | null
   valor_parceiro_pago?: number | null
   custos_detalhe?: { parte: string; tabela: number; fator: number; real: number }[] | null
+  /** data do pedido informada na mão (Fechamento) — nula usa created_at */
+  data_pedido?: string | null
+  /** número do pedido da loja (ex.: "337") */
+  numero_pedido?: string | null
   custo_m2?: number | null
   fechado?: boolean | null
   telefone?: string | null

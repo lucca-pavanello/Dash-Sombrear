@@ -68,6 +68,22 @@ const pgtoCurto = (o: Orcamento): string => {
   return base ?? '—'
 }
 
+/**
+ * Pagamento como REALMENTE saiu, pro PDF do fechamento (áudio da loja,
+ * 17/08: "não precisa ficar comparando entre parênteses, aqui é a realidade
+ * da venda"). Parcelas: o número real se houver; senão o combinado.
+ */
+const pgtoReal = (o: Orcamento): { forma: string; parcelas: number | null } => {
+  const real = parcelasDe(o.forma_pagamento_real)
+  if (real) return { forma: `${real}x no cartão`, parcelas: Number(real) }
+  if (o.forma_pagamento === 'a_vista') return { forma: 'à vista', parcelas: null }
+  if (o.forma_pagamento === 'cartao_4x') return { forma: '4x no cartão', parcelas: 4 }
+  if (o.forma_pagamento === 'outro') {
+    return { forma: (o.forma_pagamento_real ?? 'outro').slice(0, 24), parcelas: null }
+  }
+  return { forma: '—', parcelas: null }
+}
+
 /** "R$ 792,50 (R$ 750,00)" — calculado com o realmente pago entre parênteses */
 function ValorComReal({ calc, real, classe }: { calc: number; real: number; classe?: string }) {
   if (!ajustado(calc, real)) return <span className={classe}>{formatCurrency(calc)}</span>
@@ -115,8 +131,8 @@ export default function TabFechamento() {
   const [ate, setAte] = useState('')
   const [baixando, setBaixando] = useState(false)
   const [editando, setEditando] = useState<string | null>(null)
-  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; parcelasReal: string; origem: string }>(
-    { cobrado: '', parceira: '', formaReal: '', parcelasReal: '', origem: '' })
+  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; parcelasReal: string; origem: string; dataPedido: string; numeroPedido: string }>(
+    { cobrado: '', parceira: '', formaReal: '', parcelasReal: '', origem: '', dataPedido: '', numeroPedido: '' })
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
   // exclusão passa por modal: mexe em faturamento, não pode sair num clique torto
@@ -163,6 +179,8 @@ export default function TabFechamento() {
         return { parcelasReal: parcelasDe(bruto) ?? '', formaReal: bruto }
       })(),
       origem: acharOrigem(o.origem).id === SEM_ORIGEM.id ? '' : acharOrigem(o.origem).id,
+      dataPedido: o.data_pedido ?? '',
+      numeroPedido: o.numero_pedido ?? '',
     })
   }
 
@@ -230,6 +248,8 @@ export default function TabFechamento() {
         valor_parceiro_pago: numero(rascunho.parceira),
         forma_pagamento_real: formaRealFinal || null,
         origem: rascunho.origem || null,
+        data_pedido: rascunho.dataPedido || null,
+        numero_pedido: rascunho.numeroPedido.trim() || null,
       }).eq('id', o.id)
       if (error) throw error
       setEditando(null)
@@ -241,8 +261,10 @@ export default function TabFechamento() {
 
   const vendas = useMemo(() => {
     const fechados = todos.filter(o => o.fechado === true)
-    return filterByPeriod(fechados, periodo, o => o.created_at, de || undefined, ate || undefined)
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    // data do pedido manda quando foi informada; senão, a de criação
+    const dataDe = (o: Orcamento) => o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at
+    return filterByPeriod(fechados, periodo, dataDe, de || undefined, ate || undefined)
+      .sort((a, b) => new Date(dataDe(b)).getTime() - new Date(dataDe(a)).getTime())
   }, [todos, periodo, de, ate])
 
   const totais = useMemo(() => {
@@ -273,41 +295,35 @@ export default function TabFechamento() {
       const inicioY = faixaMarca(doc, 'Fechamento de vendas',
         `${rotuloPeriodo}${de || ate ? ` (${de} a ${ate})` : ''} · ${vendas.length} venda(s)`)
 
+      /* A loja pediu (áudio 17/08): só a realidade da venda — quanto o cliente
+         pagou, a parcela, a forma, quanto foi pra parceira e quanto sobrou.
+         Sem "(orçado em …)", sem "4x / 6x". */
       autoTable(doc, {
         startY: inicioY,
-        head: [['Data', 'Cliente', 'Produto', 'Medidas', 'Pagamento\norçado / feito', 'Cliente pagou', 'À parceira', 'Sobra']],
-        body: vendas.map(o => [
-          formatDate(o.created_at),
-          o.cliente ?? '—',
-          [o.modelo, o.tecido].filter(Boolean).join(' · '),
-          o.largura && o.altura
-            ? `${String(o.largura).replace('.', ',')}×${String(o.altura).replace('.', ',')}m`
-            : '—',
-          pgtoCurto(o),
-          /* o valor REAL na frente; o combinado vira linha de baixo — toda
-             célula com a mesma cara, sem larguras caóticas */
-          ajustado(receita(o), pago(o))
-            ? `${formatCurrency(pago(o))}\n(orçado em ${formatCurrency(receita(o))})`
-            : formatCurrency(pago(o)),
-          ajustado(Number(o.valor_parceiro ?? 0), pagoParceira(o))
-            ? `${formatCurrency(pagoParceira(o))}\n(orçado em ${formatCurrency(Number(o.valor_parceiro ?? 0))})`
-            : formatCurrency(pagoParceira(o)),
-          formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
-        ]),
-        foot: [['', '', '', '', 'TOTAIS',
-          formatCurrency(totais.bruto), formatCurrency(totais.parceira), formatCurrency(totais.sobra)]],
+        head: [['Data', 'Pedido', 'Cliente', 'Produto', 'Cliente pagou', 'Parcela', 'Pagamento', 'À parceira', 'Sobra']],
+        body: vendas.map(o => {
+          const pg = pgtoReal(o)
+          const parcela = pg.parcelas && pg.parcelas > 1 ? formatCurrency(pago(o) / pg.parcelas) : '—'
+          return [
+            formatDate(o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at),
+            o.numero_pedido ?? '—',
+            o.cliente ?? '—',
+            [o.modelo, o.tecido].filter(Boolean).join(' · ')
+              + (o.largura && o.altura ? `\n${String(o.largura).replace('.', ',')}×${String(o.altura).replace('.', ',')}m` : ''),
+            formatCurrency(pago(o)),
+            parcela,
+            pg.forma,
+            formatCurrency(pagoParceira(o)),
+            formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
+          ]
+        }),
+        foot: [['', '', '', 'TOTAIS',
+          formatCurrency(totais.bruto), '', '', formatCurrency(totais.parceira), formatCurrency(totais.sobra)]],
         ...TEMA_TABELA,
-        // dinheiro à direita (vírgulas empilham), medidas e pgto centrados
-        columnStyles: { ...colunasDireita([5, 6, 7]), ...colunasCentro([3, 4]) },
-        didParseCell: alinharSecoes({ 3: 'center', 4: 'center', 5: 'right', 6: 'right', 7: 'right' }),
+        columnStyles: { ...colunasDireita([4, 5, 7, 8]), ...colunasCentro([1, 6]) },
+        didParseCell: alinharSecoes({ 1: 'center', 4: 'right', 5: 'right', 6: 'center', 7: 'right', 8: 'right' }),
         margin: { left: 14, right: 14, bottom: 20 },
       })
-      // "4x / 6x" sem explicação é código de programador — o papel explica a si mesmo
-      const fimTabela = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 40
-      doc.setFontSize(8); doc.setTextColor(130)
-      doc.text(
-        'Pagamento: como foi orçado / como foi feito. Ex.: "4x / 6x" = orçado em 4x, pago em 6x. "à vista" já inclui 5% de desconto.',
-        14, fimTabela + 8)
       rodapeMarca(doc)
       doc.save(`fechamento-sombrear-${new Date().toISOString().slice(0, 10)}.pdf`)
     } finally {
@@ -334,13 +350,12 @@ export default function TabFechamento() {
 
       {/* Filtros + ações */}
       <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
-        <CustomSelect className="w-44 py-2" value={periodo} onChange={setPeriodo} options={PERIODOS} />
-        {periodo === 'custom' && (
-          <>
-            <DatePicker value={de} onChange={setDe} placeholder="De" triggerClassName="py-2" className="w-40" />
-            <DatePicker value={ate} onChange={setAte} placeholder="Até" min={de || undefined} triggerClassName="py-2" className="w-40" />
-          </>
-        )}
+        <CustomSelect className="w-44 py-2" value={periodo}
+          onChange={v => { setPeriodo(v); if (v !== 'custom') { setDe(''); setAte('') } }} options={PERIODOS} />
+        <DatePicker value={de} onChange={v => { setDe(v); if (v) setPeriodo('custom') }}
+          placeholder="De" triggerClassName="py-2" className="w-36" />
+        <DatePicker value={ate} onChange={v => { setAte(v); if (v) setPeriodo('custom') }}
+          placeholder="Até" min={de || undefined} triggerClassName="py-2" className="w-36" />
         <Button variant="brand" onClick={() => setCalculando(v => !v)}>
           <Plus className={cn('h-4 w-4 transition-transform duration-200', calculando && 'rotate-45')}
             aria-hidden="true" />
@@ -416,7 +431,10 @@ export default function TabFechamento() {
                   return (
                     <Fragment key={o.id}>
                     <tr className={cn('transition-colors hover:bg-primary/[0.03]', emEdicao && 'bg-primary/[0.04]')}>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">{formatDate(o.created_at)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">
+                        {formatDate(o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at)}
+                        {o.numero_pedido && <span className="block text-[10px] font-semibold text-foreground/60">Ped. {o.numero_pedido}</span>}
+                      </td>
                       <td className="px-4 py-3 text-center font-medium text-foreground">
                         <span className="block">{o.cliente ?? '—'}</span>
                         {o.origem && <SeloOrigem origem={o.origem} className="mt-1" />}
@@ -579,6 +597,21 @@ export default function TabFechamento() {
                                     )
                                   })()}
                                 </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <label className="block">
+                                    <span className="text-[11px] text-muted-foreground">Data do pedido</span>
+                                    <DatePicker value={rascunho.dataPedido}
+                                      onChange={v => setRascunho(r => ({ ...r, dataPedido: v }))}
+                                      placeholder="dd/mm/aaaa" className="mt-0.5 w-full" />
+                                  </label>
+                                  <label className="block">
+                                    <span className="text-[11px] text-muted-foreground">Nº do pedido</span>
+                                    <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                      placeholder="ex.: 337" maxLength={20}
+                                      value={rascunho.numeroPedido}
+                                      onChange={e => setRascunho(r => ({ ...r, numeroPedido: e.target.value }))} />
+                                  </label>
+                                </div>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">Observação do pagamento (opcional)</span>
                                   <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
