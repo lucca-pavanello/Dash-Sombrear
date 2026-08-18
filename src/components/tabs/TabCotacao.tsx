@@ -44,6 +44,8 @@ const MAIS_BARATO = 'MAIS BARATO (a partir de)'
  */
 const ROTULO_TIPO: Record<string, string> = {
   blackout: 'Blackout', tela_solar: 'Tela Solar', decorativo: 'Decorativo',
+  // pedido da loja (18/08): o "mais barato" separa tela solar 1% (mais fechada) de 3%
+  tela_solar_1: 'Tela Solar 1%', tela_solar_3: 'Tela Solar 3%',
 }
 const rotularTipo = (t: string) =>
   ROTULO_TIPO[t] ?? t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -382,7 +384,7 @@ export default function TabCotacao() {
     for (let i = 0; i < ambientes.length; i++) {
       const a = ambientes[i]
       const nA = ambientes.length > 1 ? ` (Amb. ${i + 1})` : ''
-      if (!a.ambiente.trim()) return `Nome do ambiente é obrigatório${nA || ' (ex.: Sala, Quarto, Escritório)'}.`
+      // ambiente é opcional (pedido da loja, 18/08): sem nome, o n8n rotula "Ambiente N" na mensagem
       if (a.persianas.length === 0) return `Adicione ao menos uma persiana no ambiente ${a.ambiente || i + 1}.`
       for (let j = 0; j < a.persianas.length; j++) {
         const p = a.persianas[j]
@@ -714,12 +716,12 @@ export default function TabCotacao() {
                         <div className="p-4 space-y-4 sm:p-5 sm:space-y-5 animate-in fade-in-0 slide-in-from-top-1 duration-200">
                           {/* Nome do ambiente */}
                           <div>
-                            <label className={labelCls}>Nome do Ambiente <Req /></label>
+                            <label className={labelCls}>Nome do Ambiente <span className="font-normal normal-case tracking-normal text-foreground/40">(opcional)</span></label>
                             <input
                               type="text" value={a.ambiente}
                               onChange={e => setAmbienteNome(a.id, e.target.value)}
                               className={inputCls}
-                              placeholder="Sala, Quarto, Escritório…"
+                              placeholder="Sala, Quarto, Escritório… (pode deixar em branco)"
                               list="sugestoes-ambiente"
                             />
                           </div>

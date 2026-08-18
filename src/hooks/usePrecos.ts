@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 
 /* ─── Tipos das tabelas precos_* ─────────────────────────── */
 export interface PrecoTecido {
-  id: number; nome: string; tipo: 'blackout' | 'tela_solar' | 'decorativo' | 'outro'
+  id: number; nome: string; tipo: 'blackout' | 'tela_solar' | 'tela_solar_1' | 'tela_solar_3' | 'decorativo' | 'outro'
   largura: number; preco: number
 }
 export interface PrecoArtigo { id: number; categoria: 'PV' | 'PH_ALUMINIO'; nome: string; preco: number }
