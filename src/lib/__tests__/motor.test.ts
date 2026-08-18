@@ -71,6 +71,36 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
     const r = simular(rolo({ modelo: 'Rolo Motorizado', altura: 6.2 }), dPersiana)
     expect('erro' in r && /6,00/.test(r.erro)).toBe(true)
   })
+
+  /* pedido da loja (16/08): 6 rolôs numa parede não são 6 motores + 6
+     controles — peças unidas por junção dividem motor, e o controle é do
+     pedido (1 de 6 canais). O padrão continua 1 motor/peça + 1 controle
+     de 1 canal, então o golden acima não muda. */
+  it('6 peças, 3 motores, 1 controle de 6 canais, 3 junções: peças da motorização por quantidade própria', () => {
+    const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', quantidade: 6,
+      motorQtd: 3, controleQtd: 1, controleCanais: 6, juncaoQtd: 3 }), dPersiana))
+    const acha = (re: RegExp) => r.detalhe.find(d => re.test(d.parte))
+    expect(acha(/^Estrutura/)?.parte).toMatch(/× 6$/)
+    expect(acha(/^Motor/)?.parte).toMatch(/× 3$/)
+    expect(acha(/^Controle 6 canais/)?.parte).toBe('Controle 6 canais')   // 1 só, sem "× n"
+    expect(acha(/^Junção/)?.parte).toMatch(/× 3$/)
+    expect(r.observacoes.join(' ')).toMatch(/6 peças com 3 motores/)
+  })
+
+  it('padrão de 6 peças sem escolha = 6 motores e 6 controles de 1 canal (comportamento antigo)', () => {
+    const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', quantidade: 6 }), dPersiana))
+    const acha = (re: RegExp) => r.detalhe.find(d => re.test(d.parte))
+    expect(acha(/^Motor/)?.parte).toMatch(/× 6$/)
+    // controle passou a ser do PEDIDO: padrão 1 controle, não 6
+    expect(acha(/^Controle 1 canal/)?.parte).toBe('Controle 1 canal')
+  })
+
+  it('a conta bate: 3 motores em vez de 6 baixa o custo da motorização', () => {
+    const seis = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', quantidade: 6 }), dPersiana))
+    const tres = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', quantidade: 6, motorQtd: 3 }), dPersiana))
+    expect(tres.custoTabela).toBeLessThan(seis.custoTabela)
+    expect(tres.total4x).toBeLessThan(seis.total4x)
+  })
 })
 
 describe('ferragem preta — regra da loja', () => {

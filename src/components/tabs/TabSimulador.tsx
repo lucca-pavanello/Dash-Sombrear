@@ -77,6 +77,11 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [ph50Bando, setPh50Bando] = useState(false)
   const [corFerragem, setCorFerragem] = useState<'BRANCA' | 'PRETA'>('BRANCA')
   const [motorWifi, setMotorWifi] = useState(false)
+  // motorização é do PEDIDO: 6 peças numa parede não são 6 motores + 6 controles
+  const [motorQtd, setMotorQtd] = useState('')          // vazio = 1 por peça
+  const [controleQtd, setControleQtd] = useState('1')
+  const [controleCanais, setControleCanais] = useState<'1' | '6' | '16'>('1')
+  const [juncaoQtd, setJuncaoQtd] = useState('0')
   const [largura, setLargura] = useState('')
   const [altura, setAltura] = useState('')
   const [quantidade, setQuantidade] = useState('1')
@@ -182,11 +187,16 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     quantidade: Math.max(1, Math.round(num(quantidade))),
     acabamento,
     motorWifi: motorizado ? motorWifi : undefined,
+    motorQtd: motorizado && num(motorQtd) > 0 ? Math.round(num(motorQtd)) : undefined,
+    controleQtd: motorizado ? Math.max(0, Math.round(num(controleQtd))) : undefined,
+    controleCanais: motorizado ? (Number(controleCanais) as 1 | 6 | 16) : undefined,
+    juncaoQtd: motorizado ? Math.max(0, Math.round(num(juncaoQtd))) : undefined,
     bandoLargura: bandoUnico ? num(bandoLargura) || undefined : undefined,
     bandoQuantidade: bandoUnico ? Math.round(num(bandoQtd)) || undefined : undefined,
     incluirInstalacao: instalacao,
   }), [modelo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
-    acabamento, motorizado, motorWifi, bandoUnico, bandoLargura, bandoQtd, instalacao])
+    acabamento, motorizado, motorWifi, motorQtd, controleQtd, controleCanais, juncaoQtd,
+    bandoUnico, bandoLargura, bandoQtd, instalacao])
 
   const pronto = entrada.largura > 0 && entrada.altura > 0 &&
     (comTecido ? !!entrada.tecido : !!entrada.artigo)
@@ -529,6 +539,42 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
                     {/* Porta larga dividida em peças costuma levar UM bandô cobrindo tudo.
                         Vazio = o bandô acompanha a persiana, como sempre foi. */}
+                    {motorizado && (
+                      <div className="sm:col-span-2 rounded-lg border border-dashed p-3">
+                        <p className="mb-2 text-xs text-foreground/60">
+                          Motorização do pedido — peças unidas por junção dividem motor; o controle
+                          é um só para todas (escolha os canais).
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          <div>
+                            <label className={labelCls}>Motores</label>
+                            <input className={inputCls} inputMode="numeric" value={motorQtd}
+                              onChange={e => setMotorQtd(e.target.value)}
+                              placeholder={quantidade ? `${quantidade} (1 por peça)` : '1 por peça'} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Controles</label>
+                            <input className={inputCls} inputMode="numeric" value={controleQtd}
+                              onChange={e => setControleQtd(e.target.value)} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Canais</label>
+                            <CustomSelect value={controleCanais}
+                              onChange={v => setControleCanais(v as '1' | '6' | '16')}
+                              options={[
+                                { value: '1', label: '1 canal' },
+                                { value: '6', label: '6 canais' },
+                                { value: '16', label: '16 canais' },
+                              ]} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Junções 53mm</label>
+                            <input className={inputCls} inputMode="numeric" value={juncaoQtd}
+                              onChange={e => setJuncaoQtd(e.target.value)} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {(acabamento === 'bando_branco' || acabamento === 'bando_preto') && (
                       <div className="sm:col-span-2 rounded-lg border border-dashed p-3">
                         <label className="flex cursor-pointer items-start gap-2.5">

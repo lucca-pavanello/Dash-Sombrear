@@ -34,6 +34,13 @@ export interface EntradaSim {
   acabamento: AcabamentoSim
   /** motorizado: motor WiFi em vez do de canal */
   motorWifi?: boolean
+  /** motorizado: quantos motores (padrão = 1 por peça). Peças unidas por junção dividem motor */
+  motorQtd?: number
+  /** motorizado: quantos controles (padrão 1) e de quantos canais (padrão 1) */
+  controleQtd?: number
+  controleCanais?: 1 | 6 | 16
+  /** motorizado: junções 53mm entre tubos (padrão 0) */
+  juncaoQtd?: number
   /** largura do bandô quando ele NÃO acompanha a persiana (porta dividida em peças) */
   bandoLargura?: number
   /** quantos bandôs — normalmente 1 quando a medida própria é informada */
@@ -170,7 +177,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     let chaveFerragem: string
     let rotuloFerragem = 'Ferragem'
     /** peças da motorização — viram linhas próprias no custo item a item */
-    let motorPartes: { rotulo: string; custo: number }[] | null = null
+    let motorPartes: { rotulo: string; custo: number; n: number }[] | null = null
     if (e.modelo === 'Rolo Motorizado') {
       // regras do resolver do n8n, ao pé da letra
       if (L > 6.0 + 1e-9 || A > 6.0 + 1e-9) {
@@ -206,18 +213,34 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
         ? acha(s => s.includes('WIFI'))
         : grupo.endsWith('/10N') ? acha(s => s.includes('10N'))
         : acha(s => s.includes('6N') && !s.includes('16'))
-      const controle = acha(s => s.includes('CONTROLE 1 CANAL'))
+      // controle: 1, 6 ou 16 canais — a loja escolhe (16/08). Sem escolha, 1 canal.
+      const canais = e.controleCanais ?? 1
+      const controle = canais === 16 ? acha(s => s.includes('CONTROLE 16'))
+        : canais === 6 ? acha(s => s.includes('CONTROLE 6'))
+        : acha(s => s.includes('CONTROLE 1 CANAL'))
       if (!motor) return { erro: e.motorWifi ? 'Motor WiFi não encontrado na tabela' : 'Motor não encontrado na tabela' }
-      if (!controle) return { erro: 'Controle 1 canal não encontrado na tabela' }
+      if (!controle) return { erro: `Controle ${canais} canais não encontrado na tabela` }
+      const juncao = acha(s => s.includes('JUNÇÃO') || s.includes('JUNCAO'))
 
-      custoFerragem = Number(linhaE.valor) + Number(motor.custo) + Number(controle.custo)
+      // quantidades: motor por padrão acompanha as peças; controle e junção são
+      // do PEDIDO, não da peça (6 rolôs numa parede = 1 controle de 6 canais)
+      const motorQtd = Math.max(0, Math.round(Number(e.motorQtd ?? qtd)))
+      const controleQtd = Math.max(0, Math.round(Number(e.controleQtd ?? 1)))
+      const juncaoQtd = Math.max(0, Math.round(Number(e.juncaoQtd ?? 0)))
+      if (juncaoQtd > 0 && !juncao) return { erro: 'Junção 53mm não encontrada na tabela' }
+
+      // custoFerragem fica só com o que é POR PEÇA (a estrutura); o resto entra
+      // com a própria quantidade em motorPartes
+      custoFerragem = Number(linhaE.valor)
       chaveFerragem = 'parceiro_motorizacao'
       motorPartes = [
-        { rotulo: `Estrutura motorizada — ${fmtM(lgE)}, ${String(linhaE.alt_faixa ?? '').toLowerCase()}${grupo ? ` (grupo ${grupo.toLowerCase()})` : ''}`, custo: Number(linhaE.valor) },
-        { rotulo: `Motor ${String(motor.item ?? '').toLowerCase()}`, custo: Number(motor.custo) },
-        { rotulo: `Controle 1 canal`, custo: Number(controle.custo) },
+        { rotulo: `Estrutura motorizada — ${fmtM(lgE)}, ${String(linhaE.alt_faixa ?? '').toLowerCase()}${grupo ? ` (grupo ${grupo.toLowerCase()})` : ''}`, custo: Number(linhaE.valor), n: qtd },
+        { rotulo: `Motor ${String(motor.item ?? '').toLowerCase()}`, custo: Number(motor.custo), n: motorQtd },
+        { rotulo: `Controle ${canais} ${canais === 1 ? 'canal' : 'canais'}`, custo: Number(controle.custo), n: controleQtd },
+        ...(juncaoQtd > 0 && juncao ? [{ rotulo: 'Junção 53mm', custo: Number(juncao.custo), n: juncaoQtd }] : []),
       ]
-      obs.push(`Motorizada: estrutura ${fmtM(lgE)} · ${String(linhaE.alt_faixa ?? '')}${grupo ? ` · grupo ${grupo}` : ''} · ${e.motorWifi ? 'motor WiFi' : String(motor.item ?? '')}`)
+      obs.push(`Motorizada: estrutura ${fmtM(lgE)} · ${String(linhaE.alt_faixa ?? '')}${grupo ? ` · grupo ${grupo}` : ''} · ${motorQtd} motor${motorQtd === 1 ? '' : 'es'} ${e.motorWifi ? 'WiFi' : String(motor.item ?? '')} · ${controleQtd} controle${controleQtd === 1 ? '' : 's'} de ${canais} ${canais === 1 ? 'canal' : 'canais'}${juncaoQtd > 0 ? ` · ${juncaoQtd} junção${juncaoQtd === 1 ? '' : 'ões'}` : ''}`)
+      if (motorQtd < qtd) obs.push(`${qtd} peças com ${motorQtd} motor${motorQtd === 1 ? '' : 'es'}: peças unidas por junção dividem motor.`)
     } else if (e.modelo === 'Romana') {
       // matriz L×A: coluna e linha mais próximas PARA CIMA
       const largs = [...new Set(d.romana.map(r => Number(r.largura)))].sort((a, b) => a - b)
@@ -268,12 +291,17 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       if (e.modelo === 'Rolo') obs.push(`Tubo ${espessura}mm · ferragem em ${largFerragem.toFixed(2).replace('.', ',')}m`)
     }
 
-    custoProduto = (custoTecido + custoFerragem) * qtd
+    /** motorização inteira do pedido (estrutura×peças + motores + controles + junções) */
+    const custoMotorizacao = motorPartes ? motorPartes.reduce((t, p) => t + p.custo * p.n, 0) : 0
+    custoProduto = motorPartes
+      ? custoTecido * qtd + custoMotorizacao
+      : (custoTecido + custoFerragem) * qtd
     somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto',
       `Tecido ${e.tecido} — rolo ${fmtM(Number(rolo.largura))} a ${fmtR$(Number(rolo.preco))}/m²` + (qtd > 1 ? ` × ${qtd}` : ''))
     if (motorPartes) {
       for (const p of motorPartes) {
-        somaReal(p.custo * qtd, chaveFerragem, 'produto', p.rotulo + (qtd > 1 ? ` × ${qtd}` : ''))
+        if (p.n <= 0) continue
+        somaReal(p.custo * p.n, chaveFerragem, 'produto', p.rotulo + (p.n > 1 ? ` × ${p.n}` : ''))
       }
     } else {
       somaReal(custoFerragem * qtd, chaveFerragem, 'produto', rotuloFerragem + (qtd > 1 ? ` × ${qtd}` : ''))
@@ -314,7 +342,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       /* como no n8n: base (tecido) leva markup cheio; a motorização tem
          markup próprio e é arredondada em separado antes de somar */
       const mkMot = param('markup_motorizacao', 2.24)
-      vendaProduto = ceil10c(custoTecido * qtd * mkVenda * taxa2) + ceil10c(custoFerragem * qtd * mkMot)
+      vendaProduto = ceil10c(custoTecido * qtd * mkVenda * taxa2) + ceil10c(custoMotorizacao * mkMot)
       vendaAcabamento = custoAcabamento > 0 ? ceil10c(custoAcabamento * mkAcab * taxa2) : 0
     } else if (e.acabamento === 'kit_box') {
       // Kit Box entra no valor da persiana, com o markup cheio
