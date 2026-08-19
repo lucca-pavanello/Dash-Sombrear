@@ -6,14 +6,15 @@
  * outro (cliente quer ver 3 modelos → troca o modelo e salva de novo);
  * "Limpar" zera a visita inteira.
  */
-import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Calculator, CheckCircle2, ChevronRight, Eraser, History, Layers, Loader2, Plus, X,
+  Calculator, CheckCircle2, ChevronRight, Eraser, History, Layers, Loader2, Trash2, X,
   Ruler, Save, Sparkles, Tag, User, Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import { Interruptor, BotaoAdicionar } from '@/components/ui/primitives'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
@@ -477,31 +478,17 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
           <section>
             <SectionHeader step="1" icon={<Layers className="h-3.5 w-3.5" />} title="Produto" />
             <div className="mt-3 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm space-y-4">
-              <div>
-                <label className={labelCls}>Modelo</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {MODELOS.map(m => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => { setModelo(m.id); setTecido(''); setArtigo(''); setAcabamento('nenhum'); setPh50Bando(false) }}
-                      className={cn(
-                        'rounded-lg border px-2 py-2.5 text-sm font-semibold transition-all duration-100 active:scale-95',
-                        modelo === m.id
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border text-foreground/60 hover:border-muted-foreground/40 hover:bg-muted/30',
-                      )}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+              {/* mesma grade do Calcular: Modelo | Tecido, depois Ferragem | Acabamento */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>Modelo</label>
+                  <CustomSelect value={modelo}
+                    onChange={v => { setModelo(v); setTecido(''); setArtigo(''); setAcabamento('nenhum'); setPh50Bando(false) }}
+                    options={MODELOS.map(m => ({ value: m.id, label: m.label }))} />
+                </div>
                 {comTecido && (
                   <>
-                    <div className="sm:col-span-2">
+                    <div>
                       <label className={labelCls}>Tecido</label>
                       <CustomSelect value={tecido} onChange={setTecido}
                         options={opcoes?.tecidos ?? []}
@@ -575,23 +562,16 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                       </div>
                     )}
                     {(acabamento === 'bando_branco' || acabamento === 'bando_preto') && (
-                      <div className="sm:col-span-2 rounded-lg border border-dashed p-3">
-                        <label className="flex cursor-pointer items-start gap-2.5">
-                          <input type="checkbox" checked={bandoUnico}
-                            onChange={e => {
-                              const marcado = e.target.checked
-                              setBandoUnico(marcado)
-                              if (!marcado) { setBandoLargura(''); setBandoQtd('') }
-                              else if (!bandoQtd) setBandoQtd('1')
-                            }}
-                            className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--primary))]" />
-                          <span>
-                            <span className="block text-sm font-medium">Bandô é uma peça só, diferente da persiana</span>
-                            <span className="block text-xs text-foreground/60">
-                              ex.: porta de 5,20m em 3 rolôs leva UM bandô de 5,20m. Desmarcado, vai um por peça.
-                            </span>
-                          </span>
-                        </label>
+                      <div className="sm:col-span-2">
+                        <Interruptor ligado={bandoUnico}
+                          onChange={marcado => {
+                            setBandoUnico(marcado)
+                            if (!marcado) { setBandoLargura(''); setBandoQtd('') }
+                            else if (!bandoQtd) setBandoQtd('1')
+                          }}
+                          detalhe="ex.: porta de 5,20m em 3 rolôs leva UM bandô de 5,20m. Desligado, vai um por peça.">
+                          Bandô é uma peça só, diferente da persiana
+                        </Interruptor>
                         {bandoUnico && (
                           <div className="mt-3 grid grid-cols-2 gap-3">
                             <div>
@@ -614,7 +594,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                 )}
 
                 {(modelo === 'PV' || modelo === 'PH_Aluminio') && (
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className={labelCls}>Artigo</label>
                     <CustomSelect value={artigo} onChange={setArtigo}
                       options={(modelo === 'PV' ? opcoes?.artigosPV : opcoes?.artigosPH) ?? []}
@@ -624,7 +604,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
                 {modelo === 'PH_50' && (
                   <>
-                    <div className="sm:col-span-2">
+                    <div>
                       <label className={labelCls}>Modelo / cor</label>
                       <CustomSelect value={artigo} onChange={setArtigo}
                         options={(opcoes?.ph50 ?? []).map(i => ({ value: i.valor, label: i.label }))}
@@ -635,11 +615,9 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                       <CustomSelect value={ph50Acab} onChange={v => setPh50Acab(v as 'cadarco' | 'fita')}
                         options={[{ value: 'cadarco', label: 'Com cadarço' }, { value: 'fita', label: 'Com fita' }]} />
                     </div>
-                    <label className="flex items-end gap-2 pb-3 text-sm font-medium">
-                      <input type="checkbox" checked={ph50Bando} onChange={e => setPh50Bando(e.target.checked)}
-                        className="h-4 w-4 accent-primary" />
-                      Incluir bandô
-                    </label>
+                    <div className="flex items-end">
+                      <Interruptor ligado={ph50Bando} onChange={setPh50Bando}>Incluir bandô</Interruptor>
+                    </div>
                   </>
                 )}
               </div>
@@ -650,63 +628,67 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-foreground/35">Medidas</span>
                   <div className="flex-1 h-px bg-border/50" />
                 </div>
-                {/* Todas as linhas na MESMA grade — o X tem coluna própria,
-                    então nada desalinha. Ambiente por medida: Sala 1 + Quarto
-                    na mesma venda, como no Calcular. */}
-                <div className="grid grid-cols-[1fr_1fr_0.55fr_1fr_1.75rem] items-center gap-x-2 gap-y-2 sm:gap-x-3">
-                  <label className={cn(labelCls, 'mb-0')}>Largura</label>
-                  <label className={cn(labelCls, 'mb-0')}>Altura</label>
-                  <label className={cn(labelCls, 'mb-0')}>Qtd</label>
-                  <label className={cn(labelCls, 'mb-0')}>Ambiente</label>
-                  <span aria-hidden="true" />
-
-                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
-                    value={largura} onChange={e => setLargura(e.target.value.replace(',', '.'))} />
-                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
-                    value={altura} onChange={e => setAltura(e.target.value.replace(',', '.'))} />
-                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="numeric" aria-label="Quantidade"
-                    value={quantidade} onChange={e => setQuantidade(e.target.value)} />
-                  <input className={cn(inputCls, 'px-2 sm:px-3.5')} placeholder="Sala…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
-                    value={ambiente} onChange={e => setAmbiente(e.target.value)} />
-                  <span aria-hidden="true" />
-
-                  {extras.map(x => (
-                    <Fragment key={x.id}>
-                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,20" aria-label="Largura (m)"
-                        value={x.largura}
-                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, largura: e.target.value.replace(',', '.'), resultado: null } : y))} />
-                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="decimal" placeholder="1,50" aria-label="Altura (m)"
-                        value={x.altura}
-                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, altura: e.target.value.replace(',', '.'), resultado: null } : y))} />
-                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} inputMode="numeric" aria-label="Quantidade"
-                        value={x.qtd}
-                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, qtd: e.target.value, resultado: null } : y))} />
-                      <input className={cn(inputCls, 'px-2 sm:px-3.5')} placeholder="Quarto…" list="sugestoes-ambiente-sim" aria-label="Ambiente"
-                        value={x.amb}
-                        onChange={e => setExtras(p => p.map(y => y.id === x.id ? { ...y, amb: e.target.value } : y))} />
-                      <button type="button" onClick={() => setExtras(p => p.filter(y => y.id !== x.id))}
-                        title="Remover esta medida"
-                        className="justify-self-center rounded-lg p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </Fragment>
-                  ))}
+                {/* Uma medida = um sub-cartão, igual ao Calcular. A principal é a
+                    primeira; as extras têm numerinho e lixeira. Ambiente por medida:
+                    Sala 1 + Quarto na mesma venda. */}
+                <div className="space-y-2">
+                  {[{ id: 0 as number | null, largura, altura, qtd: quantidade, amb: ambiente }, ...extras].map((m, idx) => {
+                    const extra = idx > 0
+                    const setL = (v: string) => extra ? setExtras(p => p.map(y => y.id === m.id ? { ...y, largura: v, resultado: null } : y)) : setLargura(v)
+                    const setA = (v: string) => extra ? setExtras(p => p.map(y => y.id === m.id ? { ...y, altura: v, resultado: null } : y)) : setAltura(v)
+                    const setQ = (v: string) => extra ? setExtras(p => p.map(y => y.id === m.id ? { ...y, qtd: v, resultado: null } : y)) : setQuantidade(v)
+                    const setAmb = (v: string) => extra ? setExtras(p => p.map(y => y.id === m.id ? { ...y, amb: v } : y)) : setAmbiente(v)
+                    const area = (parseFloat(m.largura) || 0) * (parseFloat(m.altura) || 0) * (parseInt(m.qtd) || 1)
+                    return (
+                      <div key={extra ? `x${m.id}` : 'principal'} className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                        {extras.length > 0 && (
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-[9px] font-bold text-foreground/50">{idx + 1}</span>
+                            {area > 0 && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{area.toFixed(2)} m²</span>}
+                            <div className="flex-1" />
+                            {extra && (
+                              <button type="button" onClick={() => setExtras(p => p.filter(y => y.id !== m.id))} title="Remover medida"
+                                className="rounded-md p-1 text-foreground/30 transition-all duration-150 hover:bg-destructive/10 hover:text-destructive touch-manipulation">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
+                          <div>
+                            <label className={labelCls}><span className="sm:hidden">Larg. (m)</span><span className="hidden sm:inline">Largura (m)</span></label>
+                            <input className={inputCls} inputMode="decimal" placeholder="1,20"
+                              value={m.largura} onChange={e => setL(e.target.value.replace(',', '.'))} />
+                          </div>
+                          <div>
+                            <label className={labelCls}><span className="sm:hidden">Alt. (m)</span><span className="hidden sm:inline">Altura (m)</span></label>
+                            <input className={inputCls} inputMode="decimal" placeholder="1,50"
+                              value={m.altura} onChange={e => setA(e.target.value.replace(',', '.'))} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Qtd</label>
+                            <input className={inputCls} inputMode="numeric"
+                              value={m.qtd} onChange={e => setQ(e.target.value)} />
+                          </div>
+                          <div className="col-span-3 sm:col-span-1">
+                            <label className={labelCls}>Ambiente</label>
+                            <input className={inputCls} placeholder={extra ? 'Quarto…' : 'Sala…'} list="sugestoes-ambiente-sim"
+                              value={m.amb} onChange={e => setAmb(e.target.value)} />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
                 <datalist id="sugestoes-ambiente-sim">
                   {SUGESTOES_AMBIENTE.map(s => <option key={s} value={s} />)}
                 </datalist>
-                <button type="button"
-                  onClick={() => setExtras(p => [...p, { id: extraIdRef.current++, largura: '', altura: '', qtd: '1', amb: '', resultado: null }])}
-                  className="mt-2.5 flex items-center gap-1.5 text-xs font-bold text-primary transition-opacity hover:opacity-80">
-                  <Plus className="h-3.5 w-3.5" />
-                  Adicionar outra medida — mesmo modelo e tecido
-                </button>
+                <BotaoAdicionar className="mt-2"
+                  onClick={() => setExtras(p => [...p, { id: extraIdRef.current++, largura: '', altura: '', qtd: '1', amb: '', resultado: null }])}>
+                  Adicionar medida — mesmo modelo e tecido
+                </BotaoAdicionar>
 
-                <label className="mt-3 flex items-center gap-2 text-sm font-medium">
-                  <input type="checkbox" checked={instalacao} onChange={e => setInstalacao(e.target.checked)}
-                    className="h-4 w-4 accent-primary" />
-                  Incluir instalação
-                </label>
+                <Interruptor className="mt-3" ligado={instalacao} onChange={setInstalacao}>Incluir instalação</Interruptor>
               </div>
             </div>
           </section>
@@ -829,11 +811,9 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                 )}
                 {/* produto novo pro MESMO cliente — modelo e tecido diferentes */}
                 {ok && !extrasPendentes && (
-                  <button type="button" onClick={guardarProduto}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/5">
-                    <Plus className="h-3.5 w-3.5" />
+                  <BotaoAdicionar className="mt-3" tamanho="md" onClick={guardarProduto}>
                     Guardar e adicionar outro produto (modelo/tecido)
-                  </button>
+                  </BotaoAdicionar>
                 )}
                 {extrasPendentes && (
                   <p className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">

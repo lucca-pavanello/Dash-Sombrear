@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { cn } from '@/lib/utils'
+import { Interruptor, BotaoAdicionar } from '@/components/ui/primitives'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { useModelosTecidos } from '@/hooks/useModelosTecidos'
@@ -594,22 +595,7 @@ export default function TabCotacao() {
                         <MessageSquare className="inline h-3 w-3 mr-1 -mt-px" />
                         Envio via WhatsApp
                       </label>
-                      <button
-                        type="button" role="checkbox" aria-checked={form.whatsapp}
-                        onClick={() => setField('whatsapp', !form.whatsapp)}
-                        className={cn(
-                          'flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition-all duration-200 touch-manipulation',
-                          form.whatsapp
-                            ? 'border-emerald-500/50 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300'
-                            : 'border-border bg-background text-foreground/60 hover:border-muted-foreground/40 hover:bg-muted/30'
-                        )}
-                      >
-                        <span className={cn('relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 transition-all duration-200', form.whatsapp ? 'border-emerald-500 bg-emerald-500' : 'border-foreground/20 bg-muted')}>
-                          <span className={cn('absolute top-0 left-0 inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200', form.whatsapp ? 'translate-x-4' : 'translate-x-0')} />
-                        </span>
-                        <span>Enviar pelo WhatsApp</span>
-                        {form.whatsapp && <span className="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400">Ativado</span>}
-                      </button>
+                      <Interruptor ligado={form.whatsapp} onChange={v => setField('whatsapp', v)}>Enviar pelo WhatsApp</Interruptor>
                     </div>
                   </div>
                 </div>
@@ -1038,16 +1024,7 @@ export default function TabCotacao() {
                                         })}
                                       </div>
 
-                                      {/* Botão adicionar medida */}
-                                      <button
-                                        type="button" onClick={() => addMedida(a.id, p.id)}
-                                        className="group mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 py-2 text-xs font-semibold text-foreground/40 transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] hover:text-primary touch-manipulation"
-                                      >
-                                        <span className="flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-current transition-all duration-200 group-hover:bg-primary group-hover:border-primary group-hover:text-white">
-                                          <Plus className="h-2.5 w-2.5" />
-                                        </span>
-                                        Adicionar medida
-                                      </button>
+                                      <BotaoAdicionar className="mt-2" onClick={() => addMedida(a.id, p.id)}>Adicionar medida</BotaoAdicionar>
                                     </FieldGroup>
                                   </div>
 
