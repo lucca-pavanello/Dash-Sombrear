@@ -25,6 +25,7 @@ import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE, MODELOS, CHATWOOT_BASE_URL } from '@/lib/constants'
+import { tabela, segmentado } from '@/components/shared/estilos'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 
@@ -134,11 +135,10 @@ function PeriodTabs({
 }) {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex gap-1 rounded-lg bg-muted/60 p-1">
+      <div className={segmentado.trilho}>
         {PERIODOS.map(({ value: v, label }) => (
           <button key={v} onClick={() => onChange(v)}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all
-              ${value === v ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={cn(segmentado.item, value === v ? segmentado.ativo : segmentado.inativo)}>
             {label}
           </button>
         ))}
@@ -507,7 +507,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   function LeadTh({ label, k }: { label: string; k?: 'created_at' | 'nome' | 'timestamp_ultima_msg' }) {
     const active = k && leadSort.key === k
     return (
-      <th className={`px-4 py-3 text-center text-xs font-semibold text-muted-foreground whitespace-nowrap border-r border-border/30 last:border-r-0 ${k ? 'cursor-pointer select-none hover:text-foreground' : ''}`}
+      <th className={cn(tabela.th, tabela.regua, 'text-center', k && tabela.thOrdenavel)}
         onClick={() => k && setLeadSort(s => s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: 'desc' })}>
         <span className="inline-flex items-center gap-1 justify-center">
           {label}
@@ -522,7 +522,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   function OrcTh({ label, k }: { label: string; k?: 'created_at' | 'modelo' | 'valor' }) {
     const active = k && orcSort.key === k
     return (
-      <th className={`px-4 py-3 text-center text-xs font-semibold text-muted-foreground whitespace-nowrap border-r border-border/30 last:border-r-0 ${k ? 'cursor-pointer select-none hover:text-foreground' : ''}`}
+      <th className={cn(tabela.th, tabela.regua, 'text-center', k && tabela.thOrdenavel)}
         onClick={() => k && setOrcSort(s => s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: 'desc' })}>
         <span className="inline-flex items-center gap-1 justify-center">
           {label}
@@ -663,15 +663,15 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/40">
+                    <tr className={tabela.theadRow}>
                       <LeadTh label="Entrada"       k="created_at" />
                       <LeadTh label="Nome"           k="nome" />
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Origem</th>
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">WhatsApp</th>
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Modelo / Ambiente</th>
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Último valor</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Origem</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>WhatsApp</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Modelo / Ambiente</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Último valor</th>
                       <LeadTh label="Últ. mensagem"  k="timestamp_ultima_msg" />
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Status</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Status</th>
                       <th className="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Ação</th>
                     </tr>
                   </thead>
@@ -1137,18 +1137,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/40">
+                    <tr className={tabela.theadRow}>
                       <OrcTh label="Data" k="created_at" />
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Cliente</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Cliente</th>
                       <OrcTh label="Modelo" k="modelo" />
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Medidas / Qtd</th>
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Tecido / Acab.</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Medidas / Qtd</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Tecido / Acab.</th>
                       {/* custo e margem são de admin no dash inteiro — aqui não podia ser diferente */}
                       {ehAdmin && (
-                        <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Custo</th>
+                        <th className={cn(tabela.th, tabela.regua, 'text-center')}>Custo</th>
                       )}
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Produto</th>
-                      <th className="whitespace-nowrap border-r border-border/30 px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Colocação</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Produto</th>
+                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Colocação</th>
                       <OrcTh label="Total" k="valor" />
                     </tr>
                   </thead>

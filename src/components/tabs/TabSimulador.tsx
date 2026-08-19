@@ -21,6 +21,7 @@ import { SUGESTOES_AMBIENTE } from '@/lib/constants'
 import { useHistoricoCliente, resumoHistorico } from '@/hooks/useHistoricoCliente'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import SectionHeader from '@/components/shared/SectionHeader'
+import { campo, rotulo, segmentado } from '@/components/shared/estilos'
 
 const CalculadoraCortina = lazyComRecarga(() => import('@/components/cortina/CalculadoraCortina'))
 
@@ -59,10 +60,9 @@ interface Resultado {
 
 interface Salvo { id: string; modelo: string; detalhe: string; total: number }
 
-const inputCls =
-  'w-full rounded-lg border border-border bg-background px-3.5 py-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
-const labelCls =
-  'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55'
+// receita compartilhada — ver src/components/shared/estilos.ts
+const inputCls = campo
+const labelCls = rotulo
 
 export default function TabSimulador({ modoVenda, aoSalvar }: {
   /** No Fechamento a simulação vira VENDA FECHADA direto (não um orçamento aberto). */
@@ -448,11 +448,10 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
       </div>
 
       {/* ── Persiana ou cortina: contas diferentes, telas diferentes ── */}
-      <div className="mx-auto mb-5 flex w-full max-w-xs gap-1 rounded-xl border border-border bg-muted/30 p-1">
+      <div className={cn(segmentado.trilho, 'mx-auto mb-5 w-full max-w-xs')}>
         {([['persiana', 'Persiana'], ['cortina', 'Cortina']] as const).map(([id, label]) => (
           <button key={id} type="button" onClick={() => setProduto(id)}
-            className={cn('flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-all active:scale-95',
-              produto === id ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+            className={cn(segmentado.item, 'flex-1 py-2', produto === id ? segmentado.ativo : segmentado.inativo)}>
             {label}
           </button>
         ))}

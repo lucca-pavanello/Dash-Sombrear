@@ -37,6 +37,26 @@ Tokens HSL em `src/index.css` (`:root` + `.dark`), mapeados no `tailwind.config.
 - **`<EmptyState>`** — ícone + título + dica que ensina (nunca "Sem dados" seco).
 - Migração: telas existentes adotam as primitivas quando forem tocadas; novas telas nascem com elas.
 
+## Receitas compartilhadas (`src/components/shared/estilos.ts`) — 2026-08-19
+
+Campo, tabela e controle segmentado têm **uma** receita, com valor exato, neste arquivo. Antes cada tela copiava a string e completava do seu jeito: 5 cabeçalhos de tabela, 4 inputs, 3 rótulos, 9 trilhos de segmentado — a mesma coisa, diferente em cada aba. **Tela nova importa daqui; variação nova entra lá, com nome.** Não copiar a string pro componente.
+
+| peça | export | receita |
+|---|---|---|
+| rótulo de campo | `rotulo` | `text-[11px] font-bold uppercase tracking-wider text-foreground/50` |
+| input / select | `campo` | `rounded-lg border bg-background px-3.5 py-3 text-base sm:text-sm font-medium` + hover/focus/disabled. **16px no celular** (iOS não dá zoom no foco), 14px no desktop |
+| input em linha de tabela | `campoCompacto` | `rounded-md px-2 py-1.5 text-sm`, mesmo foco |
+| busca com ícone | `campoBusca` | `rounded-lg py-2 pl-9 text-sm` |
+| `<th>` | `tabela.th` | `px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground` (+ `thOrdenavel` se clicável) |
+| `<tr>` do thead | `tabela.theadRow` | `border-b border-border bg-muted/40` |
+| `<tr>` do tbody | `tabela.tr` | `border-b border-border/60 last:border-0 hover:bg-muted/20` |
+| `<td>` | `tabela.td` / `tdApagado` | `px-4 py-3 text-sm` / 12px apagado pra data e id |
+| régua vertical | `tabela.regua` | `border-r border-border/40` — **opcional**, só em tabela larga e numérica (Estoque, Agente IA) |
+| segmentado | `segmentado.trilho/item/ativo/inativo` | trilho `rounded-xl bg-muted/60 p-1`; ativo **`bg-card text-primary`** — nunca `bg-primary` (primária cheia é botão de ação, não seleção) |
+| card | `cartao` | `rounded-xl border border-border bg-card shadow-sm` — filtros usam o mesmo, **sem `border-2`** |
+
+Alinhamento de coluna continua por tabela (a Lista alinha número à direita; Fechamento/Agente/Estoque centram tudo) — é estrutura, não receita. Matrizes de preço A×L do admin mantêm a grade inteira (são planilha de verdade).
+
 ## Componentes
 
 - **Cards**: `rounded-xl border bg-card shadow-sm`. Acento de variante = borda inteira tingida + banho de fundo sutil (`border-{cor}/25 bg-{cor}/[0.04]`). **Listra lateral (border-l grosso) é proibida.**
@@ -44,7 +64,7 @@ Tokens HSL em `src/index.css` (`:root` + `.dark`), mapeados no `tailwind.config.
 - **Botões**: primário `bg-primary text-white rounded-lg`; todos com `active:scale-95` + `focus-visible:ring-2 focus-visible:ring-ring/60`.
 - **Loading**: skeleton (`skeleton-shimmer`) espelhando o layout real — nunca spinner no meio do conteúdo. Skeleton e conteúdo usam o MESMO grid (sem layout shift).
 - **Empty states**: ícone + frase que ensina de onde vêm os dados.
-- **Forms**: `grid-cols-2` com `col-span-2 sm:col-span-1` para empilhar no mobile; labels `text-[11px] uppercase tracking-widest`.
+- **Forms**: `grid-cols-2` com `col-span-2 sm:col-span-1` para empilhar no mobile; label = `rotulo`, campo = `campo` (receitas acima).
 
 ## Motion
 

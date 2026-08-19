@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { tabela } from '@/components/shared/estilos'
 import {
   Blinds, Calculator, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Download, FileSpreadsheet, FileText, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
 } from 'lucide-react'
@@ -380,14 +381,14 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border-2 bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full min-w-[600px] text-sm">
-          <thead><tr className="bg-muted/40">
-            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Tecido</th>
-            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Desconto</th>
-            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Período</th>
-            <th className="border border-border/60 px-4 py-2.5 text-center font-semibold text-muted-foreground">Status</th>
-            <th className="w-16 border border-border/60 px-4 py-2.5" />
+          <thead><tr className={tabela.theadRow}>
+            <th className={cn(tabela.th, 'text-center')}>Tecido</th>
+            <th className={cn(tabela.th, 'text-center')}>Desconto</th>
+            <th className={cn(tabela.th, 'text-center')}>Período</th>
+            <th className={cn(tabela.th, 'text-center')}>Status</th>
+            <th className={cn(tabela.th, 'w-16')} />
           </tr></thead>
           <tbody>
             {(promocoes ?? []).length === 0 && (
@@ -398,13 +399,13 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
               const diasPraVencer = Math.ceil((new Date(p.fim + 'T23:59:59').getTime() - Date.now()) / 86400000)
               const vencendo = st === 'ativa' && diasPraVencer <= 3
               return (
-                <tr key={p.id}>
-                  <td className="border border-border/50 px-4 py-2.5 text-center font-semibold">{p.alvo_nome}</td>
-                  <td className="border border-border/50 px-4 py-2.5 text-center tabular-nums">−{fmtNum(p.desconto_pct)}%</td>
-                  <td className="border border-border/50 px-4 py-2.5 text-center tabular-nums">
+                <tr key={p.id} className={tabela.tr}>
+                  <td className={cn(tabela.td, 'text-center font-semibold')}>{p.alvo_nome}</td>
+                  <td className={cn(tabela.td, 'text-center tabular-nums')}>−{fmtNum(p.desconto_pct)}%</td>
+                  <td className={cn(tabela.td, 'text-center tabular-nums')}>
                     {new Date(p.inicio + 'T12:00:00').toLocaleDateString('pt-BR')} → {new Date(p.fim + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="border border-border/50 px-4 py-2.5 text-center">
+                  <td className={cn(tabela.td, 'text-center')}>
                     <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', badge[st])}>{st}</span>
                     {vencendo && (
                       <span className="ml-1.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-600">
@@ -412,7 +413,7 @@ function SecaoPromocoes({ toast, prefill }: { toast: Props['toast']; prefill?: s
                       </span>
                     )}
                   </td>
-                  <td className="border border-border/50 px-4 py-2.5 text-center">
+                  <td className={cn(tabela.td, 'text-center')}>
                     <button onClick={async () => {
                       if (!confirm('Remover esta promoção?')) return
                       try { await deleteRow('precos_promocoes', { id: p.id }); toast('success', 'Promoção removida') }

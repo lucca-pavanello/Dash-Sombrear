@@ -7,6 +7,7 @@ import { MODELOS, SUGESTOES_AMBIENTE, MODELO_RULES } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
 import { useSugestaoCustoTecido } from '@/hooks/useSugestaoCustoTecido'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import { campo, rotulo } from '@/components/shared/estilos'
 
 function ModeloHint({ modelo }: { modelo: string }) {
   const rule = MODELO_RULES[modelo]
@@ -40,8 +41,9 @@ function ModeloHint({ modelo }: { modelo: string }) {
     </div>
   )
 }
-const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
-const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
+// receita compartilhada — ver src/components/shared/estilos.ts
+const inputClass = campo
+const labelClass = rotulo
 
 const EMPTY_FORM = {
   responsavel: '', cliente: '', telefone: '', ambiente: '', largura: '', altura: '',

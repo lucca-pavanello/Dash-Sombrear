@@ -8,6 +8,7 @@ import { useTopProdutosMovimentados, useConsumoMensal } from '@/hooks/useEstoque
 import { useEstoqueProdutos } from '@/hooks/useEstoqueProdutos'
 import { useEstoqueMovimentacoes } from '@/hooks/useEstoqueMovimentacoes'
 import type { EstoqueProduto } from '@/lib/supabase'
+import { segmentado } from '@/components/shared/estilos'
 
 // ---------------------------------------------------------------------------
 // Cálculo local: projeção de dias de estoque restantes
@@ -122,12 +123,12 @@ export default function EstoqueAnalises({ resetKey }: { resetKey?: number } = {}
       <div className="rounded-xl border-2 bg-card shadow-sm p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Consumo Mensal</h3>
-          <div className="flex gap-0.5 rounded-lg bg-muted border border-border p-1">
+          <div className={segmentado.trilho}>
             {[3, 6, 12].map((m) => (
               <button
                 key={m}
                 onClick={() => setMeses(m)}
-                className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${meses === m ? 'bg-primary text-white' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`${segmentado.item} ${meses === m ? segmentado.ativo : segmentado.inativo}`}
               >
                 {m}m
               </button>

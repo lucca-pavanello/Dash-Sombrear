@@ -3,6 +3,7 @@ import { Search, ChevronDown, X, SlidersHorizontal } from 'lucide-react'
 
 import DatePicker from '@/components/ui/DatePicker'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import { campoBusca, segmentado } from '@/components/shared/estilos'
 
 interface Props {
   search: string; onSearchChange: (v: string) => void
@@ -90,7 +91,7 @@ export default function FiltersBar({
   const activeCount = chips.length
 
   return (
-    <div className="rounded-xl border-2 border-border bg-card shadow-sm">
+    <div className="rounded-xl border border-border bg-card shadow-sm">
       {/* Header sempre visível */}
       <div className="flex items-center gap-2.5 px-4 py-3">
         <div className="relative flex-1">
@@ -100,7 +101,7 @@ export default function FiltersBar({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Buscar cliente, responsável, modelo, tecido, ambiente…"
-            className={`w-full rounded-lg border border-border bg-background py-2 pl-9 text-sm text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${search ? 'pr-8' : 'pr-10'}`}
+            className={`${campoBusca} ${search ? 'pr-8' : 'pr-10'}`}
           />
           {search ? (
             <button
@@ -140,16 +141,12 @@ export default function FiltersBar({
       {open && (
         <div className="border-t border-border/50 bg-muted/20 px-4 pb-4 pt-3 flex flex-col gap-3 rounded-b-xl">
           {/* Linha 1: Período */}
-          <div className="flex gap-1 rounded-xl bg-muted/60 p-1 w-fit">
+          <div className={`${segmentado.trilho} w-fit`}>
             {PERIODOS.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => onPeriodoChange(value)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 whitespace-nowrap ${
-                  periodo === value
-                    ? 'bg-card text-primary shadow-elevated'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-                }`}
+                className={`${segmentado.item} ${periodo === value ? segmentado.ativo : segmentado.inativo}`}
               >
                 {label}
               </button>

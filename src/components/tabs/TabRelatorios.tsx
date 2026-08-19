@@ -19,6 +19,7 @@ import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { Button, EmptyState } from '@/components/ui/primitives'
+import { tabela } from '@/components/shared/estilos'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import type { Orcamento } from '@/lib/supabase'
@@ -220,19 +221,19 @@ export default function TabRelatorios() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
-                  <th className="px-4 py-3 text-center font-bold">Canal</th>
-                  <th className="px-4 py-3 text-center font-bold">Leads</th>
-                  <th className="px-4 py-3 text-center font-bold">Orçados</th>
-                  <th className="px-4 py-3 text-center font-bold">Vendas</th>
-                  <th className="px-4 py-3 text-center font-bold">Conversão</th>
-                  <th className="px-4 py-3 text-center font-bold">Faturamento</th>
-                  <th className="px-4 py-3 text-center font-bold">Ticket médio</th>
+                <tr className={tabela.theadRow}>
+                  <th className={cn(tabela.th, 'text-center')}>Canal</th>
+                  <th className={cn(tabela.th, 'text-center')}>Leads</th>
+                  <th className={cn(tabela.th, 'text-center')}>Orçados</th>
+                  <th className={cn(tabela.th, 'text-center')}>Vendas</th>
+                  <th className={cn(tabela.th, 'text-center')}>Conversão</th>
+                  <th className={cn(tabela.th, 'text-center')}>Faturamento</th>
+                  <th className={cn(tabela.th, 'text-center')}>Ticket médio</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
                 {porCanal.map(c => (
-                  <tr key={c.id} className="transition-colors hover:bg-primary/[0.03]">
+                  <tr key={c.id} className={tabela.tr}>
                     <td className="px-4 py-3 text-center"><SeloOrigem origem={c.id} /></td>
                     <td className="px-4 py-3 text-center tabular-nums">{c.leads || '—'}</td>
                     <td className="px-4 py-3 text-center tabular-nums">{c.orcados || '—'}</td>
@@ -286,16 +287,16 @@ export default function TabRelatorios() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
-                  <th className="px-4 py-3 text-center font-bold">Canal</th>
+                <tr className={tabela.theadRow}>
+                  <th className={cn(tabela.th, 'text-center')}>Canal</th>
                   {porMes.meses.map(m => (
-                    <th key={m} className="px-4 py-3 text-center font-bold">{rotuloMes(m)}</th>
+                    <th key={m} className={cn(tabela.th, 'text-center')}>{rotuloMes(m)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
                 {porMes.canais.map(canal => (
-                  <tr key={canal}>
+                  <tr key={canal} className={tabela.tr}>
                     <td className="px-4 py-3 text-center"><SeloOrigem origem={canal} /></td>
                     {porMes.meses.map(m => {
                       const { n, total } = porMes.valor(m, canal)

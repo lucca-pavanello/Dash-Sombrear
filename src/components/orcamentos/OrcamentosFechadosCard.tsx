@@ -10,7 +10,7 @@ function OrcamentosFechadosCard({ data }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="rounded-xl border-2 border-border bg-card shadow-sm">
+    <div className="rounded-xl border border-border bg-card shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

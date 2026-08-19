@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { TEMA_TABELA, alinharSecoes, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { AlertCircle, ChevronDown, ChevronUp, Search, X, Download, SlidersHorizontal, Plus, FileDown, Columns3 } from 'lucide-react'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
@@ -9,6 +9,7 @@ import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import NovoCustoInternoForm from '@/components/custos/NovoCustoInternoForm'
 import type { ToastType } from '@/hooks/useToast'
+import { campoBusca, tabela, segmentado } from '@/components/shared/estilos'
 
 interface Props {
   isLoading?: boolean
@@ -310,7 +311,7 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
       </div>
 
       {/* FiltersBar standalone */}
-      <div className="rounded-xl border-2 border-border bg-card shadow-sm">
+      <div className="rounded-xl border border-border bg-card shadow-sm">
         {/* Busca sempre visível + toggle filtros */}
         <div className="flex items-center gap-2.5 px-4 py-3">
           <div className="relative flex-1">
@@ -320,7 +321,7 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
               value={searchCI}
               onChange={(e) => setSearchCI(e.target.value)}
               placeholder="Buscar cliente, responsável, modelo, ambiente…"
-              className={`w-full rounded-lg border border-border bg-background py-2 pl-9 text-sm text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 ${searchCI ? 'pr-8' : 'pr-10'}`}
+              className={`${campoBusca} ${searchCI ? 'pr-8' : 'pr-10'}`}
             />
             {searchCI ? (
               <button
@@ -360,16 +361,12 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
         {filtersOpen && (
           <div className="border-t border-border/50 bg-muted/20 px-4 pb-4 pt-3 flex flex-col gap-3 rounded-b-xl">
             {/* Período */}
-            <div className="flex gap-0.5 rounded-lg bg-card border border-border p-1 shadow-sm w-fit">
+            <div className={cn(segmentado.trilho, 'w-fit')}>
               {PERIODOS.map(({ value, label }) => (
                 <button
                   key={value}
                   onClick={() => setPeriodoCI(value)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 whitespace-nowrap ${
-                    periodoCI === value
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-                  }`}
+                  className={cn(segmentado.item, periodoCI === value ? segmentado.ativo : segmentado.inativo)}
                 >
                   {label}
                 </button>
@@ -503,9 +500,9 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/40">
+                    <tr className={tabela.theadRow}>
                       {visibleCustoCols.map(c => (
-                        <th key={c.id} className={"whitespace-nowrap px-4 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80"}>
+                        <th key={c.id} className={cn(tabela.th, 'text-center')}>
                           {c.label}
                         </th>
                       ))}
@@ -519,7 +516,7 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                         : null
                       const stripe = i % 2 === 1 ? 'bg-muted/[0.15]' : ''
                       return (
-                        <tr key={c.id} className={`border-b last:border-0 hover:bg-primary/[0.04] transition-colors ${stripe}`}>
+                        <tr key={c.id} className={cn(tabela.tr, stripe)}>
                           {vis('data')        && <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>}
                           {vis('cliente')     && <td className="px-4 py-3 font-medium">{c.cliente ?? <span className="text-muted-foreground/30">—</span>}</td>}
                           {vis('responsavel') && <td className="px-4 py-3">{c.responsavel ?? <span className="text-muted-foreground/30">—</span>}</td>}

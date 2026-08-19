@@ -12,6 +12,7 @@ import { TEMA_TABELA, alinharSecoes, faixaMarca, rodapeMarca } from '@/lib/pdfMa
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
 import { useFlip } from '@/hooks/useFlip'
+import { tabela } from '@/components/shared/estilos'
 import type { ToastType } from '@/hooks/useToast'
 import { haptic } from '@/lib/haptic'
 
@@ -536,10 +537,10 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                         onClick={() => key && toggleSort(key)}
                         aria-label={key ? `Ordenar por ${label}` : undefined}
                         className={cn(
-                          'px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 select-none border-y border-border/80',
+                          tabela.th, 'select-none border-y border-border',
                           align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left',
                           id === 'num' ? 'w-10' : '',
-                          key && 'cursor-pointer hover:text-foreground transition-colors'
+                          key && tabela.thOrdenavel
                         )}
                         style={{
                           position: 'sticky',
