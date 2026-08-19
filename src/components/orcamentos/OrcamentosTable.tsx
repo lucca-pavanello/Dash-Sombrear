@@ -11,6 +11,7 @@ import EditOrcamentoForm from './EditOrcamentoForm'
 import { TEMA_TABELA, alinharSecoes, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import { useUpdateOrcamento } from '@/hooks/useOrcamentos'
 import { PAGE_SIZE } from '@/lib/constants'
+import { useFlip } from '@/hooks/useFlip'
 import type { ToastType } from '@/hooks/useToast'
 import { haptic } from '@/lib/haptic'
 
@@ -425,6 +426,9 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
+  // ao trocar a ordenação, as linhas deslizam da posição antiga pra nova
+  const flipRef = useFlip<HTMLTableSectionElement>([sort.key, sort.dir])
+
   function SortIcon({ k }: { k: SortKey }) {
     if (sort.key !== k) return <ChevronsUpDown className="h-3 w-3 opacity-40" />
     return sort.dir === 'asc' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
@@ -554,7 +558,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody ref={flipRef}>
                   {paginated.map((o, i) => {
                     const diasAberto = !o.fechado ? Math.floor((now - new Date(o.created_at).getTime()) / 86400000) : 0
                     const receita = (o.valor_venda ?? 0) + (o.instalacao ?? 0)
@@ -566,6 +570,7 @@ export default function OrcamentosTable({ data, toast, isFiltered, search = '', 
                     return (
                       <tr
                         key={o.id}
+                        data-flip-id={o.id}
                         onClick={() => abrirEdicao(o)}
                         className={cn(
                           'border-b last:border-0 transition-colors duration-150 cursor-pointer group row-animate-in',

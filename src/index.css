@@ -359,14 +359,35 @@
   }
 
   /* ── Scroll reveal ── */
+  /* Base: IntersectionObserver (useScrollReveal) adiciona .visible. É também a
+     rede de segurança — se a linha de tempo de rolagem não avançar por qualquer
+     motivo, o conteúdo aparece do mesmo jeito. */
   .reveal {
     opacity: 0;
-    transform: translateY(22px);
-    transition: opacity 500ms ease, transform 500ms ease;
+    transform: translateY(14px);
+    transition: opacity 240ms ease-out, transform 240ms ease-out;
   }
   .reveal.visible {
     opacity: 1;
     transform: translateY(0);
+  }
+
+  /* Onde o navegador suporta, quem conduz é a própria rolagem: roda no
+     compositor, acompanha o scroll de verdade (volta se você sobe) e não
+     depende de JS pra disparar. */
+  @supports (animation-timeline: view()) {
+    .reveal:not(.visible) {
+      opacity: 1;
+      transform: none;
+      transition: none;
+      animation: reveal-entrada linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+    @keyframes reveal-entrada {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   }
 
   /* ── Animated SVG ring draw-on ── */
