@@ -17,7 +17,12 @@ export function useCountUp(target: number, duration = 850, skipAnimation = false
   }, [resetKey])
 
   useEffect(() => {
-    if (skipAnimation) {
+    // número girando é movimento que o CSS não alcança: quem pediu menos
+    // movimento vê o valor final direto
+    const reduz = typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (skipAnimation || reduz) {
       currentRef.current = target
       setCurrent(target)
       return
