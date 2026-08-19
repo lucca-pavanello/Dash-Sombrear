@@ -12,8 +12,10 @@ import { useSugestaoCustoTecido } from '@/hooks/useSugestaoCustoTecido'
 import { useProfile } from '@/hooks/useProfile'
 import { gerarPropostaPdf } from '@/lib/propostaPdf'
 import { CustomSelect } from '@/components/ui/CustomSelect'
-const inputClass = 'w-full rounded-lg border bg-background px-3.5 py-3 text-sm outline-none ring-ring focus:ring-2 focus:border-primary transition-all duration-150'
-const labelClass = 'mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-muted-foreground'
+import { campo, rotulo } from '@/components/shared/estilos'
+// receita compartilhada — ver src/components/shared/estilos.ts
+const inputClass = campo
+const labelClass = rotulo
 
 interface Props {
   orcamento: Orcamento

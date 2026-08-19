@@ -9,6 +9,7 @@
  * como numa cortina só.
  */
 import { useMemo, useState } from 'react'
+import { campo, rotulo } from '@/components/shared/estilos'
 import {
   Calculator, Check, ChevronDown, ClipboardCopy, Copy, Layers, Plus, Ruler, Trash2, TriangleAlert,
 } from 'lucide-react'
@@ -36,11 +37,9 @@ const SUPORTES: { id: SuporteCortina; label: string }[] = [
   { id: 'varao_duplo', label: 'Varão duplo' },
 ]
 
-/* mesmos tokens do Calcular — ver DESIGN.md */
-const labelCls =
-  'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55'
-const inputCls =
-  'w-full rounded-lg border border-border bg-background px-3.5 py-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150'
+/* receita compartilhada — ver src/components/shared/estilos.ts */
+const labelCls = rotulo
+const inputCls = campo
 const cardCls = 'rounded-xl border bg-card p-4 shadow-sm sm:p-5'
 
 let proximoId = 1

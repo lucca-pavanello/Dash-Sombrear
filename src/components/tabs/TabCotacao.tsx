@@ -14,6 +14,7 @@ import { useHistoricoCliente, resumoHistorico } from '@/hooks/useHistoricoClient
 import { SUGESTOES_AMBIENTE, DEFAULT_RESPONSAVEL } from '@/lib/constants'
 import { useResponsaveis } from '@/hooks/useResponsaveis'
 import { supabase } from '@/lib/supabase'
+import { campo, rotulo } from '@/components/shared/estilos'
 
 /* ─── Constants ─────────────────────────────────────────── */
 const CORES_FERRAGEM = ['Sem', 'Branca', 'Preta']
@@ -56,10 +57,9 @@ const fmtDataBR = (iso: string) => {
 }
 
 /* ─── Style tokens ───────────────────────────────────────── */
-const inputCls =
-  'w-full rounded-lg border border-border bg-background px-3.5 py-3 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/50 hover:border-muted-foreground/40 focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted/30'
-const labelCls =
-  'mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground/50 dark:text-foreground/55'
+// receita compartilhada — ver src/components/shared/estilos.ts
+const inputCls = campo
+const labelCls = rotulo
 
 /* ─── Types ──────────────────────────────────────────────── */
 interface Medida {

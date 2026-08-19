@@ -24,6 +24,7 @@ import JanelaDados from '@/components/orcamentos/JanelaDados'
 import ConfirmarExclusaoVenda from '@/components/orcamentos/ConfirmarExclusaoVenda'
 import { useProfile } from '@/hooks/useProfile'
 import { ADMIN_EMAIL } from '@/lib/constants'
+import { campoCompacto, tabela } from '@/components/shared/estilos'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 
@@ -408,18 +409,18 @@ export default function TabFechamento() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
-                  <th className="px-4 py-3 text-center font-bold">Data</th>
-                  <th className="px-4 py-3 text-center font-bold">Cliente</th>
-                  <th className="px-4 py-3 text-center font-bold">Produto</th>
-                  <th className="px-4 py-3 text-center font-bold">Medidas</th>
-                  <th className="px-4 py-3 text-center font-bold">Cliente pagou</th>
-                  <th className="px-4 py-3 text-center font-bold">À parceira</th>
-                  <th className="px-4 py-3 text-center font-bold">Sobra</th>
+                <tr className={tabela.theadRow}>
+                  <th className={cn(tabela.th, 'text-center')}>Data</th>
+                  <th className={cn(tabela.th, 'text-center')}>Cliente</th>
+                  <th className={cn(tabela.th, 'text-center')}>Produto</th>
+                  <th className={cn(tabela.th, 'text-center')}>Medidas</th>
+                  <th className={cn(tabela.th, 'text-center')}>Cliente pagou</th>
+                  <th className={cn(tabela.th, 'text-center')}>À parceira</th>
+                  <th className={cn(tabela.th, 'text-center')}>Sobra</th>
                   <th className="px-2 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
+              <tbody>
                 {vendas.map(o => {
                   const bruto = receita(o)
                   const parceira = Number(o.valor_parceiro ?? 0)
@@ -430,7 +431,7 @@ export default function TabFechamento() {
                     (parseFloat(rascunho.parceira.replace(',', '.')) || 0)
                   return (
                     <Fragment key={o.id}>
-                    <tr className={cn('transition-colors hover:bg-primary/[0.03]', emEdicao && 'bg-primary/[0.04]')}>
+                    <tr className={cn(tabela.tr, emEdicao && 'bg-primary/[0.04]')}>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">
                         {formatDate(o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at)}
                         {o.numero_pedido && <span className="block text-[10px] font-semibold text-foreground/60">Ped. {o.numero_pedido}</span>}
@@ -555,20 +556,20 @@ export default function TabFechamento() {
                               <div className="space-y-2">
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">Cliente pagou</span>
-                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                  <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
                                     inputMode="decimal" value={rascunho.cobrado}
                                     onChange={e => setRascunho(r => ({ ...r, cobrado: e.target.value }))} />
                                 </label>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">À parceira</span>
-                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                  <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
                                     inputMode="decimal" value={rascunho.parceira}
                                     onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
                                 </label>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">De onde veio este cliente</span>
                                   <select
-                                    className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                    className={cn(campoCompacto, 'mt-0.5 text-sm')}
                                     value={rascunho.origem}
                                     onChange={e => setRascunho(r => ({ ...r, origem: e.target.value }))}
                                   >
@@ -578,7 +579,7 @@ export default function TabFechamento() {
                                 </label>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">Em quantas vezes saiu?</span>
-                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-right text-sm tabular-nums outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                  <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
                                     inputMode="numeric" placeholder="4"
                                     value={rascunho.parcelasReal}
                                     onChange={e => setRascunho(r => ({ ...r, parcelasReal: e.target.value }))} />
@@ -606,7 +607,7 @@ export default function TabFechamento() {
                                   </label>
                                   <label className="block">
                                     <span className="text-[11px] text-muted-foreground">Nº do pedido</span>
-                                    <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                    <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
                                       placeholder="ex.: 337" maxLength={20}
                                       value={rascunho.numeroPedido}
                                       onChange={e => setRascunho(r => ({ ...r, numeroPedido: e.target.value }))} />
@@ -614,7 +615,7 @@ export default function TabFechamento() {
                                 </div>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">Observação do pagamento (opcional)</span>
-                                  <input className="mt-0.5 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                                  <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
                                     placeholder="ex.: no link, PIX + cartão"
                                     maxLength={120}
                                     value={rascunho.formaReal}
