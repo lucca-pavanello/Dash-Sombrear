@@ -22,7 +22,9 @@ export function useCountUp(target: number, duration = 850, skipAnimation = false
     const reduz = typeof window !== 'undefined'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    if (skipAnimation || reduz) {
+    // aba em segundo plano: o rAF não roda e o KPI ficaria parado em 0 até a
+    // aba voltar ao foco (portado do CRM do kit Agente-IA)
+    if (skipAnimation || reduz || document.hidden) {
       currentRef.current = target
       setCurrent(target)
       return
