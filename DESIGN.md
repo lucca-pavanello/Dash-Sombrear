@@ -54,8 +54,11 @@ Campo, tabela e controle segmentado têm **uma** receita, com valor exato, neste
 | régua vertical | `tabela.regua` | `border-r border-border/40` — **opcional**, só em tabela larga e numérica (Estoque, Agente IA) |
 | segmentado | `segmentado.trilho/item/ativo/inativo` | trilho `rounded-xl bg-muted/60 p-1`; ativo **`bg-card text-primary`** — nunca `bg-primary` (primária cheia é botão de ação, não seleção) |
 | card | `cartao` | `rounded-xl border border-border bg-card shadow-sm` — filtros usam o mesmo, **sem `border-2`** |
+| card de KPI | `kpi.cartao/acento/chip/rotulo/valor/sub` | composição da Lista: **centrado, chip do ícone em cima, rótulo 11px caixa alta, número `text-2xl font-display`**. Acento = `border-{cor}/25 + bg-{cor}/[0.07]`, cor é significado (primário/emerald/amber/neutro). Estoque mantém a composição dele (tem tendência) com a mesma tipografia |
 
-Alinhamento de coluna continua por tabela (a Lista alinha número à direita; Fechamento/Agente/Estoque centram tudo) — é estrutura, não receita. Matrizes de preço A×L do admin mantêm a grade inteira (são planilha de verdade).
+**Alinhamento de coluna: tudo centrado** — cabeçalho e célula. É o que a Lista, Fechamento, Agente IA, Estoque, Relatórios e Custos fazem (Custos foi alinhado em 2026-08-19). Matrizes de preço A×L do admin mantêm a grade inteira (são planilha de verdade).
+
+**Atenção numa linha = banho de fundo, nunca listra lateral.** `bg-amber-500/[0.08]` pra "pede humano", `bg-amber-500/5` pra espera longa, `bg-primary/[0.06]` pra "você". O `border-l-2` que existia no Agente IA e no Painel Admin saiu em 2026-08-19.
 
 ## Componentes
 

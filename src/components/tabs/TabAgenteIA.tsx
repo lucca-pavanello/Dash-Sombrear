@@ -25,7 +25,7 @@ import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE, MODELOS, CHATWOOT_BASE_URL } from '@/lib/constants'
-import { tabela, segmentado } from '@/components/shared/estilos'
+import { tabela, segmentado, kpi } from '@/components/shared/estilos'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 
@@ -159,28 +159,19 @@ function KpiCard({ label, value, icon: Icon, alcance, sub, attention, delay }: {
   label: string; value: string | number; icon: React.ElementType
   alcance?: boolean; attention?: boolean; sub?: string; delay: number
 }) {
+  // mesma composição do card da Lista de orçamentos: centrado, chip em cima
+  const tom = attention ? 'amber' : 'primario'
   return (
     <div
-      className={`animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 p-4 shadow-sm transition-all duration-200 hover:shadow-elevated cursor-default
-        ${attention ? 'border-amber-500/50 bg-amber-500/5 dark:bg-amber-500/10'
-        : alcance   ? 'border-primary/35 bg-primary/10 dark:bg-primary/15'
-        :             'border-primary/20 bg-primary/5 dark:bg-primary/8'}`}
+      className={cn('animate-in fade-in-0 slide-in-from-bottom-4 duration-500 hover:shadow-md cursor-default',
+        kpi.cartao, kpi.acento[tom], alcance && !attention && 'ring-1 ring-primary/20')}
       style={{ animationFillMode: 'both', animationDelay: `${delay}ms` }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70 truncate">{label}</p>
-          <p className={`font-display mt-1.5 text-2xl font-bold tracking-tight truncate tabular-nums
-            ${attention ? 'text-amber-600 dark:text-amber-400' : 'text-primary'}`}>
-            {value}
-          </p>
-          {sub && <p className="mt-0.5 text-xs text-muted-foreground/60 truncate">{sub}</p>}
-        </div>
-        <div className={`shrink-0 rounded-lg p-1.5
-          ${attention ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-          : 'bg-primary/15 text-primary'}`}>
-          <Icon className="h-4 w-4" />
-        </div>
+      <div className="flex flex-col items-center text-center gap-0.5">
+        <div className={cn(kpi.chip, kpi.chipCor[tom])}><Icon className="h-4 w-4" /></div>
+        <p className={cn(kpi.rotulo, 'w-full')}>{label}</p>
+        <p className={cn(kpi.valor, kpi.valorCor[tom], 'truncate')}>{value}</p>
+        {sub && <p className={cn(kpi.sub, 'w-full')}>{sub}</p>}
       </div>
     </div>
   )
@@ -687,11 +678,17 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                       return (
                         <React.Fragment key={lead.id}>
                           <tr
-                            className={`border-b last:border-0 transition-colors cursor-pointer
-                              ${aguard   ? 'border-l-2 border-l-amber-400' : ''}
-                              ${conv     ? 'opacity-60' : ''}
-                              ${emEspera ? 'bg-amber-500/5' : ''}
-                              ${expanded ? 'bg-muted/30' : rowIdx % 2 === 1 ? 'bg-muted/[0.15] hover:bg-muted/30' : 'hover:bg-primary/[0.04]'}`}
+                            className={cn(
+                              'border-b last:border-0 transition-colors cursor-pointer',
+                              conv && 'opacity-60',
+                              // atenção = banho de fundo âmbar (DESIGN.md: nunca listra lateral);
+                              // pede humano é o mais forte, espera longa vem depois
+                              aguard ? 'bg-amber-500/[0.08]'
+                                : emEspera ? 'bg-amber-500/5'
+                                : expanded ? 'bg-muted/30'
+                                : rowIdx % 2 === 1 ? 'bg-muted/[0.15]' : '',
+                              expanded ? '' : 'hover:bg-muted/30',
+                            )}
                             onClick={() => setExpandedId(expanded ? null : lead.id)}
                           >
                             <td className="px-4 py-3.5 text-center text-muted-foreground tabular-nums whitespace-nowrap border-r border-border/20">
@@ -934,7 +931,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                   const expanded = expandedId === lead.id
                   const emEspera = !conv && horasDecorridas(lead.timestamp_ultima_msg) > ESPERA_HORAS
                   return (
-                    <div key={lead.id} className={`${aguard ? 'border-l-2 border-l-amber-400' : ''} ${conv ? 'opacity-60' : ''} ${emEspera ? 'bg-amber-500/5' : ''}`}>
+                    <div key={lead.id} className={cn(conv && 'opacity-60', aguard ? 'bg-amber-500/[0.08]' : emEspera && 'bg-amber-500/5')}>
                       <div className="px-4 py-4">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div>

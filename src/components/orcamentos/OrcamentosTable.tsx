@@ -259,7 +259,7 @@ const ORC_SORT_KEY  = 'sombrear-orcamentos-sort'
 
 type ColId = 'num' | 'data' | 'cliente' | 'responsavel' | 'ambiente' | 'modelo' | 'tecido' | 'qtd' | 'valor' | 'margem' | 'status' | 'fechado'
 
-const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; align: 'center' | 'center' | 'right' }[] = [
+const COL_DEFS: { id: ColId; label: string; key?: SortKey; optional: boolean; align: 'center' | 'right' }[] = [
   { id: 'num',         label: '#',          optional: false, align: 'center' },
   { id: 'data',        label: 'Data',       key: 'created_at', optional: false, align: 'center' },
   { id: 'cliente',     label: 'Cliente',    key: 'cliente',    optional: false, align: 'center' },
