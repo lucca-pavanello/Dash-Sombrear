@@ -33,19 +33,19 @@ const CUSTO_FILTER_KEY = 'sombrear-custos-filtros'
 type CustoColId = 'data' | 'cliente' | 'responsavel' | 'modelo' | 'ambiente' | 'tecido' | 'lxa' | 'qtd' | 'custo_mat' | 'custo_m2' | 'custo_acab' | 'custo_inst' | 'total'
 
 const CUSTO_COL_DEFS: { id: CustoColId; label: string; optional: boolean; align: 'left' | 'center' | 'right' }[] = [
-  { id: 'data',       label: 'Data',        optional: false, align: 'left' },
-  { id: 'cliente',    label: 'Cliente',     optional: false, align: 'left' },
-  { id: 'responsavel',label: 'Responsável', optional: false, align: 'left' },
-  { id: 'modelo',     label: 'Modelo',      optional: false, align: 'left' },
-  { id: 'ambiente',   label: 'Ambiente',    optional: true,  align: 'left' },
-  { id: 'tecido',     label: 'Tecido',      optional: true,  align: 'left' },
+  { id: 'data',       label: 'Data',        optional: false, align: 'center' },
+  { id: 'cliente',    label: 'Cliente',     optional: false, align: 'center' },
+  { id: 'responsavel',label: 'Responsável', optional: false, align: 'center' },
+  { id: 'modelo',     label: 'Modelo',      optional: false, align: 'center' },
+  { id: 'ambiente',   label: 'Ambiente',    optional: true,  align: 'center' },
+  { id: 'tecido',     label: 'Tecido',      optional: true,  align: 'center' },
   { id: 'lxa',        label: 'L × A',       optional: true,  align: 'center' },
   { id: 'qtd',        label: 'Qtd',         optional: true,  align: 'center' },
-  { id: 'custo_mat',  label: 'Custo Mat.',  optional: false, align: 'right' },
-  { id: 'custo_m2',   label: 'Custo M²',   optional: true,  align: 'right' },
-  { id: 'custo_acab', label: 'Custo Acab.', optional: true,  align: 'right' },
-  { id: 'custo_inst', label: 'Custo Inst.', optional: true,  align: 'right' },
-  { id: 'total',      label: 'Total',       optional: false, align: 'right' },
+  { id: 'custo_mat',  label: 'Custo Mat.',  optional: false, align: 'center' },
+  { id: 'custo_m2',   label: 'Custo M²',   optional: true,  align: 'center' },
+  { id: 'custo_acab', label: 'Custo Acab.', optional: true,  align: 'center' },
+  { id: 'custo_inst', label: 'Custo Inst.', optional: true,  align: 'center' },
+  { id: 'total',      label: 'Total',       optional: false, align: 'center' },
 ]
 
 const CUSTO_COL_DEFAULTS: Record<CustoColId, boolean> = {
@@ -517,12 +517,12 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                       const stripe = i % 2 === 1 ? 'bg-muted/[0.15]' : ''
                       return (
                         <tr key={c.id} className={cn(tabela.tr, stripe)}>
-                          {vis('data')        && <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-xs">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>}
-                          {vis('cliente')     && <td className="px-4 py-3 font-medium">{c.cliente ?? <span className="text-muted-foreground/30">—</span>}</td>}
-                          {vis('responsavel') && <td className="px-4 py-3">{c.responsavel ?? <span className="text-muted-foreground/30">—</span>}</td>}
-                          {vis('modelo')      && <td className="px-4 py-3 font-medium">{c.modelo}</td>}
-                          {vis('ambiente')    && <td className="px-4 py-3">{c.ambiente ? <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{c.ambiente}</span> : <span className="text-muted-foreground/20">—</span>}</td>}
-                          {vis('tecido')      && <td className="px-4 py-3 text-muted-foreground">{c.tecido ?? <span className="opacity-30">—</span>}</td>}
+                          {vis('data')        && <td className="px-4 py-3 text-center whitespace-nowrap text-muted-foreground text-xs tabular-nums">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>}
+                          {vis('cliente')     && <td className="px-4 py-3 text-center font-medium">{c.cliente ?? <span className="text-muted-foreground/30">—</span>}</td>}
+                          {vis('responsavel') && <td className="px-4 py-3 text-center">{c.responsavel ?? <span className="text-muted-foreground/30">—</span>}</td>}
+                          {vis('modelo')      && <td className="px-4 py-3 text-center font-medium">{c.modelo}</td>}
+                          {vis('ambiente')    && <td className="px-4 py-3 text-center">{c.ambiente ? <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{c.ambiente}</span> : <span className="text-muted-foreground/20">—</span>}</td>}
+                          {vis('tecido')      && <td className="px-4 py-3 text-center text-muted-foreground">{c.tecido ?? <span className="opacity-30">—</span>}</td>}
                           {vis('lxa')         && <td className="px-4 py-3 text-center whitespace-nowrap">{lxa ?? <span className="text-muted-foreground/20">—</span>}</td>}
                           {vis('qtd')         && <td className="px-4 py-3 text-center">{c.quantidade ?? <span className="text-muted-foreground/20">—</span>}</td>}
                           {vis('custo_mat')   && <td className="px-4 py-3 text-center whitespace-nowrap font-medium">{c.custo_material != null ? formatCurrency(c.custo_material) : <span className="text-muted-foreground/20">—</span>}</td>}
@@ -535,8 +535,8 @@ export default function TabCalculoCusto({ isLoading, error, toast }: Props) {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t-2 bg-muted/30">
-                      <td colSpan={visibleCustoCols.findIndex(c => c.id === 'custo_mat')} className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    <tr className={tabela.tfootRow}>
+                      <td colSpan={visibleCustoCols.findIndex(c => c.id === 'custo_mat')} className={cn(tabela.tfootCell, 'text-center')}>
                         Totais — {filteredCI.length} registro{filteredCI.length !== 1 ? 's' : ''}
                       </td>
                       {vis('custo_mat')  && <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">{formatCurrency(filteredCI.reduce((s, c) => s + (c.custo_material ?? 0), 0))}</td>}

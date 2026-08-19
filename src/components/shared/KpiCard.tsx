@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { kpi } from '@/components/shared/estilos'
 
 export type KpiVariant = 'default' | 'emerald' | 'blue' | 'orange' | 'purple' | 'amber'
 
@@ -116,8 +117,8 @@ export default function KpiCard({
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground">{title}</p>
-            <p ref={valueElRef} className="font-display mt-1 text-xl font-bold truncate">{value}</p>
+            <p className={kpi.rotulo}>{title}</p>
+            <p ref={valueElRef} className={`${kpi.valor} truncate`}>{value}</p>
             {subtitle && <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>}
             {trend != null && (
               <p className={`mt-1 flex items-center gap-0.5 text-xs font-semibold ${
@@ -149,8 +150,8 @@ export default function KpiCard({
         <div className="kpi-flip-front p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground">{title}</p>
-              <p ref={valueElRef} className="font-display mt-1 text-xl font-bold truncate">{value}</p>
+              <p className={kpi.rotulo}>{title}</p>
+              <p ref={valueElRef} className={`${kpi.valor} truncate`}>{value}</p>
               {subtitle && <p className="mt-0.5 text-xs text-muted-foreground truncate">{subtitle}</p>}
               {trend != null && (
                 <p className={`mt-1 flex items-center gap-0.5 text-xs font-semibold ${

@@ -5,6 +5,7 @@ import { CheckCircle2, DollarSign, FileText, ReceiptText, TrendingUp, Pencil, Ch
 import { useMonthlyComparison } from '@/hooks/useOrcamentos'
 import { useCountUp } from '@/hooks/useCountUp'
 import { META_KEY } from '@/lib/constants'
+import { kpi } from '@/components/shared/estilos'
 
 // ── Odômetro de dígitos para o card de Faturamento ──
 function OdometerValue({ value }: { value: number }) {
@@ -239,7 +240,7 @@ function KPIGrid({ data, resetKey }: Props) {
       {/* Faturamento — shimmer + tooltip + meta */}
       <div
         tabIndex={0}
-        className="group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 border-primary/25 bg-primary/10 dark:bg-primary/15 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none"
+        className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 ${kpi.cartao} ${kpi.acento.primario} transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-default outline-none`}
         style={{ animationFillMode: 'both', animationDelay: '0ms' }}
       >
         <KpiTooltip lines={[
@@ -270,7 +271,7 @@ function KPIGrid({ data, resetKey }: Props) {
               <Pencil className="h-3 w-3" />
             </button>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate w-full">Faturamento</p>
+          <p className={`${kpi.rotulo} w-full`}>Faturamento</p>
           <OdometerValue value={faturamento} />
 
           {meta > 0 ? (
@@ -337,9 +338,8 @@ function KPIGrid({ data, resetKey }: Props) {
             key={label}
             tabIndex={0}
             onClick={() => setFlippedCard(isFlipped ? null : label)}
-            className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border-2 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer outline-none ${
-              amber ? 'border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10'
-              : 'border-border bg-primary/10 dark:bg-primary/15'
+            className={`group relative animate-in fade-in-0 slide-in-from-bottom-4 duration-500 rounded-xl border shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer outline-none ${
+              amber ? kpi.acento.amber : kpi.acento.primario
             }`}
             style={{ animationFillMode: 'both', animationDelay: `${(i + 1) * 80}ms`, perspective: '800px' }}
           >
@@ -351,11 +351,11 @@ function KPIGrid({ data, resetKey }: Props) {
                   <div className={`mb-1.5 rounded-lg p-1.5 ${amber ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-primary/15 text-primary'}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate w-full">{label}</p>
-                  <p className={`font-display mt-1 text-2xl font-bold tracking-tight tabular-nums ${amber ? 'text-amber-600 dark:text-amber-400' : 'text-primary'}`}>
+                  <p className={`${kpi.rotulo} w-full`}>{label}</p>
+                  <p className={`${kpi.valor} ${amber ? kpi.valorCor.amber : kpi.valorCor.primario}`}>
                     {value}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground truncate tabular-nums w-full">{sub}</p>
+                  <p className={`${kpi.sub} w-full`}>{sub}</p>
                 </div>
                 <p className="mt-1.5 text-[9px] text-muted-foreground/30 text-center select-none">clique ›</p>
               </div>

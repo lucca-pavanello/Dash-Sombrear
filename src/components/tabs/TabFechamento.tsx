@@ -24,7 +24,7 @@ import JanelaDados from '@/components/orcamentos/JanelaDados'
 import ConfirmarExclusaoVenda from '@/components/orcamentos/ConfirmarExclusaoVenda'
 import { useProfile } from '@/hooks/useProfile'
 import { ADMIN_EMAIL } from '@/lib/constants'
-import { campoCompacto, tabela } from '@/components/shared/estilos'
+import { campoCompacto, tabela, kpi } from '@/components/shared/estilos'
 
 const TabSimulador = lazyComRecarga(() => import('@/components/tabs/TabSimulador'))
 
@@ -100,23 +100,15 @@ function Kpi({ rotulo, valor, hint, destaque, contar }: {
   rotulo: string; valor: number; hint?: string; destaque?: 'primary' | 'emerald' | 'amber'; contar: boolean
 }) {
   const anim = useCountUp(valor, 700, contar)
+  // mesma composição do card da Lista de orçamentos
+  const tom = destaque === 'primary' ? 'primario' : destaque ?? 'neutro'
   return (
-    <div className={cn(
-      'rounded-xl border bg-card p-4 shadow-sm transition-colors',
-      destaque === 'primary' ? 'border-primary/25 bg-primary/[0.04]' :
-      destaque === 'emerald' ? 'border-emerald-500/25 bg-emerald-500/[0.04]' :
-      destaque === 'amber' ? 'border-amber-500/25 bg-amber-500/[0.04]' : 'border-border',
-    )}>
-      <p className="text-center text-[10px] font-bold uppercase tracking-widest text-foreground/45">{rotulo}</p>
-      <p className={cn(
-        'text-center font-display text-2xl font-bold tabular-nums',
-        destaque === 'primary' ? 'text-primary' :
-        destaque === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' :
-        destaque === 'amber' ? 'text-amber-600 dark:text-amber-400' : 'text-foreground',
-      )}>
-        {formatCurrency(anim)}
-      </p>
-      {hint && <p className="mt-0.5 text-center text-[11px] text-muted-foreground">{hint}</p>}
+    <div className={cn(kpi.cartao, kpi.acento[tom])}>
+      <div className="flex flex-col items-center text-center gap-0.5">
+        <p className={cn(kpi.rotulo, 'w-full')}>{rotulo}</p>
+        <p className={cn(kpi.valor, kpi.valorCor[tom])}>{formatCurrency(anim)}</p>
+        {hint && <p className={cn(kpi.sub, 'w-full')}>{hint}</p>}
+      </div>
     </div>
   )
 }

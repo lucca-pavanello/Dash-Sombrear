@@ -84,3 +84,47 @@ export const segmentado = {
 
 /** Card padrão (DESIGN.md §Componentes). Filtros usam o MESMO card — sem border-2. */
 export const cartao = 'rounded-xl border border-border bg-card shadow-sm'
+
+/* ── Card de KPI ─────────────────────────────────────────────────────────── */
+
+/**
+ * O card de KPI da Lista de orçamentos é a referência: centrado, chip do
+ * ícone em cima, rótulo em caixa alta, número grande em font-display.
+ * Agente IA (esquerda, ícone à direita) e Fechamento (sem ícone, rótulo 10px)
+ * passam a usar a mesma composição; o Estoque mantém a dele (tem tendência e
+ * sparkline) mas com a MESMA tipografia.
+ *
+ * Acento = borda inteira tingida + banho de fundo (DESIGN.md) — sem border-2,
+ * sem listra.
+ */
+export const kpi = {
+  /** moldura neutra */
+  cartao: 'rounded-xl border p-4 shadow-sm transition-colors',
+  /** acentos — cor é significado, não categoria */
+  acento: {
+    primario: 'border-primary/25 bg-primary/[0.07] dark:bg-primary/[0.12]',
+    emerald:  'border-emerald-500/25 bg-emerald-500/[0.05] dark:bg-emerald-500/[0.08]',
+    amber:    'border-amber-500/30 bg-amber-500/[0.05] dark:bg-amber-500/[0.08]',
+    neutro:   'border-border bg-card',
+  },
+  /** chip do ícone (quando houver) */
+  chip: 'mb-1.5 inline-flex rounded-lg p-1.5',
+  chipCor: {
+    primario: 'bg-primary/15 text-primary',
+    emerald:  'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    amber:    'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+    neutro:   'bg-muted text-muted-foreground',
+  },
+  /** rótulo — a mesma tipografia do cabeçalho de tabela */
+  rotulo: 'text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate',
+  /** o número */
+  valor: 'font-display mt-1 text-2xl font-bold tracking-tight tabular-nums',
+  valorCor: {
+    primario: 'text-primary',
+    emerald:  'text-emerald-600 dark:text-emerald-400',
+    amber:    'text-amber-600 dark:text-amber-400',
+    neutro:   'text-foreground',
+  },
+  /** linha de apoio embaixo do número */
+  sub: 'mt-0.5 text-[11px] text-muted-foreground truncate tabular-nums',
+} as const

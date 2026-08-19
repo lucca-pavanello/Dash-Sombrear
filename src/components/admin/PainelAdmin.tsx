@@ -247,7 +247,7 @@ interface UserRowProps {
 function UserRow({ p, isAdminUser, pendingId, onEdit, onApprove, onRevoke, onToggleAdmin }: UserRowProps) {
   const isBusy = pendingId === p.id
   return (
-    <div className={`flex items-center justify-between gap-3 px-5 py-3.5 transition-colors ${isAdminUser ? 'border-l-2 border-l-primary bg-primary/[0.03]' : 'hover:bg-muted/20'}`}>
+    <div className={`flex items-center justify-between gap-3 px-5 py-3.5 transition-colors ${isAdminUser ? 'bg-primary/[0.06]' : 'hover:bg-muted/20'}`}>
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative shrink-0">
           <AvatarInitials name={p.full_name || p.email} size="md" />
