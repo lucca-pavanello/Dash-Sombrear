@@ -11,8 +11,10 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
   Clock, MessageCircle,  ChevronLeft,
-  AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset,
+  AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset, Eye,
 } from 'lucide-react'
+import { useConfigAutomacoes, useDefinirConfigAutomacao, IA_RESPONDE } from '@/hooks/useConfigAutomacoes'
+import { Chave } from '@/components/agente/FollowupControle'
 import DatePicker from '@/components/ui/DatePicker'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
@@ -246,6 +248,51 @@ function FiltroOrigem({ id, rotulo, total, ativo, onClick }: {
 }
 
 /** Rótulo de bloco do painel do lead — um estilo só pra todos */
+/**
+ * Liga/desliga a voz da IA sem desativar o workflow — desativar mataria o webhook e o
+ * CRM pararia de receber as conversas. Em "só observando" ela continua registrando tudo.
+ * Só admin vê (e a RLS de config_automacoes só deixa admin escrever).
+ */
+function InterruptorIA({ toast }: { toast: (t: 'success' | 'error' | 'info', m: string) => void }) {
+  const { data: config } = useConfigAutomacoes()
+  const { mutate: definir, isPending } = useDefinirConfigAutomacao()
+  if (!config || config[IA_RESPONDE] == null) return null
+
+  const respondendo = config[IA_RESPONDE] !== '0'
+  const alternar = (ligar: boolean) => definir(
+    { chave: IA_RESPONDE, valor: ligar ? '1' : '0' },
+    {
+      onSuccess: () => toast('success', ligar
+        ? 'IA voltou a responder os clientes.'
+        : 'IA em modo observação — segue registrando as conversas, sem responder.'),
+      onError: (err) => toast('error', err instanceof Error ? err.message : 'Não consegui mudar o modo da IA.'),
+    },
+  )
+
+  return (
+    <div className={cn(
+      'flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 shadow-sm',
+      respondendo ? 'bg-card' : 'border-amber-500/40 bg-amber-500/[0.07]',
+    )}>
+      <div className="flex items-center gap-2.5">
+        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+          respondendo ? 'bg-primary/10 text-primary' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400')}>
+          {respondendo ? <Bot className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </div>
+        <div>
+          <p className="text-sm font-semibold">{respondendo ? 'IA respondendo os clientes' : 'IA só observando'}</p>
+          <p className="text-xs text-muted-foreground">
+            {respondendo
+              ? 'Atende sozinha e passa pra equipe quando precisa'
+              : 'Recebe e registra as conversas no CRM, mas não responde ninguém'}
+          </p>
+        </div>
+      </div>
+      <Chave ligado={respondendo} onChange={alternar} ocupado={isPending} />
+    </div>
+  )
+}
+
 /** A equipe assumiu a conversa — a IA está calada ali. Não é alerta: é informação de estado. */
 function SeloComEquipe({ className }: { className?: string }) {
   return (
@@ -560,6 +607,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   return (
     <div className="space-y-5">
 
+      {ehAdmin && <InterruptorIA toast={toast} />}
+
       {/* ── Alcance do Agente ── */}
       <div key={periodo} className="space-y-3 animate-in fade-in-0 duration-200">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5">Alcance do Agente</p>
@@ -570,7 +619,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           ))}
         </div>
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5 pt-1">Operacional</p>
-        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           {opKpis.map(({ label, value, icon, attention, sub }, i) => (
             <KpiCard key={label} label={label} value={value} icon={icon}
               attention={attention} sub={sub} delay={i * 80 + 320} />

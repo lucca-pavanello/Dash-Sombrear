@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 
 interface Config { chave: string; valor: string }
 
-function Chave({ ligado, onChange, ocupado }: { ligado: boolean; onChange: (v: boolean) => void; ocupado: boolean }) {
+export function Chave({ ligado, onChange, ocupado }: { ligado: boolean; onChange: (v: boolean) => void; ocupado: boolean }) {
   return (
     <button
       type="button"
