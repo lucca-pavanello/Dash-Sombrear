@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
+import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, estaComEquipe, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
 import { cn, formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/primitives'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
@@ -11,7 +11,7 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
   Clock, MessageCircle,  ChevronLeft,
-  AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter,
+  AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset,
 } from 'lucide-react'
 import DatePicker from '@/components/ui/DatePicker'
 import SkeletonCard from '@/components/shared/SkeletonCard'
@@ -246,6 +246,19 @@ function FiltroOrigem({ id, rotulo, total, ativo, onClick }: {
 }
 
 /** Rótulo de bloco do painel do lead — um estilo só pra todos */
+/** A equipe assumiu a conversa — a IA está calada ali. Não é alerta: é informação de estado. */
+function SeloComEquipe({ className }: { className?: string }) {
+  return (
+    <span
+      title="Uma atendente assumiu esta conversa no Chatwoot — a IA não responde aqui"
+      className={cn('inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap text-sky-600 dark:text-sky-400', className)}
+    >
+      <Headset className="h-2.5 w-2.5 shrink-0" />
+      com a equipe
+    </span>
+  )
+}
+
 function RotuloPainel({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-widest text-foreground/45">
@@ -408,6 +421,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       s + (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0), 0),
   }), [filtrados, orcFiltrados])
 
+  // conversas que uma atendente assumiu: a IA está calada e quem toca é gente
+  const comEquipe = useMemo(() => filtrados.filter(estaComEquipe), [filtrados])
+
   const leadsEmEspera = useMemo(() =>
     filtrados.filter(l => {
       const status = l.status_lead?.toLowerCase().trim() ?? ''
@@ -437,6 +453,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded, resetKey)
   const animForaMsgs   = useCountUp(foraMsgs.length, 700, hasLoaded, resetKey)
   const animEspera     = useCountUp(leadsEmEspera.length, 700, hasLoaded, resetKey)
+  const animComEquipe  = useCountUp(comEquipe.length, 700, hasLoaded, resetKey)
 
   const alcanceKpis = [
     { label: 'Pessoas respondidas',      value: Math.round(animLeads),     icon: Users,         alcance: true,  sub: 'atendidas pelo agente' },
@@ -451,6 +468,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     { label: 'Valor cotado (IA)',       value: valorTotal > 0 ? formatCurrency(animValor) : '—', icon: DollarSign, attention: false, sub: `${orcFiltrados.length} orçamento${orcFiltrados.length !== 1 ? 's' : ''}` },
     { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck, attention: false, sub: 'com data marcada' },
     { label: 'Em espera',              value: String(Math.round(animEspera)), icon: Clock, attention: leadsEmEspera.length > 0, sub: `aguardando +${ESPERA_HORAS}h` },
+    { label: 'Com a equipe',           value: Math.round(animComEquipe), icon: Headset, attention: false, sub: 'atendimento humano assumiu' },
   ]
 
   const sortedLeads = useMemo(() => {
@@ -700,7 +718,10 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             </td>
                             <td className="px-4 py-3.5 text-center font-medium border-r border-border/20">
                               <span className="block">{lead.nome ?? '—'}</span>
-                              <SeloClassificacao lead={lead} className="mt-1" />
+                              <span className="mt-1 flex flex-wrap items-center justify-center gap-1">
+                                <SeloClassificacao lead={lead} />
+                                {estaComEquipe(lead) && <SeloComEquipe />}
+                              </span>
                             </td>
                             <td className="border-r border-border/20 px-4 py-3.5 text-center">
                               <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
@@ -939,6 +960,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             <div className="mt-1 flex flex-wrap items-center gap-1">
                               <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
                               <SeloClassificacao lead={lead} />
+                              {estaComEquipe(lead) && <SeloComEquipe />}
                             </div>
                             {lead.whatsapp && (
                               <span className="flex items-center gap-1.5 mt-0.5">

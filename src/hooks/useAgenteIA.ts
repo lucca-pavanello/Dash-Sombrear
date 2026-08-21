@@ -47,6 +47,24 @@ export type CrmLead = {
   origem: string | null
   origem_bruta: string | null
   origem_campanha: string | null
+  // etiquetas da conversa no Chatwoot (texto separado por vírgula). `humano` = a equipe
+  // assumiu e a IA está calada ali — é o que o selo "com a equipe" lê
+  chatwoot_labels: string | null
+  precisa_humano: string | null
+  // preenchidos pelo workflow de desfecho, que lê a conversa depois do atendimento humano
+  desfecho: string | null
+  desfecho_motivo: string | null
+  desfecho_valor: number | null
+  desfecho_em: string | null
+  atendente: string | null
+  primeira_resposta_humana_em: string | null
+}
+
+/** A equipe assumiu esta conversa: a IA fica calada e quem responde é gente. */
+export function estaComEquipe(lead: Pick<CrmLead, 'chatwoot_labels' | 'precisa_humano'>): boolean {
+  const labels = (lead.chatwoot_labels ?? '').toLowerCase()
+  return labels.split(',').some((l) => l.trim() === 'humano')
+    || (lead.precisa_humano ?? '').toLowerCase().trim() === 'sim'
 }
 
 export type OrcamentoIA = {
