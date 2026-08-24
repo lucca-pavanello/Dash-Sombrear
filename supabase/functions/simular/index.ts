@@ -132,7 +132,9 @@ Deno.serve(async (req) => {
       altura: num(e.altura),
       quantidade: Math.max(1, Math.round(num(e.quantidade) || 1)),
       acabamento: ACABAMENTOS.has(String(e.acabamento)) ? String(e.acabamento) : 'nenhum',
-      motorWifi: e.motorWifi === true,
+      motorForca: (['6N', '10N', '20N', 'WIFI'].includes(String(e.motorForca ?? '').toUpperCase())
+        ? (String(e.motorForca).toUpperCase() as '6N' | '10N' | '20N' | 'WIFI')
+        : undefined),
       // motorização do pedido (16/08): motores, controles (1/6/16 canais) e junções
       motorQtd: num(e.motorQtd) > 0 ? Math.round(num(e.motorQtd)) : undefined,
       controleQtd: e.controleQtd != null && num(e.controleQtd) >= 0 ? Math.round(num(e.controleQtd)) : undefined,
