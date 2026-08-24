@@ -74,6 +74,19 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
   /* o exemplo que a Stella mandou pra conferir (24/08): "Rolo de 2,50 x 3,00 com 1 motor
      e controle de 1 canal". Fica na tabela sem junção (2,50m ≤ 3,00m) = R$ 135,07 de
      estrutura. Os valores de motor/controle aqui são os da fixture de 13/08. */
+  /* a dona conferiu o print e apontou: "quase tudo certo, só o lucro que é 1,45" (24/08).
+     O parâmetro `parceiro_motor` = 1,45 já estava no banco desde 10/08, mas o motor de
+     preços pedia a chave `parceiro_motorizacao`, que não existe — e caía no padrão
+     `custo_parceiro` = 1,40. Nenhum teste cobria o fator da motorização, por isso passou. */
+  it('motorização usa o fator 1,45 da loja, não o padrão 1,40', () => {
+    const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado' }), dPersiana))
+    const partes = r.detalhe.filter(d => /^(Estrutura|Motor|Controle|Junção)/.test(d.parte))
+    expect(partes.length).toBeGreaterThan(0)
+    partes.forEach(p => expect(p.fator).toBeCloseTo(1.45, 4))
+    // o tecido continua no fator dele
+    expect(r.detalhe.find(d => /^Tecido/.test(d.parte))?.fator).toBeCloseTo(1.40, 4)
+  })
+
   it('exemplo da Stella: rolô 2,50 × 3,00, 1 motor, 1 controle de 1 canal', () => {
     const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', largura: 2.5, altura: 3.0,
       motorQtd: 1, controleQtd: 1, controleCanais: 1 }), dPersiana))
