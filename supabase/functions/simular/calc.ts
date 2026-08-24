@@ -246,7 +246,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       // custoFerragem fica só com o que é POR PEÇA (a estrutura); o resto entra
       // com a própria quantidade em motorPartes
       custoFerragem = Number(linhaE.valor)
-      chaveFerragem = 'parceiro_motorizacao'
+      chaveFerragem = 'parceiro_motor'   // chave real no banco (1,45); 'parceiro_motorizacao' não existe e caía no padrão 1,40
       motorPartes = [
         { rotulo: `Estrutura motorizada — ${fmtM(lgE)}, ${String(linhaE.alt_faixa ?? '').toLowerCase()}${grupo ? ` (grupo ${grupo.toLowerCase()})` : ''}`, custo: Number(linhaE.valor), n: qtd },
         { rotulo: `Motor ${String(motor.item ?? '').toLowerCase()}`, custo: Number(motor.custo), n: motorQtd },
