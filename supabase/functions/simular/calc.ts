@@ -196,23 +196,18 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
         }
         return ''
       }
-      // junção usa a TABELA PRÓPRIA da loja (Stella, 24/08): "usar esta tabela sempre que
-      // pedir junção para motor — tubo de 53 + kit de 53". Nunca herdar o 41mm que a
-      // largura sozinha indicaria; peças unidas pedem a estrutura mais rígida.
+      // as duas tabelas da loja (Stella, 24/08), por regra dela:
+      //  · até 3,00m e SEM junção  -> tubo 41 + kit 41  ("vamos usar assim, qdo for até larg. 3,00")
+      //  · com junção, em qualquer medida, OU acima de 3,00m -> tubo 53 + kit 53
+      //    ("usar esta tabela sempre que pedir junção" + "passou de 3,01 tb vamos usar esta")
       const juncaoQtd = Math.max(0, Math.round(Number(e.juncaoQtd ?? 0)))
-      const estUsavel = juncaoQtd > 0 ? est.filter(x => grupoDe(x) === '53/JUNCAO') : est
-      if (juncaoQtd > 0 && estUsavel.length === 0) return { erro: 'Junção exige a tabela de tubo/suporte 53mm, que não está cadastrada' }
+      const usa53 = juncaoQtd > 0 || L > 3.0 + 1e-9
+      const tabelaAlvo = usa53 ? '53/JUNCAO' : '41/SEM-JUNCAO'
+      const estUsavel = est.filter(x => grupoDe(x) === tabelaAlvo)
+      if (estUsavel.length === 0) return { erro: `Tabela de estrutura motorizada "${tabelaAlvo}" não está cadastrada` }
       const largs = [...new Set(estUsavel.map(x => Number(x.largura)))].sort((x, y) => x - y)
       const lgE = largs.find(x => x >= L - 1e-9)
       if (lgE == null) return { erro: `Estrutura motorizada: nenhuma largura disponível ≥ ${fmtM(L)}${juncaoQtd > 0 ? ' (com junção, só faixa 53mm)' : ''}` }
-      // a tabela 53mm hoje só começa em 4,00m: sem a faixa da largura pedida, cair na
-      // linha maior cobraria caro em silêncio (2,10m viraria 4,00m). Recusa e diz o que falta.
-      if (juncaoQtd > 0) {
-        const lgSemJuncao = [...new Set(d.motorEstrutura.map(x => Number(x.largura)))].sort((x, y) => x - y).find(x => x >= L - 1e-9)
-        if (lgSemJuncao != null && lgE > lgSemJuncao + 1e-9) {
-          return { erro: `Junção exige tubo/suporte 53mm, e a tabela não tem faixa 53mm para ${fmtM(L)} — a menor cadastrada é ${fmtM(lgE)}. Cadastrar as larguras menores em 53mm antes de orçar com junção.` }
-        }
-      }
       const cobre = (faixa: string | null | undefined): boolean => {
         const fx = String(faixa ?? '').toUpperCase().replace(/,/g, '.')
         let m = fx.match(/AT[EÉ]\s*([\d.]+)/)

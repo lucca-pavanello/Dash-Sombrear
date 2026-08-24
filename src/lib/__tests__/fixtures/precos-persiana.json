@@ -8438,6 +8438,56 @@
    "grupo": "53/juncao",
    "valor_extra": null,
    "ordem": 110
+  },
+  {
+   "id": 951,
+   "largura": "1.0",
+   "alt_faixa": "Até 6,00",
+   "valor": "76.79",
+   "obs": "tubo 41 + kit 41, ate 3,00m sem juncao (tabela da Stella 24/08)",
+   "grupo": "41/sem-juncao",
+   "valor_extra": null,
+   "ordem": 201
+  },
+  {
+   "id": 952,
+   "largura": "1.5",
+   "alt_faixa": "Até 6,00",
+   "valor": "96.21",
+   "obs": "tubo 41 + kit 41, ate 3,00m sem juncao (tabela da Stella 24/08)",
+   "grupo": "41/sem-juncao",
+   "valor_extra": null,
+   "ordem": 202
+  },
+  {
+   "id": 953,
+   "largura": "2.0",
+   "alt_faixa": "Até 6,00",
+   "valor": "115.64",
+   "obs": "tubo 41 + kit 41, ate 3,00m sem juncao (tabela da Stella 24/08)",
+   "grupo": "41/sem-juncao",
+   "valor_extra": null,
+   "ordem": 203
+  },
+  {
+   "id": 954,
+   "largura": "2.5",
+   "alt_faixa": "Até 6,00",
+   "valor": "135.07",
+   "obs": "tubo 41 + kit 41, ate 3,00m sem juncao (tabela da Stella 24/08)",
+   "grupo": "41/sem-juncao",
+   "valor_extra": null,
+   "ordem": 204
+  },
+  {
+   "id": 955,
+   "largura": "3.0",
+   "alt_faixa": "Até 6,00",
+   "valor": "154.49",
+   "obs": "tubo 41 + kit 41, ate 3,00m sem juncao (tabela da Stella 24/08)",
+   "grupo": "41/sem-juncao",
+   "valor_extra": null,
+   "ordem": 205
   }
  ],
  "motorComponentes": [
