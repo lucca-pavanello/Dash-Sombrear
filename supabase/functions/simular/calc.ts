@@ -204,6 +204,14 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       const largs = [...new Set(estUsavel.map(x => Number(x.largura)))].sort((x, y) => x - y)
       const lgE = largs.find(x => x >= L - 1e-9)
       if (lgE == null) return { erro: `Estrutura motorizada: nenhuma largura disponível ≥ ${fmtM(L)}${juncaoQtd > 0 ? ' (com junção, só faixa 53mm)' : ''}` }
+      // a tabela 53mm hoje só começa em 4,00m: sem a faixa da largura pedida, cair na
+      // linha maior cobraria caro em silêncio (2,10m viraria 4,00m). Recusa e diz o que falta.
+      if (juncaoQtd > 0) {
+        const lgSemJuncao = [...new Set(d.motorEstrutura.map(x => Number(x.largura)))].sort((x, y) => x - y).find(x => x >= L - 1e-9)
+        if (lgSemJuncao != null && lgE > lgSemJuncao + 1e-9) {
+          return { erro: `Junção exige tubo/suporte 53mm, e a tabela não tem faixa 53mm para ${fmtM(L)} — a menor cadastrada é ${fmtM(lgE)}. Cadastrar as larguras menores em 53mm antes de orçar com junção.` }
+        }
+      }
       const cobre = (faixa: string | null | undefined): boolean => {
         const fx = String(faixa ?? '').toUpperCase().replace(/,/g, '.')
         let m = fx.match(/AT[EÉ]\s*([\d.]+)/)
