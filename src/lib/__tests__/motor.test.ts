@@ -72,12 +72,15 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
     expect('erro' in r && /6,00/.test(r.erro)).toBe(true)
   })
 
-  /* pedido da loja (16/08): 6 rolôs numa parede não são 6 motores + 6
-     controles — peças unidas por junção dividem motor, e o controle é do
-     pedido (1 de 6 canais). O padrão continua 1 motor/peça + 1 controle
-     de 1 canal, então o golden acima não muda. */
-  it('6 peças, 3 motores, 1 controle de 6 canais, 3 junções: peças da motorização por quantidade própria', () => {
-    const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', quantidade: 6,
+  /* pedido da loja (16/08, refinado 22/08 pela dona): 6 rolôs numa parede não são
+     6 motores + 6 controles — peças que dividem o MESMO motor usam junção, e isso
+     sempre força tubo/suporte 53mm (regra dela: "sempre que dois rolôs, independente
+     da medida, compartilharem o mesmo motor, usa junção... tubo de 53 e kit suporte
+     de 53"). O controle é do pedido (1 de 6 canais). Medidas aqui usam 4,5×5,5 —
+     únicas que a tabela hoje precifica em 53mm (ver teste da faixa estreita abaixo:
+     é gap de CADASTRO, não deste motor de cálculo). */
+  it('6 peças, 3 motores (2 por junção), 1 controle de 6 canais, 3 junções: força 53mm e soma certo', () => {
+    const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', altura: 5.5, quantidade: 6,
       motorQtd: 3, controleQtd: 1, controleCanais: 6, juncaoQtd: 3 }), dPersiana))
     const acha = (re: RegExp) => r.detalhe.find(d => re.test(d.parte))
     expect(acha(/^Estrutura/)?.parte).toMatch(/× 6$/)
@@ -85,14 +88,16 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
     expect(acha(/^Controle 6 canais/)?.parte).toBe('Controle 6 canais')   // 1 só, sem "× n"
     expect(acha(/^Junção/)?.parte).toMatch(/× 3$/)
     expect(r.observacoes.join(' ')).toMatch(/6 peças com 3 motores/)
+    expect(r.observacoes.join(' ')).toMatch(/grupo 53\/6N/)
   })
 
-  it('padrão de 6 peças sem escolha = 6 motores e 6 controles de 1 canal (comportamento antigo)', () => {
+  it('padrão de 6 peças sem escolha = 6 motores e 6 controles de 1 canal, 41mm (comportamento antigo)', () => {
     const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', quantidade: 6 }), dPersiana))
     const acha = (re: RegExp) => r.detalhe.find(d => re.test(d.parte))
     expect(acha(/^Motor/)?.parte).toMatch(/× 6$/)
     // controle passou a ser do PEDIDO: padrão 1 controle, não 6
     expect(acha(/^Controle 1 canal/)?.parte).toBe('Controle 1 canal')
+    expect(r.observacoes.join(' ')).not.toMatch(/grupo 53/)
   })
 
   it('a conta bate: 3 motores em vez de 6 baixa o custo da motorização', () => {
@@ -100,6 +105,30 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
     const tres = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', quantidade: 6, motorQtd: 3 }), dPersiana))
     expect(tres.custoTabela).toBeLessThan(seis.custoTabela)
     expect(tres.total4x).toBeLessThan(seis.total4x)
+  })
+
+  /* pedido da dona da loja (22/08): "sempre que dois rolôs, independente da medida,
+     compartilharem o mesmo motor, usa junção... tubo de 53 e kit suporte de 53 que
+     está na tabela." Testado com a largura pequena (1,20m, que sozinha cairia no
+     41mm) pra provar que é a JUNÇÃO que decide, não a medida da peça. */
+  it('largura 1,20m (41mm sozinha) com junção força a faixa 53mm', () => {
+    const semJuncao = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado' }), dPersiana))
+    const comJuncao = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado',
+      largura: 1.2, altura: 5.5, quantidade: 2, motorQtd: 1, controleQtd: 1, juncaoQtd: 1 }), dPersiana))
+    expect(semJuncao.observacoes.join(' ')).not.toMatch(/grupo 53/)
+    expect(comJuncao.observacoes.join(' ')).toMatch(/grupo 53\/6N/)
+  })
+
+  /* GAP DE CADASTRO, não de código: a tabela só tem preço 53mm (com junção) pra
+     medidas grandes (largura ≥4,0m, a maioria com altura ≥5,01m) — não existe linha
+     53mm pra uma altura típica pequena, tipo 1,40m. Antes desta correção (22/08) o
+     sistema silenciosamente usava 41mm nesse caso, cobrando errado por baixo. Agora
+     ele RECUSA em vez de adivinhar — o próximo passo é a loja completar a tabela
+     `precos_motor_estrutura` com faixas 53mm pra alturas menores, se esse pedido for
+     comum (2 rolôs pequenos dividindo motor). */
+  it('sem faixa 53mm disponível pra altura pequena, erra em vez de usar 41mm escondido', () => {
+    const r = simular(rolo({ modelo: 'Rolo Motorizado', juncaoQtd: 1, motorQtd: 1, quantidade: 2 }), dPersiana)
+    expect('erro' in r).toBe(true)
   })
 })
 

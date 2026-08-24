@@ -185,9 +185,24 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       }
       const est = [...d.motorEstrutura].sort((x, y) => Number(x.ordem) - Number(y.ordem))
       if (est.length === 0) return { erro: 'Tabela de estrutura motorizada vazia no banco' }
-      const largs = [...new Set(est.map(x => Number(x.largura)))].sort((x, y) => x - y)
+      // grupo em branco herda o da linha anterior (a planilha só marca na primeira)
+      const grupoDe = (row: (typeof est)[number]): string => {
+        const g = String(row.grupo ?? '').toUpperCase().trim()
+        if (g) return g
+        for (let i = est.indexOf(row) - 1; i >= 0; i--) {
+          const gg = String(est[i].grupo ?? '').toUpperCase().trim()
+          if (gg) return gg
+        }
+        return ''
+      }
+      // junção sempre exige tubo/suporte 53mm (regra da loja, 22/08) — nunca herdar o
+      // 41mm que a largura sozinha indicaria; peças unidas pedem a estrutura mais rígida
+      const juncaoQtd = Math.max(0, Math.round(Number(e.juncaoQtd ?? 0)))
+      const estUsavel = juncaoQtd > 0 ? est.filter(x => grupoDe(x).startsWith('53')) : est
+      if (juncaoQtd > 0 && estUsavel.length === 0) return { erro: 'Junção exige tubo/suporte 53mm, mas a tabela não tem faixa 53mm cadastrada' }
+      const largs = [...new Set(estUsavel.map(x => Number(x.largura)))].sort((x, y) => x - y)
       const lgE = largs.find(x => x >= L - 1e-9)
-      if (lgE == null) return { erro: `Estrutura motorizada: nenhuma largura disponível ≥ ${fmtM(L)}` }
+      if (lgE == null) return { erro: `Estrutura motorizada: nenhuma largura disponível ≥ ${fmtM(L)}${juncaoQtd > 0 ? ' (com junção, só faixa 53mm)' : ''}` }
       const cobre = (faixa: string | null | undefined): boolean => {
         const fx = String(faixa ?? '').toUpperCase().replace(/,/g, '.')
         let m = fx.match(/AT[EÉ]\s*([\d.]+)/)
@@ -196,16 +211,9 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
         if (m) return A >= Number(m[1]) - 1e-9 && A <= Number(m[2]) + 1e-9
         return false
       }
-      const linhaE = est.find(x => Math.abs(Number(x.largura) - lgE) < 1e-9 && cobre(x.alt_faixa))
+      const linhaE = estUsavel.find(x => Math.abs(Number(x.largura) - lgE) < 1e-9 && cobre(x.alt_faixa))
       if (!linhaE) return { erro: `Estrutura motorizada: nenhuma faixa de altura cobre ${fmtM(A)} na largura ${fmtM(lgE)}` }
-      // grupo em branco herda o da linha anterior (a planilha só marca na primeira)
-      let grupo = String(linhaE.grupo ?? '').toUpperCase().trim()
-      if (!grupo) {
-        for (let i = est.indexOf(linhaE) - 1; i >= 0; i--) {
-          const g = String(est[i].grupo ?? '').toUpperCase().trim()
-          if (g) { grupo = g; break }
-        }
-      }
+      const grupo = grupoDe(linhaE)
       const comps = d.motorComponentes
       const acha = (pred: (s: string) => boolean) =>
         comps.find(c => pred(String(c.item ?? '').toUpperCase()))
@@ -226,7 +234,6 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       // do PEDIDO, não da peça (6 rolôs numa parede = 1 controle de 6 canais)
       const motorQtd = Math.max(0, Math.round(Number(e.motorQtd ?? qtd)))
       const controleQtd = Math.max(0, Math.round(Number(e.controleQtd ?? 1)))
-      const juncaoQtd = Math.max(0, Math.round(Number(e.juncaoQtd ?? 0)))
       if (juncaoQtd > 0 && !juncao) return { erro: 'Junção 53mm não encontrada na tabela' }
 
       // custoFerragem fica só com o que é POR PEÇA (a estrutura); o resto entra
