@@ -130,6 +130,23 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
     const r = simular(rolo({ modelo: 'Rolo Motorizado', juncaoQtd: 1, motorQtd: 1, quantidade: 2 }), dPersiana)
     expect('erro' in r).toBe(true)
   })
+
+  /* pedido da dona da loja (22/08): força do motor é ESCOLHA da equipe (6N/10N/20N/WiFi),
+     não inferência automática — a peça grande na frente delas decide. Sem escolha,
+     o padrão continua 6N (comportamento de sempre). */
+  it('motorForca escolhe o item certo — 6N (padrão), 10N, 20N e WiFi', () => {
+    const seisN = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado' }), dPersiana))
+    const dezN = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', motorForca: '10N' }), dPersiana))
+    const vinteN = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', motorForca: '20N' }), dPersiana))
+    const wifi = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', motorForca: 'WIFI' }), dPersiana))
+    expect(seisN.observacoes.join(' ')).toMatch(/6N ATÉ 18 KG/)
+    expect(dezN.observacoes.join(' ')).toMatch(/10N ATÉ 23 KG/)
+    expect(vinteN.observacoes.join(' ')).toMatch(/20N ATÉ 45 KG/)
+    expect(wifi.observacoes.join(' ')).toMatch(/WiFi/)
+    // motor mais forte custa mais — a conta tem que refletir
+    expect(dezN.custoTabela).toBeGreaterThan(seisN.custoTabela)
+    expect(vinteN.custoTabela).toBeGreaterThan(dezN.custoTabela)
+  })
 })
 
 describe('ferragem preta — regra da loja', () => {

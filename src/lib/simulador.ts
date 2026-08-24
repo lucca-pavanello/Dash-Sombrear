@@ -24,7 +24,8 @@ export interface EntradaSim {
   quantidade: number
   acabamento: AcabamentoSim
   /** motorizado: motor WiFi em vez do de canal */
-  motorWifi?: boolean
+  /** motorizado: força do motor (6N até 18kg / 10N até 23kg / 20N até 45kg) ou WiFi */
+  motorForca?: '6N' | '10N' | '20N' | 'WIFI'
   /** motorizado: quantos motores (padrão = 1 por peça). Peças unidas por junção dividem motor */
   motorQtd?: number
   /** motorizado: quantos controles (padrão 1) e de quantos canais (padrão 1) */
@@ -208,16 +209,18 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       const comps = d.motorComponentes
       const acha = (pred: (s: string) => boolean) =>
         comps.find(c => pred(String(c.item ?? '').toUpperCase()))
-      const motor = e.motorWifi
-        ? acha(s => s.includes('WIFI'))
-        : grupo.endsWith('/10N') ? acha(s => s.includes('10N'))
+      // força do motor é escolha da equipe (22/08) — a peça na frente deles decide,
+      // não uma inferência por largura/grupo (que hoje só tem 6N cadastrado)
+      const motor = e.motorForca === 'WIFI' ? acha(s => s.includes('WIFI'))
+        : e.motorForca === '20N' ? acha(s => s.includes('20N'))
+        : e.motorForca === '10N' ? acha(s => s.includes('10N'))
         : acha(s => s.includes('6N') && !s.includes('16'))
       // controle: 1, 6 ou 16 canais — a loja escolhe (16/08). Sem escolha, 1 canal.
       const canais = e.controleCanais ?? 1
       const controle = canais === 16 ? acha(s => s.includes('CONTROLE 16'))
         : canais === 6 ? acha(s => s.includes('CONTROLE 6'))
         : acha(s => s.includes('CONTROLE 1 CANAL'))
-      if (!motor) return { erro: e.motorWifi ? 'Motor WiFi não encontrado na tabela' : 'Motor não encontrado na tabela' }
+      if (!motor) return { erro: `Motor ${e.motorForca ?? '6N'} não encontrado na tabela` }
       if (!controle) return { erro: `Controle ${canais} canais não encontrado na tabela` }
       const juncao = acha(s => s.includes('JUNÇÃO') || s.includes('JUNCAO'))
 
@@ -237,7 +240,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
         { rotulo: `Controle ${canais} ${canais === 1 ? 'canal' : 'canais'}`, custo: Number(controle.custo), n: controleQtd },
         ...(juncaoQtd > 0 && juncao ? [{ rotulo: 'Junção 53mm', custo: Number(juncao.custo), n: juncaoQtd }] : []),
       ]
-      obs.push(`Motorizada: estrutura ${fmtM(lgE)} · ${String(linhaE.alt_faixa ?? '')}${grupo ? ` · grupo ${grupo}` : ''} · ${motorQtd} motor${motorQtd === 1 ? '' : 'es'} ${e.motorWifi ? 'WiFi' : String(motor.item ?? '')} · ${controleQtd} controle${controleQtd === 1 ? '' : 's'} de ${canais} ${canais === 1 ? 'canal' : 'canais'}${juncaoQtd > 0 ? ` · ${juncaoQtd} junção${juncaoQtd === 1 ? '' : 'ões'}` : ''}`)
+      obs.push(`Motorizada: estrutura ${fmtM(lgE)} · ${String(linhaE.alt_faixa ?? '')}${grupo ? ` · grupo ${grupo}` : ''} · ${motorQtd} motor${motorQtd === 1 ? '' : 'es'} ${String(motor.item ?? '')} · ${controleQtd} controle${controleQtd === 1 ? '' : 's'} de ${canais} ${canais === 1 ? 'canal' : 'canais'}${juncaoQtd > 0 ? ` · ${juncaoQtd} junção${juncaoQtd === 1 ? '' : 'ões'}` : ''}`)
       if (motorQtd < qtd) obs.push(`${qtd} peças com ${motorQtd} motor${motorQtd === 1 ? '' : 'es'}: peças unidas por junção dividem motor.`)
     } else if (e.modelo === 'Romana') {
       // matriz L×A: coluna e linha mais próximas PARA CIMA

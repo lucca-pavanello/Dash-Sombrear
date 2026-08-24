@@ -77,7 +77,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [ph50Acab, setPh50Acab] = useState<'cadarco' | 'fita'>('cadarco')
   const [ph50Bando, setPh50Bando] = useState(false)
   const [corFerragem, setCorFerragem] = useState<'BRANCA' | 'PRETA'>('BRANCA')
-  const [motorWifi, setMotorWifi] = useState(false)
+  const [motorForca, setMotorForca] = useState<'6N' | '10N' | '20N' | 'WIFI'>('6N')
   // motorização é do PEDIDO: 6 peças numa parede não são 6 motores + 6 controles
   const [motorQtd, setMotorQtd] = useState('')          // vazio = 1 por peça
   const [controleQtd, setControleQtd] = useState('1')
@@ -187,7 +187,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     altura: num(altura),
     quantidade: Math.max(1, Math.round(num(quantidade))),
     acabamento,
-    motorWifi: motorizado ? motorWifi : undefined,
+    motorForca: motorizado ? motorForca : undefined,
     motorQtd: motorizado && num(motorQtd) > 0 ? Math.round(num(motorQtd)) : undefined,
     controleQtd: motorizado ? Math.max(0, Math.round(num(controleQtd))) : undefined,
     controleCanais: motorizado ? (Number(controleCanais) as 1 | 6 | 16) : undefined,
@@ -196,7 +196,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     bandoQuantidade: bandoUnico ? Math.round(num(bandoQtd)) || undefined : undefined,
     incluirInstalacao: instalacao,
   }), [modelo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
-    acabamento, motorizado, motorWifi, motorQtd, controleQtd, controleCanais, juncaoQtd,
+    acabamento, motorizado, motorForca, motorQtd, controleQtd, controleCanais, juncaoQtd,
     bandoUnico, bandoLargura, bandoQtd, instalacao])
 
   const pronto = entrada.largura > 0 && entrada.altura > 0 &&
@@ -497,11 +497,13 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                     {motorizado ? (
                       <div>
                         <label className={labelCls}>Motor</label>
-                        <CustomSelect value={motorWifi ? 'wifi' : 'canal'}
-                          onChange={v => setMotorWifi(v === 'wifi')}
+                        <CustomSelect value={motorForca}
+                          onChange={v => setMotorForca(v as '6N' | '10N' | '20N' | 'WIFI')}
                           options={[
-                            { value: 'canal', label: 'Controle (canal)' },
-                            { value: 'wifi', label: 'WiFi' },
+                            { value: '6N', label: '6N (até 18kg)' },
+                            { value: '10N', label: '10N (até 23kg)' },
+                            { value: '20N', label: '20N (até 45kg)' },
+                            { value: 'WIFI', label: 'WiFi' },
                           ]} />
                       </div>
                     ) : modelo !== 'Romana' ? (
