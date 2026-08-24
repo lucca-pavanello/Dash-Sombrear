@@ -60,10 +60,27 @@ describe('bandô de peça única — porta dividida (áudio da loja)', () => {
 })
 
 describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', () => {
-  it('BK BRANCO 1,20×1,40: custo tabela 642,05 · venda 1.512,30', () => {
+  /* VIRADA DE PREÇO 24/08: a Stella mandou duas tabelas novas de estrutura motorizada
+     (até 3,00m sem junção · com junção ou acima de 3,00m). O baseline subiu R$ 13,26 no
+     custo — exatamente a diferença da estrutura de 1,50m (82,95 → 96,21). O resto da
+     conta (tecido, motor, controle) não mudou. */
+  it('BK BRANCO 1,20×1,40: custo tabela 655,31 · venda 1.542,00 (tabelas de 24/08)', () => {
     const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado' }), dPersiana))
-    expect(r.custoTabela).toBeCloseTo(642.05, 2)
-    expect(r.total4x).toBeCloseTo(1512.30, 2)
+    expect(r.custoTabela).toBeCloseTo(655.31, 2)
+    expect(r.total4x).toBeCloseTo(1542.00, 2)
+    expect(r.observacoes.join(' ')).toMatch(/41\/sem-juncao/i)
+  })
+
+  /* o exemplo que a Stella mandou pra conferir (24/08): "Rolo de 2,50 x 3,00 com 1 motor
+     e controle de 1 canal". Fica na tabela sem junção (2,50m ≤ 3,00m) = R$ 135,07 de
+     estrutura. Os valores de motor/controle aqui são os da fixture de 13/08. */
+  it('exemplo da Stella: rolô 2,50 × 3,00, 1 motor, 1 controle de 1 canal', () => {
+    const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', largura: 2.5, altura: 3.0,
+      motorQtd: 1, controleQtd: 1, controleCanais: 1 }), dPersiana))
+    const acha = (re: RegExp) => r.detalhe.find(d => re.test(d.parte))
+    expect(acha(/^Estrutura/)?.tabela).toBeCloseTo(135.07, 2)
+    expect(r.observacoes.join(' ')).toMatch(/41\/sem-juncao/i)
+    expect(acha(/^Controle 1 canal/)?.parte).toBe('Controle 1 canal')
   })
 
   it('recusa medidas acima de 6,00m em vez de chutar', () => {
