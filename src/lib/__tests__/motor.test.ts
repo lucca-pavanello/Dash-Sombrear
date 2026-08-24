@@ -110,15 +110,21 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
      suporte de 53". A JUNÇÃO decide a bitola, não a medida da peça — e como a tabela
      53mm hoje começa em 4,00m, qualquer largura menor é RECUSADA em vez de cair na linha
      de cima (que cobraria R$ 258,85 no lugar de ~R$ 110, em silêncio). */
-  it('junção decide a bitola: sem faixa 53mm pra largura pedida, recusa com o que falta', () => {
+  /* a Stella mandou a tabela de junção em 24/08 ("usar esta tabela sempre que pedir
+     junção para motor — tubo de 53 + kit de 53"), cobrindo 1,00 a 6,00m. Antes disso
+     junção era recusada por falta de cadastro; agora calcula, e é a JUNÇÃO que decide
+     a bitola, não a medida da peça. */
+  it('junção decide a bitola e usa a tabela própria da loja (1,20m → R$ 101,76 de estrutura)', () => {
     const semJuncao = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', largura: 1.2, altura: 5.5 }), dPersiana))
     expect(semJuncao.observacoes.join(' ')).toMatch(/grupo 41/)
-    expect(semJuncao.observacoes.join(' ')).not.toMatch(/grupo 53/)
 
-    const comJuncao = simular(rolo({ modelo: 'Rolo Motorizado',
-      largura: 1.2, altura: 5.5, quantidade: 2, motorQtd: 1, controleQtd: 1, juncaoQtd: 1 }), dPersiana)
-    expect('erro' in comJuncao).toBe(true)
-    if ('erro' in comJuncao) expect(comJuncao.erro).toMatch(/53mm/)
+    const comJuncao = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado',
+      largura: 1.2, altura: 5.5, quantidade: 2, motorQtd: 1, controleQtd: 1, juncaoQtd: 1 }), dPersiana))
+    expect(comJuncao.observacoes.join(' ')).toMatch(/grupo 53\/JUNCAO/i)
+    // estrutura da largura 1,50 (menor faixa ≥ 1,20) na tabela de junção,
+    // já multiplicada pelas 2 peças do pedido: 125,95 × 2
+    const estrutura = comJuncao.detalhe.find(d => /^Estrutura/.test(d.parte))
+    expect(estrutura?.tabela).toBeCloseTo(125.95 * 2, 2)
   })
 
   /* GAP DE CADASTRO, não de código: a tabela só tem preço 53mm (com junção) pra
@@ -128,22 +134,27 @@ describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', ()
      ele RECUSA em vez de adivinhar — o próximo passo é a loja completar a tabela
      `precos_motor_estrutura` com faixas 53mm pra alturas menores, se esse pedido for
      comum (2 rolôs pequenos dividindo motor). */
-  it('sem faixa 53mm disponível pra altura pequena, erra em vez de usar 41mm escondido', () => {
-    const r = simular(rolo({ modelo: 'Rolo Motorizado', juncaoQtd: 1, motorQtd: 1, quantidade: 2 }), dPersiana)
-    expect('erro' in r).toBe(true)
+  it('junção em medida pequena agora calcula (a tabela da Stella cobre 1,00 a 6,00m)', () => {
+    const r = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', juncaoQtd: 1, motorQtd: 1, quantidade: 2 }), dPersiana))
+    expect(r.observacoes.join(' ')).toMatch(/grupo 53\/JUNCAO/i)
   })
 
   /* o exemplo que a própria dona deu no áudio (24/08): "uma rolô motorizada de 2,10 por
      6m de altura, eu consigo usar o kit de 41. Só que se eu falar que vou ter que usar
-     junção, preciso mudar tudo pro kit de 53". A tabela 53mm só começa em 4,00m, então
-     cair na linha de cima cobraria R$ 258,85 no lugar de ~R$ 110 — em silêncio. Recusa. */
-  it('junção em largura sem faixa 53mm cadastrada recusa em vez de cobrar a linha maior', () => {
+     junção, preciso mudar tudo pro kit de 53". Com a tabela que ela mandou, os dois lados
+     do exemplo passaram a funcionar: sem junção fica no 41mm, com junção vai pra 53mm
+     usando a faixa de 2,50m (menor ≥ 2,10) = R$ 174,33. */
+  it('o exemplo da dona: 2,10 × 6m sai 41mm sozinha e 53mm quando tem junção', () => {
     const semJuncao = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', largura: 2.1, altura: 6 }), dPersiana))
     expect(semJuncao.observacoes.join(' ')).toMatch(/grupo 41/)
 
-    const comJuncao = simular(rolo({ modelo: 'Rolo Motorizado', largura: 2.1, altura: 6, juncaoQtd: 1, motorQtd: 1, quantidade: 2 }), dPersiana)
-    expect('erro' in comJuncao).toBe(true)
-    if ('erro' in comJuncao) expect(comJuncao.erro).toMatch(/n(ã|a)o tem faixa 53mm/i)
+    const comJuncao = okOuFalha(simular(rolo({ modelo: 'Rolo Motorizado', largura: 2.1, altura: 6,
+      juncaoQtd: 1, motorQtd: 1, quantidade: 2 }), dPersiana))
+    expect(comJuncao.observacoes.join(' ')).toMatch(/grupo 53\/JUNCAO/i)
+    const estrutura = comJuncao.detalhe.find(d => /^Estrutura/.test(d.parte))
+    expect(estrutura?.tabela).toBeCloseTo(174.33 * 2, 2)   // × 2 peças do pedido
+    // e o preço com junção é maior que sem — o 53mm é mais caro, como ela disse
+    expect(comJuncao.custoTabela).toBeGreaterThan(semJuncao.custoTabela)
   })
 
   /* pedido da dona da loja (22/08): força do motor é ESCOLHA da equipe (6N/10N/20N/WiFi),

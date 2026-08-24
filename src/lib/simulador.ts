@@ -187,11 +187,12 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
         }
         return ''
       }
-      // junção sempre exige tubo/suporte 53mm (regra da loja, 22/08) — nunca herdar o
-      // 41mm que a largura sozinha indicaria; peças unidas pedem a estrutura mais rígida
+      // junção usa a TABELA PRÓPRIA da loja (Stella, 24/08): "usar esta tabela sempre que
+      // pedir junção para motor — tubo de 53 + kit de 53". Nunca herdar o 41mm que a
+      // largura sozinha indicaria; peças unidas pedem a estrutura mais rígida.
       const juncaoQtd = Math.max(0, Math.round(Number(e.juncaoQtd ?? 0)))
-      const estUsavel = juncaoQtd > 0 ? est.filter(x => grupoDe(x).startsWith('53')) : est
-      if (juncaoQtd > 0 && estUsavel.length === 0) return { erro: 'Junção exige tubo/suporte 53mm, mas a tabela não tem faixa 53mm cadastrada' }
+      const estUsavel = juncaoQtd > 0 ? est.filter(x => grupoDe(x) === '53/JUNCAO') : est
+      if (juncaoQtd > 0 && estUsavel.length === 0) return { erro: 'Junção exige a tabela de tubo/suporte 53mm, que não está cadastrada' }
       const largs = [...new Set(estUsavel.map(x => Number(x.largura)))].sort((x, y) => x - y)
       const lgE = largs.find(x => x >= L - 1e-9)
       if (lgE == null) return { erro: `Estrutura motorizada: nenhuma largura disponível ≥ ${fmtM(L)}${juncaoQtd > 0 ? ' (com junção, só faixa 53mm)' : ''}` }
