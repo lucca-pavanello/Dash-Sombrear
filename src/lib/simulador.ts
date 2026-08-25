@@ -74,7 +74,7 @@ export interface ResultadoSim {
   custoTabela: number
   /** quanto será pago à empresa parceira (0 em PV, PH Alumínio e PH 50mm) */
   valorParceiro: number
-  /** quebra do custo por parte — permite ajustar um item só no Fechamento */
+  /** quebra do custo por parte — permite ajustar um item só no Semanário */
   detalhe: DetalheCusto[]
   vendaProduto: number
   vendaAcabamento: number

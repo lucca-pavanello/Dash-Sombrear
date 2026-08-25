@@ -7,7 +7,7 @@
  * Duas fontes que só agora se encontram: a origem nasce no lead (WhatsApp) e
  * o dinheiro mora no orçamento. Por isso a venda carrega o próprio canal em
  * `orcamentos.origem` — herdado do lead quando vem dele, marcado na mão no
- * Fechamento quando é balcão. Sem esse campo o relatório seria um chute por
+ * Semanário quando é balcão. Sem esse campo o relatório seria um chute por
  * telefone, e telefone quase nunca bate.
  */
 import { useMemo, useState } from 'react'
@@ -202,7 +202,7 @@ export default function TabRelatorios() {
             {semCanal} venda{semCanal > 1 ? 's' : ''} sem canal marcado
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Enquanto o canal não estiver preenchido, tudo cai em “Sem origem”. Marque em Fechamento →
+            Enquanto o canal não estiver preenchido, tudo cai em “Sem origem”. Marque em Semanário →
             abrir a venda → <b>De onde veio este cliente</b>. Os que chegam pelo WhatsApp vêm preenchidos sozinhos.
           </p>
         </div>
@@ -215,7 +215,7 @@ export default function TabRelatorios() {
           </div>
         ) : porCanal.length === 0 ? (
           <EmptyState icon={BarChart3} titulo="Nenhum dado neste período"
-            dica="A origem é marcada no lead quando o cliente chega pelo WhatsApp, ou na mão pelo Fechamento — abra a venda e escolha o canal em Ajustar valores."
+            dica="A origem é marcada no lead quando o cliente chega pelo WhatsApp, ou na mão pelo Semanário — abra a venda e escolha o canal em Ajustar valores."
             className="px-6 py-14" />
         ) : (
           <div className="overflow-x-auto">

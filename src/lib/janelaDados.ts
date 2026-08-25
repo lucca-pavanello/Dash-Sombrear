@@ -7,7 +7,7 @@
  * só fica lento. Então a busca passa a ser limitada por período no servidor.
  *
  * A janela é uma preferência única, compartilhada por todas as abas: se a
- * pessoa pedir o histórico completo em Fechamento, o resto do dash acompanha.
+ * pessoa pedir o histórico completo em Semanário, o resto do dash acompanha.
  * Fica guardada no navegador, então a escolha sobrevive ao recarregar.
  */
 import { useSyncExternalStore } from 'react'

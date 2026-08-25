@@ -1,5 +1,5 @@
 /**
- * Fechamento — o dinheiro das vendas que a loja efetivou.
+ * Semanário — o dinheiro das vendas que a loja efetivou.
  * Entra aqui tudo que for marcado como venda na Planilha (fechado = true),
  * não importa a origem: agente de IA, balcão ou lançamento manual.
  * Mostra o que o cliente pagou, quanto vai para a empresa parceira e o que
@@ -198,7 +198,7 @@ export default function TabFechamento() {
       const { error: erroLixeira } = await supabase.from('orcamentos_excluidos').insert({
         orcamento_id: o.id,
         excluido_por: perfil?.user?.email ?? null,
-        motivo: 'excluída pelo Fechamento',
+        motivo: 'excluída pelo Semanário',
         dados: o,
       })
       if (erroLixeira) throw erroLixeira
@@ -285,7 +285,7 @@ export default function TabFechamento() {
       ])
       const doc = new jsPDF({ orientation: 'landscape' })
       const rotuloPeriodo = PERIODOS.find(p => p.value === periodo)?.label ?? ''
-      const inicioY = faixaMarca(doc, 'Fechamento de vendas',
+      const inicioY = faixaMarca(doc, 'Semanário de vendas',
         `${rotuloPeriodo}${de || ate ? ` (${de} a ${ate})` : ''} · ${vendas.length} venda(s)`)
 
       /* A loja pediu (áudio 17/08): só a realidade da venda — quanto o cliente
@@ -331,10 +331,10 @@ export default function TabFechamento() {
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-medium text-foreground/40">Dashboard</span>
           <ChevronRight className="h-3 w-3 text-foreground/30" />
-          <span className="text-xs font-medium text-primary">Fechamento</span>
+          <span className="text-xs font-medium text-primary">Semanário</span>
         </div>
         <div>
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Fechamento</h2>
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Semanário</h2>
           <p className="mt-0.5 text-sm text-foreground/50">
             As vendas efetivadas, quanto vai para a parceira e o que sobra para a loja.
           </p>

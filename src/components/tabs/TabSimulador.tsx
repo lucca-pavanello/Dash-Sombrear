@@ -66,7 +66,7 @@ const inputCls = campo
 const labelCls = rotulo
 
 export default function TabSimulador({ modoVenda, aoSalvar }: {
-  /** No Fechamento a simulação vira VENDA FECHADA direto (não um orçamento aberto). */
+  /** No Semanário a simulação vira VENDA FECHADA direto (não um orçamento aberto). */
   modoVenda?: boolean
   aoSalvar?: () => void
 } = {}) {
@@ -348,7 +348,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
       }
 
       /* Valor cobrado diferente do calculado se distribui proporcionalmente
-         entre as linhas, pra soma no Fechamento bater com o combinado. */
+         entre as linhas, pra soma no Semanário bater com o combinado. */
       const somaT4 = linhas.reduce((s, l) => s + l.resultado.total4x, 0)
       let acumulado = 0
       const novos: Salvo[] = []
@@ -382,7 +382,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
       setCarrinho([])
       setSalvoAtual(true)
       toast('success', modoVenda
-        ? `Venda registrada no Fechamento! (${linhas.length} ${linhas.length > 1 ? 'itens' : 'item'})`
+        ? `Venda registrada no Semanário! (${linhas.length} ${linhas.length > 1 ? 'itens' : 'item'})`
         : `Orçamento salvo na Planilha! (${linhas.length} ${linhas.length > 1 ? 'itens' : 'item'})`)
       aoSalvar?.()
     } catch (err) {
@@ -435,7 +435,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
   return (
     <>
-      {/* ── Cabeçalho: só como aba; dentro do Fechamento seria página dentro de página ── */}
+      {/* ── Cabeçalho: só como aba; dentro do Semanário seria página dentro de página ── */}
       <div className={cn('mb-6 flex-col items-center gap-2 text-center', modoVenda ? 'hidden' : 'flex')}>
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-medium text-foreground/40">Dashboard</span>
@@ -961,7 +961,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   <p className="mt-1.5 text-[11px] text-foreground/40">
                     <Sparkles className="mr-1 inline h-3 w-3" />
                     {modoVenda
-                      ? 'Entra como venda fechada no Fechamento. Os dados do cliente continuam aqui pro próximo item.'
+                      ? 'Entra como venda fechada no Semanário. Os dados do cliente continuam aqui pro próximo item.'
                       : 'Salva direto na Planilha, sem WhatsApp. Os dados do cliente continuam aqui pro próximo modelo.'}
                   </p>
                 </div>

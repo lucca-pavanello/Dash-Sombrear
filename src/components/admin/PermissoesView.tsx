@@ -13,7 +13,7 @@ const MODULOS = [
   { field: 'pode_estoque',   label: 'Estoque' },
   { field: 'pode_agente_ia', label: 'Agente IA' },
   { field: 'pode_precos',    label: 'Tabela de Preços' },
-  { field: 'pode_fechamento', label: 'Fechamento' },
+  { field: 'pode_fechamento', label: 'Semanário' },
 ] as const
 type CampoPermissao = typeof MODULOS[number]['field']
 

@@ -90,7 +90,7 @@ const SECTION_LABELS: Record<string, string> = {
   'admin': 'Admin',
   'precos': 'Tabela de Preços',
   'simulador': 'Orçamentos',
-  'fechamento': 'Fechamento',
+  'fechamento': 'Semanário',
 }
 
 export default function Dashboard() {
@@ -1075,7 +1075,7 @@ export default function Dashboard() {
               className="relative flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap bg-card text-primary shadow-elevated cursor-default"
             >
               {activeTab === 'fechamento'
-                ? <><Wallet className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'fechamento' || (vtVolta && activeTab === 'fechamento'))} />Fechamento</>
+                ? <><Wallet className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'fechamento' || (vtVolta && activeTab === 'fechamento'))} />Semanário</>
                 : activeTab === 'agente-ia'
                 ? <><Bot className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'agente-ia' || (vtVolta && activeTab === 'agente-ia'))} />Agente IA</>
                 : <><CircleDollarSign className="h-4 w-4 shrink-0" style={vtStyle(vtIcone === 'precos' || (vtVolta && activeTab === 'precos'))} />Tabela de Preços</>}

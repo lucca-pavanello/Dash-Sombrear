@@ -376,7 +376,7 @@ export default function HomePage() {
               onClick={() => irArea('precos', '/precos')} />
           )}
           {canFechamento && (
-            <AreaCard titulo="Fechamento" icon={Wallet} animIcone="icon-coin" delay={505}
+            <AreaCard titulo="Semanário" icon={Wallet} animIcone="icon-coin" delay={505}
               descricao="Vendas efetivadas, quanto vai para a parceira e o que sobra para a loja."
               viajando={viajante === 'fechamento'}
               onClick={() => irArea('fechamento', '/fechamento')} />

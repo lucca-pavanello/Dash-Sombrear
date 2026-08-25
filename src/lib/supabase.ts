@@ -21,14 +21,14 @@ export type Orcamento = {
   custo_acabamento?: number | null
   valor_parceiro?: number | null
   valor_cobrado?: number | null
-  /** canal que trouxe o cliente — herdado do lead ou marcado na mão no Fechamento */
+  /** canal que trouxe o cliente — herdado do lead ou marcado na mão no Semanário */
   origem?: string | null
   forma_pagamento?: string | null
   /** como pagou de verdade, em texto livre — a de cima é a condição que definiu o preço */
   forma_pagamento_real?: string | null
   valor_parceiro_pago?: number | null
   custos_detalhe?: { parte: string; tabela: number; fator: number; real: number }[] | null
-  /** data do pedido informada na mão (Fechamento) — nula usa created_at */
+  /** data do pedido informada na mão (Semanário) — nula usa created_at */
   data_pedido?: string | null
   /** número do pedido da loja (ex.: "337") */
   numero_pedido?: string | null

@@ -4,7 +4,7 @@
  * Esta é a tela que faltava pro dash contar a verdade. Todo o resto mede
  * orçamento gerado; aqui se registra o que aconteceu depois, em um toque:
  * Fechou, Não fechou ou Sumiu. Só "Fechou" pede mais alguma coisa (canal e
- * pagamento), porque é o único que vira dinheiro no Fechamento.
+ * pagamento), porque é o único que vira dinheiro no Semanário.
  *
  * Regra de ouro da tela: marcar tem que ser mais rápido do que ignorar.
  */
@@ -114,7 +114,7 @@ export default function TabAcompanhar() {
     }
   }
 
-  /** Fechou: vira venda de verdade — liga `fechado`, que é o que o Fechamento soma. */
+  /** Fechou: vira venda de verdade — liga `fechado`, que é o que o Semanário soma. */
   async function confirmarFechou(o: Orcamento) {
     const num = (s: string) => {
       const v = parseFloat(s.replace(',', '.'))
