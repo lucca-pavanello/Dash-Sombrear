@@ -2,7 +2,7 @@
  * Identidade Sombrear nos PDFs — a MESMA faixa em todos.
  *
  * Antes cada exportador desenhava seu cabeçalho ("Loja Sombrear",
- * "Sombrear — Orçamentos", "Sombrear — Fechamento de vendas"…) e só a
+ * "Sombrear — Orçamentos", "Sombrear — Semanário de vendas"…) e só a
  * proposta ao cliente tinha a marca de verdade. Este módulo extrai a faixa
  * da proposta — quadrado branco com o S, wordmark, subtítulo — e um rodapé
  * padrão com endereço, data de geração e página, pra tudo sair da mesma

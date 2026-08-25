@@ -156,7 +156,7 @@ function generateInsights(data: Orcamento[]): string[] {
 
   // 7. Poucas vendas registradas = estatística frágil; avisar em vez de fingir precisão
   if (fechados.length > 0 && fechados.length < 15) {
-    insights.push(`Só ${fechados.length} venda${fechados.length !== 1 ? 's' : ''} registrada${fechados.length !== 1 ? 's' : ''} no sistema até agora — registre cada fechamento (inclusive os de loja) na aba Fechamento para os números acima ganharem força.`)
+    insights.push(`Só ${fechados.length} venda${fechados.length !== 1 ? 's' : ''} registrada${fechados.length !== 1 ? 's' : ''} no sistema até agora — registre cada fechamento (inclusive os de loja) na aba Semanário para os números acima ganharem força.`)
   }
 
   if (insights.length === 0) insights.push('Continue registrando orçamentos para ver os insights automáticos.')

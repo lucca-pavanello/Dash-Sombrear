@@ -90,7 +90,7 @@ export const cartao = 'rounded-xl border border-border bg-card shadow-sm'
 /**
  * O card de KPI da Lista de orçamentos é a referência: centrado, chip do
  * ícone em cima, rótulo em caixa alta, número grande em font-display.
- * Agente IA (esquerda, ícone à direita) e Fechamento (sem ícone, rótulo 10px)
+ * Agente IA (esquerda, ícone à direita) e Semanário (sem ícone, rótulo 10px)
  * passam a usar a mesma composição; o Estoque mantém a dele (tem tendência e
  * sparkline) mas com a MESMA tipografia.
  *
