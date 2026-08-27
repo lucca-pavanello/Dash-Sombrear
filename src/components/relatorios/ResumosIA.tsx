@@ -66,9 +66,10 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
 
   return (
     <div className="mt-3 space-y-2">
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="flex flex-wrap justify-center gap-2">
         {cards.map(c => (
-          <div key={c.rotulo} className={cn('rounded-lg border bg-background/60 px-2 py-1.5 text-center',
+          <div key={c.rotulo} className={cn(
+            'min-w-[92px] flex-1 basis-24 rounded-lg border bg-background/60 px-2 py-1.5 text-center sm:max-w-[140px]',
             c.destaque && 'border-emerald-500/25 bg-emerald-500/[0.05]')}>
             <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/40">{c.rotulo}</p>
             <p className={cn('text-sm font-bold tabular-nums',
