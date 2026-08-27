@@ -134,16 +134,16 @@ export default function ResumosIA() {
 
   return (
     <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
-          <h3 className="font-display text-sm font-semibold tracking-wide">Resumos da IA</h3>
-          <span className="hidden text-xs text-muted-foreground sm:inline">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-3.5">
+        <div className="flex items-center gap-2 leading-none">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          <h3 className="font-display text-sm font-semibold leading-none tracking-wide">Resumos da IA</h3>
+          <span className="hidden text-xs leading-none text-muted-foreground sm:inline">
             escritos toda semana — ou do período que você pedir
           </span>
         </div>
         {!pedindo && (
-          <Button variant="outline" onClick={() => { setPedindo(true); setAviso(null) }} disabled={gerando}>
+          <Button variant="outline" size="sm" onClick={() => { setPedindo(true); setAviso(null) }} disabled={gerando}>
             <CalendarRange className="h-4 w-4" aria-hidden="true" />
             Gerar de um período
           </Button>
@@ -194,12 +194,12 @@ export default function ResumosIA() {
                   onClick={() => setAberto(expandido ? null : r.id)}
                   className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-primary/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
                   aria-expanded={expandido}>
-                  <span className={cn('inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-bold', cfg.classe)}>
+                  <span className={cn('inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-bold leading-none', cfg.classe)}>
                     {cfg.rotulo}
                   </span>
-                  <span className="shrink-0 text-sm font-semibold tabular-nums">{fmtPeriodo(r.periodo_inicio, r.periodo_fim)}</span>
+                  <span className="shrink-0 text-sm font-semibold leading-none tabular-nums">{fmtPeriodo(r.periodo_inicio, r.periodo_fim)}</span>
                   {!expandido && (
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{primeiraLinha}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs leading-none text-muted-foreground">{primeiraLinha}</span>
                   )}
                   <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform',
                     expandido && 'rotate-180')} aria-hidden="true" />
