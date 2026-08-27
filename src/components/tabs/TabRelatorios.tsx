@@ -245,7 +245,7 @@ export default function TabRelatorios() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-primary/25 bg-primary/[0.03] shadow-sm">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…

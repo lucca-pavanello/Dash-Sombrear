@@ -66,12 +66,9 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
 
   return (
     <div className="mt-3 space-y-2">
-      {/* Sem caixa própria por item — o card-pai já carrega o acento de marca (ver
-          wrapper abaixo); aqui só o número precisa respirar. Emerald continua só no
-          que É fechamento/receita (significado, não decoração — DESIGN.md). */}
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+      <div className="flex flex-wrap justify-center gap-2">
         {cards.map(c => (
-          <div key={c.rotulo} className="min-w-[64px] text-center">
+          <div key={c.rotulo} className="min-w-[64px] rounded-lg border bg-background/60 px-2 py-1.5 text-center">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-foreground/40">{c.rotulo}</p>
             <p className={cn('text-[13px] font-bold tabular-nums',
               c.destaque ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground/75')}>{c.valor}</p>
@@ -136,8 +133,8 @@ export default function ResumosIA() {
   }
 
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border border-primary/25 bg-primary/[0.03] shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/15 px-5 py-3">
+    <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
           <h3 className="font-display text-sm font-semibold tracking-wide">Resumos da IA</h3>
@@ -195,7 +192,7 @@ export default function ResumosIA() {
               <li key={r.id}>
                 <button type="button"
                   onClick={() => setAberto(expandido ? null : r.id)}
-                  className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-primary/[0.05] focus:outline-none focus-visible:bg-primary/[0.06] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-primary/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
                   aria-expanded={expandido}>
                   <span className={cn('inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-bold', cfg.classe)}>
                     {cfg.rotulo}
@@ -208,8 +205,8 @@ export default function ResumosIA() {
                     expandido && 'rotate-180')} aria-hidden="true" />
                 </button>
                 {expandido && (
-                  <div className="border-t border-primary/15 bg-primary/[0.02] px-5 py-4">
-                    <p className="mx-auto max-w-[70ch] whitespace-pre-line text-sm leading-relaxed text-foreground/85">
+                  <div className="border-t bg-muted/[0.15] px-5 py-4">
+                    <p className="max-w-3xl whitespace-pre-line text-sm leading-relaxed text-foreground/85">
                       {r.texto || 'Este resumo veio sem texto.'}
                     </p>
                     {r.kpis && <CardsKpi kpis={r.kpis} />}
