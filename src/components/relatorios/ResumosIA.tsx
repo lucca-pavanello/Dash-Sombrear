@@ -68,10 +68,9 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
     <div className="mt-3 space-y-2">
       <div className="flex flex-wrap justify-center gap-2">
         {cards.map(c => (
-          <div key={c.rotulo} className="min-w-[64px] rounded-lg border bg-background/60 px-2 py-1.5 text-center">
+          <div key={c.rotulo} className="min-w-[64px] rounded-lg border border-primary/30 bg-orange-50 px-2 py-1.5 text-center dark:bg-primary/10">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-foreground/40">{c.rotulo}</p>
-            <p className={cn('text-[13px] font-bold tabular-nums',
-              c.destaque ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground/75')}>{c.valor}</p>
+            <p className="text-[13px] font-bold tabular-nums text-primary">{c.valor}</p>
           </div>
         ))}
       </div>
@@ -206,7 +205,7 @@ export default function ResumosIA() {
                 </button>
                 {expandido && (
                   <div className="border-t bg-muted/[0.15] px-5 py-4">
-                    <p className="max-w-3xl whitespace-pre-line text-sm leading-relaxed text-foreground/85">
+                    <p className="mx-auto max-w-3xl whitespace-pre-line text-center text-sm leading-relaxed text-foreground/85">
                       {r.texto || 'Este resumo veio sem texto.'}
                     </p>
                     {r.kpis && <CardsKpi kpis={r.kpis} />}
