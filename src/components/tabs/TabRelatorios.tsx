@@ -285,10 +285,10 @@ export default function TabRelatorios() {
                         </span>
                       ) : <span className="text-muted-foreground/30">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-center font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <td className="px-4 py-3 text-center font-bold tabular-nums text-primary">
                       {c.faturamento > 0 ? formatCurrency(c.faturamento) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">
+                    <td className="px-4 py-3 text-center tabular-nums text-primary/80">
                       {c.ticket > 0 ? formatCurrency(c.ticket) : '—'}
                     </td>
                   </tr>
@@ -305,7 +305,7 @@ export default function TabRelatorios() {
                       ? `${((totais.fechamentos / totais.leads) * 100).toFixed(0)}%`
                       : '—'}
                   </td>
-                  <td className="px-4 py-3 text-center tabular-nums">{formatCurrency(totais.faturamento)}</td>
+                  <td className="px-4 py-3 text-center tabular-nums text-primary">{formatCurrency(totais.faturamento)}</td>
                   <td className="px-4 py-3" />
                 </tr>
               </tfoot>
