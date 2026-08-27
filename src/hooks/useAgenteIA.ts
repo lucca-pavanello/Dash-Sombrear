@@ -38,6 +38,12 @@ export type CrmLead = {
   classificacao_motivo: string | null
   classificacao_temperatura: string | null
   classificacao_em: string | null
+  // score 0-100 calculado pela Amanda a cada conversa (motor determinístico, não a
+  // classificacao_* acima) — QUENTE/MORNO/FRIO/GELADO/DESCARTE. Fica no banco desde a
+  // virada do CRM mas nunca teve tela até o Relatório por canal (27/08).
+  lead_score: number | null
+  lead_temperatura: string | null
+  lead_motivo: string | null
   // extraídos do histórico da loja: o que o cliente reclamou / o que destravou a venda
   objecoes: string | null
   gatilhos: string | null
