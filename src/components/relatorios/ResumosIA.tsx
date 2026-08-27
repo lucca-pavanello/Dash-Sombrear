@@ -15,10 +15,15 @@ import {
   type KpisRelatorio, type RelatorioIA,
 } from '@/hooks/useRelatoriosIA'
 
+/**
+ * DESIGN.md reserva emerald pra "fechado/ok" — um tipo de relatório não é um estado de
+ * sucesso, então só semanal/mensal (categorias de verdade) ganham as duas cores
+ * secundárias sancionadas (azul/violeta); ano e período avulso ficam neutros.
+ */
 const TIPO: Record<RelatorioIA['tipo'], { rotulo: string; classe: string }> = {
   semanal: { rotulo: 'Semana', classe: 'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300' },
   mensal:  { rotulo: 'Mês',    classe: 'border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300' },
-  anual:   { rotulo: 'Ano',    classe: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' },
+  anual:   { rotulo: 'Ano',    classe: 'border-border bg-muted/60 text-muted-foreground' },
   custom:  { rotulo: 'Período', classe: 'border-border bg-muted/60 text-muted-foreground' },
 }
 
