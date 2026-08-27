@@ -11,7 +11,7 @@
  * telefone, e telefone quase nunca bate.
  */
 import { useMemo, useState } from 'react'
-import { BarChart3, ChevronRight, Download, Loader2, TrendingUp } from 'lucide-react'
+import { BarChart3, ChevronRight, Download, Loader2, Thermometer, TrendingUp } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useCrmLeads } from '@/hooks/useAgenteIA'
@@ -21,6 +21,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import { tabela } from '@/components/shared/estilos'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
+import { TEMPERATURAS, acharTemperatura } from '@/components/agente/SeloTemperatura'
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import type { Orcamento } from '@/lib/supabase'
 import JanelaDados from '@/components/orcamentos/JanelaDados'
@@ -104,6 +105,42 @@ export default function TabRelatorios() {
         conversao: v.leads > 0 ? (v.fechamentos / v.leads) * 100 : null,
       }))
   }, [noPeriodo, leadsNoPeriodo])
+
+  /**
+   * Qualidade do lead por canal — quantidade já a tabela acima mostra; isso mostra
+   * SE o que chega é bom. A Amanda calcula esse score/temperatura a cada conversa
+   * (motor determinístico, não IA generativa) e até 27/08 isso nunca teve tela —
+   * o time só via abrindo o Supabase direto.
+   */
+  type TempId = 'quente' | 'morno' | 'frio' | 'gelado' | 'descarte'
+  const qualidadePorCanal = useMemo(() => {
+    const vazio = () => ({
+      quente: 0, morno: 0, frio: 0, gelado: 0, descarte: 0,
+      semAvaliacao: 0, somaScore: 0, comScore: 0,
+    })
+    const mapa = new Map<string, ReturnType<typeof vazio>>()
+    const pega = (id: string) => {
+      const atual = mapa.get(id) ?? vazio()
+      mapa.set(id, atual)
+      return atual
+    }
+    for (const l of leadsNoPeriodo) {
+      const linha = pega(acharOrigem(l.origem).id)
+      const t = acharTemperatura(l.lead_temperatura)
+      if (t.id === 'sem_temperatura') linha.semAvaliacao++
+      else linha[t.id as TempId]++
+      if (l.lead_score != null) { linha.somaScore += Number(l.lead_score); linha.comScore++ }
+    }
+    const ordem: string[] = [...ORIGENS.map(o => o.id), SEM_ORIGEM.id]
+    return [...mapa.entries()]
+      .filter(([, v]) => v.quente + v.morno + v.frio + v.gelado + v.descarte + v.semAvaliacao > 0)
+      .sort((a, b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]))
+      .map(([id, v]) => ({
+        id, ...v,
+        avaliados: v.quente + v.morno + v.frio + v.gelado + v.descarte,
+        scoreMedio: v.comScore > 0 ? v.somaScore / v.comScore : null,
+      }))
+  }, [leadsNoPeriodo])
 
   /** vendas fechadas ainda sem canal — é o que trava o relatório */
   const semCanal = useMemo(
@@ -276,6 +313,59 @@ export default function TabRelatorios() {
           </div>
         )}
       </div>
+
+      {qualidadePorCanal.length > 0 && (
+        <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="flex items-center justify-center gap-2 border-b px-5 py-3">
+            <Thermometer className="h-4 w-4 text-primary" aria-hidden="true" />
+            <h3 className="font-display text-sm font-semibold tracking-wide">Qualidade do lead por canal</h3>
+            <span className="text-xs text-muted-foreground">o que a Amanda avaliou de cada conversa</span>
+          </div>
+          <div className="divide-y divide-border/50">
+            {qualidadePorCanal.map(c => (
+              <div key={c.id} className="flex flex-col gap-2.5 px-5 py-4 sm:flex-row sm:items-center sm:gap-5">
+                <div className="w-32 shrink-0"><SeloOrigem origem={c.id} /></div>
+                <div className="min-w-0 flex-1">
+                  {c.avaliados > 0 ? (
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted" role="img"
+                      aria-label={`${c.avaliados} leads avaliados neste canal`}>
+                      {TEMPERATURAS.map(t => {
+                        const n = c[t.id as TempId]
+                        if (!n) return null
+                        return (
+                          <div key={t.id} title={`${t.rotulo}: ${n}`}
+                            className={cn(t.barra, 'h-full first:rounded-l-full last:rounded-r-full')}
+                            style={{ width: `${(n / c.avaliados) * 100}%` }} />
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="h-2.5 w-full rounded-full bg-muted/40" />
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center justify-between gap-4 sm:justify-end">
+                  <span className="text-xs text-muted-foreground">
+                    {c.avaliados} avaliado{c.avaliados !== 1 ? 's' : ''}
+                  </span>
+                  <div className="w-16 text-right">
+                    {c.scoreMedio != null ? (
+                      <span className="font-display text-base font-bold tabular-nums">{c.scoreMedio.toFixed(0)}</span>
+                    ) : <span className="text-sm text-muted-foreground/40">—</span>}
+                    <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">score</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t px-5 py-2.5">
+            {TEMPERATURAS.map(t => (
+              <span key={t.id} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className={cn('h-2 w-2 shrink-0 rounded-full', t.barra)} aria-hidden="true" /> {t.rotulo}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {porMes.meses.length > 0 && (
         <div className="mt-4 overflow-hidden rounded-xl border bg-card shadow-sm">
