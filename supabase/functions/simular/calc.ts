@@ -171,8 +171,19 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     emPromocao = rolo.em_promocao
     descontoPct = rolo.desconto_pct
 
+    // aproveitamento: peças da MESMA largura cabem lado a lado no rolo — cobra
+    // o corte (comprimento) uma vez por fileira, não uma vez por peça
+    const larguraRolo = Number(rolo.largura)
+    const pecasPorFileira = Math.max(1, Math.floor((larguraRolo + 1e-9) / L))
+    const fileirasTecido = Math.ceil(qtd / pecasPorFileira)
+
     const alturaUsada = e.modelo === 'Double' ? A * 2 + 0.5 : A + 0.2
-    const custoTecido = Number(rolo.largura) * alturaUsada * Number(rolo.preco)
+    const custoTecido = larguraRolo * alturaUsada * Number(rolo.preco)
+    if (fileirasTecido < qtd) {
+      obs.push(`Aproveitamento de tecido: ${pecasPorFileira} peça${pecasPorFileira > 1 ? 's' : ''} de ${fmtM(L)} `
+        + `cabem lado a lado no rolo de ${fmtM(larguraRolo)} — ${fileirasTecido} corte${fileirasTecido === 1 ? '' : 's'} `
+        + `de ${fmtM(alturaUsada)} em vez de ${qtd}.`)
+    }
 
     let custoFerragem: number
     let chaveFerragem: string
@@ -307,11 +318,15 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
 
     /** motorização inteira do pedido (estrutura×peças + motores + controles + junções) */
     const custoMotorizacao = motorPartes ? motorPartes.reduce((t, p) => t + p.custo * p.n, 0) : 0
+    const custoTecidoTotal = custoTecido * fileirasTecido
     custoProduto = motorPartes
-      ? custoTecido * qtd + custoMotorizacao
-      : (custoTecido + custoFerragem) * qtd
-    somaReal(custoTecido * qtd, 'parceiro_tecido', 'produto',
-      `Tecido ${e.tecido} — rolo ${fmtM(Number(rolo.largura))} a ${fmtR$(Number(rolo.preco))}/m²` + (qtd > 1 ? ` × ${qtd}` : ''))
+      ? custoTecidoTotal + custoMotorizacao
+      : custoTecidoTotal + custoFerragem * qtd
+    const rotuloTecidoQtd = fileirasTecido === qtd
+      ? (qtd > 1 ? ` × ${qtd}` : '')
+      : ` × ${fileirasTecido} corte${fileirasTecido === 1 ? '' : 's'} (${pecasPorFileira}/corte · ${qtd} peças)`
+    somaReal(custoTecidoTotal, 'parceiro_tecido', 'produto',
+      `Tecido ${e.tecido} — rolo ${fmtM(larguraRolo)} a ${fmtR$(Number(rolo.preco))}/m²${rotuloTecidoQtd}`)
     if (motorPartes) {
       for (const p of motorPartes) {
         if (p.n <= 0) continue
@@ -356,7 +371,7 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
       /* como no n8n: base (tecido) leva markup cheio; a motorização tem
          markup próprio e é arredondada em separado antes de somar */
       const mkMot = param('markup_motorizacao', 2.24)
-      vendaProduto = ceil10c(custoTecido * qtd * mkVenda * taxa2) + ceil10c(custoMotorizacao * mkMot)
+      vendaProduto = ceil10c(custoTecidoTotal * mkVenda * taxa2) + ceil10c(custoMotorizacao * mkMot)
       vendaAcabamento = custoAcabamento > 0 ? ceil10c(custoAcabamento * mkAcab * taxa2) : 0
     } else if (e.acabamento === 'kit_box') {
       // Kit Box entra no valor da persiana, com o markup cheio

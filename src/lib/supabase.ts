@@ -30,8 +30,12 @@ export type Orcamento = {
   custos_detalhe?: { parte: string; tabela: number; fator: number; real: number }[] | null
   /** data do pedido informada na mão (Semanário) — nula usa created_at */
   data_pedido?: string | null
+  /** previsão/data de entrega combinada com o cliente (Semanário) */
+  data_entrega?: string | null
   /** número do pedido da loja (ex.: "337") */
   numero_pedido?: string | null
+  /** vínculo com `pedidos` — agrupa itens do mesmo pedido (metadados, não dinheiro) */
+  pedido_id?: string | null
   custo_m2?: number | null
   fechado?: boolean | null
   telefone?: string | null
@@ -51,6 +55,23 @@ export type Orcamento = {
   desfecho_em?: string | null
   desfecho_por?: string | null
   desfecho_motivo?: string | null
+}
+
+/**
+ * Metadados canônicos de um pedido real da loja — não guarda dinheiro (isso
+ * continua por item, em `Orcamento`). Só evita redigitar numero_pedido/
+ * data_pedido/origem/forma de pagamento em cada item do mesmo pedido.
+ */
+export type Pedido = {
+  id: string
+  created_at: string
+  numero_pedido?: string | null
+  data_pedido?: string | null
+  origem?: string | null
+  forma_pagamento?: string | null
+  forma_pagamento_real?: string | null
+  observacoes?: string | null
+  user_id?: string | null
 }
 
 export type CustoInterno = {

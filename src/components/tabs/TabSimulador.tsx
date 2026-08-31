@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { Interruptor, BotaoAdicionar } from '@/components/ui/primitives'
 import { supabase } from '@/lib/supabase'
+import { useCreatePedido } from '@/hooks/useOrcamentos'
+import { ratear } from '@/lib/rateio'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { SUGESTOES_AMBIENTE } from '@/lib/constants'
@@ -71,6 +73,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   aoSalvar?: () => void
 } = {}) {
   const { toasts, toast, dismiss } = useToast()
+  const criarPedido = useCreatePedido()
   const [modelo, setModelo] = useState('Rolo')
   const [tecido, setTecido] = useState('')
   const [artigo, setArtigo] = useState('')
@@ -349,24 +352,29 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
       /* Valor cobrado diferente do calculado se distribui proporcionalmente
          entre as linhas, pra soma no Semanário bater com o combinado. */
-      const somaT4 = linhas.reduce((s, l) => s + l.resultado.total4x, 0)
-      let acumulado = 0
+      const cobrados = cobradoTotal != null
+        ? ratear(cobradoTotal, linhas.map(l => l.resultado.total4x))
+        : null
+
+      /* Mais de um item na mesma venda é, na prática, um pedido só — cria o
+         vínculo (metadados: número/data/origem/pagamento) antes de salvar os
+         itens, pra não depender de reagrupar por texto de cliente depois. */
+      const pedidoId = linhas.length > 1
+        ? (await criarPedido.mutateAsync({
+            origem: null, forma_pagamento: formaPagamento, forma_pagamento_real: formaRealFinal || null,
+          })).id
+        : null
+
       const novos: Salvo[] = []
       for (let i = 0; i < linhas.length; i++) {
         const l = linhas[i]
-        let cobradoLinha: number | null = null
-        if (cobradoTotal != null) {
-          cobradoLinha = i === linhas.length - 1
-            ? Math.round((cobradoTotal - acumulado) * 100) / 100
-            : Math.round(cobradoTotal * (l.resultado.total4x / somaT4) * 100) / 100
-          acumulado += cobradoLinha
-        }
+        const cobradoLinha = cobrados ? cobrados[i] : null
         const { data, error } = await supabase.functions.invoke('simular', {
           body: { acao: 'salvar',
             entrada: l.entradaFinal,
             cliente: cliente.trim(), telefone: telefone.trim(), ambiente: l.ambiente, fechado: !!modoVenda,
             valor_cobrado: cobradoLinha, forma_pagamento: formaPagamento,
-            forma_pagamento_real: formaRealFinal || null },
+            forma_pagamento_real: formaRealFinal || null, pedido_id: pedidoId },
         })
         if (error) throw error
         if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)

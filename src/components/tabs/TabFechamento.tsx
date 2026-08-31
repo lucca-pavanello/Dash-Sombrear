@@ -8,15 +8,19 @@
 import { Fragment, Suspense, useMemo, useState } from 'react'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import {
-  Check, CheckCircle2, ChevronRight, Download, HandCoins, Loader2, PencilLine, Plus, Trash2, Wallet, Wand2, X,
+  Check, CheckCircle2, ChevronDown, ChevronRight, Download, HandCoins, Layers, Link2, Loader2,
+  PencilLine, Plus, Trash2, Wallet, Wand2, X,
 } from 'lucide-react'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
-import { useOrcamentos } from '@/hooks/useOrcamentos'
+import {
+  useOrcamentos, usePedidos, useUpdatePedido, useVincularItensAoPedido, useExcluirPedido,
+} from '@/hooks/useOrcamentos'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
+import { ratear } from '@/lib/rateio'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { useCountUp } from '@/hooks/useCountUp'
-import { supabase, type Orcamento } from '@/lib/supabase'
+import { supabase, type Orcamento, type Pedido } from '@/lib/supabase'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
@@ -47,6 +51,8 @@ const pago = (o: Orcamento) => o.valor_cobrado != null ? Number(o.valor_cobrado)
 const pagoParceira = (o: Orcamento) =>
   o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)
 const ajustado = (calc: number, real: number) => Math.abs(calc - real) >= 0.01
+// data do pedido manda quando foi informada; senão, a de criação
+const dataDe = (o: Orcamento) => o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at
 /** acha o "6x" dentro do texto real ("6x de R$ 350" ou "cartão 6x") */
 const parcelasDe = (s: string | null | undefined) => s?.match(/(\d+)\s*x/i)?.[1] ?? null
 
@@ -115,6 +121,11 @@ function Kpi({ rotulo, valor, hint, destaque, contar }: {
 
 export default function TabFechamento() {
   const { data: todos = [], isLoading, refetch } = useOrcamentos()
+  const { data: pedidos = [] } = usePedidos()
+  const atualizarPedido = useUpdatePedido()
+  const vincularItens = useVincularItensAoPedido()
+  const excluirPedidoMut = useExcluirPedido()
+  const pedidosMap = useMemo(() => new Map(pedidos.map(p => [p.id, p])), [pedidos])
   // apagar venda é só do admin — o RLS repete a regra, aqui só evita o botão morto
   const { data: profile } = useProfile()
   const isAdmin = profile?.email === ADMIN_EMAIL || profile?.is_admin === true
@@ -124,8 +135,9 @@ export default function TabFechamento() {
   const [ate, setAte] = useState('')
   const [baixando, setBaixando] = useState(false)
   const [editando, setEditando] = useState<string | null>(null)
-  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; parcelasReal: string; origem: string; dataPedido: string; numeroPedido: string }>(
-    { cobrado: '', parceira: '', formaReal: '', parcelasReal: '', origem: '', dataPedido: '', numeroPedido: '' })
+  const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; parcelasReal: string; origem: string; dataPedido: string; dataEntrega: string; numeroPedido: string }>(
+    { cobrado: '', parceira: '', formaReal: '', parcelasReal: '', origem: '', dataPedido: '', dataEntrega: '', numeroPedido: '' })
+  const [erroAjuste, setErroAjuste] = useState<string | null>(null)
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
   // exclusão passa por modal: mexe em faturamento, não pode sair num clique torto
@@ -133,6 +145,21 @@ export default function TabFechamento() {
   const [excluindo, setExcluindo] = useState<string | null>(null)
   const [erroExcluir, setErroExcluir] = useState<string | null>(null)
   const [erroReconstruir, setErroReconstruir] = useState<Record<string, string>>({})
+
+  // ── grupos de pedido (itens com o mesmo pedido_id viram um pedido só) ──
+  const [abertos, setAbertos] = useState<Set<string>>(new Set())
+  const [editandoPedido, setEditandoPedido] = useState<string | null>(null)
+  const [rascunhoPedido, setRascunhoPedido] = useState({ numeroPedido: '', dataPedido: '', origem: '', cobrado: '', parceira: '' })
+  const [erroAjustePedido, setErroAjustePedido] = useState<string | null>(null)
+  const [salvandoAjustePedido, setSalvandoAjustePedido] = useState(false)
+  const [confirmandoExcluirPedido, setConfirmandoExcluirPedido] = useState<string | null>(null)
+  const [excluindoPedidoId, setExcluindoPedidoId] = useState<string | null>(null)
+  const [erroExcluirPedido, setErroExcluirPedido] = useState<string | null>(null)
+  // "agrupar soltos" — seleção manual pra vincular itens sem pedido_id (legado ou vindos sem vínculo)
+  const [selecionando, setSelecionando] = useState(false)
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  const [agrupando, setAgrupando] = useState(false)
+  const [numeroNovoPedido, setNumeroNovoPedido] = useState('')
 
   /**
    * Recalcula a quebra por item de uma venda que entrou sem ela (WhatsApp).
@@ -160,6 +187,7 @@ export default function TabFechamento() {
   function abrirAjuste(o: Orcamento) {
     if (editando === o.id) { setEditando(null); return }
     setEditando(o.id)
+    setErroAjuste(null)
     setRascunho({
       cobrado: String((o.valor_cobrado != null ? Number(o.valor_cobrado) : receita(o)).toFixed(2)),
       parceira: String((o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)).toFixed(2)),
@@ -173,6 +201,7 @@ export default function TabFechamento() {
       })(),
       origem: acharOrigem(o.origem).id === SEM_ORIGEM.id ? '' : acharOrigem(o.origem).id,
       dataPedido: o.data_pedido ?? '',
+      dataEntrega: o.data_entrega ?? '',
       numeroPedido: o.numero_pedido ?? '',
     })
   }
@@ -217,6 +246,11 @@ export default function TabFechamento() {
   }
 
   async function salvarAjuste(o: Orcamento) {
+    if (!rascunho.dataPedido) {
+      setErroAjuste('Preencha a data do pedido antes de salvar — sem ela, a venda pode cair no período errado do relatório.')
+      return
+    }
+    setErroAjuste(null)
     setSalvandoAjuste(true)
     try {
       const numero = (s: string) => {
@@ -242,6 +276,7 @@ export default function TabFechamento() {
         forma_pagamento_real: formaRealFinal || null,
         origem: rascunho.origem || null,
         data_pedido: rascunho.dataPedido || null,
+        data_entrega: rascunho.dataEntrega || null,
         numero_pedido: rascunho.numeroPedido.trim() || null,
       }).eq('id', o.id)
       if (error) throw error
@@ -254,8 +289,6 @@ export default function TabFechamento() {
 
   const vendas = useMemo(() => {
     const fechados = todos.filter(o => o.fechado === true)
-    // data do pedido manda quando foi informada; senão, a de criação
-    const dataDe = (o: Orcamento) => o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at
     return filterByPeriod(fechados, periodo, dataDe, de || undefined, ate || undefined)
       .sort((a, b) => new Date(dataDe(b)).getTime() - new Date(dataDe(a)).getTime())
   }, [todos, periodo, de, ate])
@@ -276,6 +309,130 @@ export default function TabFechamento() {
     }
   }, [vendas])
 
+  type Grupo = { chave: string; pedidoId: string | null; pedido: Pedido | null; itens: Orcamento[] }
+
+  /** Itens com o mesmo pedido_id viram um grupo só; sem pedido_id, cada um é seu próprio grupo. */
+  const grupos = useMemo(() => {
+    const porPedido = new Map<string, Orcamento[]>()
+    const resultado: Grupo[] = []
+    for (const o of vendas) {
+      if (o.pedido_id) {
+        const arr = porPedido.get(o.pedido_id)
+        if (arr) { arr.push(o); continue }
+        porPedido.set(o.pedido_id, [o])
+      } else {
+        resultado.push({ chave: o.id, pedidoId: null, pedido: null, itens: [o] })
+      }
+    }
+    for (const [pedidoId, itens] of porPedido) {
+      resultado.push({ chave: pedidoId, pedidoId, pedido: pedidosMap.get(pedidoId) ?? null, itens })
+    }
+    const dataGrupo = (g: Grupo) => g.pedido?.data_pedido ? `${g.pedido.data_pedido}T12:00:00` : dataDe(g.itens[0])
+    return resultado.sort((a, b) => new Date(dataGrupo(b)).getTime() - new Date(dataGrupo(a)).getTime())
+  }, [vendas, pedidosMap])
+
+  function totaisGrupo(itens: Orcamento[]) {
+    const bruto = itens.reduce((s, o) => s + pago(o), 0)
+    const parceira = itens.reduce((s, o) => s + pagoParceira(o), 0)
+    const custo = itens.reduce((s, o) => s + (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o)), 0)
+    return { bruto, parceira, sobra: bruto - custo }
+  }
+
+  function abrirAjustePedido(g: Grupo) {
+    if (editandoPedido === g.pedidoId) { setEditandoPedido(null); return }
+    setEditandoPedido(g.pedidoId)
+    setErroAjustePedido(null)
+    const t = totaisGrupo(g.itens)
+    setRascunhoPedido({
+      numeroPedido: g.pedido?.numero_pedido ?? g.itens[0].numero_pedido ?? '',
+      dataPedido: g.pedido?.data_pedido ?? g.itens[0].data_pedido ?? '',
+      origem: acharOrigem(g.pedido?.origem ?? g.itens[0].origem).id === SEM_ORIGEM.id ? '' : acharOrigem(g.pedido?.origem ?? g.itens[0].origem).id,
+      cobrado: t.bruto.toFixed(2),
+      parceira: t.parceira.toFixed(2),
+    })
+  }
+
+  async function salvarAjustePedido(g: Grupo) {
+    if (!g.pedidoId) return
+    if (!rascunhoPedido.dataPedido) {
+      setErroAjustePedido('Preencha a data do pedido antes de salvar — sem ela, a venda pode cair no período errado do relatório.')
+      return
+    }
+    setErroAjustePedido(null)
+    setSalvandoAjustePedido(true)
+    try {
+      const numero = (s: string) => {
+        const v = parseFloat(s.replace(',', '.'))
+        return Number.isFinite(v) && v > 0 ? v : null
+      }
+      await atualizarPedido.mutateAsync({
+        id: g.pedidoId,
+        numero_pedido: rascunhoPedido.numeroPedido.trim() || null,
+        data_pedido: rascunhoPedido.dataPedido || null,
+        origem: rascunhoPedido.origem || null,
+      })
+      // rateia o total (cliente pagou / à parceira) proporcional ao peso calculado de cada item
+      const cobradoTotal = numero(rascunhoPedido.cobrado)
+      const parceiraTotal = numero(rascunhoPedido.parceira)
+      if (cobradoTotal != null || parceiraTotal != null) {
+        const cobrados = cobradoTotal != null ? ratear(cobradoTotal, g.itens.map(o => receita(o))) : null
+        const parceiras = parceiraTotal != null ? ratear(parceiraTotal, g.itens.map(o => Number(o.valor_parceiro ?? 0))) : null
+        for (let i = 0; i < g.itens.length; i++) {
+          const patch: Record<string, number | null> = {}
+          if (cobrados) patch.valor_cobrado = cobrados[i]
+          if (parceiras) patch.valor_parceiro_pago = parceiras[i]
+          const { error } = await supabase.from('orcamentos').update(patch).eq('id', g.itens[i].id)
+          if (error) throw error
+        }
+      }
+      setEditandoPedido(null)
+      await refetch()
+    } finally {
+      setSalvandoAjustePedido(false)
+    }
+  }
+
+  async function excluirPedido(g: Grupo) {
+    if (!g.pedidoId) return
+    setExcluindoPedidoId(g.pedidoId)
+    setErroExcluirPedido(null)
+    try {
+      await excluirPedidoMut.mutateAsync({ pedidoId: g.pedidoId, itens: g.itens })
+      setConfirmandoExcluirPedido(null)
+      setEditandoPedido(null)
+      await refetch()
+    } catch (err) {
+      setErroExcluirPedido(err instanceof Error ? err.message : 'Não deu para excluir')
+    } finally {
+      setExcluindoPedidoId(null)
+    }
+  }
+
+  function toggleSelecionado(id: string) {
+    setSelecionados(prev => {
+      const novo = new Set(prev)
+      if (novo.has(id)) novo.delete(id); else novo.add(id)
+      return novo
+    })
+  }
+
+  async function agruparSelecionados() {
+    if (selecionados.size < 2) return
+    setAgrupando(true)
+    try {
+      await vincularItens.mutateAsync({
+        ids: [...selecionados],
+        pedido: { numero_pedido: numeroNovoPedido.trim() || null, data_pedido: null, origem: null },
+      })
+      setSelecionados(new Set())
+      setSelecionando(false)
+      setNumeroNovoPedido('')
+      await refetch()
+    } finally {
+      setAgrupando(false)
+    }
+  }
+
   async function exportarPdf() {
     if (baixando || vendas.length === 0) return
     setBaixando(true)
@@ -294,21 +451,30 @@ export default function TabFechamento() {
       autoTable(doc, {
         startY: inicioY,
         head: [['Data', 'Pedido', 'Cliente', 'Produto', 'Cliente pagou', 'Parcela', 'Pagamento', 'À parceira', 'Sobra']],
-        body: vendas.map(o => {
-          const pg = pgtoReal(o)
-          const parcela = pg.parcelas && pg.parcelas > 1 ? formatCurrency(pago(o) / pg.parcelas) : '—'
-          return [
-            formatDate(o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at),
-            o.numero_pedido ?? '—',
-            o.cliente ?? '—',
-            [o.modelo, o.tecido].filter(Boolean).join(' · ')
-              + (o.largura && o.altura ? `\n${String(o.largura).replace('.', ',')}×${String(o.altura).replace('.', ',')}m` : ''),
-            formatCurrency(pago(o)),
-            parcela,
-            pg.forma,
-            formatCurrency(pagoParceira(o)),
-            formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
-          ]
+        body: grupos.flatMap(g => {
+          const linhas = g.itens.map((o, i) => {
+            const pg = pgtoReal(o)
+            const parcela = pg.parcelas && pg.parcelas > 1 ? formatCurrency(pago(o) / pg.parcelas) : '—'
+            // pedido com vários itens: data/pedido/cliente só na primeira linha do grupo — evita repetir
+            const primeira = i === 0
+            return [
+              primeira ? formatDate(g.pedido?.data_pedido ? `${g.pedido.data_pedido}T12:00:00` : dataDe(o)) : '',
+              primeira ? (g.pedido?.numero_pedido ?? o.numero_pedido ?? '—') : '',
+              primeira ? (o.cliente ?? '—') : '',
+              [o.modelo, o.tecido].filter(Boolean).join(' · ')
+                + (o.largura && o.altura ? `\n${String(o.largura).replace('.', ',')}×${String(o.altura).replace('.', ',')}m` : ''),
+              formatCurrency(pago(o)),
+              parcela,
+              pg.forma,
+              formatCurrency(pagoParceira(o)),
+              formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
+            ]
+          })
+          if (g.itens.length < 2) return linhas
+          const t = totaisGrupo(g.itens)
+          return [...linhas, [
+            '', '', '', 'Total do pedido', formatCurrency(t.bruto), '', '', formatCurrency(t.parceira), formatCurrency(t.sobra),
+          ]]
         }),
         foot: [['', '', '', 'TOTAIS',
           formatCurrency(totais.bruto), '', '', formatCurrency(totais.parceira), formatCurrency(totais.sobra)]],
@@ -322,6 +488,252 @@ export default function TabFechamento() {
     } finally {
       setBaixando(false)
     }
+  }
+
+  /** Uma venda — usada tanto pra item solto quanto pra sub-linha dentro de um pedido agrupado. */
+  function itemFragment(o: Orcamento, opts?: { sub?: boolean }) {
+    const bruto = receita(o)
+    const parceira = Number(o.valor_parceiro ?? 0)
+    const sobra = pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))
+    const emEdicao = editando === o.id
+    const sobraRascunho =
+      (parseFloat(rascunho.cobrado.replace(',', '.')) || 0) -
+      (parseFloat(rascunho.parceira.replace(',', '.')) || 0)
+    return (
+      <Fragment key={o.id}>
+      <tr className={cn(tabela.tr, opts?.sub && 'bg-muted/5', emEdicao && 'bg-primary/[0.04]')}>
+        <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">
+          <span className="flex items-center justify-center gap-2">
+            {selecionando && (
+              <input type="checkbox" className="h-3.5 w-3.5 accent-primary"
+                checked={selecionados.has(o.id)} onChange={() => toggleSelecionado(o.id)} />
+            )}
+            <span>
+              {formatDate(o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at)}
+              {o.numero_pedido && <span className="block text-[10px] font-semibold text-foreground/60">Ped. {o.numero_pedido}</span>}
+            </span>
+          </span>
+        </td>
+        <td className="px-4 py-3 text-center font-medium text-foreground">
+          <span className="block">{o.cliente ?? '—'}</span>
+          {o.origem && <SeloOrigem origem={o.origem} className="mt-1" />}
+        </td>
+        <td className="px-4 py-3 text-muted-foreground">
+          <span className="block text-foreground">{o.modelo ?? '—'}</span>
+          {o.tecido && <span className="text-xs">{o.tecido}</span>}
+        </td>
+        <td className="whitespace-nowrap px-4 py-3 text-center text-xs text-muted-foreground tabular-nums">
+          {o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—'}
+          {Number(o.quantidade) > 1 && <span className="ml-1">× {o.quantidade}</span>}
+        </td>
+        <td className="px-4 py-3 text-center font-semibold tabular-nums text-foreground">
+          <ValorComReal calc={bruto} real={pago(o)} />
+          {(o.forma_pagamento_real || o.forma_pagamento) && (
+            <span className={cn('mt-0.5 block text-[10px] font-medium',
+              pgtoCurto(o).includes('/') ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}
+              title={o.forma_pagamento_real ?? undefined}>
+              {pgtoCurto(o)}
+            </span>
+          )}
+        </td>
+        <td className="px-4 py-3 text-center tabular-nums text-amber-600 dark:text-amber-400">
+          {parceira > 0 || o.valor_parceiro_pago != null
+            ? <ValorComReal calc={parceira} real={pagoParceira(o)} />
+            : <span className="text-muted-foreground/40">—</span>}
+        </td>
+        <td className="px-4 py-3 text-center tabular-nums">
+          {(() => {
+            const sobraCalc = bruto - custoReal(o)
+            const pctReal = pago(o) > 0 ? (sobra / pago(o)) * 100 : 0
+            const pctCalc = bruto > 0 ? (sobraCalc / bruto) * 100 : 0
+            const mudou = Math.abs(pctReal - pctCalc) >= 0.5
+            return (
+              <>
+                <span className="block font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(sobra)}</span>
+                <span className={cn('block text-[11px]', mudou ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
+                  {pctReal.toFixed(0)}%{mudou && <> · seria {pctCalc.toFixed(0)}%</>}
+                </span>
+              </>
+            )
+          })()}
+        </td>
+        <td className="px-2 py-3 text-center">
+          <span className="flex items-center justify-center gap-1">
+            <button type="button" onClick={() => abrirAjuste(o)}
+              title="Ver o custo item a item e ajustar valores"
+              className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
+                emEdicao ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
+              <PencilLine className="h-3.5 w-3.5" />
+            </button>
+            {isAdmin && (
+              <button type="button" onClick={() => setConfirmandoExcluir(o.id)}
+                title="Excluir esta venda"
+                className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </span>
+        </td>
+      </tr>
+      {emEdicao && (
+        <tr>
+          <td colSpan={8} className="bg-muted/20 px-4 py-4">
+            <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+              <div className="rounded-lg border border-border bg-card p-3">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                  Custo item a item
+                </p>
+                {o.custos_detalhe?.length ? (
+                  <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-xs">
+                    <thead>
+                      <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        <th className="pb-1 text-center font-bold">Parte</th>
+                        <th className="pb-1 text-center font-bold">Tabela</th>
+                        <th className="pb-1 text-center font-bold">Fator</th>
+                        <th className="pb-1 text-center font-bold">Custo real</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {o.custos_detalhe.map((p, i) => (
+                        <tr key={i}>
+                          <td className="py-1.5 text-foreground">{p.parte}</td>
+                          <td className="py-1.5 text-center tabular-nums text-muted-foreground">{formatCurrency(p.tabela)}</td>
+                          <td className="py-1.5 text-center tabular-nums text-muted-foreground">{p.fator}</td>
+                          <td className="py-1.5 text-center font-semibold tabular-nums text-foreground">{formatCurrency(p.real)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Essa venda entrou sem a quebra por item. O que temos: produto{' '}
+                      {formatCurrency(Number(o.custo_tecido ?? 0))}
+                      {Number(o.custo_acabamento) > 0 && <> e acabamento {formatCurrency(Number(o.custo_acabamento))}</>}.
+                    </p>
+                    <Button variant="outline" size="sm" loading={reconstruindo === o.id}
+                      onClick={() => reconstruir(o.id)}>
+                      {reconstruindo !== o.id && <Wand2 className="h-3 w-3" aria-hidden="true" />}
+                      Reconstruir pelos dados da venda
+                    </Button>
+                    {erroReconstruir[o.id] && (
+                      <p className="text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
+                        {erroReconstruir[o.id]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-3">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                  Ajustar valores
+                </p>
+                <div className="space-y-2">
+                  <label className="block">
+                    <span className="text-[11px] text-muted-foreground">Cliente pagou</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                      inputMode="decimal" value={rascunho.cobrado}
+                      onChange={e => setRascunho(r => ({ ...r, cobrado: e.target.value }))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] text-muted-foreground">À parceira</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                      inputMode="decimal" value={rascunho.parceira}
+                      onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] text-muted-foreground">De onde veio este cliente</span>
+                    <select
+                      className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                      value={rascunho.origem}
+                      onChange={e => setRascunho(r => ({ ...r, origem: e.target.value }))}
+                    >
+                      <option value="">Não informada</option>
+                      {ORIGENS.map(op => <option key={op.id} value={op.id}>{op.rotulo}</option>)}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] text-muted-foreground">Em quantas vezes saiu?</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                      inputMode="numeric" placeholder="4"
+                      value={rascunho.parcelasReal}
+                      onChange={e => setRascunho(r => ({ ...r, parcelasReal: e.target.value }))} />
+                    {(() => {
+                      const n = Math.round(parseFloat(rascunho.parcelasReal) || 0)
+                      const v = parseFloat(rascunho.cobrado.replace(',', '.')) || 0
+                      if (n < 2 || v <= 0) return null
+                      const base = receita(o)
+                      const juros = base > 0 && v > base + 0.009
+                        ? ` · +${(((v - base) / base) * 100).toFixed(1)}% de juros`
+                        : ''
+                      return (
+                        <span className="mt-1 block text-[11px] text-muted-foreground">
+                          Fica registrado: <b className="text-foreground/80">{n}x de {formatCurrency(v / n)}{juros}</b>
+                        </span>
+                      )
+                    })()}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="text-[11px] text-muted-foreground">Data do pedido</span>
+                      <DatePicker value={rascunho.dataPedido}
+                        onChange={v => { setRascunho(r => ({ ...r, dataPedido: v })); if (v) setErroAjuste(null) }}
+                        placeholder="dd/mm/aaaa" className="mt-0.5 w-full" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[11px] text-muted-foreground">Data de entrega</span>
+                      <DatePicker value={rascunho.dataEntrega}
+                        onChange={v => setRascunho(r => ({ ...r, dataEntrega: v }))}
+                        placeholder="dd/mm/aaaa" className="mt-0.5 w-full" />
+                    </label>
+                    <label className="col-span-2 block">
+                      <span className="text-[11px] text-muted-foreground">Nº do pedido</span>
+                      <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                        placeholder="ex.: 337" maxLength={20}
+                        value={rascunho.numeroPedido}
+                        onChange={e => setRascunho(r => ({ ...r, numeroPedido: e.target.value }))} />
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="text-[11px] text-muted-foreground">Observação do pagamento (opcional)</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                      placeholder="ex.: no link, PIX + cartão"
+                      maxLength={120}
+                      value={rascunho.formaReal}
+                      onChange={e => setRascunho(r => ({ ...r, formaReal: e.target.value }))} />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] text-muted-foreground">Sobra da loja (ajusta o valor do cliente)</span>
+                    <input className="mt-0.5 w-full rounded-md border border-emerald-500/40 bg-background px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/15 dark:text-emerald-400"
+                      inputMode="decimal"
+                      value={sobraRascunho.toFixed(2)}
+                      onChange={e => mudarSobra(e.target.value)} />
+                  </label>
+                </div>
+                {erroAjuste && (
+                  <p className="mt-2 text-[11px] font-medium text-destructive">{erroAjuste}</p>
+                )}
+                <div className="mt-3 flex gap-2">
+                  <Button variant="brand" size="sm" className="flex-1"
+                    loading={salvandoAjuste} onClick={() => salvarAjuste(o)}>
+                    {!salvandoAjuste && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
+                    Salvar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => { setEditando(null); setErroAjuste(null) }}
+                    aria-label="Cancelar ajuste">
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+      </Fragment>
+    )
   }
 
   return (
@@ -359,7 +771,29 @@ export default function TabFechamento() {
           {!baixando && <Download className="h-4 w-4" aria-hidden="true" />}
           PDF
         </Button>
+        <Button variant={selecionando ? 'primary' : 'outline'}
+          onClick={() => { setSelecionando(v => !v); setSelecionados(new Set()) }}>
+          <Link2 className="h-4 w-4" aria-hidden="true" />
+          {selecionando ? 'Cancelar agrupar' : 'Agrupar itens'}
+        </Button>
       </div>
+
+      {selecionando && (
+        <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.03] px-3 py-2.5 shadow-sm">
+          <p className="text-xs text-muted-foreground">
+            Marque as linhas do mesmo pedido (itens digitados separados por engano) —{' '}
+            <b className="text-foreground/80">{selecionados.size} selecionada{selecionados.size !== 1 ? 's' : ''}</b>
+          </p>
+          <input className="w-32 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+            placeholder="Nº do pedido" maxLength={20}
+            value={numeroNovoPedido} onChange={e => setNumeroNovoPedido(e.target.value)} />
+          <Button variant="brand" size="sm" loading={agrupando}
+            disabled={selecionados.size < 2} onClick={agruparSelecionados}>
+            <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+            Agrupar em um pedido
+          </Button>
+        </div>
+      )}
 
       {/* Calculadora — a venda cai direto neste fechamento */}
       {calculando && (
@@ -413,230 +847,136 @@ export default function TabFechamento() {
                 </tr>
               </thead>
               <tbody>
-                {vendas.map(o => {
-                  const bruto = receita(o)
-                  const parceira = Number(o.valor_parceiro ?? 0)
-                  const sobra = pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))
-                  const emEdicao = editando === o.id
-                  const sobraRascunho =
-                    (parseFloat(rascunho.cobrado.replace(',', '.')) || 0) -
-                    (parseFloat(rascunho.parceira.replace(',', '.')) || 0)
+                {grupos.map(g => {
+                  if (g.itens.length === 1) return itemFragment(g.itens[0])
+                  const t = totaisGrupo(g.itens)
+                  const abertoG = abertos.has(g.chave)
+                  const emEdicaoPedido = editandoPedido === g.pedidoId
+                  const primeiro = g.itens[0]
+                  const origemGrupo = g.pedido?.origem ?? primeiro.origem
                   return (
-                    <Fragment key={o.id}>
-                    <tr className={cn(tabela.tr, emEdicao && 'bg-primary/[0.04]')}>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">
-                        {formatDate(o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at)}
-                        {o.numero_pedido && <span className="block text-[10px] font-semibold text-foreground/60">Ped. {o.numero_pedido}</span>}
-                      </td>
-                      <td className="px-4 py-3 text-center font-medium text-foreground">
-                        <span className="block">{o.cliente ?? '—'}</span>
-                        {o.origem && <SeloOrigem origem={o.origem} className="mt-1" />}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        <span className="block text-foreground">{o.modelo ?? '—'}</span>
-                        {o.tecido && <span className="text-xs">{o.tecido}</span>}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-center text-xs text-muted-foreground tabular-nums">
-                        {o.largura && o.altura ? `${o.largura}×${o.altura}m` : '—'}
-                        {Number(o.quantidade) > 1 && <span className="ml-1">× {o.quantidade}</span>}
-                      </td>
-                      <td className="px-4 py-3 text-center font-semibold tabular-nums text-foreground">
-                        <ValorComReal calc={bruto} real={pago(o)} />
-                        {(o.forma_pagamento_real || o.forma_pagamento) && (
-                          <span className={cn('mt-0.5 block text-[10px] font-medium',
-                            pgtoCurto(o).includes('/') ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}
-                            title={o.forma_pagamento_real ?? undefined}>
-                            {pgtoCurto(o)}
+                    <Fragment key={g.chave}>
+                      <tr className={cn(tabela.tr, 'bg-muted/10', emEdicaoPedido && 'bg-primary/[0.04]')}>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground tabular-nums">
+                          {formatDate(g.pedido?.data_pedido ? `${g.pedido.data_pedido}T12:00:00` : dataDe(primeiro))}
+                          <span className="block text-[10px] font-semibold text-foreground/60">
+                            Ped. {g.pedido?.numero_pedido ?? primeiro.numero_pedido ?? '—'}
                           </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center tabular-nums text-amber-600 dark:text-amber-400">
-                        {parceira > 0 || o.valor_parceiro_pago != null
-                          ? <ValorComReal calc={parceira} real={pagoParceira(o)} />
-                          : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-center tabular-nums">
-                        {(() => {
-                          const sobraCalc = bruto - custoReal(o)
-                          const pctReal = pago(o) > 0 ? (sobra / pago(o)) * 100 : 0
-                          const pctCalc = bruto > 0 ? (sobraCalc / bruto) * 100 : 0
-                          const mudou = Math.abs(pctReal - pctCalc) >= 0.5
-                          return (
-                            <>
-                              <span className="block font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(sobra)}</span>
-                              <span className={cn('block text-[11px]', mudou ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
-                                {pctReal.toFixed(0)}%{mudou && <> · seria {pctCalc.toFixed(0)}%</>}
-                              </span>
-                            </>
-                          )
-                        })()}
-                      </td>
-                      <td className="px-2 py-3 text-center">
-                        <span className="flex items-center justify-center gap-1">
-                          <button type="button" onClick={() => abrirAjuste(o)}
-                            title="Ver o custo item a item e ajustar valores"
-                            className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
-                              emEdicao ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
-                            <PencilLine className="h-3.5 w-3.5" />
+                        </td>
+                        <td className="px-4 py-3 text-center font-medium text-foreground">
+                          <span className="block">{primeiro.cliente ?? '—'}</span>
+                          {origemGrupo && <SeloOrigem origem={origemGrupo} className="mt-1" />}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          <button type="button"
+                            onClick={() => setAbertos(prev => {
+                              const novo = new Set(prev)
+                              if (novo.has(g.chave)) novo.delete(g.chave); else novo.add(g.chave)
+                              return novo
+                            })}
+                            className="flex items-center gap-1 text-left font-semibold text-foreground transition-colors hover:text-primary">
+                            <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 transition-transform', abertoG && 'rotate-180')} aria-hidden="true" />
+                            {g.itens.length} itens
                           </button>
-                          {isAdmin && (
-                            <button type="button" onClick={() => setConfirmandoExcluir(o.id)}
-                              title="Excluir esta venda"
-                              className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
+                          <span className="block text-xs">
+                            {[...new Set(g.itens.map(i => i.modelo).filter(Boolean))].join(', ')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-xs text-muted-foreground">—</td>
+                        <td className="px-4 py-3 text-center font-semibold tabular-nums text-foreground">
+                          {formatCurrency(t.bruto)}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums text-amber-600 dark:text-amber-400">
+                          {formatCurrency(t.parceira)}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums">
+                          <span className="block font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(t.sobra)}</span>
+                        </td>
+                        <td className="px-2 py-3 text-center">
+                          <span className="flex items-center justify-center gap-1">
+                            <button type="button" onClick={() => abrirAjustePedido(g)}
+                              title="Ajustar valores do pedido"
+                              className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
+                                emEdicaoPedido ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
+                              <PencilLine className="h-3.5 w-3.5" />
                             </button>
-                          )}
-                        </span>
-                      </td>
-                    </tr>
-                    {emEdicao && (
-                      <tr>
-                        <td colSpan={8} className="bg-muted/20 px-4 py-4">
-                          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-                            <div className="rounded-lg border border-border bg-card p-3">
+                            {isAdmin && (
+                              <button type="button" onClick={() => setConfirmandoExcluirPedido(g.pedidoId)}
+                                title="Excluir pedido inteiro"
+                                className="rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </span>
+                        </td>
+                      </tr>
+                      {emEdicaoPedido && (
+                        <tr>
+                          <td colSpan={8} className="bg-muted/20 px-4 py-4">
+                            <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-3">
                               <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
-                                Custo item a item
-                              </p>
-                              {o.custos_detalhe?.length ? (
-                                <div className="overflow-x-auto">
-                                <table className="w-full min-w-[420px] text-xs">
-                                  <thead>
-                                    <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                      <th className="pb-1 text-center font-bold">Parte</th>
-                                      <th className="pb-1 text-center font-bold">Tabela</th>
-                                      <th className="pb-1 text-center font-bold">Fator</th>
-                                      <th className="pb-1 text-center font-bold">Custo real</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-border/40">
-                                    {o.custos_detalhe.map((p, i) => (
-                                      <tr key={i}>
-                                        <td className="py-1.5 text-foreground">{p.parte}</td>
-                                        <td className="py-1.5 text-center tabular-nums text-muted-foreground">{formatCurrency(p.tabela)}</td>
-                                        <td className="py-1.5 text-center tabular-nums text-muted-foreground">{p.fator}</td>
-                                        <td className="py-1.5 text-center font-semibold tabular-nums text-foreground">{formatCurrency(p.real)}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <p className="text-xs text-muted-foreground">
-                                    Essa venda entrou sem a quebra por item. O que temos: produto{' '}
-                                    {formatCurrency(Number(o.custo_tecido ?? 0))}
-                                    {Number(o.custo_acabamento) > 0 && <> e acabamento {formatCurrency(Number(o.custo_acabamento))}</>}.
-                                  </p>
-                                  <Button variant="outline" size="sm" loading={reconstruindo === o.id}
-                                    onClick={() => reconstruir(o.id)}>
-                                    {reconstruindo !== o.id && <Wand2 className="h-3 w-3" aria-hidden="true" />}
-                                    Reconstruir pelos dados da venda
-                                  </Button>
-                                  {erroReconstruir[o.id] && (
-                                    <p className="text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
-                                      {erroReconstruir[o.id]}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="rounded-lg border border-border bg-card p-3">
-                              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
-                                Ajustar valores
+                                Ajustar pedido ({g.itens.length} itens — o total é rateado proporcionalmente entre eles)
                               </p>
                               <div className="space-y-2">
-                                <label className="block">
-                                  <span className="text-[11px] text-muted-foreground">Cliente pagou</span>
-                                  <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
-                                    inputMode="decimal" value={rascunho.cobrado}
-                                    onChange={e => setRascunho(r => ({ ...r, cobrado: e.target.value }))} />
-                                </label>
-                                <label className="block">
-                                  <span className="text-[11px] text-muted-foreground">À parceira</span>
-                                  <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
-                                    inputMode="decimal" value={rascunho.parceira}
-                                    onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
-                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <label className="block">
+                                    <span className="text-[11px] text-muted-foreground">Cliente pagou (total)</span>
+                                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                                      inputMode="decimal" value={rascunhoPedido.cobrado}
+                                      onChange={e => setRascunhoPedido(r => ({ ...r, cobrado: e.target.value }))} />
+                                  </label>
+                                  <label className="block">
+                                    <span className="text-[11px] text-muted-foreground">À parceira (total)</span>
+                                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                                      inputMode="decimal" value={rascunhoPedido.parceira}
+                                      onChange={e => setRascunhoPedido(r => ({ ...r, parceira: e.target.value }))} />
+                                  </label>
+                                </div>
                                 <label className="block">
                                   <span className="text-[11px] text-muted-foreground">De onde veio este cliente</span>
-                                  <select
-                                    className={cn(campoCompacto, 'mt-0.5 text-sm')}
-                                    value={rascunho.origem}
-                                    onChange={e => setRascunho(r => ({ ...r, origem: e.target.value }))}
-                                  >
+                                  <select className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                                    value={rascunhoPedido.origem}
+                                    onChange={e => setRascunhoPedido(r => ({ ...r, origem: e.target.value }))}>
                                     <option value="">Não informada</option>
-                                    {ORIGENS.map(o => <option key={o.id} value={o.id}>{o.rotulo}</option>)}
+                                    {ORIGENS.map(op => <option key={op.id} value={op.id}>{op.rotulo}</option>)}
                                   </select>
-                                </label>
-                                <label className="block">
-                                  <span className="text-[11px] text-muted-foreground">Em quantas vezes saiu?</span>
-                                  <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
-                                    inputMode="numeric" placeholder="4"
-                                    value={rascunho.parcelasReal}
-                                    onChange={e => setRascunho(r => ({ ...r, parcelasReal: e.target.value }))} />
-                                  {(() => {
-                                    const n = Math.round(parseFloat(rascunho.parcelasReal) || 0)
-                                    const v = parseFloat(rascunho.cobrado.replace(',', '.')) || 0
-                                    if (n < 2 || v <= 0) return null
-                                    const base = receita(o)
-                                    const juros = base > 0 && v > base + 0.009
-                                      ? ` · +${(((v - base) / base) * 100).toFixed(1)}% de juros`
-                                      : ''
-                                    return (
-                                      <span className="mt-1 block text-[11px] text-muted-foreground">
-                                        Fica registrado: <b className="text-foreground/80">{n}x de {formatCurrency(v / n)}{juros}</b>
-                                      </span>
-                                    )
-                                  })()}
                                 </label>
                                 <div className="grid grid-cols-2 gap-2">
                                   <label className="block">
                                     <span className="text-[11px] text-muted-foreground">Data do pedido</span>
-                                    <DatePicker value={rascunho.dataPedido}
-                                      onChange={v => setRascunho(r => ({ ...r, dataPedido: v }))}
+                                    <DatePicker value={rascunhoPedido.dataPedido}
+                                      onChange={v => { setRascunhoPedido(r => ({ ...r, dataPedido: v })); if (v) setErroAjustePedido(null) }}
                                       placeholder="dd/mm/aaaa" className="mt-0.5 w-full" />
                                   </label>
                                   <label className="block">
                                     <span className="text-[11px] text-muted-foreground">Nº do pedido</span>
                                     <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
                                       placeholder="ex.: 337" maxLength={20}
-                                      value={rascunho.numeroPedido}
-                                      onChange={e => setRascunho(r => ({ ...r, numeroPedido: e.target.value }))} />
+                                      value={rascunhoPedido.numeroPedido}
+                                      onChange={e => setRascunhoPedido(r => ({ ...r, numeroPedido: e.target.value }))} />
                                   </label>
                                 </div>
-                                <label className="block">
-                                  <span className="text-[11px] text-muted-foreground">Observação do pagamento (opcional)</span>
-                                  <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
-                                    placeholder="ex.: no link, PIX + cartão"
-                                    maxLength={120}
-                                    value={rascunho.formaReal}
-                                    onChange={e => setRascunho(r => ({ ...r, formaReal: e.target.value }))} />
-                                </label>
-                                <label className="block">
-                                  <span className="text-[11px] text-muted-foreground">Sobra da loja (ajusta o valor do cliente)</span>
-                                  <input className="mt-0.5 w-full rounded-md border border-emerald-500/40 bg-background px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/15 dark:text-emerald-400"
-                                    inputMode="decimal"
-                                    value={sobraRascunho.toFixed(2)}
-                                    onChange={e => mudarSobra(e.target.value)} />
-                                </label>
                               </div>
+                              {erroAjustePedido && (
+                                <p className="mt-2 text-[11px] font-medium text-destructive">{erroAjustePedido}</p>
+                              )}
                               <div className="mt-3 flex gap-2">
                                 <Button variant="brand" size="sm" className="flex-1"
-                                  loading={salvandoAjuste} onClick={() => salvarAjuste(o)}>
-                                  {!salvandoAjuste && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
+                                  loading={salvandoAjustePedido} onClick={() => salvarAjustePedido(g)}>
+                                  {!salvandoAjustePedido && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                                   Salvar
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => setEditando(null)}
-                                  aria-label="Cancelar ajuste">
+                                <Button variant="outline" size="sm"
+                                  onClick={() => { setEditandoPedido(null); setErroAjustePedido(null) }}
+                                  aria-label="Cancelar ajuste do pedido">
                                   <X className="h-3.5 w-3.5" aria-hidden="true" />
                                 </Button>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
+                          </td>
+                        </tr>
+                      )}
+                      {abertoG && g.itens.map(o => itemFragment(o, { sub: true }))}
                     </Fragment>
                   )
                 })}
@@ -686,6 +1026,23 @@ export default function TabFechamento() {
             erro={erroExcluir}
             onConfirmar={() => excluirVenda(alvo)}
             onCancelar={() => { setConfirmandoExcluir(null); setErroExcluir(null) }}
+          />
+        )
+      })()}
+
+      {(() => {
+        const g = isAdmin ? grupos.find(x => x.pedidoId === confirmandoExcluirPedido) : undefined
+        if (!g) return null
+        const t = totaisGrupo(g.itens)
+        return (
+          <ConfirmarExclusaoVenda
+            cliente={`${g.itens[0].cliente ?? 'Sem nome'} (${g.itens.length} itens)`}
+            valor={t.bruto}
+            data={dataDe(g.itens[0])}
+            excluindo={excluindoPedidoId === g.pedidoId}
+            erro={erroExcluirPedido}
+            onConfirmar={() => excluirPedido(g)}
+            onCancelar={() => { setConfirmandoExcluirPedido(null); setErroExcluirPedido(null) }}
           />
         )
       })()}

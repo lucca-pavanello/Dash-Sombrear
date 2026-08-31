@@ -235,6 +235,8 @@ Deno.serve(async (req) => {
       const valorCobrado = Number.isFinite(cobradoBruto) && cobradoBruto > 0 ? Math.round(cobradoBruto * 100) / 100 : null
       const FORMAS = new Set(['a_vista', 'cartao_4x', 'outro'])
       const formaPagamento = FORMAS.has(String(body.forma_pagamento)) ? String(body.forma_pagamento) : null
+      // agrupa itens do mesmo pedido (metadados só — dinheiro continua por item)
+      const pedidoId = typeof body.pedido_id === 'string' && body.pedido_id.trim() ? body.pedido_id.trim() : null
       const receita = r.total4x + (instalacaoNum ?? 0)
       const custoTotal = r.custoProduto + r.custoAcabamento
       const margem = receita > 0 ? ((receita - custoTotal) / receita) * 100 : null
@@ -268,6 +270,7 @@ Deno.serve(async (req) => {
           ? String(body.forma_pagamento_real).trim().slice(0, 120)
           : null,
         custos_detalhe: r.detalhe ?? null,
+        pedido_id: pedidoId,
         margem,
         // 'FEITO' NÃO existe no check da tabela — venda vira 'fechado', consulta vira 'CALCULADO'
         status: body.fechado === true ? 'fechado' : 'CALCULADO',

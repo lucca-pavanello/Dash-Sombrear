@@ -59,6 +59,32 @@ describe('bandô de peça única — porta dividida (áudio da loja)', () => {
   })
 })
 
+/* Aproveitamento de tecido (28/08): peças estreitas do MESMO tecido/pedido cabem lado
+   a lado no rolo escolhido — cobra o corte (comprimento) uma vez por fileira, não uma
+   vez por peça. BK BRANCO 1,4m de altura → alturaUsada 1,6m; peça de 0,7m de largura
+   cai no rolo de 1,5m (menor faixa cadastrada ≥ 0,7m) e 2 peças de 0,7m cabem juntas
+   nesse mesmo corte de 1,5m (0,7 × 2 = 1,4 ≤ 1,5). Custo de 1 corte = 1,5 × 1,6 × 34 =
+   R$ 81,60. */
+const achaTecido = (r: ReturnType<typeof simular>) =>
+  ('erro' in r ? undefined : r.detalhe.find(d => /^Tecido/.test(d.parte)))
+
+describe('aproveitamento de tecido — peças da mesma largura no mesmo rolo', () => {
+  it('2 peças de 0,70m cabem juntas no rolo de 1,5m: 1 corte em vez de 2 (R$ 81,60)', () => {
+    const r = okOuFalha(simular(rolo({ largura: 0.7, quantidade: 2 }), dPersiana))
+    expect(achaTecido(r)?.tabela).toBeCloseTo(81.60, 2)
+  })
+
+  it('3 peças de 0,70m (sobra ímpar): 2 cortes, não 3 (R$ 163,20)', () => {
+    const r = okOuFalha(simular(rolo({ largura: 0.7, quantidade: 3 }), dPersiana))
+    expect(achaTecido(r)?.tabela).toBeCloseTo(163.20, 2)
+  })
+
+  it('2 peças de 1,40m NÃO cabem 2× no rolo de 1,5m: continua 2 cortes (sem regressão)', () => {
+    const r = okOuFalha(simular(rolo({ largura: 1.4, quantidade: 2 }), dPersiana))
+    expect(achaTecido(r)?.tabela).toBeCloseTo(163.20, 2)
+  })
+})
+
 describe('Rolo Motorizado — baseline golden do harness de QA (2026-08-03)', () => {
   /* VIRADA DE PREÇO 24/08: a Stella mandou duas tabelas novas de estrutura motorizada
      (até 3,00m sem junção · com junção ou acima de 3,00m). O baseline subiu R$ 13,26 no

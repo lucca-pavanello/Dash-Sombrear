@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { supabase, type Orcamento } from '@/lib/supabase'
+import { supabase, type Orcamento, type Pedido } from '@/lib/supabase'
 import { inicioDaJanela, useJanela } from '@/lib/janelaDados'
 
 export type RealtimeStatus = 'connecting' | 'connected' | 'error'
@@ -198,6 +198,96 @@ export function useDeleteOrcamento() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['orcamentos'] }),
+  })
+}
+
+/**
+ * Metadados de pedido (numero_pedido/data_pedido/origem/forma de pagamento)
+ * que agrupam itens de `orcamentos` pelo campo `pedido_id`. Dinheiro nunca
+ * mora aqui — cada item continua com seu valor_cobrado/valor_parceiro_pago.
+ */
+export function usePedidos() {
+  return useQuery({
+    queryKey: ['pedidos'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('pedidos').select('*')
+      if (error) throw error
+      return (data ?? []) as Pedido[]
+    },
+    staleTime: 30_000,
+  })
+}
+
+export function useCreatePedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: Omit<Pedido, 'id' | 'created_at'>) => {
+      const { data, error } = await supabase.from('pedidos').insert(payload).select().single()
+      if (error) throw error
+      return data as Pedido
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pedidos'] }),
+  })
+}
+
+export function useUpdatePedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: Partial<Pedido> & { id: string }) => {
+      const { data, error } = await supabase.from('pedidos').update(payload).eq('id', id).select().single()
+      if (error) throw error
+      return data as Pedido
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pedidos'] })
+      qc.invalidateQueries({ queryKey: ['orcamentos'] })
+    },
+  })
+}
+
+/** Vincula um conjunto de itens soltos (ou de pedidos diferentes) a um pedido novo, de uma vez. */
+export function useVincularItensAoPedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ ids, pedido }: { ids: string[]; pedido: Omit<Pedido, 'id' | 'created_at'> }) => {
+      const { data: novo, error: erroPedido } = await supabase.from('pedidos').insert(pedido).select().single()
+      if (erroPedido) throw erroPedido
+      const { error: erroVinculo } = await supabase
+        .from('orcamentos').update({ pedido_id: novo.id }).in('id', ids)
+      if (erroVinculo) throw erroVinculo
+      return novo as Pedido
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pedidos'] })
+      qc.invalidateQueries({ queryKey: ['orcamentos'] })
+    },
+  })
+}
+
+/** Apaga um pedido inteiro: cada item vai pra lixeira (orcamentos_excluidos) antes de sumir. */
+export function useExcluirPedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ pedidoId, itens }: { pedidoId: string; itens: Orcamento[] }) => {
+      const { data: perfil } = await supabase.auth.getUser()
+      for (const item of itens) {
+        const { error: erroLixeira } = await supabase.from('orcamentos_excluidos').insert({
+          orcamento_id: item.id,
+          excluido_por: perfil?.user?.email ?? null,
+          motivo: 'pedido excluído pelo Semanário',
+          dados: item,
+        })
+        if (erroLixeira) throw erroLixeira
+        const { error } = await supabase.from('orcamentos').delete().eq('id', item.id)
+        if (error) throw error
+      }
+      const { error: erroPedido } = await supabase.from('pedidos').delete().eq('id', pedidoId)
+      if (erroPedido) throw erroPedido
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pedidos'] })
+      qc.invalidateQueries({ queryKey: ['orcamentos'] })
+    },
   })
 }
 
