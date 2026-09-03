@@ -34,3 +34,19 @@ export function formatCompact(value: number): string {
   if (value >= 1_000) return `R$\u00A0${(value / 1_000).toFixed(1)}k`
   return formatCurrency(value)
 }
+
+/**
+ * "a partir de R$ 429,90" → 429.9. Converte valor em texto livre (formato BR, com ponto
+ * de milhar e vírgula decimal) para número.
+ *
+ * Existe porque o CRM guarda o último valor cotado como TEXTO, do jeito que o agente
+ * escreveu. Comparar isso como string desordena dinheiro em silêncio: "R$ 1.100,00"
+ * viria antes de "R$ 900,00" e a lista continuaria parecendo ordenada.
+ *
+ * Devolve NaN quando não há número — quem chama decide o que fazer com a ausência.
+ */
+export function valorNumerico(texto: string | null | undefined): number {
+  if (!texto) return NaN
+  const n = parseFloat(String(texto).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'))
+  return Number.isFinite(n) ? n : NaN
+}
