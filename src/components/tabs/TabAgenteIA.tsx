@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import {
   useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
-  isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone,
+  isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone, normalizarTelefone,
   STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA,
 } from '@/hooks/useAgenteIA'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
-import { cn, formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency, valorNumerico } from '@/lib/utils'
 import { Button } from '@/components/ui/primitives'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 import SeloStatus, { precisaDeHumano } from '@/components/agente/SeloStatus'
@@ -17,6 +17,7 @@ import {
   MessageSquare, CheckCircle2, Bell, Check,
   Clock, MessageCircle,  ChevronLeft,
   AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset, Eye,
+  Search, X, Download,
 } from 'lucide-react'
 import { useConfigAutomacoes, useDefinirConfigAutomacao, IA_RESPONDE } from '@/hooks/useConfigAutomacoes'
 import { Chave } from '@/components/agente/FollowupControle'
@@ -32,7 +33,9 @@ import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE, MODELOS, CHATWOOT_BASE_URL } from '@/lib/constants'
-import { tabela, segmentado, kpi } from '@/components/shared/estilos'
+import { tabela, segmentado, kpi, campoBusca } from '@/components/shared/estilos'
+import { useDebounce } from '@/hooks/useDebounce'
+import { exportCsv } from '@/lib/exportUtils'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 
@@ -220,7 +223,9 @@ function FunnelChart({ stages }: { stages: { label: string; value: number; hint:
   )
 }
 
-type LeadSort = { key: 'created_at' | 'nome' | 'timestamp_ultima_msg'; dir: 'asc' | 'desc' }
+type LeadSortKey = 'created_at' | 'nome' | 'timestamp_ultima_msg' | 'origem' | 'valor' | 'status'
+type LeadSort = { key: LeadSortKey; dir: 'asc' | 'desc' }
+
 type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -353,6 +358,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const [periodo, setPeriodo] = useState('todos')
   // filtro de canal: o gestor de tráfego entra por aqui
   const [origemFiltro, setOrigemFiltro] = useState('todas')
+  const [busca, setBusca] = useState('')
+  const buscaDebounced = useDebounce(busca, 220)
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [leadSort, setLeadSort] = useState<LeadSort>({ key: 'created_at', dir: 'desc' })
@@ -407,7 +414,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   )
 
   // Reset pages when filters or sort changes
-  useEffect(() => { setLeadsPage(1) }, [periodo, leadSort, customFrom, customTo, origemFiltro])
+  useEffect(() => { setLeadsPage(1) }, [periodo, leadSort, customFrom, customTo, origemFiltro, buscaDebounced])
   useEffect(() => { setOrcsPage(1) }, [periodo, orcSort, customFrom, customTo])
   useEffect(() => { setExpandedId(null) }, [leadsPage])
 
@@ -539,20 +546,64 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     { label: 'Com a equipe',           value: Math.round(animComEquipe), icon: Headset, attention: false, sub: 'atendimento humano assumiu' },
   ]
 
+  /**
+   * Busca só da TABELA — de propósito não entra nos KPIs, no funil nem no card da Amanda.
+   * Procurar um cliente é navegação; se mexesse nos indicadores, o número do funil mudaria
+   * enquanto alguém digita, o que não faz sentido nenhum.
+   *
+   * Telefone casa por dígitos normalizados: quem digita "17 99704-1997" precisa achar o
+   * lead gravado como "5517997041997".
+   */
+  const leadsVisiveis = useMemo(() => {
+    const termo = buscaDebounced.trim().toLowerCase()
+    if (!termo) return filtrados
+    const digitos = termo.replace(/\D/g, '')
+    return filtrados.filter(l => {
+      if (digitos.length >= 4 && normalizarTelefone(l.whatsapp).includes(normalizarTelefone(digitos))) return true
+      return [l.nome, l.modelo_interesse, l.ambiente, l.tecido_cor]
+        .some(v => v?.toLowerCase().includes(termo))
+    })
+  }, [filtrados, buscaDebounced])
+
   const sortedLeads = useMemo(() => {
-    return [...filtrados].sort((a, b) => {
+    const sinal = leadSort.dir === 'asc' ? 1 : -1
+    return [...leadsVisiveis].sort((a, b) => {
+      // quem está esperando atendimento humano fica no topo, acima de qualquer ordenação
+      // escolhida: é fila de gente esperando, não preferência de visualização
       const wa = isAguardando(a.status_lead) ? -1 : 0
       const wb = isAguardando(b.status_lead) ? -1 : 0
       if (wa !== wb) return wa - wb
+
+      // Valor é número disfarçado de texto — comparar como string colocaria
+      // "R$ 1.100,00" antes de "R$ 900,00". Sem valor vai sempre pro fim, nas duas
+      // direções: linha vazia no topo não é informação, é ruído.
+      if (leadSort.key === 'valor') {
+        const av = valorNumerico(a.ultimo_valor_cotado)
+        const bv = valorNumerico(b.ultimo_valor_cotado)
+        if (Number.isNaN(av) && Number.isNaN(bv)) return 0
+        if (Number.isNaN(av)) return 1
+        if (Number.isNaN(bv)) return -1
+        return (av - bv) * sinal
+      }
+
       let av: string, bv: string
       if (leadSort.key === 'nome') { av = a.nome ?? ''; bv = b.nome ?? '' }
       else if (leadSort.key === 'timestamp_ultima_msg') { av = a.timestamp_ultima_msg ?? ''; bv = b.timestamp_ultima_msg ?? '' }
+      // ordena pelo RÓTULO normalizado do canal, não pelo texto cru: assim "google" e
+      // "google_ads" ficam juntos em vez de separados por causa da grafia
+      else if (leadSort.key === 'origem') { av = acharOrigem(a.origem).rotulo; bv = acharOrigem(b.origem).rotulo }
+      else if (leadSort.key === 'status') { av = a.status_lead ?? ''; bv = b.status_lead ?? '' }
       else { av = a.created_at; bv = b.created_at }
-      if (av < bv) return leadSort.dir === 'asc' ? -1 : 1
-      if (av > bv) return leadSort.dir === 'asc' ? 1 : -1
-      return 0
+
+      // Datas são ISO, então comparação de string funciona e é mais barata. Texto vai de
+      // localeCompare, senão acento e caixa ordenam errado ("Ângela" caía depois de "Zeca").
+      const ehData = leadSort.key === 'created_at' || leadSort.key === 'timestamp_ultima_msg'
+      const cmp = ehData
+        ? (av < bv ? -1 : av > bv ? 1 : 0)
+        : av.localeCompare(bv, 'pt-BR', { sensitivity: 'base' })
+      return cmp * sinal
     })
-  }, [filtrados, leadSort])
+  }, [leadsVisiveis, leadSort])
 
   const sortedOrcs = useMemo(() => {
     return [...orcFiltrados].sort((a, b) => {
@@ -580,8 +631,31 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     [sortedOrcs, orcsPage]
   )
 
+  /**
+   * Exporta o que está na tela DEPOIS de período, canal, busca e ordenação — e todas as
+   * páginas, não só a atual. Exportar a página é o erro clássico aqui: quem filtra "Google"
+   * quer os 17, que hoje estão espalhados em 5 páginas de 20.
+   */
+  function exportarLeads() {
+    if (!sortedLeads.length) return
+    const canal = origemFiltro === 'todas' ? 'todos-canais' : origemFiltro
+    const hoje = new Date().toISOString().slice(0, 10)
+    exportCsv(`leads-${canal}-${hoje}.csv`, sortedLeads.map(l => ({
+      entrada: new Date(l.created_at).toLocaleDateString('pt-BR'),
+      nome: l.nome ?? '',
+      origem: acharOrigem(l.origem).rotulo,
+      whatsapp: l.whatsapp ?? '',
+      modelo: l.modelo_interesse ?? '',
+      ambiente: l.ambiente ?? '',
+      ultimo_valor: l.ultimo_valor_cotado ?? '',
+      ultima_mensagem: l.timestamp_ultima_msg ? new Date(l.timestamp_ultima_msg).toLocaleString('pt-BR') : '',
+      status: l.status_lead ?? '',
+    })))
+    toast('success', `${sortedLeads.length} lead${sortedLeads.length !== 1 ? 's' : ''} exportado${sortedLeads.length !== 1 ? 's' : ''}.`)
+  }
+
   // ── Th helpers ───────────────────────────────────────────────────────────────
-  function LeadTh({ label, k }: { label: string; k?: 'created_at' | 'nome' | 'timestamp_ultima_msg' }) {
+  function LeadTh({ label, k }: { label: string; k?: LeadSortKey }) {
     const active = k && leadSort.key === k
     return (
       <th className={cn(tabela.th, tabela.regua, 'text-center', k && tabela.thOrdenavel)}
@@ -698,8 +772,12 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         />
       </div>
 
-      {/* ── Origem: leitura rápida por canal e filtro ── */}
+      {/* ── Origem: leitura rápida por canal e filtro ──
+           O rótulo existe porque sem ele os chips passavam por legenda de cor: têm a mesma
+           aparência dos selos de origem das linhas, que são só leitura. Gente abria a tela
+           querendo "ver só os do Google" e não percebia que era só clicar. */}
       <div className="flex flex-wrap items-center justify-center gap-1.5">
+        <span className="mr-0.5 text-xs font-medium text-muted-foreground">Filtrar por canal:</span>
         <FiltroOrigem id="todas" rotulo="Todos os canais" total={doPeriodo.length}
           ativo={origemFiltro === 'todas'} onClick={() => setOrigemFiltro('todas')} />
         {[...ORIGENS, SEM_ORIGEM]
@@ -730,7 +808,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-primary" />
             <h2 className="font-display text-sm font-semibold tracking-wide">Leads do Agente IA</h2>
-            <span className="text-xs text-muted-foreground">{filtrados.length} lead{filtrados.length !== 1 ? 's' : ''}</span>
+            <span className="text-xs text-muted-foreground">{leadsVisiveis.length} lead{leadsVisiveis.length !== 1 ? 's' : ''}</span>
           </div>
           <span className="absolute right-4 rounded-lg p-1.5 text-muted-foreground">
             {leadsCollapsed ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
@@ -738,13 +816,60 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         </button>
 
         {!leadsCollapsed && (
-          filtrados.length === 0 ? (
+          <>
+            {/* Barra de ferramentas da tabela: busca, eco do filtro ativo e exportação.
+                O eco existe porque o filtro de canal vive ACIMA do card — quem chega aqui
+                vendo 17 linhas em vez de 87 não tinha como saber por quê, nem como voltar. */}
+            <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+              <div className="relative min-w-[200px] flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={busca}
+                  onChange={e => setBusca(e.target.value)}
+                  placeholder="Buscar por nome ou telefone…"
+                  aria-label="Buscar lead por nome ou telefone"
+                  className={campoBusca}
+                />
+              </div>
+
+              {origemFiltro !== 'todas' && (
+                <button
+                  type="button"
+                  onClick={() => setOrigemFiltro('todas')}
+                  title="Remover o filtro de canal"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+                >
+                  {acharOrigem(origemFiltro).rotulo}
+                  <X className="h-3 w-3" aria-hidden="true" />
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={exportarLeads}
+                disabled={leadsVisiveis.length === 0}
+                title="Baixar em CSV tudo que está filtrado, não só esta página"
+                className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                Exportar
+              </button>
+            </div>
+
+            {leadsVisiveis.length === 0 ? (
             <div className="py-12 text-center space-y-1">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
                 <Bot className="h-6 w-6 text-muted-foreground/50" />
               </div>
-              <p className="text-sm font-medium">Nenhum lead neste período</p>
-              <p className="text-sm text-muted-foreground">{leads.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela crm_sombrear_ia'}</p>
+              <p className="text-sm font-medium">
+                {buscaDebounced ? 'Nenhum lead encontrado' : 'Nenhum lead neste período'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {buscaDebounced
+                  ? `Nada casa com "${buscaDebounced}"${origemFiltro !== 'todas' ? ` no canal ${acharOrigem(origemFiltro).rotulo}` : ''}.`
+                  : leads.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela crm_sombrear_ia'}
+              </p>
             </div>
           ) : (
             <>
@@ -755,12 +880,12 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                     <tr className={tabela.theadRow}>
                       <LeadTh label="Entrada"       k="created_at" />
                       <LeadTh label="Nome"           k="nome" />
-                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Origem</th>
+                      <LeadTh label="Origem" k="origem" />
                       <th className={cn(tabela.th, tabela.regua, 'text-center')}>WhatsApp</th>
                       <th className={cn(tabela.th, tabela.regua, 'text-center')}>Modelo / Ambiente</th>
-                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Último valor</th>
+                      <LeadTh label="Último valor" k="valor" />
                       <LeadTh label="Últ. mensagem"  k="timestamp_ultima_msg" />
-                      <th className={cn(tabela.th, tabela.regua, 'text-center')}>Status</th>
+                      <LeadTh label="Status" k="status" />
                       <th className="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold text-muted-foreground">Ação</th>
                     </tr>
                   </thead>
@@ -804,7 +929,16 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                               </span>
                             </td>
                             <td className="border-r border-border/20 px-4 py-3.5 text-center">
-                              <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
+                              {/* clicar no selo filtra por aquele canal — é o gesto que a
+                                  pessoa tenta ao ver a coluna e querer "só os do Google" */}
+                              <button
+                                type="button"
+                                onClick={() => setOrigemFiltro(acharOrigem(lead.origem).id)}
+                                title={`Ver só os leads de ${acharOrigem(lead.origem).rotulo}`}
+                                className="rounded-full transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                              >
+                                <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
+                              </button>
                             </td>
                             <td className="px-4 py-3.5 text-center border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
                               {lead.whatsapp ? (
@@ -1191,7 +1325,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 </div>
               )}
             </>
-          )
+          )}
+          </>
         )}
       </div>
 
