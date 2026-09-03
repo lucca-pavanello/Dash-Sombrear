@@ -47,6 +47,14 @@ export type CrmLead = {
   // extraídos do histórico da loja: o que o cliente reclamou / o que destravou a venda
   objecoes: string | null
   gatilhos: string | null
+  // etiquetas estruturadas da MESMA passada da classificar-conversas (09/2026). Vieram
+  // pra que o card de Insights pudesse CONTAR em vez de descrever em prosa: slug fixo
+  // de src/lib/insights/taxonomia.ts e src/lib/produtos.ts. Não confundir com `objecoes`
+  // logo acima, que é texto livre da importação do histórico e serve de insumo.
+  objecao_tags: string[] | null
+  objecao_outro: string | null
+  produto_familia: string | null
+  sensibilidade_preco: string | null
   // o que na conversa colocou o lead no estágio atual (frase curta, do agente)
   status_motivo: string | null
   // de onde a pessoa veio antes do WhatsApp (capturado na primeira mensagem)
