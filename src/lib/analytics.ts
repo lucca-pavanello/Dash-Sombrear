@@ -4,13 +4,10 @@ import type { Orcamento } from './supabase'
  * 98% das linhas de `orcamentos` são uso interno da calculadora
  * (fonte 'supervisor-custo'), não propostas a cliente. Métrica comercial
  * (funil, conversão, custo de venda) que mistura os dois mundos sai absurda —
- * foi o que gerou margem de -1851% na aba Análises.
+ * foi o que gerou margem de -1851% na aba Análises. Por isso todo cálculo
+ * abaixo (e em Relatórios/Análises) usa `o.fechado === true` como guardião
+ * universal de "isso é venda" — nunca o total de linhas da tabela.
  */
-export const isCalculoInterno = (o: Orcamento) =>
-  o.fechado !== true && o.fonte === 'supervisor-custo'
-
-export const isVenda = (o: Orcamento) => o.fechado === true
-
 export function calcPropensityScore(o: Orcamento, allData: Orcamento[]): number {
   if (o.fechado) return -1
   let score = 55

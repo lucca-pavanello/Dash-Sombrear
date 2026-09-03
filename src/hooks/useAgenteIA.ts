@@ -73,6 +73,56 @@ export function estaComEquipe(lead: Pick<CrmLead, 'chatwoot_labels' | 'precisa_h
     || (lead.precisa_humano ?? '').toLowerCase().trim() === 'sim'
 }
 
+/**
+ * Conversa que já estava rolando fora do funil ativo da Stella — importada só
+ * pra dar contexto à IA, nunca é lead "novo" de verdade. Duas origens conhecidas
+ * hoje, tratadas do mesmo jeito porque têm o mesmo efeito no relatório:
+ *  - `status_lead = 'historico'`: WhatsApp antigo da loja, importado de propósito.
+ *  - `status_lead = 'Novo'` (capitalizado, fora do vocabulário "1".."4" do agente
+ *    vivo — ver `SeloStatus.tsx`): confirmado em produção (03/09) que é gerado por
+ *    uma esteira diferente da extração ao vivo — 41% dos leads do banco (58/142)
+ *    tinham esse status, `ultimo_valor_cotado`/`modelo_interesse` SEMPRE vazios
+ *    mesmo quando o resumo já mostra orçamento enviado, e ~2/3 marcados
+ *    "IA observando" — o dono da loja conversando pessoalmente com cliente que
+ *    JÁ TINHA pedido em andamento (NFe, pagamento), não gente nova entrando.
+ * Sem excluir os dois, cada leva vira um monte de "leads novos" que nunca vira
+ * orçamento — inflando Leads sem nunca engordar Orçados/Vendas no funil.
+ */
+export function isLeadHistorico(lead: Pick<CrmLead, 'status_lead'>): boolean {
+  const v = (lead.status_lead ?? '').toLowerCase().trim()
+  return v === 'historico' || v === 'novo'
+}
+
+/**
+ * Telefone tolerante a formato pra casar uma venda da LOJA (digitada por gente,
+ * em `orcamentos.telefone`) com o lead do CRM que a originou (`whatsapp`,
+ * sempre no formato cru do WhatsApp). Tira o "55" do Brasil e o 9º dígito
+ * extra do celular, sobrando DDD + 8 dígitos — o bastante pra bater os dois
+ * lados sem exigir que a loja digite o telefone igualzinho ao WhatsApp.
+ */
+export function normalizarTelefone(v: string | null | undefined): string {
+  let d = String(v ?? '').replace(/\D/g, '')
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2)
+  if (d.length === 11) d = d.slice(0, 2) + d.slice(3)
+  return d
+}
+
+/** Telefone normalizado → lead, pra casar venda de balcão com quem já tinha conversado. */
+export function mapaLeadsPorTelefone(leads: CrmLead[]): Map<string, CrmLead> {
+  const mapa = new Map<string, CrmLead>()
+  for (const l of leads) {
+    const tel = normalizarTelefone(l.whatsapp ?? l.identificador_usuario)
+    if (tel && !mapa.has(tel)) mapa.set(tel, l)
+  }
+  return mapa
+}
+
+/** Acha o lead de origem de uma venda pelo telefone — undefined se não bater com ninguém. */
+export function acharLeadPorTelefone(mapa: Map<string, CrmLead>, telefone: string | null | undefined): CrmLead | undefined {
+  const tel = normalizarTelefone(telefone)
+  return tel ? mapa.get(tel) : undefined
+}
+
 export type OrcamentoIA = {
   id: string
   cliente_id: string | null
