@@ -156,11 +156,16 @@ function KPIGrid({ data, resetKey }: Props) {
       value: String(Math.round(animFechados)),
       icon: CheckCircle2,
       highlight: true,
-      sub: `${Math.round(animConv)}% conversão`,
-      tooltip: [`${fechados.length} de ${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''}`, `Taxa de conversão: ${convRate.toFixed(1)}%`],
+      sub: `${Math.round(animConv)}% da lista`,
+      // NÃO chamar de "taxa de conversão": a maioria das linhas de `orcamentos` é uso
+      // interno da calculadora, não lead que recebeu proposta — essa conta já foi
+      // removida de Análises por dar número sem significado (ver src/lib/analytics.ts).
+      // Aqui é só "quanto da lista filtrada já fechou", a taxa de conversão de
+      // verdade (por lead) mora em Relatórios → Por canal.
+      tooltip: [`${fechados.length} de ${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''}`, `${convRate.toFixed(1)}% desta lista está fechado`],
       back: [
         `${fechados.length} fechado${fechados.length !== 1 ? 's' : ''} de ${totalOrc} total`,
-        `Conversão: ${convRate.toFixed(1)}%`,
+        `${convRate.toFixed(1)}% da lista fechada`,
         totalOrc - fechados.length > 0 ? `${totalOrc - fechados.length} ainda em aberto` : 'Nenhum em aberto',
       ],
     },

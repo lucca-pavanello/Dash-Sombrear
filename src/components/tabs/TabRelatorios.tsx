@@ -5,16 +5,18 @@
  *  e o faturamento pelo Google foi tanto."
  *
  * Duas fontes que só agora se encontram: a origem nasce no lead (WhatsApp) e
- * o dinheiro mora no orçamento. Por isso a venda carrega o próprio canal em
- * `orcamentos.origem` — herdado do lead quando vem dele, marcado na mão no
- * Semanário quando é balcão. Sem esse campo o relatório seria um chute por
- * telefone, e telefone quase nunca bate.
+ * o dinheiro mora no orçamento. A venda carrega o canal em `orcamentos.origem`
+ * quando alguém marca na mão no Semanário — mas venda de balcão raramente tem
+ * isso preenchido. Pra essas, casamos pelo TELEFONE com um lead que já
+ * conversou com a Stella (`origemEfetiva`) — o pulo aqui é normalizar o
+ * telefone antes (tira o 55 e o 9º dígito extra), senão o número digitado na
+ * loja quase nunca bate igual ao do WhatsApp e o casamento não serve pra nada.
  */
 import { useMemo, useState } from 'react'
 import { BarChart3, ChevronRight, Download, Loader2, Thermometer, TrendingUp } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
-import { useCrmLeads } from '@/hooks/useAgenteIA'
+import { useCrmLeads, isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone } from '@/hooks/useAgenteIA'
 import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
@@ -61,16 +63,25 @@ export default function TabRelatorios() {
   const noPeriodo = useMemo(
     () => filterByPeriod(orcamentos, periodo, o => o.created_at, de || undefined, ate || undefined),
     [orcamentos, periodo, de, ate])
+  // Fora o histórico do WhatsApp da loja (importado só pra dar contexto à IA) —
+  // senão cada leva de conversa antiga vira um monte de "leads novos" no período.
+  const leadsVivos = useMemo(() => leads.filter(l => !isLeadHistorico(l)), [leads])
   const leadsNoPeriodo = useMemo(
-    () => filterByPeriod(leads, periodo, l => l.created_at, de || undefined, ate || undefined),
-    [leads, periodo, de, ate])
+    () => filterByPeriod(leadsVivos, periodo, l => l.created_at, de || undefined, ate || undefined),
+    [leadsVivos, periodo, de, ate])
+  // Telefone → lead, pra saber de onde veio uma venda de balcão sem canal marcado
+  // na mão — mesmo que ela tenha fechado fora do chat com a Stella.
+  const leadPorTelefone = useMemo(() => mapaLeadsPorTelefone(leads), [leads])
+  const origemEfetiva = (o: Orcamento) =>
+    o.origem || acharLeadPorTelefone(leadPorTelefone, o.telefone)?.origem || null
 
   /**
    * Uma linha por canal: quantos chegaram, quantos receberam preço, quantos
    * fecharam. "Orçados" vem do LEAD (recebeu valor no WhatsApp) — a tabela
    * `orcamentos` não serve de meio de funil porque 98% dela é uso interno da
-   * calculadora, não proposta a cliente. Venda conta de qualquer canal,
-   * inclusive balcão (aí só fechamento e faturamento, sem lead).
+   * calculadora, não proposta a cliente. Venda conta de qualquer canal —
+   * balcão puro cai em "Sem origem" só se o telefone também não bater com
+   * nenhum lead conhecido (ver `origemEfetiva`).
    */
   const porCanal = useMemo(() => {
     const recebeuPreco = (v: unknown) => {
@@ -91,7 +102,7 @@ export default function TabRelatorios() {
     }
     for (const o of noPeriodo) {
       if (!o.fechado) continue
-      const linha = pega(acharOrigem(o.origem).id)
+      const linha = pega(acharOrigem(origemEfetiva(o)).id)
       linha.fechamentos++
       linha.faturamento += receita(o)
     }
@@ -104,7 +115,7 @@ export default function TabRelatorios() {
         ticket: v.fechamentos > 0 ? v.faturamento / v.fechamentos : 0,
         conversao: v.leads > 0 ? (v.fechamentos / v.leads) * 100 : null,
       }))
-  }, [noPeriodo, leadsNoPeriodo])
+  }, [noPeriodo, leadsNoPeriodo, leadPorTelefone])
 
   /**
    * Qualidade do lead por canal — quantidade já a tabela acima mostra; isso mostra
@@ -142,10 +153,10 @@ export default function TabRelatorios() {
       }))
   }, [leadsNoPeriodo])
 
-  /** vendas fechadas ainda sem canal — é o que trava o relatório */
+  /** vendas fechadas ainda sem canal e sem lead conhecido pelo telefone — é o que trava o relatório */
   const semCanal = useMemo(
-    () => noPeriodo.filter(o => o.fechado && !o.origem).length,
-    [noPeriodo])
+    () => noPeriodo.filter(o => o.fechado && !o.origem && !acharLeadPorTelefone(leadPorTelefone, o.telefone)).length,
+    [noPeriodo, leadPorTelefone])
 
   const totais = useMemo(() => porCanal.reduce((s, c) => ({
     leads: s.leads + c.leads,
@@ -158,15 +169,15 @@ export default function TabRelatorios() {
   const porMes = useMemo(() => {
     const fechados = orcamentos.filter(o => o.fechado)
     const meses = [...new Set(fechados.map(o => mesDe(o.created_at)))].sort().slice(-6)
-    const canais = [...new Set(fechados.map(o => acharOrigem(o.origem).id))]
+    const canais = [...new Set(fechados.map(o => acharOrigem(origemEfetiva(o)).id))]
     return {
       meses,
       canais,
       valor: (mes: string, canal: string) => fechados
-        .filter(o => mesDe(o.created_at) === mes && acharOrigem(o.origem).id === canal)
+        .filter(o => mesDe(o.created_at) === mes && acharOrigem(origemEfetiva(o)).id === canal)
         .reduce((s, o) => ({ n: s.n + 1, total: s.total + receita(o) }), { n: 0, total: 0 }),
     }
-  }, [orcamentos])
+  }, [orcamentos, leadPorTelefone])
 
   async function exportarPdf() {
     setBaixando(true)
@@ -239,8 +250,9 @@ export default function TabRelatorios() {
             {semCanal} venda{semCanal > 1 ? 's' : ''} sem canal marcado
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Enquanto o canal não estiver preenchido, tudo cai em “Sem origem”. Marque em Semanário →
-            abrir a venda → <b>De onde veio este cliente</b>. Os que chegam pelo WhatsApp vêm preenchidos sozinhos.
+            Sem canal marcado e sem telefone que bata com um lead conhecido — por isso caem em “Sem origem”.
+            Marque em Semanário → abrir a venda → <b>De onde veio este cliente</b>. Os que chegam pelo
+            WhatsApp, ou cujo telefone bate com um lead que já conversou, vêm preenchidos sozinhos.
           </p>
         </div>
       )}

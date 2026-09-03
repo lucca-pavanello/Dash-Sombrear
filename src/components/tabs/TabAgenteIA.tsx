@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
-import { useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, estaComEquipe, STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA } from '@/hooks/useAgenteIA'
+import {
+  useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
+  isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone,
+  STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA,
+} from '@/hooks/useAgenteIA'
+import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { cn, formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/primitives'
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
@@ -107,9 +112,10 @@ function fmtTime(iso: string | null) {
 // ── Sistema de cores de status (paleta da marca) ──────────────────────────────
 
 
-function isConvertido(s: string | null) {
+/** viaVenda = achou uma venda fechada da LOJA (fora do chat) com o telefone deste lead. */
+function isConvertido(s: string | null, viaVenda = false) {
   const v = s?.toLowerCase().trim() ?? ''
-  return v === STATUS_CONVERTIDO || v === 'fechado'
+  return v === STATUS_CONVERTIDO || v === 'fechado' || viaVenda
 }
 function isAguardando(s: string | null) {
   // inclui o estágio "4" do agente: ele já fez o que podia, agora é humano
@@ -335,6 +341,9 @@ function CampoLead({ rotulo, valor, destaque }: {
 export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { data: leads = [], isLoading: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
   const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
+  // Vendas REAIS da loja (Semanário/Acompanhar) — usadas só pra achar, pelo telefone,
+  // um lead que fechou fora do chat (balcão, telefone) sem ninguém marcar "Converteu" nele.
+  const { data: orcamentosLoja = [] } = useOrcamentos()
   const { mutate: marcarConvertido, isPending: marcando } = useMarcarConvertido()
   const { mutate: definirOrigem, isPending: salvandoOrigem } = useDefinirOrigem()
   const { toasts, toast, dismiss } = useToast()
@@ -416,10 +425,22 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   // Conversas históricas do WhatsApp da loja (status_lead='historico') existem para a
   // leitura da IA — ficam FORA dos KPIs, do funil e da lista da operação viva da Stella,
   // senão meses de conversa antiga distorceriam as métricas do atendimento atual.
-  const { leadsVivos, historicos } = useMemo(() => {
-    const eHistorico = (l: CrmLead) => (l.status_lead ?? '').toLowerCase().trim() === 'historico'
-    return { leadsVivos: leads.filter(l => !eHistorico(l)), historicos: leads.filter(eHistorico) }
-  }, [leads])
+  const { leadsVivos, historicos } = useMemo(() => ({
+    leadsVivos: leads.filter(l => !isLeadHistorico(l)),
+    historicos: leads.filter(isLeadHistorico),
+  }), [leads])
+
+  // Telefone → lead, pra achar quem fechou no balcão sem passar pelo botão "Converteu".
+  const leadPorTelefone = useMemo(() => mapaLeadsPorTelefone(leads), [leads])
+  const convertidosPorTelefone = useMemo(() => {
+    const set = new Set<string>()
+    for (const o of orcamentosLoja) {
+      if (!o.fechado) continue
+      const lead = acharLeadPorTelefone(leadPorTelefone, o.telefone)
+      if (lead) set.add(lead.id)
+    }
+    return set
+  }, [orcamentosLoja, leadPorTelefone])
 
   // O período do lead é a ATIVIDADE (última mensagem), não a criação da linha:
   // um cliente antigo que volta a escrever hoje precisa aparecer em "hoje" — a linha
@@ -459,7 +480,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   // KPIs
   const { aguardando, convertidos, comMedicao, foraLeads, foraMsgs, mensagensTotais, valorTotal } = useMemo(() => ({
     aguardando:      filtrados.filter((l) => isAguardando(l.status_lead)),
-    convertidos:     filtrados.filter((l) => isConvertido(l.status_lead)),
+    convertidos:     filtrados.filter((l) => isConvertido(l.status_lead, convertidosPorTelefone.has(l.id))),
     comMedicao:      filtrados.filter((l) => !!l.data_medicao_instalacao?.trim()),
     foraLeads:       filtrados.filter((l) => isForaDoHorario(l.created_at)),
     foraMsgs:        filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg)),
@@ -736,7 +757,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                   <tbody>
                     {paginatedLeads.map((lead, rowIdx) => {
                       const aguard    = isAguardando(lead.status_lead)
-                      const conv      = isConvertido(lead.status_lead)
+                      const conv      = isConvertido(lead.status_lead, convertidosPorTelefone.has(lead.id))
                       const foraMsg   = isForaDoHorario(lead.timestamp_ultima_msg)
                       const foraEntr  = isForaDoHorario(lead.created_at)
                       const expanded  = expandedId === lead.id
@@ -997,7 +1018,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
               <div className="md:hidden divide-y">
                 {paginatedLeads.map((lead) => {
                   const aguard   = isAguardando(lead.status_lead)
-                  const conv     = isConvertido(lead.status_lead)
+                  const conv     = isConvertido(lead.status_lead, convertidosPorTelefone.has(lead.id))
                   const expanded = expandedId === lead.id
                   const emEspera = !conv && horasDecorridas(lead.timestamp_ultima_msg) > ESPERA_HORAS
                   return (
