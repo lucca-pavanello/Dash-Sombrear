@@ -218,8 +218,15 @@ ${produtos.join('\n') || 'nenhum produto identificado'}
 Responda SOMENTE com JSON válido neste formato:
 {"objecoes":["..."],"produtos":["..."],"preco":"...","acoes":[{"titulo":"...","porque":"...","regra":"..."}]}
 
-- "objecoes": até 4 frases. Cada uma explica uma objeção com o que ela significa na prática, citando o número real. Ordene pela contagem, não pela sua intuição.
-- "produtos": até 4 frases sobre o que está sendo pedido e onde a objeção se concentra.
+ESTILO DE ESCRITA (importante — é assim que a loja lê melhor):
+Comece a frase pelo ASSUNTO e ponha o detalhe concreto entre parênteses.
+Certo:  "Insegurança visual sobre tecidos (dúvidas de visibilidade entre Tela Solar 1% e 3%, 4 conversas, pedindo foto real)."
+Errado: "A maior incidência foi de insegurança visual, totalizando 4 conversas."
+Nunca abra com "A maior incidência foi", "Observa-se que", "Destaca-se", "É possível notar" nem
+com o número. O número entra dentro do parêntese, junto do detalhe.
+
+- "objecoes": até 4 frases nesse estilo. Cada uma nomeia a objeção e explica o que ela é na prática, com o número real no parêntese. Ordene pela contagem, não pela sua intuição.
+- "produtos": até 4 frases no mesmo estilo, sobre o que está sendo pedido e onde a objeção se concentra.
 - "preco": 2 a 3 frases sobre o quanto o preço pesa neste período, ancoradas nos números acima.
 - "acoes": 2 a 3 ações concretas, a mais valiosa primeiro. Em cada uma:
    · "titulo": o que fazer, em até 8 palavras.
@@ -408,19 +415,23 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
             </div>
           )}
 
+          {/* Bloco ÚNICO, corrido — sem cartão dentro de cartão. A leitura desce de cima
+              a baixo como um texto, que é o formato que funcionava antes: quem lê quer
+              percorrer o raciocínio inteiro, não visitar cinco caixinhas. A separação
+              entre seções é feita por respiro e peso de título, não por borda. */}
           {analise && (
-            <div className="mt-4 space-y-4 rounded-lg bg-muted/25 px-4 py-3.5">
+            <div className="mt-4 space-y-5 rounded-lg bg-muted/25 px-5 py-4">
               {([
                 ['Objeções mais comuns', analise.objecoes],
                 ['Produtos e tecidos mais pedidos', analise.produtos],
               ] as const).map(([titulo, itens]) =>
                 itens?.length ? (
                   <section key={titulo}>
-                    <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-foreground">{titulo}</h3>
-                    <ul className="space-y-1">
+                    <h3 className="mb-2 text-sm font-semibold text-foreground">{titulo}</h3>
+                    <ul className="space-y-1.5">
                       {itens.map((t, i) => (
-                        <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
-                          <span aria-hidden="true" className="select-none text-muted-foreground/50">·</span>
+                        <li key={i} className="flex gap-2 text-sm leading-relaxed text-foreground/85">
+                          <span aria-hidden="true" className="select-none text-muted-foreground/40">•</span>
                           <span>{t}</span>
                         </li>
                       ))}
@@ -431,29 +442,26 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
 
               {analise.preco && (
                 <section>
-                  <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-foreground">Sensibilidade a preço</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{analise.preco}</p>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Sensibilidade a preço</h3>
+                  <p className="text-sm leading-relaxed text-foreground/85">{analise.preco}</p>
                 </section>
               )}
 
               {/* As ações: a IA PROPÕE a regra pronta, quem aplica é gente. Nada daqui
-                  entra no prompt da Amanda sozinho — por decisão, não por limitação. */}
+                  entra no prompt da Amanda sozinho — por decisão, não por limitação.
+                  A regra fica recuada como citação (borda só à esquerda) em vez de num
+                  cartão: distingue do texto sem quebrar o fluxo da leitura. */}
               {analise.acoes?.length ? (
                 <section>
-                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-foreground">
-                    O que fazer a respeito
-                  </h3>
-                  <div className="space-y-2">
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">O que fazer a respeito</h3>
+                  <div className="space-y-3.5">
                     {analise.acoes.map((a, i) => (
-                      <div key={i} className="rounded-lg border bg-card px-3 py-2.5">
+                      <div key={i}>
                         <p className="text-sm font-medium text-foreground">{a.titulo}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{a.porque}</p>
+                        <p className="mt-0.5 text-sm leading-relaxed text-foreground/85">{a.porque}</p>
                         {a.regra && (
-                          <div className="mt-2 rounded-md bg-muted/50 px-2.5 py-2">
-                            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                              Regra sugerida para o prompt da Amanda
-                            </p>
-                            <p className="text-xs leading-relaxed text-foreground">{a.regra}</p>
+                          <div className="mt-1.5 border-l-2 border-primary/30 pl-3">
+                            <p className="text-sm italic leading-relaxed text-foreground/75">“{a.regra}”</p>
                             <button
                               onClick={async () => {
                                 try {
@@ -464,16 +472,16 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
                                   toast('error', 'Não consegui copiar — selecione o texto e copie à mão.')
                                 }
                               }}
-                              className="mt-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-primary"
+                              className="mt-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
                             >
-                              {copiada === i ? 'Copiado' : 'Copiar regra'}
+                              {copiada === i ? 'Copiado' : 'Copiar regra para o prompt'}
                             </button>
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
+                  <p className="mt-3 text-xs text-muted-foreground">
                     Sugestão da IA — nada é aplicado no prompt da Amanda automaticamente.
                     Você lê, edita se quiser, e aplica quando decidir.
                   </p>
