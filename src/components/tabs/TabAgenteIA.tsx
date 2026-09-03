@@ -23,7 +23,7 @@ import { Chave } from '@/components/agente/FollowupControle'
 import DatePicker from '@/components/ui/DatePicker'
 import SkeletonCard from '@/components/shared/SkeletonCard'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
-import InsightsStella from '@/components/agente/InsightsStella'
+import InsightsAmanda from '@/components/agente/InsightsAmanda'
 import ClassificadorConversas, { SeloClassificacao } from '@/components/agente/ClassificadorConversas'
 import FollowupControle from '@/components/agente/FollowupControle'
 import { useProfile } from '@/hooks/useProfile'
@@ -655,8 +655,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
            inclui as históricas de propósito: são o material mais rico de leitura */}
       <ClassificadorConversas leads={[...filtrados, ...historicos]} toast={toast} />
 
-      {/* ── Insights da Stella (síntese das conversas via Gemini) ── */}
-      <InsightsStella leads={leads} orcamentosIA={orcamentosIA} toast={toast} />
+      {/* ── Insights da Amanda: o que trava os clientes, contado por etiqueta ──
+           recebe `leads` cru de propósito: o card tem base própria (aplica período e
+           canal, mas não o corte de funil do isLeadHistorico) — o porquê está no arquivo */}
+      <InsightsAmanda
+        leads={leads}
+        periodo={periodo}
+        customFrom={customFrom || undefined}
+        customTo={customTo || undefined}
+        origemFiltro={origemFiltro}
+        idOrigem={(l) => acharOrigem(l.origem).id}
+        toast={toast}
+      />
 
       {/* ── Follow-up automático (só admin controla) ── */}
       {ehAdmin && <FollowupControle toast={toast} />}
