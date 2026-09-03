@@ -415,11 +415,11 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
             </div>
           )}
 
+          {/* Bloco ÚNICO, corrido — sem cartão dentro de cartão. A leitura desce de cima
+              a baixo como um texto, que é o formato que funcionava antes: quem lê quer
+              percorrer o raciocínio inteiro, não visitar cinco caixinhas. A separação
+              entre seções é feita por respiro e peso de título, não por borda. */}
           {analise && (
-            {/* Bloco ÚNICO, corrido — sem cartão dentro de cartão. A leitura desce de cima
-                a baixo como um texto, que é o formato que funcionava antes: quem lê quer
-                percorrer o raciocínio inteiro, não visitar cinco caixinhas. A separação
-                entre seções é feita por respiro e peso de título, não por borda. */}
             <div className="mt-4 space-y-5 rounded-lg bg-muted/25 px-5 py-4">
               {([
                 ['Objeções mais comuns', analise.objecoes],
