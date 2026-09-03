@@ -49,6 +49,20 @@ const COMERCIAIS = new Set(['venda', 'negociacao', 'perdida'])
 
 type Aba = 'objecoes' | 'produtos'
 
+/**
+ * A leitura em prosa — as mesmas seções que o card sempre teve, porque é ela que dá a
+ * interpretação qualitativa que contagem nenhuma dá. A diferença é que agora vem em JSON
+ * estruturado, e não como um blob de texto: o modelo antigo pedia negrito em *asterisco*
+ * e a tela renderizava com `whitespace-pre-line`, então os asteriscos apareciam literais.
+ */
+type Acao = { titulo: string; porque: string; regra: string }
+type Analise = {
+  objecoes?: string[]
+  produtos?: string[]
+  preco?: string
+  acoes?: Acao[]
+}
+
 /** mesma regra de data da aba: vale a última mensagem, não a criação da linha */
 function dataAtividade(l: CrmLead): string {
   const ultima = l.timestamp_ultima_msg ? new Date(l.timestamp_ultima_msg).getTime() : NaN
@@ -77,7 +91,8 @@ function Delta({ pct, rotulo }: { pct: number | null; rotulo: string }) {
 export default function InsightsAmanda({
   leads, periodo, customFrom, customTo, origemFiltro, idOrigem, toast,
 }: Props) {
-  const [analise, setAnalise] = useState<string | null>(null)
+  const [analise, setAnalise] = useState<Analise | null>(null)
+  const [copiada, setCopiada] = useState<number | null>(null)
   const [gerando, setGerando] = useState(false)
   const [aba, setAba] = useState<Aba>('objecoes')
   const [aberta, setAberta] = useState<string | null>(null)
@@ -169,25 +184,53 @@ export default function InsightsAmanda({
     if (gerando) return
     setGerando(true)
     try {
-      // A leitura em prosa agora vai em cima dos NÚMEROS já apurados, não de uma amostra
-      // de 40 conversas cruas: o modelo interpreta o que foi contado, em vez de estimar.
-      const topo = ranking.slice(0, 6).map(r => `${r.objecao.rotulo}: ${r.n} de ${base.analisadas.length} conversas`)
-      const produtos = porProduto.slice(0, 5).map(p => `${p.rotulo}: ${p.n}`)
+      // A análise continua sendo prosa — é ela que dá a leitura qualitativa que os
+      // números sozinhos não dão. O que mudou é a FUNDAÇÃO: antes o modelo recebia 40
+      // conversas cruas e estimava a ordem de importância (e errava: chamava de 2ª
+      // objeção mais comum uma que existia em 1 conversa). Agora recebe a contagem já
+      // apurada mais os motivos reais, então descreve sem inventar ênfase.
+      const topo = ranking.slice(0, 6).map(r => {
+        const exemplos = conversasDa(r.objecao.id)
+          .map(l => l.classificacao_motivo)
+          .filter(Boolean)
+          .slice(0, 3)
+        return `- ${r.objecao.rotulo}: ${r.n} de ${base.analisadas.length} conversas` +
+          (exemplos.length ? `\n    casos reais: ${exemplos.join(' / ')}` : '')
+      })
+      const produtos = porProduto.filter(p => p.id !== SEM_PRODUTO.id).slice(0, 5)
+        .map(p => `- ${p.rotulo}: ${p.n} conversas, ${p.comObjecao} com objeção`)
+      const sens = ['alta', 'media', 'baixa']
+        .map(s => `${s}: ${base.analisadas.filter(l => l.sensibilidade_preco === s).length}`)
+        .join(', ')
+
       const prompt = `Você é analista comercial da Sombrear (cortinas e persianas sob medida em Rio Preto).
-Abaixo estão CONTAGENS REAIS já apuradas das conversas de WhatsApp do período. Não são estimativas.
+Abaixo estão CONTAGENS REAIS já apuradas das conversas de WhatsApp do período — não são estimativas, não são amostra.
 
-Base: ${base.analisadas.length} conversas analisadas (${comerciais.length} são de venda; o resto é pós-venda ou conversa curta demais para julgar).
+Base: ${base.analisadas.length} conversas analisadas. Dessas, ${comerciais.length} são de venda; o resto é pós-venda ou conversa curta demais para julgar.
+Sensibilidade a preço declarada nas conversas — ${sens}.
 
-Objeções encontradas:
+OBJEÇÕES (com casos reais de cada uma):
 ${topo.join('\n') || 'nenhuma objeção registrada no período'}
 
-Produtos citados:
+PRODUTOS:
 ${produtos.join('\n') || 'nenhum produto identificado'}
 
-Escreva em português BR, no máximo 6 linhas, sem título e sem bullet:
-- o que esses números dizem sobre o atendimento agora;
-- a ÚNICA coisa mais valiosa a mudar, e por quê.
-Regras: não invente número que não está acima; não repita a lista; se a base for pequena, diga que é pequena em vez de generalizar.`
+Responda SOMENTE com JSON válido neste formato:
+{"objecoes":["..."],"produtos":["..."],"preco":"...","acoes":[{"titulo":"...","porque":"...","regra":"..."}]}
+
+- "objecoes": até 4 frases. Cada uma explica uma objeção com o que ela significa na prática, citando o número real. Ordene pela contagem, não pela sua intuição.
+- "produtos": até 4 frases sobre o que está sendo pedido e onde a objeção se concentra.
+- "preco": 2 a 3 frases sobre o quanto o preço pesa neste período, ancoradas nos números acima.
+- "acoes": 2 a 3 ações concretas, a mais valiosa primeiro. Em cada uma:
+   · "titulo": o que fazer, em até 8 palavras.
+   · "porque": o número que justifica, em uma frase.
+   · "regra": o texto PRONTO para colar no prompt da atendente Amanda (o agente de WhatsApp),
+     escrito como instrução direta a ela, em 1 a 3 frases. Ex.: "Quando o cliente perguntar
+     sobre visibilidade do tecido, envie a foto comparativa antes de mandar o valor."
+
+Regras: não invente número que não esteja acima. Não repita a lista crua — interprete.
+Se a base for pequena, diga que é pequena em vez de generalizar.
+A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra que negue esse serviço.`
 
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
         body: { contents: [{ role: 'user', parts: [{ text: prompt }] }] },
@@ -195,7 +238,11 @@ Regras: não invente número que não está acima; não repita a lista; se a bas
       if (error) throw new Error(error.message)
       const texto: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
       if (!texto.trim()) throw new Error('Resposta vazia')
-      setAnalise(texto.trim())
+      // gemini-chat é proxy cru e não força responseMimeType, então a resposta às vezes
+      // vem embrulhada em cerca de markdown — recorta do primeiro { ao último }
+      const a = texto.indexOf('{'), b = texto.lastIndexOf('}')
+      if (a < 0 || b <= a) throw new Error('A IA respondeu fora do formato. Tente de novo.')
+      setAnalise(JSON.parse(texto.slice(a, b + 1)) as Analise)
     } catch (err) {
       console.error('[InsightsAmanda]', err)
       toast('error', err instanceof Error ? err.message : 'Não foi possível gerar a leitura.')
@@ -362,8 +409,76 @@ Regras: não invente número que não está acima; não repita a lista; se a bas
           )}
 
           {analise && (
-            <div className="mt-4 rounded-lg bg-muted/25 px-4 py-3 text-sm leading-relaxed text-foreground">
-              {analise}
+            <div className="mt-4 space-y-4 rounded-lg bg-muted/25 px-4 py-3.5">
+              {([
+                ['Objeções mais comuns', analise.objecoes],
+                ['Produtos e tecidos mais pedidos', analise.produtos],
+              ] as const).map(([titulo, itens]) =>
+                itens?.length ? (
+                  <section key={titulo}>
+                    <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-foreground">{titulo}</h3>
+                    <ul className="space-y-1">
+                      {itens.map((t, i) => (
+                        <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+                          <span aria-hidden="true" className="select-none text-muted-foreground/50">·</span>
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null
+              )}
+
+              {analise.preco && (
+                <section>
+                  <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-foreground">Sensibilidade a preço</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{analise.preco}</p>
+                </section>
+              )}
+
+              {/* As ações: a IA PROPÕE a regra pronta, quem aplica é gente. Nada daqui
+                  entra no prompt da Amanda sozinho — por decisão, não por limitação. */}
+              {analise.acoes?.length ? (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-foreground">
+                    O que fazer a respeito
+                  </h3>
+                  <div className="space-y-2">
+                    {analise.acoes.map((a, i) => (
+                      <div key={i} className="rounded-lg border bg-card px-3 py-2.5">
+                        <p className="text-sm font-medium text-foreground">{a.titulo}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{a.porque}</p>
+                        {a.regra && (
+                          <div className="mt-2 rounded-md bg-muted/50 px-2.5 py-2">
+                            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Regra sugerida para o prompt da Amanda
+                            </p>
+                            <p className="text-xs leading-relaxed text-foreground">{a.regra}</p>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(a.regra)
+                                  setCopiada(i)
+                                  setTimeout(() => setCopiada(c => (c === i ? null : c)), 2000)
+                                } catch {
+                                  toast('error', 'Não consegui copiar — selecione o texto e copie à mão.')
+                                }
+                              }}
+                              className="mt-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-primary"
+                            >
+                              {copiada === i ? 'Copiado' : 'Copiar regra'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Sugestão da IA — nada é aplicado no prompt da Amanda automaticamente.
+                    Você lê, edita se quiser, e aplica quando decidir.
+                  </p>
+                </section>
+              ) : null}
             </div>
           )}
         </>
