@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, Suspense, useMemo } from 'react'
 import { flushSync } from 'react-dom'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ClipboardCheck, FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, TrendingUp, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, AlertTriangle, CircleDollarSign, Scissors } from 'lucide-react'
+import { ClipboardCheck, FileText, Bot, Calculator, Wallet, Sun, Moon, LogOut, ShieldCheck, BarChart2, ClipboardList, Package, Volume2, VolumeX, Sparkles, Tv2, TrendingUp, Users, X, LayoutDashboard, PackagePlus, ShoppingCart, MapPin, Truck, Zap, Settings, AlertTriangle, CircleDollarSign, Scissors, Store } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/hooks/useTheme'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
@@ -540,6 +540,7 @@ export default function Dashboard() {
     { id: 'fornecedores', label: 'Fornecedores',  icon: Truck           },
     { id: 'localizacoes', label: 'Localizações',  icon: MapPin          },
     { id: 'sobras',       label: 'Sobras',        icon: Scissors        },
+    { id: 'mercado-livre', label: 'Mercado Livre', icon: Store          },
     { id: 'analises',     label: 'Análises',      icon: BarChart2       },
     { id: 'acoes',        label: 'Ações',         icon: Zap             },
     { id: 'configuracao', label: 'Config.',        icon: Settings        },
