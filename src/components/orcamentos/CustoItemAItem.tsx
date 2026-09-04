@@ -87,7 +87,7 @@ export function TabelaCustoItem({ orcamento: o, reconstruindo, erro, onReconstru
 export function CartaoCustoItem(props: Props) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+      <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-foreground/45">
         Custo item a item
       </p>
       <TabelaCustoItem {...props} />
