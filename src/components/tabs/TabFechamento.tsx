@@ -1060,7 +1060,14 @@ export default function TabFechamento() {
       })()}
 
       {(() => {
-        const g = isAdmin ? grupos.find(x => x.pedidoId === confirmandoExcluirPedido) : undefined
+        // O `confirmandoExcluirPedido` precisa existir ANTES de procurar o grupo:
+        // venda avulsa também tem `pedidoId: null`, então `null === null` casava
+        // com a primeira venda solta da lista e o modal abria sozinho — e não
+        // fechava, porque cancelar devolve o estado pra null, que era a condição
+        // que o abria.
+        const g = isAdmin && confirmandoExcluirPedido
+          ? grupos.find(x => x.pedidoId === confirmandoExcluirPedido)
+          : undefined
         if (!g) return null
         const t = totaisGrupo(g.itens)
         return (
