@@ -179,7 +179,8 @@ export default function TabEstoque({ toast, subTab }: Props) {
             <h3 className="font-display text-sm font-semibold">Sobras</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Peças que sobraram de produção e não vão ser refeitas — é a última unidade de cada uma.
-              Filtre por largura e altura pra achar o que serve no vão do cliente.
+              Filtre por largura e altura pra achar o que serve no cliente. As medidas são da peça
+              pronta, não do vão: já saem no tamanho final, sem acréscimo.
             </p>
           </div>
           <SobrasTable toast={toast} />
