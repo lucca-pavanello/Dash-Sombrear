@@ -10,6 +10,7 @@ import FornecedoresTable from '@/components/estoque/FornecedoresTable'
 import EntradaRapidaForm from '@/components/estoque/EntradaRapidaForm'
 import EntradasHistoricoTable from '@/components/estoque/EntradasHistoricoTable'
 import LocalizacoesTable from '@/components/estoque/LocalizacoesTable'
+import SobrasTable from '@/components/estoque/SobrasTable'
 import AnalisesView from '@/components/estoque/AnalisesView'
 import AcoesView from '@/components/estoque/AcoesView'
 import SugestaoCompraView from '@/components/estoque/sugestao/SugestaoCompraView'
@@ -40,7 +41,7 @@ interface Props {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-const SUBTAB_ORDER = ['visao-geral', 'entradas', 'vendas', 'produtos', 'fornecedores', 'localizacoes', 'analises', 'acoes', 'configuracao', 'lead-time', 'mover', 'sugestao', 'ponto-pedido']
+const SUBTAB_ORDER = ['visao-geral', 'entradas', 'vendas', 'produtos', 'fornecedores', 'localizacoes', 'sobras', 'analises', 'acoes', 'configuracao', 'lead-time', 'mover', 'sugestao', 'ponto-pedido']
 
 export default function TabEstoque({ toast, subTab }: Props) {
   const navigate = useNavigate()
@@ -169,6 +170,19 @@ export default function TabEstoque({ toast, subTab }: Props) {
             </p>
           </div>
           <LocalizacoesTable toast={toast} />
+        </div>
+      )}
+
+      {subTab === 'sobras' && (
+        <div className="space-y-5">
+          <div>
+            <h3 className="font-display text-sm font-semibold">Sobras</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Peças que sobraram de produção e não vão ser refeitas — é a última unidade de cada uma.
+              Filtre por largura e altura pra achar o que serve no vão do cliente.
+            </p>
+          </div>
+          <SobrasTable toast={toast} />
         </div>
       )}
 
