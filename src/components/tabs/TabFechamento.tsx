@@ -593,7 +593,11 @@ export default function TabFechamento() {
       {emEdicao && (
         <tr>
           <td colSpan={8} className="bg-muted/20 px-4 py-4">
-            <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+            {/* Painel inline (mora dentro de um <td>): quem centraliza é o mx-auto
+                com largura máxima. Sem isso o card de custo estica de ponta a ponta
+                num monitor largo e o formulário de 320px fica espremido no canto.
+                minmax(0,1fr) segura a tabela interna (min-w-[420px]) dentro da coluna. */}
+            <div className="mx-auto grid w-full max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
               <CartaoCustoItem orcamento={o}
                 reconstruindo={reconstruindo === o.id}
                 erro={erroReconstruir[o.id]}
@@ -688,8 +692,10 @@ export default function TabFechamento() {
                 {erroAjuste && (
                   <p className="mt-2 text-[11px] font-medium text-destructive">{erroAjuste}</p>
                 )}
-                <div className="mt-3 flex gap-2">
-                  <Button variant="brand" size="sm" className="flex-1"
+                {/* min-w em vez de flex-1: era o flex-1 que fazia o Salvar ocupar a
+                    linha inteira quando o painel vira coluna única (abaixo de lg) */}
+                <div className="mt-3 flex items-center justify-end gap-x-3">
+                  <Button variant="brand" size="sm" className="min-w-[8rem]"
                     loading={salvandoAjuste} onClick={() => salvarAjuste(o)}>
                     {!salvandoAjuste && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                     Salvar
@@ -895,7 +901,7 @@ export default function TabFechamento() {
                       {emEdicaoPedido && (
                         <tr>
                           <td colSpan={8} className="bg-muted/20 px-4 py-4">
-                            <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+                            <div className="mx-auto grid w-full max-w-5xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
                             {/* Esquerda: como a conta foi feita, item a item — igual à venda solta,
                                 só que empilhado, porque o pedido tem mais de um item. */}
                             <div className="rounded-lg border border-border bg-card p-3">
@@ -988,8 +994,8 @@ export default function TabFechamento() {
                               {erroAjustePedido && (
                                 <p className="mt-2 text-[11px] font-medium text-destructive">{erroAjustePedido}</p>
                               )}
-                              <div className="mt-3 flex gap-2">
-                                <Button variant="brand" size="sm" className="flex-1"
+                              <div className="mt-3 flex items-center justify-end gap-x-3">
+                                <Button variant="brand" size="sm" className="min-w-[8rem]"
                                   loading={salvandoAjustePedido} onClick={() => salvarAjustePedido(g)}>
                                   {!salvandoAjustePedido && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                                   Salvar
