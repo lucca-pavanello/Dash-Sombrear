@@ -9,7 +9,7 @@ import { Fragment, Suspense, useMemo, useState } from 'react'
 import { lazyComRecarga } from '@/lib/lazyComRecarga'
 import {
   Check, CheckCircle2, ChevronDown, ChevronRight, Download, HandCoins, Layers, Link2, Loader2,
-  PencilLine, Plus, Trash2, Wallet, Wand2, X,
+  PencilLine, Plus, Trash2, Wallet, X,
 } from 'lucide-react'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import {
@@ -26,6 +26,7 @@ import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, 
 import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
 import JanelaDados from '@/components/orcamentos/JanelaDados'
 import ConfirmarExclusaoVenda from '@/components/orcamentos/ConfirmarExclusaoVenda'
+import { CartaoCustoItem, TabelaCustoItem, descricaoItem } from '@/components/orcamentos/CustoItemAItem'
 import { useProfile } from '@/hooks/useProfile'
 import { ADMIN_EMAIL } from '@/lib/constants'
 import { campoCompacto, tabela, kpi } from '@/components/shared/estilos'
@@ -50,6 +51,9 @@ const pago = (o: Orcamento) => o.valor_cobrado != null ? Number(o.valor_cobrado)
 /** o que REALMENTE foi pago à parceira */
 const pagoParceira = (o: Orcamento) =>
   o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : Number(o.valor_parceiro ?? 0)
+/** o que sobrou pra loja nesta venda: o que entrou menos o que saiu de verdade */
+const sobraItem = (o: Orcamento) =>
+  pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))
 const ajustado = (calc: number, real: number) => Math.abs(calc - real) >= 0.01
 // data do pedido manda quando foi informada; senão, a de criação
 const dataDe = (o: Orcamento) => o.data_pedido ? `${o.data_pedido}T12:00:00` : o.created_at
@@ -331,11 +335,22 @@ export default function TabFechamento() {
     return resultado.sort((a, b) => new Date(dataGrupo(b)).getTime() - new Date(dataGrupo(a)).getTime())
   }, [vendas, pedidosMap])
 
+  /**
+   * Totais do pedido. Além do dinheiro, devolve a porcentagem de sobra — a real
+   * (com os ajustes de mão) e a calculada (como o sistema tinha previsto), do
+   * mesmo jeito que a linha de uma venda solta mostra "57% · seria 59%".
+   */
   function totaisGrupo(itens: Orcamento[]) {
     const bruto = itens.reduce((s, o) => s + pago(o), 0)
     const parceira = itens.reduce((s, o) => s + pagoParceira(o), 0)
     const custo = itens.reduce((s, o) => s + (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o)), 0)
-    return { bruto, parceira, sobra: bruto - custo }
+    const brutoCalc = itens.reduce((s, o) => s + receita(o), 0)
+    const custoCalc = itens.reduce((s, o) => s + custoReal(o), 0)
+    return {
+      bruto, parceira, sobra: bruto - custo,
+      pctReal: bruto > 0 ? ((bruto - custo) / bruto) * 100 : 0,
+      pctCalc: brutoCalc > 0 ? ((brutoCalc - custoCalc) / brutoCalc) * 100 : 0,
+    }
   }
 
   function abrirAjustePedido(g: Grupo) {
@@ -467,7 +482,7 @@ export default function TabFechamento() {
               parcela,
               pg.forma,
               formatCurrency(pagoParceira(o)),
-              formatCurrency(pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))),
+              formatCurrency(sobraItem(o)),
             ]
           })
           if (g.itens.length < 2) return linhas
@@ -494,7 +509,7 @@ export default function TabFechamento() {
   function itemFragment(o: Orcamento, opts?: { sub?: boolean }) {
     const bruto = receita(o)
     const parceira = Number(o.valor_parceiro ?? 0)
-    const sobra = pago(o) - (o.valor_parceiro_pago != null ? Number(o.valor_parceiro_pago) : custoReal(o))
+    const sobra = sobraItem(o)
     const emEdicao = editando === o.id
     const sobraRascunho =
       (parseFloat(rascunho.cobrado.replace(',', '.')) || 0) -
@@ -579,53 +594,10 @@ export default function TabFechamento() {
         <tr>
           <td colSpan={8} className="bg-muted/20 px-4 py-4">
             <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-              <div className="rounded-lg border border-border bg-card p-3">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
-                  Custo item a item
-                </p>
-                {o.custos_detalhe?.length ? (
-                  <div className="overflow-x-auto">
-                  <table className="w-full min-w-[420px] text-xs">
-                    <thead>
-                      <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        <th className="pb-1 text-center font-bold">Parte</th>
-                        <th className="pb-1 text-center font-bold">Tabela</th>
-                        <th className="pb-1 text-center font-bold">Fator</th>
-                        <th className="pb-1 text-center font-bold">Custo real</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/40">
-                      {o.custos_detalhe.map((p, i) => (
-                        <tr key={i}>
-                          <td className="py-1.5 text-foreground">{p.parte}</td>
-                          <td className="py-1.5 text-center tabular-nums text-muted-foreground">{formatCurrency(p.tabela)}</td>
-                          <td className="py-1.5 text-center tabular-nums text-muted-foreground">{p.fator}</td>
-                          <td className="py-1.5 text-center font-semibold tabular-nums text-foreground">{formatCurrency(p.real)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Essa venda entrou sem a quebra por item. O que temos: produto{' '}
-                      {formatCurrency(Number(o.custo_tecido ?? 0))}
-                      {Number(o.custo_acabamento) > 0 && <> e acabamento {formatCurrency(Number(o.custo_acabamento))}</>}.
-                    </p>
-                    <Button variant="outline" size="sm" loading={reconstruindo === o.id}
-                      onClick={() => reconstruir(o.id)}>
-                      {reconstruindo !== o.id && <Wand2 className="h-3 w-3" aria-hidden="true" />}
-                      Reconstruir pelos dados da venda
-                    </Button>
-                    {erroReconstruir[o.id] && (
-                      <p className="text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
-                        {erroReconstruir[o.id]}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+              <CartaoCustoItem orcamento={o}
+                reconstruindo={reconstruindo === o.id}
+                erro={erroReconstruir[o.id]}
+                onReconstruir={() => reconstruir(o.id)} />
 
               <div className="rounded-lg border border-border bg-card p-3">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
@@ -890,12 +862,22 @@ export default function TabFechamento() {
                           {formatCurrency(t.parceira)}
                         </td>
                         <td className="px-4 py-3 text-center tabular-nums">
-                          <span className="block font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(t.sobra)}</span>
+                          {(() => {
+                            const mudouG = Math.abs(t.pctReal - t.pctCalc) >= 0.5
+                            return (
+                              <>
+                                <span className="block font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(t.sobra)}</span>
+                                <span className={cn('block text-[11px]', mudouG ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
+                                  {t.pctReal.toFixed(0)}%{mudouG && <> · seria {t.pctCalc.toFixed(0)}%</>}
+                                </span>
+                              </>
+                            )
+                          })()}
                         </td>
                         <td className="px-2 py-3 text-center">
                           <span className="flex items-center justify-center gap-1">
                             <button type="button" onClick={() => abrirAjustePedido(g)}
-                              title="Ajustar valores do pedido"
+                              title="Ver o custo item a item e ajustar valores"
                               className={cn('rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground',
                                 emEdicaoPedido ? 'bg-primary/10 text-primary' : 'text-muted-foreground/50')}>
                               <PencilLine className="h-3.5 w-3.5" />
@@ -913,9 +895,55 @@ export default function TabFechamento() {
                       {emEdicaoPedido && (
                         <tr>
                           <td colSpan={8} className="bg-muted/20 px-4 py-4">
-                            <div className="mx-auto max-w-md rounded-lg border border-border bg-card p-3">
+                            <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+                            {/* Esquerda: como a conta foi feita, item a item — igual à venda solta,
+                                só que empilhado, porque o pedido tem mais de um item. */}
+                            <div className="rounded-lg border border-border bg-card p-3">
                               <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
-                                Ajustar pedido ({g.itens.length} itens — o total é rateado proporcionalmente entre eles)
+                                Custo item a item
+                              </p>
+                              <div className="max-h-[26rem] space-y-3 overflow-y-auto">
+                                {g.itens.map((o, i) => (
+                                  <div key={o.id} className={cn(i > 0 && 'border-t border-border/50 pt-3')}>
+                                    <p className="mb-1.5 text-[11px] font-semibold text-foreground/70">{descricaoItem(o)}</p>
+                                    <TabelaCustoItem orcamento={o} contexto="item"
+                                      reconstruindo={reconstruindo === o.id}
+                                      erro={erroReconstruir[o.id]}
+                                      onReconstruir={() => reconstruir(o.id)} />
+                                    <p className="mt-1.5 text-[11px] tabular-nums text-muted-foreground">
+                                      Cliente pagou {formatCurrency(pago(o))} · à parceira {formatCurrency(pagoParceira(o))} ·
+                                      sobra <b className="text-emerald-600 dark:text-emerald-400">{formatCurrency(sobraItem(o))}</b>
+                                      {' '}({(pago(o) > 0 ? (sobraItem(o) / pago(o)) * 100 : 0).toFixed(0)}%)
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-3 flex items-baseline justify-between border-t border-border pt-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  Total do pedido
+                                </span>
+                                <span className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                  {formatCurrency(t.sobra)}{' '}
+                                  {(() => {
+                                    const mudouG = Math.abs(t.pctReal - t.pctCalc) >= 0.5
+                                    return (
+                                      <span className={cn('text-[11px] font-semibold',
+                                        mudouG ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
+                                        {t.pctReal.toFixed(0)}%{mudouG && <> · seria {t.pctCalc.toFixed(0)}%</>}
+                                      </span>
+                                    )
+                                  })()}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Direita: os campos do pedido, na mesma posição da venda solta */}
+                            <div className="rounded-lg border border-border bg-card p-3">
+                              <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                                Ajustar pedido
+                              </p>
+                              <p className="mb-2 text-[11px] text-muted-foreground">
+                                {g.itens.length} itens — o total é rateado proporcionalmente entre eles.
                               </p>
                               <div className="space-y-2">
                                 <div className="grid grid-cols-2 gap-2">
@@ -972,6 +1000,7 @@ export default function TabFechamento() {
                                   <X className="h-3.5 w-3.5" aria-hidden="true" />
                                 </Button>
                               </div>
+                            </div>
                             </div>
                           </td>
                         </tr>
