@@ -604,26 +604,26 @@ export default function TabFechamento() {
                 onReconstruir={() => reconstruir(o.id)} />
 
               <div className="rounded-lg border border-border bg-card p-3">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-foreground/45">
                   Ajustar valores
                 </p>
                 <div className="space-y-2">
                   <label className="block">
-                    <span className="text-[11px] text-muted-foreground">Cliente pagou</span>
-                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                    <span className="block text-center text-[11px] text-muted-foreground">Cliente pagou</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm tabular-nums')}
                       inputMode="decimal" value={rascunho.cobrado}
                       onChange={e => setRascunho(r => ({ ...r, cobrado: e.target.value }))} />
                   </label>
                   <label className="block">
-                    <span className="text-[11px] text-muted-foreground">À parceira</span>
-                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                    <span className="block text-center text-[11px] text-muted-foreground">À parceira</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm tabular-nums')}
                       inputMode="decimal" value={rascunho.parceira}
                       onChange={e => setRascunho(r => ({ ...r, parceira: e.target.value }))} />
                   </label>
                   <label className="block">
-                    <span className="text-[11px] text-muted-foreground">De onde veio este cliente</span>
+                    <span className="block text-center text-[11px] text-muted-foreground">De onde veio este cliente</span>
                     <select
-                      className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                      className={cn(campoCompacto, 'mt-0.5 text-center text-sm')}
                       value={rascunho.origem}
                       onChange={e => setRascunho(r => ({ ...r, origem: e.target.value }))}
                     >
@@ -632,8 +632,8 @@ export default function TabFechamento() {
                     </select>
                   </label>
                   <label className="block">
-                    <span className="text-[11px] text-muted-foreground">Em quantas vezes saiu?</span>
-                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                    <span className="block text-center text-[11px] text-muted-foreground">Em quantas vezes saiu?</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm tabular-nums')}
                       inputMode="numeric" placeholder="4"
                       value={rascunho.parcelasReal}
                       onChange={e => setRascunho(r => ({ ...r, parcelasReal: e.target.value }))} />
@@ -646,7 +646,7 @@ export default function TabFechamento() {
                         ? ` · +${(((v - base) / base) * 100).toFixed(1)}% de juros`
                         : ''
                       return (
-                        <span className="mt-1 block text-[11px] text-muted-foreground">
+                        <span className="mt-1 block text-center text-[11px] text-muted-foreground">
                           Fica registrado: <b className="text-foreground/80">{n}x de {formatCurrency(v / n)}{juros}</b>
                         </span>
                       )
@@ -654,47 +654,47 @@ export default function TabFechamento() {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="block">
-                      <span className="text-[11px] text-muted-foreground">Data do pedido</span>
+                      <span className="block text-center text-[11px] text-muted-foreground">Data do pedido</span>
                       <DatePicker value={rascunho.dataPedido}
                         onChange={v => { setRascunho(r => ({ ...r, dataPedido: v })); if (v) setErroAjuste(null) }}
-                        placeholder="dd/mm/aaaa" className="mt-0.5 w-full" />
+                        placeholder="dd/mm/aaaa" className="mt-0.5 w-full" triggerClassName="text-center" />
                     </label>
                     <label className="block">
-                      <span className="text-[11px] text-muted-foreground">Data de entrega</span>
+                      <span className="block text-center text-[11px] text-muted-foreground">Data de entrega</span>
                       <DatePicker value={rascunho.dataEntrega}
                         onChange={v => setRascunho(r => ({ ...r, dataEntrega: v }))}
-                        placeholder="dd/mm/aaaa" className="mt-0.5 w-full" />
+                        placeholder="dd/mm/aaaa" className="mt-0.5 w-full" triggerClassName="text-center" />
                     </label>
                     <label className="col-span-2 block">
-                      <span className="text-[11px] text-muted-foreground">Nº do pedido</span>
-                      <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                      <span className="block text-center text-[11px] text-muted-foreground">Nº do pedido</span>
+                      <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm')}
                         placeholder="ex.: 337" maxLength={20}
                         value={rascunho.numeroPedido}
                         onChange={e => setRascunho(r => ({ ...r, numeroPedido: e.target.value }))} />
                     </label>
                   </div>
                   <label className="block">
-                    <span className="text-[11px] text-muted-foreground">Observação do pagamento (opcional)</span>
-                    <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                    <span className="block text-center text-[11px] text-muted-foreground">Observação do pagamento (opcional)</span>
+                    <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm')}
                       placeholder="ex.: no link, PIX + cartão"
                       maxLength={120}
                       value={rascunho.formaReal}
                       onChange={e => setRascunho(r => ({ ...r, formaReal: e.target.value }))} />
                   </label>
                   <label className="block">
-                    <span className="text-[11px] text-muted-foreground">Sobra da loja (ajusta o valor do cliente)</span>
-                    <input className="mt-0.5 w-full rounded-md border border-emerald-500/40 bg-background px-2 py-1.5 text-right text-sm font-semibold tabular-nums text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/15 dark:text-emerald-400"
+                    <span className="block text-center text-[11px] text-muted-foreground">Sobra da loja (ajusta o valor do cliente)</span>
+                    <input className="mt-0.5 w-full rounded-md border border-emerald-500/40 bg-background px-2 py-1.5 text-center text-sm font-semibold tabular-nums text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/15 dark:text-emerald-400"
                       inputMode="decimal"
                       value={sobraRascunho.toFixed(2)}
                       onChange={e => mudarSobra(e.target.value)} />
                   </label>
                 </div>
                 {erroAjuste && (
-                  <p className="mt-2 text-[11px] font-medium text-destructive">{erroAjuste}</p>
+                  <p className="mt-2 text-center text-[11px] font-medium text-destructive">{erroAjuste}</p>
                 )}
                 {/* min-w em vez de flex-1: era o flex-1 que fazia o Salvar ocupar a
                     linha inteira quando o painel vira coluna única (abaixo de lg) */}
-                <div className="mt-3 flex items-center justify-end gap-x-3">
+                <div className="mt-3 flex items-center justify-center gap-x-3">
                   <Button variant="brand" size="sm" className="min-w-[8rem]"
                     loading={salvandoAjuste} onClick={() => salvarAjuste(o)}>
                     {!salvandoAjuste && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -905,7 +905,7 @@ export default function TabFechamento() {
                             {/* Esquerda: como a conta foi feita, item a item — igual à venda solta,
                                 só que empilhado, porque o pedido tem mais de um item. */}
                             <div className="rounded-lg border border-border bg-card p-3">
-                              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                              <p className="mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-foreground/45">
                                 Custo item a item
                               </p>
                               <div className="max-h-[26rem] space-y-3 overflow-y-auto">
@@ -945,30 +945,30 @@ export default function TabFechamento() {
 
                             {/* Direita: os campos do pedido, na mesma posição da venda solta */}
                             <div className="rounded-lg border border-border bg-card p-3">
-                              <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-foreground/45">
+                              <p className="mb-1 text-center text-[11px] font-bold uppercase tracking-wider text-foreground/45">
                                 Ajustar pedido
                               </p>
-                              <p className="mb-2 text-[11px] text-muted-foreground">
+                              <p className="mb-2 text-center text-[11px] text-muted-foreground">
                                 {g.itens.length} itens — o total é rateado proporcionalmente entre eles.
                               </p>
                               <div className="space-y-2">
                                 <div className="grid grid-cols-2 gap-2">
                                   <label className="block">
-                                    <span className="text-[11px] text-muted-foreground">Cliente pagou (total)</span>
-                                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                                    <span className="block text-center text-[11px] text-muted-foreground">Cliente pagou (total)</span>
+                                    <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm tabular-nums')}
                                       inputMode="decimal" value={rascunhoPedido.cobrado}
                                       onChange={e => setRascunhoPedido(r => ({ ...r, cobrado: e.target.value }))} />
                                   </label>
                                   <label className="block">
-                                    <span className="text-[11px] text-muted-foreground">À parceira (total)</span>
-                                    <input className={cn(campoCompacto, 'mt-0.5 text-right text-sm tabular-nums')}
+                                    <span className="block text-center text-[11px] text-muted-foreground">À parceira (total)</span>
+                                    <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm tabular-nums')}
                                       inputMode="decimal" value={rascunhoPedido.parceira}
                                       onChange={e => setRascunhoPedido(r => ({ ...r, parceira: e.target.value }))} />
                                   </label>
                                 </div>
                                 <label className="block">
-                                  <span className="text-[11px] text-muted-foreground">De onde veio este cliente</span>
-                                  <select className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                                  <span className="block text-center text-[11px] text-muted-foreground">De onde veio este cliente</span>
+                                  <select className={cn(campoCompacto, 'mt-0.5 text-center text-sm')}
                                     value={rascunhoPedido.origem}
                                     onChange={e => setRascunhoPedido(r => ({ ...r, origem: e.target.value }))}>
                                     <option value="">Não informada</option>
@@ -977,14 +977,14 @@ export default function TabFechamento() {
                                 </label>
                                 <div className="grid grid-cols-2 gap-2">
                                   <label className="block">
-                                    <span className="text-[11px] text-muted-foreground">Data do pedido</span>
+                                    <span className="block text-center text-[11px] text-muted-foreground">Data do pedido</span>
                                     <DatePicker value={rascunhoPedido.dataPedido}
                                       onChange={v => { setRascunhoPedido(r => ({ ...r, dataPedido: v })); if (v) setErroAjustePedido(null) }}
-                                      placeholder="dd/mm/aaaa" className="mt-0.5 w-full" />
+                                      placeholder="dd/mm/aaaa" className="mt-0.5 w-full" triggerClassName="text-center" />
                                   </label>
                                   <label className="block">
-                                    <span className="text-[11px] text-muted-foreground">Nº do pedido</span>
-                                    <input className={cn(campoCompacto, 'mt-0.5 text-sm')}
+                                    <span className="block text-center text-[11px] text-muted-foreground">Nº do pedido</span>
+                                    <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm')}
                                       placeholder="ex.: 337" maxLength={20}
                                       value={rascunhoPedido.numeroPedido}
                                       onChange={e => setRascunhoPedido(r => ({ ...r, numeroPedido: e.target.value }))} />
@@ -992,9 +992,9 @@ export default function TabFechamento() {
                                 </div>
                               </div>
                               {erroAjustePedido && (
-                                <p className="mt-2 text-[11px] font-medium text-destructive">{erroAjustePedido}</p>
+                                <p className="mt-2 text-center text-[11px] font-medium text-destructive">{erroAjustePedido}</p>
                               )}
-                              <div className="mt-3 flex items-center justify-end gap-x-3">
+                              <div className="mt-3 flex items-center justify-center gap-x-3">
                                 <Button variant="brand" size="sm" className="min-w-[8rem]"
                                   loading={salvandoAjustePedido} onClick={() => salvarAjustePedido(g)}>
                                   {!salvandoAjustePedido && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
