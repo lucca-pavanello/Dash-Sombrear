@@ -7,6 +7,12 @@ import { supabase } from '@/lib/supabase'
  * Não confundir com `estoque_produtos`, que é saldo escalar de insumo de compra. Aqui
  * cada linha é UMA peça específica, com largura e altura próprias, que existe uma vez só
  * — por isso não tem quantidade: vender é mudar o status, não decrementar.
+ *
+ * ⚠️ AS MEDIDAS SÃO FINAIS, NÃO DE VÃO. A peça já está cortada, então o número é o
+ * tamanho real dela. No fluxo normal da loja o cliente informa o VÃO e a peça sai maior;
+ * aqui esse passo já aconteceu — nada de acréscimo em cima destes valores.
+ * Isso importa no dia em que alguém for casar sobra com pedido: os dois lados falam
+ * línguas diferentes (cliente dá vão, sobra é final), e comparar direto daria errado.
  */
 export type StatusSobra = 'disponivel' | 'reservada' | 'vendida'
 

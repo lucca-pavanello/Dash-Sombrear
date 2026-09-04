@@ -42,8 +42,17 @@ create table if not exists public.estoque_sobras (
 
 comment on table public.estoque_sobras is
   'Peças prontas que sobraram de produção — última unidade, não se refaz. Lida pelos vendedores no dash.';
+
+-- MEDIDA FINAL, NÃO MEDIDA DE VÃO. A peça já existe cortada, então o número aqui é o
+-- tamanho real dela. No fluxo normal da loja o cliente informa o VÃO e a peça sai maior;
+-- aqui esse passo já aconteceu. Quem for casar sobra com pedido um dia precisa lembrar
+-- que os dois lados falam línguas diferentes: o cliente dá vão, a sobra é final.
+comment on column public.estoque_sobras.largura_m is
+  'Medida FINAL da peça pronta, não do vão. Nunca aplicar acréscimo de vão sobre este valor.';
+comment on column public.estoque_sobras.altura_m is
+  'Medida FINAL da peça pronta, não do vão. Nunca aplicar acréscimo de vão sobre este valor.';
 comment on column public.estoque_sobras.area_m2 is
-  'Calculada pelo banco (largura x altura). Nunca calcular na tela, pra não divergir da ordenação.';
+  'largura x altura, multiplicação pura. NÃO é área de cobrança: o piso de 1,20 m2 (1,50 na PV) do motor é regra de preço, não de tamanho.';
 comment on column public.estoque_sobras.origem is
   'Folha/página de origem da transcrição — serve pra auditar a leitura das fotos.';
 
