@@ -18,7 +18,9 @@ const corsHeaders = {
 }
 
 const ADMIN_EMAIL = 'luccapavanallo@gmail.com'
-const MODELOS = new Set(['Rolo', 'Double', 'Romana', 'PV', 'PH_Aluminio', 'PH_50', 'Rolo Motorizado'])
+const MODELOS = new Set(['Rolo', 'Double', 'Romana', 'PV', 'PH_Aluminio', 'PH_50', 'Rolo Motorizado', 'Bandô', 'Acessório'])
+/** item avulso (sem persiana): a escolha vai em `artigo` e o tecido fica vazio */
+const AVULSOS = new Set(['Bandô', 'Acessório'])
 const ACABAMENTOS = new Set(['nenhum', 'bando_branco', 'bando_preto', 'barra', 'kit_box'])
 /** caminho inverso do rótulo: o que está salvo em orcamentos.acabamentos */
 const ACABAMENTO_DA_VENDA: Record<string, string> = {
@@ -69,16 +71,25 @@ Deno.serve(async (req) => {
 
     // ══════════════ OPÇÕES (nomes apenas, sem preços) ══════════════
     if (acao === 'opcoes') {
-      const [{ data: tec }, { data: art }, { data: p50 }] = await Promise.all([
+      const [{ data: tec }, { data: art }, { data: p50 }, { data: comp }] = await Promise.all([
         db.from('precos_tecidos_vigentes').select('nome').order('nome'),
         db.from('precos_artigos').select('categoria, nome').order('nome'),
         db.from('precos_ph50').select('modelo, cor').order('modelo'),
+        db.from('precos_ferragem_componentes').select('id, familia, cor, espessura, item, tipo_custo')
+          .order('familia').order('cor').order('espessura').order('item'),
       ])
       return resposta(200, {
         tecidos: [...new Set((tec ?? []).map(t => t.nome))],
         artigosPV: (art ?? []).filter(a => a.categoria === 'PV').map(a => a.nome),
         artigosPH: (art ?? []).filter(a => a.categoria === 'PH_ALUMINIO').map(a => a.nome),
         ph50: (p50 ?? []).map(p => ({ valor: `${p.modelo}|${p.cor}`, label: `${String(p.modelo).trim()} · ${p.cor}` })),
+        // peças de ferragem vendidas avulsas — só o nome, o preço fica no servidor
+        componentes: (comp ?? []).map(c => ({
+          valor: String(c.id),
+          label: `${c.familia === 'DOUBLE' ? 'Double' : 'Rolô'} ${String(c.cor).toLowerCase()}`
+            + `${Number(c.espessura) > 0 ? ` ${c.espessura}mm` : ''} · ${c.item}`
+            + `${c.tipo_custo === 'por_metro' || c.tipo_custo === 'opcional_ml' ? ' (por metro)' : ''}`,
+        })),
       })
     }
 
@@ -96,7 +107,7 @@ Deno.serve(async (req) => {
         .eq('id', String(body.id ?? '')).single()
       if (!o) return resposta(404, { error: 'Orçamento não encontrado' })
       if (o.custos_detalhe) return resposta(200, { erro: 'Essa venda já tem a quebra.' })
-      if (!MODELOS.has(String(o.modelo))) {
+      if (!MODELOS.has(String(o.modelo)) || AVULSOS.has(String(o.modelo))) {
         return resposta(200, {
           erro: `${o.modelo} não passa pelo motor do simulador (o motor não entra no cálculo), então a quebra teria que ser chutada.`,
         })
@@ -245,6 +256,8 @@ Deno.serve(async (req) => {
       const margem = receita > 0 ? ((receita - custoTotal) / receita) * 100 : null
       const obs = [
         'Criado no Simulador de balcão.',
+        // avulso não tem tecido — a peça vendida fica registrada aqui
+        AVULSOS.has(entrada.modelo) && r.detalhe[0] ? `Item: ${r.detalhe[0].parte}.` : null,
         r.instalacao === 'sob_consulta' ? 'Instalação sob consulta.' : null,
         r.emPromocao ? `Tecido em promoção (−${r.descontoPct ?? '?'}%).` : null,
         ...r.observacoes,
@@ -256,7 +269,7 @@ Deno.serve(async (req) => {
         telefone,
         ambiente,
         modelo: entrada.modelo,
-        tecido: entrada.tecido ?? entrada.artigo ?? null,
+        tecido: AVULSOS.has(entrada.modelo) ? '' : (entrada.tecido ?? entrada.artigo ?? null),   // coluna NOT NULL: avulso vai vazio
         largura: entrada.largura || null,
         altura: entrada.altura || null,
         quantidade: entrada.quantidade,

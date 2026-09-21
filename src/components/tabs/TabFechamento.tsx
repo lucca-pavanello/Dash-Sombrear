@@ -153,7 +153,7 @@ export default function TabFechamento() {
   // ── grupos de pedido (itens com o mesmo pedido_id viram um pedido só) ──
   const [abertos, setAbertos] = useState<Set<string>>(new Set())
   const [editandoPedido, setEditandoPedido] = useState<string | null>(null)
-  const [rascunhoPedido, setRascunhoPedido] = useState({ numeroPedido: '', dataPedido: '', origem: '', cobrado: '', parceira: '' })
+  const [rascunhoPedido, setRascunhoPedido] = useState({ numeroPedido: '', dataPedido: '', dataEntrega: '', origem: '', cobrado: '', parceira: '' })
   const [erroAjustePedido, setErroAjustePedido] = useState<string | null>(null)
   const [salvandoAjustePedido, setSalvandoAjustePedido] = useState(false)
   const [confirmandoExcluirPedido, setConfirmandoExcluirPedido] = useState<string | null>(null)
@@ -361,6 +361,8 @@ export default function TabFechamento() {
     setRascunhoPedido({
       numeroPedido: g.pedido?.numero_pedido ?? g.itens[0].numero_pedido ?? '',
       dataPedido: g.pedido?.data_pedido ?? g.itens[0].data_pedido ?? '',
+      // a entrega mora em cada item; o pedido é entregue junto, então vale a do primeiro
+      dataEntrega: g.itens[0].data_entrega ?? '',
       origem: acharOrigem(g.pedido?.origem ?? g.itens[0].origem).id === SEM_ORIGEM.id ? '' : acharOrigem(g.pedido?.origem ?? g.itens[0].origem).id,
       cobrado: t.bruto.toFixed(2),
       parceira: t.parceira.toFixed(2),
@@ -389,16 +391,15 @@ export default function TabFechamento() {
       // rateia o total (cliente pagou / à parceira) proporcional ao peso calculado de cada item
       const cobradoTotal = numero(rascunhoPedido.cobrado)
       const parceiraTotal = numero(rascunhoPedido.parceira)
-      if (cobradoTotal != null || parceiraTotal != null) {
-        const cobrados = cobradoTotal != null ? ratear(cobradoTotal, g.itens.map(o => receita(o))) : null
-        const parceiras = parceiraTotal != null ? ratear(parceiraTotal, g.itens.map(o => Number(o.valor_parceiro ?? 0))) : null
-        for (let i = 0; i < g.itens.length; i++) {
-          const patch: Record<string, number | null> = {}
-          if (cobrados) patch.valor_cobrado = cobrados[i]
-          if (parceiras) patch.valor_parceiro_pago = parceiras[i]
-          const { error } = await supabase.from('orcamentos').update(patch).eq('id', g.itens[i].id)
-          if (error) throw error
-        }
+      const cobrados = cobradoTotal != null ? ratear(cobradoTotal, g.itens.map(o => receita(o))) : null
+      const parceiras = parceiraTotal != null ? ratear(parceiraTotal, g.itens.map(o => Number(o.valor_parceiro ?? 0))) : null
+      for (let i = 0; i < g.itens.length; i++) {
+        // a data de entrega vale para o pedido inteiro — vai em todos os itens
+        const patch: Record<string, number | string | null> = { data_entrega: rascunhoPedido.dataEntrega || null }
+        if (cobrados) patch.valor_cobrado = cobrados[i]
+        if (parceiras) patch.valor_parceiro_pago = parceiras[i]
+        const { error } = await supabase.from('orcamentos').update(patch).eq('id', g.itens[i].id)
+        if (error) throw error
       }
       setEditandoPedido(null)
       await refetch()
@@ -983,6 +984,12 @@ export default function TabFechamento() {
                                       placeholder="dd/mm/aaaa" className="mt-0.5 w-full" triggerClassName="text-center" />
                                   </label>
                                   <label className="block">
+                                    <span className="block text-center text-[11px] text-muted-foreground">Data de entrega</span>
+                                    <DatePicker value={rascunhoPedido.dataEntrega}
+                                      onChange={v => setRascunhoPedido(r => ({ ...r, dataEntrega: v }))}
+                                      placeholder="dd/mm/aaaa" className="mt-0.5 w-full" triggerClassName="text-center" />
+                                  </label>
+                                  <label className="col-span-2 block">
                                     <span className="block text-center text-[11px] text-muted-foreground">Nº do pedido</span>
                                     <input className={cn(campoCompacto, 'mt-0.5 text-center text-sm')}
                                       placeholder="ex.: 337" maxLength={20}

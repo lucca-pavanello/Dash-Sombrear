@@ -465,3 +465,31 @@ describe('cortina — orçamento de vários ambientes (o desenho do Calcular)', 
     expect(r.subtotal).toBeCloseTo(1220.83, 2)   // 2 × 610,4166…, arredondado no fim
   })
 })
+
+describe('item avulso — só bandô ou só peça de ferragem (pedido do Semanário, 20/09)', () => {
+  const avulso = (extra: Partial<EntradaSim>): EntradaSim => rolo({ tecido: undefined, altura: 0, ...extra })
+
+  it('2 bandôs brancos de 1,80m: degrau 2,00m da tabela (R$ 79,10 cada), venda com markup de acabamento', () => {
+    const r = okOuFalha(simular(avulso({ modelo: 'Bandô', artigo: 'BRANCO', largura: 1.8, quantidade: 2 }), dPersiana))
+    // 2,00 × 34,35 + 2 × (0,90 + 1,80) + 5,00 = 79,10 por bandô
+    expect(r.custoTabela).toBeCloseTo(158.2, 2)
+    expect(r.valorParceiro).toBeCloseTo(189.84, 2)      // × 1,2 da parceira
+    expect(r.total4x).toBeCloseTo(391.1, 2)             // 158,20 × 2,2 × 1,06²
+    expect(r.detalhe[0].parte).toBe('Bandô branco — 2,00m × 2')
+  })
+
+  it('tubo 38 avulso de 1,75m: cobrado por metro em 1,80m', () => {
+    const r = okOuFalha(simular(avulso({ modelo: 'Acessório', artigo: '134', largura: 1.75 }), dPersiana))
+    expect(r.custoTabela).toBeCloseTo(26.64, 2)
+    expect(r.total4x).toBeCloseTo(83.9, 2)
+  })
+
+  it('peça fixa (comando 38) não precisa de largura', () => {
+    const r = okOuFalha(simular(avulso({ modelo: 'Acessório', artigo: '138', largura: 0, quantidade: 2 }), dPersiana))
+    expect(r.custoTabela).toBeCloseTo(31.8, 2)
+  })
+
+  it('bandô sem largura é recusado', () => {
+    expect(simular(avulso({ modelo: 'Bandô', artigo: 'PRETO', largura: 0 }), dPersiana)).toHaveProperty('erro')
+  })
+})
