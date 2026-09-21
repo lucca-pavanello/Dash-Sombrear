@@ -9,7 +9,9 @@ import type {
   PrecoPh50, PrecoRomanaMatriz, PrecoTecidoVigente,
 } from '@/hooks/usePrecos'
 
-export type ModeloSim = 'Rolo' | 'Double' | 'Romana' | 'PV' | 'PH_Aluminio' | 'PH_50' | 'Rolo Motorizado'
+/** 'Bandô' e 'Acessório' = item avulso, sem persiana (bandô de reposição, peça de ferragem).
+ *  O item vai em `artigo`: a cor do bandô ('BRANCO'/'PRETO') ou o id do componente de ferragem. */
+export type ModeloSim = 'Rolo' | 'Double' | 'Romana' | 'PV' | 'PH_Aluminio' | 'PH_50' | 'Rolo Motorizado' | 'Bandô' | 'Acessório'
 export type AcabamentoSim = 'nenhum' | 'bando_branco' | 'bando_preto' | 'barra' | 'kit_box'
 
 export interface EntradaSim {
@@ -96,7 +98,10 @@ const fmtR$ = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
 export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: string } {
   const { largura: L, altura: A, quantidade: qtd } = e
-  if (!(L > 0) || !(A > 0) || !(qtd > 0)) return { erro: 'Preencha largura, altura e quantidade' }
+  // item avulso não tem altura: bandô e ferragem são cobrados pela largura
+  const avulso = e.modelo === 'Bandô' || e.modelo === 'Acessório'
+  if (!avulso && (!(L > 0) || !(A > 0) || !(qtd > 0))) return { erro: 'Preencha largura, altura e quantidade' }
+  if (avulso && !(qtd > 0)) return { erro: 'Preencha a quantidade' }
 
   const param = (chave: string, padrao: number) => {
     const p = d.parametros.find(x => x.chave === chave)
@@ -380,6 +385,39 @@ export function simular(e: EntradaSim, d: DadosSim): ResultadoSim | { erro: stri
     } else {
       vendaProduto = ceil10c(custoProduto * mkVenda * taxa2)
       vendaAcabamento = custoAcabamento > 0 ? ceil10c(custoAcabamento * mkAcab * taxa2) : 0
+    }
+  }
+
+  /* ── item avulso: só o bandô ou só uma peça de ferragem, sem persiana ──
+     Mesmas regras de largura da persiana: bandô no degrau ≥ L da tabela; peça
+     por metro na largura arredondada para cima em 10cm. A venda usa o markup
+     que a peça teria dentro da persiana (bandô = acabamento, ferragem = produto). */
+  if (avulso) {
+    if (!e.artigo) return { erro: e.modelo === 'Bandô' ? 'Escolha a cor do bandô' : 'Escolha a peça' }
+    if (e.modelo === 'Bandô') {
+      if (!(L > 0)) return { erro: 'Preencha a largura do bandô' }
+      const cor = e.artigo === 'PRETO' ? 'PRETO' : 'BRANCO'
+      const cb = custoBando(cor, L)
+      if (cb == null) return { erro: 'Bandô sem parâmetros no banco' }
+      custoProduto = cb * qtd
+      somaReal(custoProduto, `parceiro_bando_${cor.toLowerCase()}`, 'produto',
+        `Bandô ${cor === 'BRANCO' ? 'branco' : 'preto'} — ${fmtM(larguraBando)}` + (qtd > 1 ? ` × ${qtd}` : ''))
+      vendaProduto = ceil10c(custoProduto * param('markup_acabamento', 2.2) * taxa2)
+    } else {
+      const comp = d.componentes.find(c => String(c.id) === String(e.artigo))
+      if (!comp) return { erro: 'Peça não encontrada na tabela de ferragens' }
+      const porMetro = comp.tipo_custo === 'por_metro' || comp.tipo_custo === 'opcional_ml'
+      if (porMetro && !(L > 0)) return { erro: 'Preencha a largura — essa peça é cobrada por metro' }
+      const largPeca = Math.ceil(L * 10 - 1e-9) / 10
+      const unit = porMetro ? Number(comp.valor) * largPeca : Number(comp.valor)
+      custoProduto = unit * qtd
+      const cor = String(comp.cor).toLowerCase()
+      const chave = comp.familia === 'DOUBLE'
+        ? `parceiro_ferragem_double_${cor}`
+        : `parceiro_ferragem_rolo_${cor}_${Number(comp.espessura)}`
+      somaReal(custoProduto, chave, 'produto',
+        `${comp.item}${porMetro ? ` — ${fmtM(largPeca)}` : ''}` + (qtd > 1 ? ` × ${qtd}` : ''))
+      vendaProduto = ceil10c(custoProduto * param('markup_venda', 2.8) * taxa2)
     }
   }
 

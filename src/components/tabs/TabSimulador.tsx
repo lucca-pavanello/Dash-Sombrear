@@ -38,13 +38,68 @@ const MODELOS = [
   { id: 'PV', label: 'PV' },
   { id: 'PH_Aluminio', label: 'PH Alumínio' },
   { id: 'PH_50', label: 'PH 50mm' },
+  // sem persiana: bandô de reposição ou peça de ferragem (vira Bandô/Acessório no motor)
+  { id: 'Avulso', label: 'Só bandô / acessório' },
 ]
+
+const COM_TECIDO = new Set(['Rolo', 'Double', 'Romana', 'Rolo Motorizado'])
+
+/** O produto de uma linha de medida — a principal usa o do topo; uma extra pode ter o seu. */
+interface Prod {
+  modelo: string
+  tecido: string
+  artigo: string
+  acabamento: string
+  corFerragem: 'BRANCA' | 'PRETA'
+  avulsoTipo: 'bando' | 'componente'
+}
+
+/** modelo que o motor entende: "Só bandô / acessório" vira Bandô ou Acessório */
+const modeloMotor = (p: Pick<Prod, 'modelo' | 'avulsoTipo'>) =>
+  p.modelo === 'Avulso' ? (p.avulsoTipo === 'bando' ? 'Bandô' : 'Acessório') : p.modelo
+/** bandô e acessório avulsos são cobrados só pela largura */
+const precisaAltura = (p: Prod) => p.modelo !== 'Avulso'
+/** peça de ferragem fixa (comando, tampa…) não tem largura — o motor recusa se for por metro */
+const temMedida = (p: Prod, l: number, a: number) =>
+  p.modelo === 'Avulso' ? (p.avulsoTipo === 'componente' || l > 0) : l > 0 && a > 0
+const prodCompleto = (p: Prod) => COM_TECIDO.has(p.modelo) ? !!p.tecido : !!p.artigo
+/** os campos de `entrada` que mudam de uma linha pra outra */
+const camposProd = (p: Prod) => ({
+  modelo: modeloMotor(p),
+  tecido: COM_TECIDO.has(p.modelo) ? (p.tecido || undefined) : undefined,
+  artigo: !COM_TECIDO.has(p.modelo) ? (p.artigo || undefined) : undefined,
+  acabamento: COM_TECIDO.has(p.modelo) ? p.acabamento : 'nenhum',
+  corFerragem: p.corFerragem,
+})
+
+/** o seletor do "item" de cada modelo: tecido, artigo, cor do bandô ou peça de ferragem */
+function opcoesItem(p: Prod, o: Opcoes | undefined): { rotulo: string; options: { value: string; label: string }[] } {
+  const simples = (xs: string[] | undefined) => (xs ?? []).map(x => ({ value: x, label: x }))
+  if (COM_TECIDO.has(p.modelo)) return { rotulo: 'Tecido', options: simples(o?.tecidos) }
+  if (p.modelo === 'PV') return { rotulo: 'Artigo', options: simples(o?.artigosPV) }
+  if (p.modelo === 'PH_Aluminio') return { rotulo: 'Artigo', options: simples(o?.artigosPH) }
+  if (p.modelo === 'PH_50') return { rotulo: 'Modelo / cor', options: (o?.ph50 ?? []).map(i => ({ value: i.valor, label: i.label })) }
+  if (p.avulsoTipo === 'bando') return { rotulo: 'Cor do bandô', options: [{ value: 'BRANCO', label: 'Branco' }, { value: 'PRETO', label: 'Preto' }] }
+  return { rotulo: 'Peça', options: o?.componentes ?? [] }
+}
+
+/** "BK BLACKOUT", "Branco", "Rolô branca 38mm · tubo 38" — o que identifica o item na venda */
+function descreverItem(p: Prod, o: Opcoes | undefined): string {
+  if (COM_TECIDO.has(p.modelo)) return p.tecido
+  return opcoesItem(p, o).options.find(x => x.value === p.artigo)?.label ?? p.artigo
+}
+const rotuloModeloDe = (p: Prod) =>
+  p.modelo === 'Avulso' ? modeloMotor(p) : (MODELOS.find(m => m.id === p.modelo)?.label ?? p.modelo)
+/** 1.2×1.5m — ou só 1.8m no avulso, que não tem altura */
+const medidaTxt = (p: Prod, l: string, a: string) =>
+  precisaAltura(p) ? `${l}×${a}m` : (l ? `${l}m` : 'avulso')
 
 interface Opcoes {
   tecidos: string[]
   artigosPV: string[]
   artigosPH: string[]
   ph50: { valor: string; label: string }[]
+  componentes?: { value: string; label: string }[]
 }
 
 interface Resultado {
@@ -77,6 +132,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   const [modelo, setModelo] = useState('Rolo')
   const [tecido, setTecido] = useState('')
   const [artigo, setArtigo] = useState('')
+  const [avulsoTipo, setAvulsoTipo] = useState<'bando' | 'componente'>('bando')
   const [ph50Acab, setPh50Acab] = useState<'cadarco' | 'fita'>('cadarco')
   const [ph50Bando, setPh50Bando] = useState(false)
   const [corFerragem, setCorFerragem] = useState<'BRANCA' | 'PRETA'>('BRANCA')
@@ -116,7 +172,11 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   /* Mesmo pedido, mais de um tamanho (caso clássico: 3 de 0,96 e 1 de 1,20).
      A linha principal continua sendo largura/altura/quantidade; estas são as
      medidas EXTRAS do mesmo produto, calculadas e salvas junto. */
-  const [extras, setExtras] = useState<{ id: number; largura: string; altura: string; qtd: string; amb: string; resultado: Resultado | null }[]>([])
+  const [extras, setExtras] = useState<{
+    id: number; largura: string; altura: string; qtd: string; amb: string; resultado: Resultado | null
+    /** null = mesmo produto do topo; preenchido quando alguém clica em "trocar modelo" na linha */
+    prod: Prod | null
+  }[]>([])
   const extraIdRef = useRef(1)
   const [sugestoesAbertas, setSugestoesAbertas] = useState(false)
   /* A venda pode ter PRODUTOS diferentes (Rolô BK + Romana, cada um com suas
@@ -177,10 +237,12 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   }, [cliente, clientesConhecidos])
 
   const num = (s: string) => parseFloat(s.replace(',', '.')) || 0
-  const comTecido = modelo === 'Rolo' || modelo === 'Double' || modelo === 'Romana' || modelo === 'Rolo Motorizado'
+  const comTecido = COM_TECIDO.has(modelo)
   const motorizado = modelo === 'Rolo Motorizado'
+  const prodTopo: Prod = useMemo(() => ({ modelo, tecido, artigo, acabamento, corFerragem, avulsoTipo }),
+    [modelo, tecido, artigo, acabamento, corFerragem, avulsoTipo])
   const entrada = useMemo(() => ({
-    modelo,
+    modelo: modeloMotor({ modelo, avulsoTipo }),
     tecido: comTecido ? (tecido || undefined) : undefined,
     artigo: !comTecido ? (artigo || undefined) : undefined,
     ph50Acabamento: ph50Acab,
@@ -198,12 +260,11 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     bandoLargura: bandoUnico ? num(bandoLargura) || undefined : undefined,
     bandoQuantidade: bandoUnico ? Math.round(num(bandoQtd)) || undefined : undefined,
     incluirInstalacao: instalacao,
-  }), [modelo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
+  }), [modelo, avulsoTipo, comTecido, tecido, artigo, ph50Acab, ph50Bando, corFerragem, largura, altura, quantidade,
     acabamento, motorizado, motorForca, motorQtd, controleQtd, controleCanais, juncaoQtd,
     bandoUnico, bandoLargura, bandoQtd, instalacao])
 
-  const pronto = entrada.largura > 0 && entrada.altura > 0 &&
-    (comTecido ? !!entrada.tecido : !!entrada.artigo)
+  const pronto = temMedida(prodTopo, entrada.largura, entrada.altura) && prodCompleto(prodTopo)
 
   /* ── cálculo no servidor, com debounce (o motor é o mesmo dos agentes) ── */
   useEffect(() => {
@@ -234,20 +295,23 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
   /* ── medidas extras: mesmo produto, outros tamanhos ── */
   // a chave ignora o resultado de propósito: depender dele criaria loop
-  const extrasChave = JSON.stringify(extras.map(x => [x.id, x.largura, x.altura, x.qtd]))
+  const extrasChave = JSON.stringify(extras.map(x => [x.id, x.largura, x.altura, x.qtd, x.prod]))
+  /** medida com tamanho preenchido — entra na venda (e trava o salvar enquanto não calcula) */
+  const extraValida = (x: (typeof extras)[number]) => temMedida(x.prod ?? prodTopo, num(x.largura), num(x.altura))
   const extrasDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     setSalvoAtual(false)
     setValorCobrado('')
     if (extrasDebounceRef.current) clearTimeout(extrasDebounceRef.current)
     extrasDebounceRef.current = setTimeout(async () => {
-      const alvos = extras.filter(x => num(x.largura) > 0 && num(x.altura) > 0)
+      const alvos = extras.filter(x => extraValida(x) && prodCompleto(x.prod ?? prodTopo))
       if (alvos.length === 0) return
       const respostas = await Promise.all(alvos.map(async x => {
         try {
           const { data, error } = await supabase.functions.invoke('simular', {
             body: { acao: 'calcular', entrada: {
               ...entrada,
+              ...(x.prod ? camposProd(x.prod) : {}),
               largura: num(x.largura), altura: num(x.altura),
               quantidade: Math.max(1, Math.round(num(x.qtd))),
               // o bandô de peça única vale UMA vez por venda — vai só na linha principal
@@ -269,7 +333,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extrasChave, entrada])
 
-  const extrasValidas = extras.filter(x => num(x.largura) > 0 && num(x.altura) > 0)
+  const extrasValidas = extras.filter(extraValida)
   const extrasOk = extrasValidas.filter(x => x.resultado && !x.resultado.erro)
   const extrasPendentes = extrasValidas.length !== extrasOk.length
 
@@ -283,21 +347,18 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
   /** As linhas do produto ATUAL (principal + extras), com a entrada pronta pra salvar. */
   function montarLinhasAtuais() {
     if (!resultado || resultado.erro) return null
-    const detalheProduto = comTecido ? tecido
-      : modelo === 'PH_50' ? (opcoes?.ph50.find(i => i.valor === artigo)?.label ?? artigo)
-      : artigo
-    const rotuloModelo = MODELOS.find(m => m.id === modelo)?.label ?? modelo
     const base = [
-      { largura, altura, qtd: quantidade, amb: ambiente, resultado: resultado as Resultado, principal: true },
+      { largura, altura, qtd: quantidade, amb: ambiente, resultado: resultado as Resultado, principal: true, prod: null as Prod | null },
       // extra sem ambiente herda o da linha principal
-      ...extrasOk.map(x => ({ largura: x.largura, altura: x.altura, qtd: x.qtd, amb: x.amb || ambiente, resultado: x.resultado as Resultado, principal: false })),
+      ...extrasOk.map(x => ({ largura: x.largura, altura: x.altura, qtd: x.qtd, amb: x.amb || ambiente, resultado: x.resultado as Resultado, principal: false, prod: x.prod })),
     ]
     return base.map(l => ({
-      rotuloModelo,
-      detalhe: `${detalheProduto} · ${l.largura}×${l.altura}m${Math.round(num(l.qtd)) > 1 ? ` ×${Math.round(num(l.qtd))}` : ''}`,
+      rotuloModelo: rotuloModeloDe(l.prod ?? prodTopo),
+      detalhe: `${descreverItem(l.prod ?? prodTopo, opcoes)} · ${medidaTxt(l.prod ?? prodTopo, l.largura, l.altura)}${Math.round(num(l.qtd)) > 1 ? ` ×${Math.round(num(l.qtd))}` : ''}`,
       ambiente: l.amb.trim(),
       resultado: l.resultado,
       entradaFinal: { ...entrada,
+        ...(l.prod ? camposProd(l.prod) : {}),
         largura: num(l.largura), altura: num(l.altura),
         quantidade: Math.max(1, Math.round(num(l.qtd))),
         // bandô de peça única é um por produto — só a linha principal leva
@@ -378,6 +439,8 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
         })
         if (error) throw error
         if ((data as { error?: string }).error) throw new Error((data as { error: string }).error)
+        // recusa do motor volta como `erro` (200) — sem isto o item sumia calado
+        if ((data as { erro?: string }).erro) throw new Error(`${l.rotuloModelo}: ${(data as { erro: string }).erro}`)
         novos.push({
           id: (data as { id: string }).id,
           modelo: l.rotuloModelo,
@@ -402,7 +465,7 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
 
   /* ── nova visita: zera produto, cliente e a lista de salvos ── */
   function limparTudo() {
-    setModelo('Rolo'); setTecido(''); setArtigo(''); setPh50Acab('cadarco'); setPh50Bando(false)
+    setModelo('Rolo'); setTecido(''); setArtigo(''); setAvulsoTipo('bando'); setPh50Acab('cadarco'); setPh50Bando(false)
     setCorFerragem('BRANCA'); setLargura(''); setAltura(''); setQuantidade('1')
     setAcabamento('nenhum'); setInstalacao(false)
     setCliente(''); setTelefone(''); setAmbiente('')
@@ -603,6 +666,23 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   </>
                 )}
 
+                {modelo === 'Avulso' && (
+                  <>
+                    <div>
+                      <label className={labelCls}>O que é</label>
+                      <CustomSelect value={avulsoTipo}
+                        onChange={v => { setAvulsoTipo(v as 'bando' | 'componente'); setArtigo('') }}
+                        options={[{ value: 'bando', label: 'Só o bandô' }, { value: 'componente', label: 'Peça de ferragem' }]} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className={labelCls}>{opcoesItem(prodTopo, opcoes).rotulo}</label>
+                      <CustomSelect value={artigo} onChange={setArtigo}
+                        options={opcoesItem(prodTopo, opcoes).options}
+                        placeholder={opcoes ? 'Escolha…' : 'Carregando…'} />
+                    </div>
+                  </>
+                )}
+
                 {(modelo === 'PV' || modelo === 'PH_Aluminio') && (
                   <div>
                     <label className={labelCls}>Artigo</label>
@@ -642,8 +722,12 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                     primeira; as extras têm numerinho e lixeira. Ambiente por medida:
                     Sala 1 + Quarto na mesma venda. */}
                 <div className="space-y-2">
-                  {[{ id: 0 as number | null, largura, altura, qtd: quantidade, amb: ambiente }, ...extras].map((m, idx) => {
+                  {[{ id: 0 as number | null, largura, altura, qtd: quantidade, amb: ambiente, prod: null as Prod | null }, ...extras].map((m, idx) => {
                     const extra = idx > 0
+                    const prodLinha = m.prod ?? prodTopo
+                    /** o produto em vigor na linha de cima — é dele que a troca parte */
+                    const prodAnterior = (idx >= 2 ? extras[idx - 2].prod : null) ?? prodTopo
+                    const setProd = (p: Prod | null) => setExtras(q => q.map(y => y.id === m.id ? { ...y, prod: p, resultado: null } : y))
                     const setL = (v: string) => extra ? setExtras(p => p.map(y => y.id === m.id ? { ...y, largura: v, resultado: null } : y)) : setLargura(v)
                     const setA = (v: string) => extra ? setExtras(p => p.map(y => y.id === m.id ? { ...y, altura: v, resultado: null } : y)) : setAltura(v)
                     const setQ = (v: string) => extra ? setExtras(p => p.map(y => y.id === m.id ? { ...y, qtd: v, resultado: null } : y)) : setQuantidade(v)
@@ -655,7 +739,17 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                           <div className="mb-2 flex items-center gap-2">
                             <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-[9px] font-bold text-foreground/50">{idx + 1}</span>
                             {area > 0 && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{area.toFixed(2)} m²</span>}
+                            {extra && m.prod && (
+                              <span className="truncate text-[10px] font-semibold text-foreground/50">{rotuloModeloDe(m.prod)}</span>
+                            )}
                             <div className="flex-1" />
+                            {/* opcional: a maioria das vendas é tudo igual, então a troca fica atrás do link */}
+                            {extra && (
+                              <button type="button" onClick={() => setProd(m.prod ? null : { ...prodAnterior })}
+                                className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/[0.06] touch-manipulation">
+                                {m.prod ? 'usar o mesmo modelo' : 'trocar modelo'}
+                              </button>
+                            )}
                             {extra && (
                               <button type="button" onClick={() => setExtras(p => p.filter(y => y.id !== m.id))} title="Remover medida"
                                 className="rounded-md p-1 text-foreground/30 transition-all duration-150 hover:bg-destructive/10 hover:text-destructive touch-manipulation">
@@ -663,6 +757,9 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                               </button>
                             )}
                           </div>
+                        )}
+                        {extra && m.prod && (
+                          <SeletoresLinha prod={m.prod} opcoes={opcoes} onChange={setProd} />
                         )}
                         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
                           <div>
@@ -672,8 +769,9 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                           </div>
                           <div>
                             <label className={labelCls}><span className="sm:hidden">Alt. (m)</span><span className="hidden sm:inline">Altura (m)</span></label>
-                            <input className={inputCls} inputMode="decimal" placeholder="1,50"
-                              value={m.altura} onChange={e => setA(e.target.value.replace(',', '.'))} />
+                            <input className={cn(inputCls, !precisaAltura(prodLinha) && 'opacity-50')} inputMode="decimal"
+                              placeholder={precisaAltura(prodLinha) ? '1,50' : 'não tem'} disabled={!precisaAltura(prodLinha)}
+                              value={precisaAltura(prodLinha) ? m.altura : ''} onChange={e => setA(e.target.value.replace(',', '.'))} />
                           </div>
                           <div>
                             <label className={labelCls}>Qtd</label>
@@ -694,8 +792,12 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                   {SUGESTOES_AMBIENTE.map(s => <option key={s} value={s} />)}
                 </datalist>
                 <BotaoAdicionar className="mt-2"
-                  onClick={() => setExtras(p => [...p, { id: extraIdRef.current++, largura: '', altura: '', qtd: '1', amb: '', resultado: null }])}>
-                  Adicionar medida — mesmo modelo e tecido
+                  onClick={() => setExtras(p => {
+                    // a linha nova herda o produto da de cima (se ela tinha um próprio)
+                    const anterior = p[p.length - 1]?.prod ?? null
+                    return [...p, { id: extraIdRef.current++, largura: '', altura: '', qtd: '1', amb: '', resultado: null, prod: anterior && { ...anterior } }]
+                  })}>
+                  Adicionar medida
                 </BotaoAdicionar>
 
                 <Interruptor className="mt-3" ligado={instalacao} onChange={setInstalacao}>Incluir instalação</Interruptor>
@@ -807,13 +909,13 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
                     ))}
                     {ok && (
                       <p className="flex justify-between gap-2 text-xs text-foreground/70">
-                        <span className="tabular-nums">{largura}×{altura}m ×{quantidade || 1}</span>
+                        <span className="tabular-nums">{medidaTxt(prodTopo, largura, altura)} ×{quantidade || 1}</span>
                         <span className="font-semibold tabular-nums">{brl(ok.total4x)}</span>
                       </p>
                     )}
                     {ok && extrasOk.map(x => (
                       <p key={x.id} className="flex justify-between gap-2 text-xs text-foreground/70">
-                        <span className="tabular-nums">{x.largura}×{x.altura}m ×{x.qtd || 1}</span>
+                        <span className="min-w-0 truncate tabular-nums">{x.prod ? `${rotuloModeloDe(x.prod)} · ` : ''}{medidaTxt(x.prod ?? prodTopo, x.largura, x.altura)} ×{x.qtd || 1}</span>
                         <span className="font-semibold tabular-nums">{brl((x.resultado as Resultado).total4x)}</span>
                       </p>
                     ))}
@@ -1023,5 +1125,55 @@ export default function TabSimulador({ modoVenda, aoSalvar }: {
       </div>
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </>
+  )
+}
+
+/** Os seletores próprios de uma medida extra — aparecem só depois do "trocar modelo". */
+function SeletoresLinha({ prod, opcoes, onChange }: { prod: Prod; opcoes: Opcoes | undefined; onChange: (p: Prod) => void }) {
+  const item = opcoesItem(prod, opcoes)
+  const comTecido = COM_TECIDO.has(prod.modelo)
+  return (
+    <div className="mb-3 grid grid-cols-1 gap-2 border-b border-border/50 pb-3 sm:grid-cols-2 sm:gap-3">
+      <div>
+        <label className={labelCls}>Modelo</label>
+        <CustomSelect value={prod.modelo}
+          onChange={v => onChange({ ...prod, modelo: v, tecido: '', artigo: '', acabamento: 'nenhum' })}
+          options={MODELOS.map(m => ({ value: m.id, label: m.label }))} />
+      </div>
+      {prod.modelo === 'Avulso' && (
+        <div>
+          <label className={labelCls}>O que é</label>
+          <CustomSelect value={prod.avulsoTipo}
+            onChange={v => onChange({ ...prod, avulsoTipo: v as 'bando' | 'componente', artigo: '' })}
+            options={[{ value: 'bando', label: 'Só o bandô' }, { value: 'componente', label: 'Peça de ferragem' }]} />
+        </div>
+      )}
+      <div>
+        <label className={labelCls}>{item.rotulo}</label>
+        <CustomSelect value={comTecido ? prod.tecido : prod.artigo}
+          onChange={v => onChange(comTecido ? { ...prod, tecido: v } : { ...prod, artigo: v })}
+          options={item.options} placeholder={opcoes ? 'Escolha…' : 'Carregando…'} />
+      </div>
+      {(prod.modelo === 'Rolo' || prod.modelo === 'Double') && (
+        <div>
+          <label className={labelCls}>Ferragem</label>
+          <CustomSelect value={prod.corFerragem} onChange={v => onChange({ ...prod, corFerragem: v as 'BRANCA' | 'PRETA' })}
+            options={[{ value: 'BRANCA', label: 'Branca' }, { value: 'PRETA', label: 'Preta' }]} />
+        </div>
+      )}
+      {comTecido && (
+        <div>
+          <label className={labelCls}>Acabamento</label>
+          <CustomSelect value={prod.acabamento} onChange={v => onChange({ ...prod, acabamento: v })}
+            options={[
+              { value: 'nenhum', label: 'Sem acabamento' },
+              { value: 'bando_branco', label: 'Bandô branco' },
+              { value: 'bando_preto', label: 'Bandô preto' },
+              { value: 'barra', label: 'Barra niveladora' },
+              ...(prod.modelo === 'Rolo' || prod.modelo === 'Rolo Motorizado' ? [{ value: 'kit_box', label: 'Kit Box' }] : []),
+            ]} />
+        </div>
+      )}
+    </div>
   )
 }
