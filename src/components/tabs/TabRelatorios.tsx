@@ -29,6 +29,7 @@ import type { Orcamento } from '@/lib/supabase'
 import JanelaDados from '@/components/orcamentos/JanelaDados'
 import ResumosIA from '@/components/relatorios/ResumosIA'
 import FunilConversao from '@/components/relatorios/FunilConversao'
+import { receita } from '@/lib/analises/base'
 
 const PERIODOS = [
   { value: 'mes', label: 'Este mês' },
@@ -39,11 +40,9 @@ const PERIODOS = [
   { value: 'custom', label: 'Escolher datas' },
 ]
 
-/** o que entrou de verdade: ajuste manual manda, senão o calculado */
-const receita = (o: Orcamento) =>
-  o.valor_cobrado != null
-    ? Number(o.valor_cobrado)
-    : Number(o.valor_venda ?? 0) + Number(o.instalacao ?? 0)
+// A definição de receita desta aba virou a definição do projeto: mora em
+// src/lib/analises/base.ts e a aba Análises importa a mesma. Antes cada uma tinha a sua
+// e as duas abas da MESMA área mostravam faturamentos diferentes para o mesmo mês.
 
 const mesDe = (iso: string) => iso.slice(0, 7)
 const rotuloMes = (ym: string) => {

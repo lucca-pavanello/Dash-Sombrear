@@ -159,7 +159,8 @@ function KPIGrid({ data, resetKey }: Props) {
       sub: `${Math.round(animConv)}% da lista`,
       // NÃO chamar de "taxa de conversão": a maioria das linhas de `orcamentos` é uso
       // interno da calculadora, não lead que recebeu proposta — essa conta já foi
-      // removida de Análises por dar número sem significado (ver src/lib/analytics.ts).
+      // removida de Análises por dar número sem significado (ver `ehVenda` em
+      // src/lib/analises/base.ts).
       // Aqui é só "quanto da lista filtrada já fechou", a taxa de conversão de
       // verdade (por lead) mora em Relatórios → Por canal.
       tooltip: [`${fechados.length} de ${totalOrc} orçamento${totalOrc !== 1 ? 's' : ''}`, `${convRate.toFixed(1)}% desta lista está fechado`],

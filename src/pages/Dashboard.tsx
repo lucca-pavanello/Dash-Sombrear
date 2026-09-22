@@ -1182,7 +1182,7 @@ export default function Dashboard() {
           {mountedTabs.has('analises') && (
             <Suspense fallback={<SkeletonCharts />}>
               <div className={activeTab === 'analises' ? (tabDir === 'right' ? 'tab-active-right' : 'tab-active-left') : 'tab-hidden'}>
-                <TabAnalises data={focusedOrcamentos} isLoading={isLoading} error={isError} resetKey={tabVersions['analises']} />
+                <TabAnalises data={focusedOrcamentos} isLoading={isLoading} error={isError} resetKey={tabVersions['analises']} focoResponsavel={focusResponsavel ?? undefined} />
               </div>
             </Suspense>
           )}
