@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   Brain, CheckCircle2, LifeBuoy, Loader2, MessagesSquare, MinusCircle, Sparkles, XCircle,
 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { classificarPendentes } from '@/lib/analises/classificar'
 import { cn } from '@/lib/utils'
 import type { CrmLead } from '@/hooks/useAgenteIA'
 
@@ -68,37 +68,24 @@ export default function ClassificadorConversas({ leads, toast }: Props) {
   }, [leads])
 
   /**
-   * Analisa em rodadas até acabar a fila (a função processa 25 por chamada).
-   * Teto de rodadas pra nunca virar loop infinito por um bug de contagem.
+   * Analisa em rodadas até acabar a fila. As rodadas e a invalidação do cache moram em
+   * `src/lib/analises/classificar.ts` desde que a aba Análise passou a disparar a mesma
+   * leitura — inclusive a correção da chave de cache, que aqui apontava pra uma query
+   * inexistente (`['crm-leads']`) e fazia a tela depender do realtime pra atualizar.
    */
   async function analisar() {
     if (rodando) return
     setRodando(true)
     setFeitas(0)
-    const MAX_RODADAS = 12
-    let total = 0
     try {
-      for (let rodada = 0; rodada < MAX_RODADAS; rodada++) {
-        const { data, error } = await supabase.functions.invoke('classificar-conversas', { body: {} })
-        if (error) throw new Error(error.message)
-        const r = data as { classificadas?: number; restantes?: number; mensagem?: string; error?: string }
-        if (r.error) throw new Error(r.error)
-        if (!r.classificadas) {
-          if (total === 0) toast('info', r.mensagem ?? 'Nada novo pra analisar.')
-          break
-        }
-        total += r.classificadas
-        setFeitas(total)
-        await qc.invalidateQueries({ queryKey: ['crm-leads'] })
-        if (!r.restantes) break
-        if (rodada === MAX_RODADAS - 1) {
-          toast('info', `${total} analisadas. Ainda faltam ${r.restantes} — clique de novo pra continuar.`)
-        }
+      const r = await classificarPendentes(qc, setFeitas)
+      if (r.total === 0) toast('info', r.mensagem ?? 'Nada novo pra analisar.')
+      else {
+        toast('success', `${r.total} conversa${r.total > 1 ? 's' : ''} analisada${r.total > 1 ? 's' : ''} pela IA.`)
+        if (r.restantes) toast('info', `Ainda faltam ${r.restantes} — clique de novo pra continuar.`)
       }
-      if (total > 0) toast('success', `${total} conversa${total > 1 ? 's' : ''} analisada${total > 1 ? 's' : ''} pela IA.`)
     } catch (err) {
       toast('error', err instanceof Error ? err.message : 'Não consegui analisar agora.')
-      if (total > 0) await qc.invalidateQueries({ queryKey: ['crm-leads'] })
     } finally {
       setRodando(false)
     }

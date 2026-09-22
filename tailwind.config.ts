@@ -42,6 +42,12 @@ const config: Config = {
           dark: '#C45E14',
           light: '#F0854A',
         },
+        // Séries de gráfico com duas categorias — passos validados em src/index.css.
+        // Cada modo tem o seu, então nunca hardcodar o hex aqui.
+        serie: {
+          1: 'hsl(var(--serie-1))',
+          2: 'hsl(var(--serie-2))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

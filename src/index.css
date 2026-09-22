@@ -25,6 +25,13 @@
     --accent-foreground: 220 15% 20%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
+    /* Séries de gráfico com duas categorias. Validadas com o validador de paleta
+       (faixa de luminosidade OKLCH, chroma, separação para daltonismo protan/deutan/
+       tritan com ΔE ≥ 20 e contraste ≥ 3:1 contra o card do modo). No escuro os dois
+       passos escurecem porque a faixa de luminosidade do modo escuro é mais estreita
+       (L 0,48–0,67). Gráfico de série única continua usando --primary. */
+    --serie-1: 25 82% 51%;   /* #E8701A — a marca */
+    --serie-2: 196 88% 40%;  /* #0C8FBF — contraponto frio */
     --radius: 0.75rem;
   }
 
@@ -49,6 +56,9 @@
     /* 0 72% 62%: texto de erro legível no dark (antes 2,82:1 — reprovava AA) */
     --destructive: 0 72% 62%;
     --destructive-foreground: 0 0% 100%;
+    /* ver nota em :root — passos próprios do modo escuro, não um espelho do claro */
+    --serie-1: 25 82% 47%;   /* #DA6816 */
+    --serie-2: 197 82% 42%;  /* #1391C4 */
   }
 
   * {
