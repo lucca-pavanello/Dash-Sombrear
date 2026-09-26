@@ -10,30 +10,23 @@
 import type { Orcamento } from '@/lib/supabase'
 import type { CrmLead } from '@/hooks/useAgenteIA'
 import { dentroDe, type Intervalo } from '@/lib/periodos'
+// reexportadas abaixo; importadas aqui porque este arquivo também as usa
+import { dataVenda } from './venda'
 
 /**
- * O que entrou de verdade por esta linha.
+ * `receita` e `ehVenda` saíram deste arquivo em 26/09 para `./venda.ts`, que
+ * não importa nada e por isso pode ser carregado dentro de Edge Function — o
+ * relatório por período precisa da MESMA definição de receita, e duas cópias
+ * já foi o erro que fez esta aba divergir da "Por canal" no mesmo mês.
  *
- * `valor_cobrado` manda quando existe: é o que o cliente pagou depois de desconto,
- * ajuste ou acerto no Semanário. Sem ele, o preço de tabela mais a instalação.
+ * A doutrina continua valendo e vale repetir: o guardião de venda é a flag
+ * `fechado`, nunca o total de linhas da tabela. A maioria das linhas de
+ * `orcamentos` é uso interno da calculadora pelo balcão
+ * (`fonte = 'supervisor-custo'`), não proposta enviada a cliente. Métrica
+ * comercial que mistura os dois mundos sai absurda — foi assim que esta aba já
+ * exibiu margem de -1851%.
  */
-export function receita(o: Orcamento): number {
-  if (o.valor_cobrado != null) return Number(o.valor_cobrado)
-  return (o.valor_venda ?? 0) + (o.instalacao ?? 0)
-}
-
-/**
- * Venda fechada. O guardião universal é a flag, nunca o total de linhas da tabela.
- *
- * A maioria das linhas de `orcamentos` é uso interno da calculadora pelo balcão
- * (`fonte = 'supervisor-custo'`), não proposta enviada a cliente. Métrica comercial que
- * mistura os dois mundos sai absurda — foi assim que esta aba já exibiu margem de
- * -1851%. (Doutrina herdada de `src/lib/analytics.ts`, apagado em 09/2026 quando a aba
- * Análise parou de usá-lo.)
- */
-export function ehVenda(o: Orcamento): boolean {
-  return o.fechado === true
-}
+export { receita, ehVenda, ehTeste, chavePedido, type VendaMinima } from './venda'
 
 /**
  * A data que vale para uma conversa.
@@ -49,9 +42,7 @@ export function dataAtividade(l: CrmLead): string {
 }
 
 /** A data que vale para uma venda: a informada na mão no Semanário manda sobre a técnica. */
-export function dataVenda(o: Orcamento): string {
-  return o.data_pedido ?? o.created_at
-}
+export { dataVenda } from './venda'
 
 /** `faixa` nulo = "tudo": sem recorte. */
 export function noPeriodo(iso: string, faixa: Intervalo | null): boolean {

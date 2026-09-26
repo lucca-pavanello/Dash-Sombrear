@@ -32,12 +32,15 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  calcularKpis, decidirPeriodo, limparTextoLlm, montarPrompt, textoDeReserva, valorBrl,
-  type LinhaCrm, type Periodo,
+  calcularKpis, decidirPeriodo, limparTextoLlm, montarPrompt, textoDeReserva,
+  type LinhaCrm, type Periodo, type VendaMinima,
 } from '../relatorios/kpis'
 import crmFix from './fixtures/crm-relatorios.json'
+import orcFix from './fixtures/orcamentos-relatorios.json'
 
 const linhas = crmFix as unknown as LinhaCrm[]
+/** nome do cliente trocado por placeholder na fixture; só 'QA_HARNESS' é literal */
+const vendas = orcFix as unknown as VendaMinima[]
 const semana = (inicio: string, fim: string): Periodo => ({ tipo: 'semanal', inicio, fim })
 
 describe('KPIs do relatório, conferidos contra o Postgres', () => {
@@ -62,13 +65,52 @@ describe('KPIs do relatório, conferidos contra o Postgres', () => {
     expect(k.leads_novos).toBe(108)
   })
 
-  it('o zero de vendas é reproduzido — é o defeito herdado, não um acerto', () => {
-    // A loja faturou R$ 49.379 em agosto segundo `orcamentos`; o relatório diz 0
-    // porque lê `desfecho_valor`. Enquanto a fonte não mudar, o port tem que
-    // repetir o zero — senão a migração vira uma mudança de número escondida.
+  it('agosto — 13 pedidos e R$ 49.378,95, o que a loja realmente vendeu', () => {
+    // Este é o número que o relatório vinha errando: dizia 0 vendas e R$ 0
+    // porque lia `desfecho_valor` do CRM. Conferido contra o mesmo SELECT em
+    // SQL, com os mesmos limites de -03:00.
+    const k = calcularKpis(linhas, { tipo: 'mensal', inicio: '2026-08-01', fim: '2026-08-31' }, vendas)
+    expect(k.fechados).toBe(13)
+    expect(k.receita_fechada).toBe(49378.95)
+  })
+
+  it('semana de 14 a 20/09 — 4 pedidos e R$ 15.071,00', () => {
+    const k = calcularKpis(linhas, semana('2026-09-14', '2026-09-20'), vendas)
+    expect(k.fechados).toBe(4)
+    expect(k.receita_fechada).toBe(15071)
+  })
+
+  it('sem orçamentos, venda e receita ficam em zero — não inventa', () => {
     const k = calcularKpis(linhas, { tipo: 'mensal', inicio: '2026-08-01', fim: '2026-08-31' })
     expect(k.fechados).toBe(0)
     expect(k.receita_fechada).toBe(0)
+  })
+
+  it('itens do mesmo pedido contam como uma venda só', () => {
+    const doisItens: VendaMinima[] = [
+      { id: 'a', pedido_id: 'p1', fechado: true, valor_venda: 100, created_at: '2026-09-02T12:00:00Z' },
+      { id: 'b', pedido_id: 'p1', fechado: true, valor_venda: 50, created_at: '2026-09-02T12:00:00Z' },
+    ]
+    const k = calcularKpis([], semana('2026-09-01', '2026-09-07'), doisItens)
+    expect(k.fechados).toBe(1)
+    expect(k.receita_fechada).toBe(150)
+  })
+
+  it('linha do harness de QA não entra na receita', () => {
+    const comTeste: VendaMinima[] = [
+      { id: 'a', cliente: 'Fulano', fechado: true, valor_venda: 100, created_at: '2026-09-02T12:00:00Z' },
+      { id: 'b', cliente: 'QA_HARNESS', fechado: true, valor_venda: 999, created_at: '2026-09-02T12:00:00Z' },
+    ]
+    const k = calcularKpis([], semana('2026-09-01', '2026-09-07'), comTeste)
+    expect(k.fechados).toBe(1)
+    expect(k.receita_fechada).toBe(100)
+  })
+
+  it('valor_cobrado manda sobre valor_venda + instalação', () => {
+    const comDesconto: VendaMinima[] = [
+      { id: 'a', fechado: true, valor_venda: 1000, instalacao: 200, valor_cobrado: 900, created_at: '2026-09-02T12:00:00Z' },
+    ]
+    expect(calcularKpis([], semana('2026-09-01', '2026-09-07'), comDesconto).receita_fechada).toBe(900)
   })
 
   it('o SLA descarta janela negativa e maior que 14 dias', () => {
@@ -164,21 +206,5 @@ describe('texto do LLM', () => {
     const p = montarPrompt(k)
     expect(p).toContain('REGRA ABSOLUTA')
     expect(p).toContain('"leads_novos":27')
-  })
-})
-
-describe('valor em reais', () => {
-  it.each([
-    ['R$ 1.234,50', 1234.5],
-    ['1234,50', 1234.5],
-    // o parseBRL do n8n NÃO entende prefixo em texto: sobra "apartirde429.90",
-    // que vira NaN e depois 0. É diferente do `valorNumerico` do dash, que
-    // entende. Mantido igual ao n8n — corrigir aqui mudaria receita em silêncio.
-    ['a partir de R$ 429,90', 0],
-    ['', 0],
-    [null, 0],
-    ['sem valor', 0],
-  ])('%s vira %s', (entrada, esperado) => {
-    expect(valorBrl(entrada as string | null)).toBe(esperado)
   })
 })
