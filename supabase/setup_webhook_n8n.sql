@@ -1,3 +1,11 @@
+-- ⚠️ SUPERADO em 26/09/2026 pela migration 0021_novo_cadastro_sai_do_n8n.sql.
+-- O aviso de novo cadastro não passa mais pelo n8n; o trigger chama a Edge
+-- Function `novo-cadastro`. Este arquivo fica como registro histórico.
+-- Aviso: ele também já NÃO batia com a produção — descrevia `net.http_post`
+-- com `row_to_json(NEW)`, enquanto o trigger vivo usava
+-- `supabase_functions.http_request`, cujo payload é {type, table, record, ...}.
+-- Foi a produção, não este arquivo, que serviu de referência para a migração.
+
 -- Habilita a extensão pg_net (HTTP requests do banco)
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
