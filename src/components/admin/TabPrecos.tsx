@@ -2,7 +2,7 @@ import { Fragment, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { tabela } from '@/components/shared/estilos'
 import {
-  Blinds, Calculator, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Download, FileSpreadsheet, FileText, Layers, Loader2, Pencil, Percent, Printer, RefreshCw, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
+  Blinds, Calculator, CheckCircle2, ChevronDown, CircleDollarSign, Cog, Download, FileSpreadsheet, FileText, Layers, Loader2, Pencil, Percent, Printer, Ruler, Search, Settings2, Sparkles, Tag, TriangleAlert, Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -83,12 +83,11 @@ export default function TabPrecos({ toast }: Props) {
         <div>
           <h2 className="font-display text-base font-semibold">Tabela de Preços</h2>
           <p className="text-xs text-muted-foreground">
-            Fonte central de preços e promoções — a planilha-espelho se atualiza a cada 30 min ou pelo botão.
+            Fonte central de preços e promoções. Esta tela é a fonte da verdade — o motor de orçamento lê direto daqui.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <BotaoBaixarTabelas toast={toast} />
-          <BotaoSincronizar toast={toast} />
         </div>
       </div>
 
@@ -1153,26 +1152,10 @@ function SecaoParametros({ salvar }: SecaoProps) {
 }
 
 
-function BotaoSincronizar({ toast }: { toast: Props['toast'] }) {
-  const [sincronizando, setSincronizando] = useState(false)
-  async function sincronizar() {
-    setSincronizando(true)
-    try {
-      const r = await fetch('https://n8n-n8n.yjlhot.easypanel.host/webhook/sincronizar-precos', { method: 'POST' })
-      const j = await r.json()
-      if (j?.ok) toast('success', `Planilha sincronizada (${j.abas_sincronizadas} abas)`)
-      else toast('error', 'A sincronização retornou erro — tente de novo em 1 min')
-    } catch {
-      toast('error', 'Não consegui falar com o sincronizador')
-    } finally {
-      setSincronizando(false)
-    }
-  }
-  return (
-    <button onClick={sincronizar} disabled={sincronizando}
-      className="flex shrink-0 items-center gap-2 rounded-xl bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-brand hover:opacity-90 transition-opacity active:scale-95 disabled:opacity-50">
-      {sincronizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-      {sincronizando ? 'Sincronizando…' : 'Sincronizar planilha'}
-    </button>
-  )
-}
+// O botão "Sincronizar planilha" foi removido em 26/09. Ele fazia POST em
+// /webhook/sincronizar-precos, e esse workflow do n8n está DESATIVADO — a
+// chamada vinha retornando 404 e o catch virava "Não consegui falar com o
+// sincronizador" toda vez que alguém clicava. A planilha-espelho já não é
+// atualizada há tempo e ninguém sentiu falta; esta tela é a fonte da verdade.
+// Se a loja voltar a querer o espelho, ele nasce como Edge Function + pg_cron,
+// não como webhook.

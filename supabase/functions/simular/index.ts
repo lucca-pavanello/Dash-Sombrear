@@ -1,7 +1,8 @@
 /**
  * Edge Function: simular
  * Simulador de balcão — calcula o orçamento no servidor com o MESMO motor do
- * dash (calc.ts = cópia de src/lib/simulador.ts), sem expor custos ao cliente.
+ * dash: importa src/lib/simulador.ts direto, sem cópia (o bundler do Supabase
+ * sobe o arquivo junto como asset).
  *
  * acao 'calcular' → valores de venda (custos/margem só quando o chamador é admin)
  * acao 'salvar'   → grava direto em orcamentos (fonte='simulador', status FEITO)
@@ -10,7 +11,7 @@
  * Qualquer usuário APROVADO usa; custo e margem nunca saem para não-admin.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { simular } from './calc.ts'
+import { simular } from '../../../src/lib/simulador.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

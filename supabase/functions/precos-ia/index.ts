@@ -13,7 +13,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const SYNC_WEBHOOK = 'https://n8n-n8n.yjlhot.easypanel.host/webhook/sincronizar-precos'
 const TIPOS_VALIDOS = new Set([
   'criar_promocao', 'remover_promocao', 'atualizar_preco_tecido',
   'atualizar_parametro', 'atualizar_preco_artigo', 'atualizar_componente_ferragem',
@@ -467,10 +466,11 @@ admin um valor que já está aqui. Se o item não aparecer na lista, aí sim dig
         })
       }
 
-      // espelha na planilha (não bloqueia a resposta se falhar)
-      try {
-        await fetch(SYNC_WEBHOOK, { method: 'POST', signal: AbortSignal.timeout(5000) })
-      } catch (_) { /* sync agendado cobre */ }
+      // Aqui havia um POST para /webhook/sincronizar-precos espelhando os preços
+      // numa planilha. Removido em 26/09: o workflow do n8n está desativado, e o
+      // comentário antigo dizia "sync agendado cobre" — mas o cron dele também
+      // está desligado. Ou seja, a falha era engolida e nada cobria. Preço
+      // aplicado aqui já vale na hora, porque o motor lê as tabelas direto.
 
       return resposta(200, { ok: true, aplicadas })
     }

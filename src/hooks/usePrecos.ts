@@ -2,52 +2,18 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 /* ─── Tipos das tabelas precos_* ─────────────────────────── */
-export interface PrecoTecido {
-  id: number; nome: string; tipo: 'blackout' | 'tela_solar' | 'tela_solar_1' | 'tela_solar_3' | 'decorativo' | 'outro'
-  largura: number; preco: number
-}
-export interface PrecoArtigo { id: number; categoria: 'PV' | 'PH_ALUMINIO'; nome: string; preco: number }
-export interface PrecoPh50 {
-  id: number; modelo: string; cor: string; preco_cadarco: number
-  preco_fita: number | null; bando_ml: number | null; aba_pc: number | null
-}
-export interface PrecoFerragemFamilia {
-  familia: string; cor: string; espessura: number; larg_min: number; larg_max: number; passo: number
-}
-export interface PrecoFerragemComponente {
-  id: number; familia: string; cor: string; espessura: number
-  item: string; tipo_custo: 'por_metro' | 'fixo' | 'opcional_ml' | 'opcional_par'; valor: number
-}
-export interface PrecoFerragemEscada { familia: string; cor: string; espessura: number; largura: number; custo: number }
-export interface PrecoBando { id: number; cor: string; largura: number; qtd_cd: number; qtd_par: number | null }
-export interface PrecoBandoParams { cor: string; preco_metro: number; par: number; cd1: number; cd2: number }
-export interface PrecoColocacao { id: number; ml_min: number; ml_max: number; preco: number }
-export interface PrecoMotorEstrutura {
-  id: number; largura: number; alt_faixa: string; valor: number
-  obs: string | null; grupo: string | null; valor_extra: number | null; ordem: number | null
-}
-export interface PrecoMotorComponente { id: number; item: string; custo: number; quantidade: number | null }
-export interface PrecoRomanaMatriz { largura: number; altura: number; custo: number }
-export interface PrecoParametro { chave: string; valor: number; descricao: string | null }
-export interface PrecoPromocao {
-  id: number; alvo_tipo: 'tecido' | 'artigo' | 'modelo'; alvo_nome: string
-  desconto_pct: number; inicio: string; fim: string
-}
-export interface PrecoBarraFaixa { largura_min: number; qtd_presilhas: number }
-export interface PrecoTecidoModelo { tecido_nome: string; modelo: string }
-export interface PrecoTecidoVigente {
-  id: number; nome: string; tipo: string; largura: number
-  preco: number; preco_cheio: number; desconto_pct: number | null; em_promocao: boolean
-  promo_fim: string | null
-}
-
-export interface PrecoCortinaTecido {
-  id: number; nome: string; tipo: string; preco: number
-  largura_rolo: number; observacao: string | null
-}
-export interface PrecoCortinaValor {
-  chave: string; valor: number | null; descricao: string | null
-}
+// Moraram aqui até 26/09. Saíram para `src/lib/precos/tipos.ts` porque o motor
+// de orçamento precisa deles dentro da Edge Function, onde React Query e o
+// alias `@/` não existem — era isso que obrigava a manter uma cópia manual do
+// motor. A reexportação abaixo mantém todo `import { PrecoX } from '@/hooks/usePrecos'`
+// funcionando, então nenhum arquivo do dash precisou mudar.
+import type {
+  PrecoTecido, PrecoArtigo, PrecoPh50, PrecoFerragemFamilia, PrecoFerragemComponente,
+  PrecoFerragemEscada, PrecoBando, PrecoBandoParams, PrecoColocacao, PrecoMotorEstrutura,
+  PrecoMotorComponente, PrecoRomanaMatriz, PrecoParametro, PrecoPromocao, PrecoBarraFaixa,
+  PrecoTecidoModelo, PrecoTecidoVigente, PrecoCortinaTecido, PrecoCortinaValor,
+} from '@/lib/precos/tipos'
+export type * from '@/lib/precos/tipos'
 
 export const MODELOS_PERSIANA = ['Rolo', 'Double', 'Romana', 'PH_Aluminio', 'PV', 'PH_50', 'Rolo Motorizado'] as const
 
