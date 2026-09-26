@@ -23,7 +23,7 @@ import { segredoConfere } from '../_shared/automacao.ts'
 import { pedirTexto } from '../_shared/muse.ts'
 import {
   calcularKpis, decidirPeriodo, limparTextoLlm, montarPrompt, textoDeReserva,
-  type LinhaCrm, type PedidoRelatorio, type RelatorioPronto,
+  type LinhaCrm, type PedidoRelatorio, type RelatorioPronto, type VendaMinima,
 } from '../../../src/lib/relatorios/kpis.ts'
 
 Deno.serve(async (req) => {
@@ -50,14 +50,25 @@ Deno.serve(async (req) => {
     )
     if (!periodo) return resposta(200, { ok: true, gerou: false, motivo: 'nada a gerar' })
 
-    const { data: leads, error: erroLeads } = await db.from('crm_sombrear_ia').select(
-      'id, created_at, origem, lead_temperatura, status_lead, ultimo_valor_cotado, ' +
-      'precisa_humano, avisado_fechamento_em, primeira_resposta_humana_em, ' +
-      'desfecho, desfecho_em, desfecho_valor, objecoes',
-    )
+    const [{ data: leads, error: erroLeads }, { data: vendas, error: erroVendas }] = await Promise.all([
+      db.from('crm_sombrear_ia').select(
+        'id, created_at, origem, lead_temperatura, status_lead, ultimo_valor_cotado, ' +
+        'precisa_humano, avisado_fechamento_em, primeira_resposta_humana_em, ' +
+        'desfecho, desfecho_em, desfecho_valor, objecoes',
+      ),
+      // venda e receita vêm daqui, não do CRM — ver o cabeçalho de kpis.ts
+      db.from('orcamentos').select(
+        'id, cliente, valor_cobrado, valor_venda, instalacao, fechado, data_pedido, created_at, pedido_id',
+      ).eq('fechado', true),
+    ])
     if (erroLeads) return resposta(500, { error: `leitura do CRM: ${erroLeads.message}` })
+    if (erroVendas) return resposta(500, { error: `leitura de orçamentos: ${erroVendas.message}` })
 
-    const kpis = calcularKpis((leads ?? []) as LinhaCrm[], periodo)
+    const kpis = calcularKpis(
+      (leads ?? []) as LinhaCrm[],
+      periodo,
+      (vendas ?? []) as VendaMinima[],
+    )
 
     const llm = await pedirTexto(montarPrompt(kpis))
     const texto = llm.ok ? limparTextoLlm(llm.texto) : ''
@@ -95,6 +106,8 @@ Deno.serve(async (req) => {
       tipo: periodo.tipo,
       periodo: `${periodo.inicio} a ${periodo.fim}`,
       leads_novos: kpis.leads_novos,
+      fechados: kpis.fechados,
+      receita_fechada: kpis.receita_fechada,
       texto_do_llm: llm.ok,
     })
   } catch (err) {

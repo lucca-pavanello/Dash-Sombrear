@@ -10,19 +10,26 @@
  * o alias `@/` não existe. Os tipos abaixo são estruturais de propósito — só os
  * campos que o cálculo usa, não o schema inteiro.
  *
- * ⚠️ NÚMERO SABIDAMENTE ERRADO, MANTIDO DE PROPÓSITO
- * `fechados` e `receita_fechada` saem de `desfecho`/`desfecho_valor` do CRM.
- * Essas colunas têm 3 linhas no banco inteiro, então o relatório vem dizendo
- * "0 vendas, R$ 0" toda semana — inclusive em agosto/2026, quando a loja
- * faturou R$ 49.379 segundo `orcamentos`. A fonte certa é `orcamentos`
- * (`fechado = true`, `valor_cobrado ?? valor_venda + instalacao`), que é a
- * definição já unificada na aba Análise.
+ * VENDA E RECEITA VÊM DE `orcamentos`, NÃO DO CRM
+ * Até 26/09 estes dois números saíam de `desfecho`/`desfecho_valor` do CRM,
+ * colunas com 3 linhas no banco inteiro. O resultado é que o relatório disse
+ * "0 vendas, R$ 0" por seis semanas seguidas, inclusive em agosto/2026, mês em
+ * que a loja fechou 13 pedidos e R$ 49.378,95.
  *
- * Não corrigi junto com a migração de propósito: mudar um número de dinheiro
- * escondido dentro de um port faz exatamente o que a casa proíbe. A correção é
- * mudança própria, e depende de `src/lib/analises/base.ts` chegar na main para
- * não nascer uma segunda definição de receita.
+ * Agora a fonte é `orcamentos`, com a MESMA definição da aba Análise —
+ * importada de `../analises/venda.ts`, não copiada: `fechado = true`,
+ * `valor_cobrado ?? valor_venda + instalacao`, itens do mesmo pedido contam
+ * como uma venda só, e as linhas do harness de QA ficam de fora.
+ *
+ * `perdidos_ou_sumiram` continua vindo do CRM: isso é desfecho de conversa,
+ * não de venda, e é o lugar certo dele.
  */
+
+import {
+  chavePedido, dataVenda, ehTeste, ehVenda, receita, type VendaMinima,
+} from '../analises/venda.ts'
+
+export type { VendaMinima }
 
 export type LinhaCrm = {
   id?: string | null
@@ -115,14 +122,11 @@ export type Kpis = {
   aguardando_atendente_agora: number
 }
 
-/** "R$ 1.234,50" vira 1234.5; lixo vira 0 */
-export function valorBrl(s: string | null | undefined): number {
-  const limpo = String(s ?? '').replace(/R\$/g, '').replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.')
-  const n = parseFloat(limpo)
-  return Number.isNaN(n) ? 0 : n
-}
-
-export function calcularKpis(linhas: LinhaCrm[], periodo: Periodo): Kpis {
+export function calcularKpis(
+  linhas: LinhaCrm[],
+  periodo: Periodo,
+  orcamentos: VendaMinima[] = [],
+): Kpis {
   // -03:00 fixo, como no n8n. A loja é toda em São Paulo e o horário de verão
   // não existe mais no Brasil desde 2019.
   const ini = new Date(`${periodo.inicio}T00:00:00-03:00`).getTime()
@@ -153,8 +157,12 @@ export function calcularKpis(linhas: LinhaCrm[], periodo: Periodo): Kpis {
     (r) => txt(r, 'precisa_humano').toLowerCase() === 'sim' || !!r.avisado_fechamento_em,
   ).length
 
-  const fechados = rows.filter((r) => txt(r, 'desfecho') === 'fechou' && dentro(r.desfecho_em))
-  const receita = fechados.reduce((s, r) => s + valorBrl(r.desfecho_valor || r.ultimo_valor_cotado), 0)
+  // venda de verdade: a linha de `orcamentos` com a flag `fechado`, na data do
+  // pedido. Itens do mesmo pedido são uma venda só.
+  const vendas = orcamentos.filter((o) => ehVenda(o) && !ehTeste(o) && dentro(dataVenda(o)))
+  const pedidosFechados = new Set(vendas.map(chavePedido))
+  const receitaFechada = vendas.reduce((s, o) => s + receita(o), 0)
+
   const perdidos = rows.filter(
     (r) => ['perdeu', 'sumiu'].includes(txt(r, 'desfecho')) && dentro(r.desfecho_em),
   ).length
@@ -190,8 +198,8 @@ export function calcularKpis(linhas: LinhaCrm[], periodo: Periodo): Kpis {
     por_temperatura: porTemperatura,
     cotados,
     passados_pro_humano: handoff,
-    fechados: fechados.length,
-    receita_fechada: Math.round(receita * 100) / 100,
+    fechados: pedidosFechados.size,
+    receita_fechada: Math.round(receitaFechada * 100) / 100,
     perdidos_ou_sumiram: perdidos,
     objecoes_top: topObjecoes,
     sla_medio_horas: slaMedio,

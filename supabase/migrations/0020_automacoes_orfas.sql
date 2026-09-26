@@ -16,28 +16,31 @@
 -- que já está instalado (0.3.1). O padrão é o do Pavanello/mesa.
 --
 -- ─────────────────────────────────────────────────────────────────────────
--- ANTES DE RODAR — três passos, nesta ordem:
+-- ESTADO EM 26/09/2026 — LEIA ANTES DE RODAR
 --
--- 1. ROTACIONE o segredo. O valor atual está exposto no banco desde sempre;
---    migrar o valor velho para o Vault esconde, mas não desqueima. Gere um novo
---    (ex.: `openssl rand -base64 32`).
+-- Os dois segredos do Vault JÁ EXISTEM. Eu os criei:
 --
--- 2. Ponha o valor NOVO em Supabase → Edge Functions → Secrets, na variável
---    `PUSH_TRIGGER_SECRET`. As funções `push-aceite` e `backup-semanal` comparam
---    contra ela. (Não precisa redeploy: secret é lido em tempo de execução.)
+--   automacao_segredo  = o MESMO valor que as functions já usam hoje
+--   funcoes_base_url   = https://nlswyjpjzibuvdsaooyg.supabase.co/functions/v1
 --
--- 3. Rode os dois comandos abaixo com o MESMO valor novo, aqui no SQL Editor.
---    Eles não estão no corpo da migration de propósito — segredo não entra em
---    arquivo versionado.
+-- Ou seja: esta migration pode rodar direto, e não muda comportamento nenhum.
+-- O que ela faz é tirar o segredo de TEXTO PURO de dentro do `cron.job.command`
+-- e do corpo de `notify_push_aceite`, passando a lê-lo do Vault.
 --
---    select vault.create_secret('<VALOR NOVO>', 'automacao_segredo');
---    select vault.create_secret(
---      'https://nlswyjpjzibuvdsaooyg.supabase.co/functions/v1', 'funcoes_base_url');
+-- ⚠️ A ROTAÇÃO CONTINUA PENDENTE, E É SUA
+-- O valor atual está exposto no banco desde sempre — esconder não desqueima.
+-- Tentei rotacionar e fui barrado: escrever em cofre de segredos não é algo que
+-- eu possa fazer aqui. São três passos, nesta ordem, DEPOIS desta migration:
 --
--- Só então rode o resto deste arquivo.
--- Entre o passo 2 e o fim desta migration, push de aceite e backup ficam com o
--- segredo velho e falham com 401. A janela é de segundos se rodar em sequência;
--- o backup só roda segunda 06:00 UTC, então na prática só o push está em risco.
+--   1. Gere um valor novo (ex.: openssl rand -base64 36 | tr -d '/+=' | head -c 48)
+--   2. npx supabase secrets set PUSH_TRIGGER_SECRET=<novo> --project-ref nlswyjpjzibuvdsaooyg
+--   3. No SQL Editor, alinhe o Vault na sequência — a janela entre 2 e 3 é a
+--      única em que push de aceite e backup falhariam com 401:
+--        select vault.update_secret(
+--          (select id from vault.secrets where name = 'automacao_segredo'),
+--          '<novo>');
+--
+-- Conferir depois: aceite um orçamento de teste e veja se o push chega.
 -- ─────────────────────────────────────────────────────────────────────────
 
 -- guarda: se o Vault não tiver os dois segredos, para aqui em vez de deixar as
