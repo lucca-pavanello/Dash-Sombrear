@@ -7,7 +7,7 @@ import type {
   PrecoArtigo, PrecoBando, PrecoBandoParams, PrecoBarraFaixa, PrecoColocacao,
   PrecoFerragemComponente, PrecoFerragemFamilia, PrecoMotorComponente, PrecoMotorEstrutura, PrecoParametro,
   PrecoPh50, PrecoRomanaMatriz, PrecoTecidoVigente,
-} from '@/hooks/usePrecos'
+} from './precos/tipos.ts'
 
 /** 'Bandô' e 'Acessório' = item avulso, sem persiana (bandô de reposição, peça de ferragem).
  *  O item vai em `artigo`: a cor do bandô ('BRANCO'/'PRETO') ou o id do componente de ferragem. */
