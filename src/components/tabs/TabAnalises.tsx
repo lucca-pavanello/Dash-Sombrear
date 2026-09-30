@@ -143,7 +143,7 @@ function EsqueletoAnalises() {
 }
 
 export default function TabAnalises({ data, isLoading, error, resetKey, focoResponsavel }: Props) {
-  const { data: leads = [], isLoading: carregandoLeads, isError: erroLeads, refetch: releLeads } = useCrmLeads()
+  const { data: leads = [], isPending: carregandoLeads, isError: erroLeads, refetch: releLeads } = useCrmLeads()
   const qc = useQueryClient()
 
   const [periodo, setPeriodo] = useState('mes')

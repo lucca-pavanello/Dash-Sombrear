@@ -54,8 +54,10 @@ const rotuloMes = (ym: string) => {
 }
 
 export default function TabRelatorios() {
-  const { data: orcamentos = [], isLoading, isError: erroOrc, refetch: releOrc } = useOrcamentos()
-  const { data: leads = [], isLoading: carregandoLeads, isError: erroLeads, refetch: releLeads } = useCrmLeads()
+  // isPending, não isLoading: primeira leitura com a nova tentativa pausada (aba em segundo plano)
+  // continua sendo "carregando", nunca zeros
+  const { data: orcamentos = [], isPending: isLoading, isError: erroOrc, refetch: releOrc } = useOrcamentos()
+  const { data: leads = [], isPending: carregandoLeads, isError: erroLeads, refetch: releLeads } = useCrmLeads()
   const [periodo, setPeriodo] = useState('mes')
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
