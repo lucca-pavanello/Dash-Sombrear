@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react'
 import { X, Send, Sparkles, RotateCcw, ExternalLink, Mic, MicOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useGemini, buildGeminiContext } from '@/hooks/useGemini'
+import { useGemini } from '@/hooks/useGemini'
 import type { Orcamento } from '@/lib/supabase'
 
 const SUGGESTIONS = [
@@ -53,8 +53,10 @@ declare global {
 
 const hasSpeech = typeof window !== 'undefined' && (!!window.SpeechRecognition || !!window.webkitSpeechRecognition)
 
-function AICopilot({ open, onClose, data }: Props) {
-  const { messages, isLoading, sendMessage, clearChat, hasKey } = useGemini()
+function AICopilot({ open, onClose }: Props) {
+  const { messages, isLoading, sendMessage, clearChat } = useGemini()
+  // o servidor tem a chave; o ramo "sem chave" sai no redesenho do copiloto
+  const hasKey = true
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -83,8 +85,7 @@ function AICopilot({ open, onClose, data }: Props) {
     const text = input.trim()
     if (!text || isLoading) return
     setInput('')
-    const ctx = buildGeminiContext(data)
-    sendMessage(text, ctx)
+    sendMessage(text)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -95,8 +96,7 @@ function AICopilot({ open, onClose, data }: Props) {
   }
 
   function handleSuggestion(s: string) {
-    const ctx = buildGeminiContext(data)
-    sendMessage(s, ctx)
+    sendMessage(s)
   }
 
   const toggleVoice = useCallback(() => {
