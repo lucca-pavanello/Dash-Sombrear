@@ -1226,7 +1226,7 @@ export default function Dashboard() {
 
       <Toaster toasts={toasts} onDismiss={dismiss} />
 
-      <AICopilot open={copilotOpen} onClose={() => setCopilotOpen(false)} data={focusedOrcamentos} />
+      <AICopilot open={copilotOpen} onClose={() => setCopilotOpen(false)} responsavel={focusResponsavel} />
       <PresentationMode open={presentationOpen} onClose={() => setPresentationOpen(false)} data={focusedOrcamentos} />
     </div>
     </>

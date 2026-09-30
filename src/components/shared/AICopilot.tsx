@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react'
-import { X, Send, Sparkles, RotateCcw, Mic, MicOff } from 'lucide-react'
+import { X, Send, Sparkles, RotateCcw, Mic, MicOff, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useGemini } from '@/hooks/useGemini'
-import type { Orcamento } from '@/lib/supabase'
 import { blocosDaResposta, partesDoTexto, type Bloco } from '@/lib/respostaIA'
 
 // Só pergunta que as ferramentas do copilot respondem (lista combinada com a
@@ -17,7 +16,8 @@ const SUGGESTIONS = [
 interface Props {
   open: boolean
   onClose: () => void
-  data: Orcamento[]
+  /** vendedor em foco no dash: o copilot passa a olhar só as vendas dele */
+  responsavel?: string | null
 }
 
 function TypingIndicator() {
@@ -103,8 +103,8 @@ declare global {
 
 const hasSpeech = typeof window !== 'undefined' && (!!window.SpeechRecognition || !!window.webkitSpeechRecognition)
 
-function AICopilot({ open, onClose }: Props) {
-  const { messages, isLoading, sendMessage, clearChat } = useGemini()
+function AICopilot({ open, onClose, responsavel }: Props) {
+  const { messages, isLoading, sendMessage, repetir, clearChat } = useGemini()
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -133,7 +133,7 @@ function AICopilot({ open, onClose }: Props) {
     const text = input.trim()
     if (!text || isLoading) return
     setInput('')
-    sendMessage(text)
+    sendMessage(text, { responsavel })
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -144,7 +144,7 @@ function AICopilot({ open, onClose }: Props) {
   }
 
   function handleSuggestion(s: string) {
-    sendMessage(s)
+    sendMessage(s, { responsavel })
   }
 
   const toggleVoice = useCallback(() => {
@@ -205,7 +205,9 @@ function AICopilot({ open, onClose }: Props) {
           <div className="flex-1 min-w-0">
             <p id="copilot-titulo" className="text-sm font-semibold leading-none">Copilot Sombrear</p>
             {/* o escopo, não o fornecedor: "consulta" diz que ele não mexe em nada */}
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Consulta vendas, orçamentos e leads</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              {responsavel ? `Foco em ${responsavel}: vendas, orçamentos e leads` : 'Consulta vendas, orçamentos e leads'}
+            </p>
           </div>
           {messages.length > 0 && (
             <button
@@ -249,7 +251,32 @@ function AICopilot({ open, onClose }: Props) {
             </div>
           )}
 
-          {messages.map((m, i) => (
+          {messages.map((m, i) => m.erro ? (
+            // aviso, não resposta: frase pronta do hook e o jeito de tentar de novo ali mesmo
+            <div
+              key={i}
+              role="alert"
+              className={cn(
+                'mr-auto max-w-[88%] rounded-2xl rounded-bl-sm bg-destructive/[0.07] px-3.5 py-2.5 text-sm leading-relaxed text-destructive ring-1 ring-inset ring-destructive/20',
+                'animate-in fade-in-0 slide-in-from-bottom-2 duration-200',
+              )}
+            >
+              <p className="flex items-start gap-1.5">
+                <AlertCircle className="mt-[3px] h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {m.text}
+              </p>
+              {i === messages.length - 1 && (
+                <button
+                  type="button"
+                  onClick={repetir}
+                  disabled={isLoading}
+                  className="mt-1.5 rounded-md px-1.5 py-0.5 text-xs font-semibold text-destructive underline-offset-2 hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
+                >
+                  Tentar de novo
+                </button>
+              )}
+            </div>
+          ) : (
             <div
               key={i}
               className={cn(
