@@ -16,13 +16,13 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check,
   Clock, MessageCircle,  ChevronLeft,
-  AlertCircle, Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset, Eye,
+  Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset, Eye,
   Search, X, Download,
 } from 'lucide-react'
 import { useConfigAutomacoes, useDefinirConfigAutomacao, IA_RESPONDE } from '@/hooks/useConfigAutomacoes'
 import { Chave } from '@/components/agente/FollowupControle'
 import DatePicker from '@/components/ui/DatePicker'
-import SkeletonCard from '@/components/shared/SkeletonCard'
+import AvisoErro from '@/components/shared/AvisoErro'
 import NovoOrcamentoForm from '@/components/orcamentos/NovoOrcamentoForm'
 import InsightsAmanda from '@/components/agente/InsightsAmanda'
 import ClassificadorConversas, { SeloClassificacao } from '@/components/agente/ClassificadorConversas'
@@ -193,7 +193,7 @@ function KpiCard({ label, value, icon: Icon, alcance, sub, attention, delay }: {
 function FunnelChart({ stages }: { stages: { label: string; value: number; hint: string }[] }) {
   const max = stages[0]?.value ?? 0
   return (
-    <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Filter className="h-4 w-4 text-primary" />
         <h2 className="font-display text-sm font-semibold tracking-wide">Funil de conversão</h2>
@@ -206,16 +206,17 @@ function FunnelChart({ stages }: { stages: { label: string; value: number; hint:
           return (
             <div key={s.label} className="flex items-center gap-3">
               <span className="w-40 shrink-0 text-xs font-medium text-muted-foreground truncate" title={s.hint}>{s.label}</span>
+              {/* o número mora fora da barra: dentro, com mix-blend, ele sumia justo na barra curta */}
               <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-muted/50">
                 <div
                   className="h-full rounded-lg bg-primary transition-all duration-500"
                   style={{ width: `${Math.max(pct, s.value > 0 ? 4 : 0)}%`, opacity: 1 - i * 0.16 }}
                 />
-                <span className="absolute inset-y-0 left-2.5 flex items-center text-xs font-bold tabular-nums text-foreground mix-blend-luminosity">
-                  {s.value}
-                </span>
               </div>
-              <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{i === 0 ? '100%' : pctLabel}</span>
+              <span className="w-16 shrink-0 text-right tabular-nums">
+                <span className="font-display text-sm font-bold text-foreground">{s.value}</span>
+                <span className="ml-1.5 text-[11px] text-muted-foreground">{i === 0 ? '100%' : pctLabel}</span>
+              </span>
             </div>
           )
         })}
@@ -283,7 +284,7 @@ function InterruptorIA({ toast }: { toast: (t: 'success' | 'error' | 'info', m: 
 
   return (
     <div className={cn(
-      'flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 shadow-sm',
+      'flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 shadow-sm',
       respondendo ? 'bg-card' : 'border-amber-500/40 bg-amber-500/[0.07]',
     )}>
       <div className="flex items-center gap-2.5">
@@ -345,8 +346,10 @@ function CampoLead({ rotulo, valor, destaque }: {
 }
 
 export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
-  const { data: leads = [], isLoading: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
-  const { data: orcamentosIA = [], isLoading: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
+  // isPending, não isLoading: se a 1ª leitura falha com a aba em segundo plano, o React Query pausa
+  // a nova tentativa e isLoading vira false sem dado nenhum. A tela mostrava zeros como se fossem fato.
+  const { data: leads = [], isPending: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
+  const { data: orcamentosIA = [], isPending: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
   // Vendas REAIS da loja (Semanário/Acompanhar) — usadas só pra achar, pelo telefone,
   // um lead que fechou fora do chat (balcão, telefone) sem ninguém marcar "Converteu" nele.
   const { data: orcamentosLoja = [] } = useOrcamentos()
@@ -531,7 +534,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const alcanceKpis = [
     { label: 'Pessoas respondidas',      value: Math.round(animLeads),     icon: Users,         alcance: true,  sub: 'atendidas pelo agente' },
     { label: 'Pessoas fora do horário',  value: Math.round(animForaLeads), icon: Moon,          alcance: true,  sub: 'entraram fora do comercial' },
-    { label: 'Mensagens no total',       value: Math.round(animMsgs),      icon: MessageSquare, alcance: true,  sub: 'conversas com troca de msgs' },
+    { label: 'Com conversa',             value: Math.round(animMsgs),      icon: MessageSquare, alcance: true,  sub: 'leads que trocaram mensagem' },
     { label: 'Msgs fora do horário',     value: Math.round(animForaMsgs),  icon: MessageCircle, alcance: true,  sub: 'última msg fora do comercial' },
   ]
 
@@ -683,16 +686,51 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     )
   }
 
+  // esqueleto com a forma e a ordem reais (padrão EsqueletoVisaoGeral do Garimpo):
+  // interruptor, filtro, os dois grupos de KPI, funil e a lista
   if (loadingCrm || loadingOrc) {
+    const linha = (fonte: string, largura: string) => (
+      <span className={cn('flex h-[1lh] items-center', fonte)}><span className={cn('h-[0.7em] rounded skeleton-shimmer', largura)} /></span>
+    )
+    const cartaoKpi = (i: number) => (
+      <div key={i} className={cn(kpi.cartao, kpi.acento.neutro, 'flex flex-col items-center gap-0.5 text-center')}>
+        <span className={cn(kpi.chip, 'h-7 w-7 skeleton-shimmer')} />
+        {linha(kpi.rotulo, 'w-24')}
+        <span className={cn(kpi.valor, 'flex h-[1lh] items-center')}><span className="h-[0.8em] w-12 rounded skeleton-shimmer" /></span>
+        {linha(kpi.sub, 'w-20')}
+      </div>
+    )
+    return (
+      <div className="space-y-5" aria-busy="true" aria-label="Carregando o Agente IA">
+        {ehAdmin && <div className="h-[66px] rounded-xl border bg-card shadow-sm" />}
+        <div className="flex flex-col items-center gap-3">
+          <span className="h-9 w-72 rounded-xl skeleton-shimmer" />
+          <span className="h-[26px] w-96 max-w-full rounded-full skeleton-shimmer" />
+        </div>
+        <div className="space-y-3">
+          {linha('text-[10px]', 'w-20')}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">{[0, 1, 2, 3, 4, 5].map(cartaoKpi)}</div>
+          {linha('pt-1 text-[10px]', 'w-28')}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map(cartaoKpi)}</div>
+        </div>
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          {linha('mb-4 text-sm', 'w-40')}
+          <div className="space-y-2.5">
+            {[0, 1, 2].map(i => <div key={i} className="h-7 rounded-lg skeleton-shimmer" />)}
+          </div>
+        </div>
+        <div className="h-96 rounded-xl border bg-card shadow-sm" />
+      </div>
+    )
+  }
+
+  // sem nenhuma conversa lida, só o erro: os KPIs mostrariam zero como se fosse verdade
+  if (errorCrm && leads.length === 0) {
     return (
       <div className="space-y-5">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-          {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-        <div className="rounded-xl border-2 bg-card shadow-sm animate-pulse">
-          <div className="border-b px-5 py-4"><div className="h-5 w-48 rounded bg-muted" /></div>
-          <div className="p-5 space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-10 rounded bg-muted" />)}</div>
-        </div>
+        {ehAdmin && <InterruptorIA toast={toast} />}
+        <AvisoErro mensagem="Não consegui ler as conversas agora." aoTentar={() => void refetchCrm()} className="py-8" />
+        <Toaster toasts={toasts} onDismiss={dismiss} />
       </div>
     )
   }
@@ -702,20 +740,74 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
       {ehAdmin && <InterruptorIA toast={toast} />}
 
-      {/* ── Alcance do Agente ── */}
-      <div key={periodo} className="space-y-3 animate-in fade-in-0 duration-200">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5">Alcance do Agente</p>
-        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {alcanceKpis.map(({ label, value, icon, alcance, sub }, i) => (
-            <KpiCard key={label} label={label} value={value} icon={icon}
-              alcance={alcance} sub={sub} delay={i * 80} />
-          ))}
+      {/* erro com dado velho em cache: o aviso vai no topo, por cima do dado (antes ficava
+          lá embaixo, junto da tabela, e os números de cima pareciam frescos) */}
+      {errorCrm && (
+        <AvisoErro mensagem="Não consegui atualizar as conversas agora. Mostrando o que foi lido por último."
+          aoTentar={() => void refetchCrm()} />
+      )}
+
+      {/* ── Período e canal no topo: eles controlam a página inteira (KPIs, funil, leitura
+           da IA, insights e as listas). No meio da página, quem trocava o período não via
+           os números de cima mudarem. ── */}
+      <div className="space-y-3">
+        <div className="flex justify-center">
+          <PeriodTabs
+            value={periodo}
+            onChange={(v) => { setPeriodo(v); if (v !== 'custom') { setCustomFrom(''); setCustomTo('') } }}
+            customFrom={customFrom}
+            customTo={customTo}
+            onFromChange={setCustomFrom}
+            onToChange={setCustomTo}
+          />
         </div>
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5 pt-1">Operacional</p>
+
+        {/* O rótulo existe porque sem ele os chips passavam por legenda de cor: têm a mesma
+            aparência dos selos de origem das linhas, que são só leitura. Gente abria a tela
+            querendo "ver só os do Google" e não percebia que era só clicar. */}
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
+          <span className="mr-0.5 text-xs font-medium text-muted-foreground">Filtrar por canal:</span>
+          <FiltroOrigem id="todas" rotulo="Todos os canais" total={doPeriodo.length}
+            ativo={origemFiltro === 'todas'} onClick={() => setOrigemFiltro('todas')} />
+          {[...ORIGENS, SEM_ORIGEM]
+            .filter(o => (porOrigem.get(o.id) ?? 0) > 0)
+            .map(o => (
+              <FiltroOrigem key={o.id} id={o.id} rotulo={o.rotulo} total={porOrigem.get(o.id) ?? 0}
+                ativo={origemFiltro === o.id} onClick={() => setOrigemFiltro(o.id)} />
+            ))}
+        </div>
+      </div>
+
+      {/* ── Quem espera gente agora: o que pede ação vem antes de qualquer número ── */}
+      {aguardando.length > 0 && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4 flex items-center gap-3">
+          <Bell className="h-5 w-5 text-amber-500 shrink-0 animate-pulse" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              {aguardando.length} lead{aguardando.length !== 1 ? 's' : ''} aguardando atendimento humano
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              A IA passou o orçamento e o cliente quer falar com um atendente. Aparecem no topo da lista de leads.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── KPIs: o Operacional lidera (Aguardando e Em espera em âmbar); o Alcance, volume
+           do que a IA atendeu, vem depois. Mesmos cards, mesma cascata e contagem. ── */}
+      <div key={periodo} className="space-y-3 animate-in fade-in-0 duration-200">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5">Operacional</p>
         <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           {opKpis.map(({ label, value, icon, attention, sub }, i) => (
             <KpiCard key={label} label={label} value={value} icon={icon}
-              attention={attention} sub={sub} delay={i * 80 + 320} />
+              attention={attention} sub={sub} delay={i * 80} />
+          ))}
+        </div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5 pt-1">Alcance do Agente</p>
+        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {alcanceKpis.map(({ label, value, icon, alcance, sub }, i) => (
+            <KpiCard key={label} label={label} value={value} icon={icon}
+              alcance={alcance} sub={sub} delay={i * 80 + 480} />
           ))}
         </div>
       </div>
@@ -743,60 +835,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       {/* ── Follow-up automático (só admin controla) ── */}
       {ehAdmin && <FollowupControle toast={toast} />}
 
-      {/* ── Banner: aguardando atendimento ── */}
-      {aguardando.length > 0 && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4 flex items-center gap-3">
-          <Bell className="h-5 w-5 text-amber-500 shrink-0 animate-pulse" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-              {aguardando.length} lead{aguardando.length !== 1 ? 's' : ''} aguardando atendimento humano
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              A IA passou o orçamento e o cliente quer falar com um atendente. Aparecem no topo da lista.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Seletor de Período — centralizado ── */}
-      <div className="flex justify-center py-1">
-        <PeriodTabs
-          value={periodo}
-          onChange={(v) => { setPeriodo(v); if (v !== 'custom') { setCustomFrom(''); setCustomTo('') } }}
-          customFrom={customFrom}
-          customTo={customTo}
-          onFromChange={setCustomFrom}
-          onToChange={setCustomTo}
-        />
-      </div>
-
-      {/* ── Origem: leitura rápida por canal e filtro ──
-           O rótulo existe porque sem ele os chips passavam por legenda de cor: têm a mesma
-           aparência dos selos de origem das linhas, que são só leitura. Gente abria a tela
-           querendo "ver só os do Google" e não percebia que era só clicar. */}
-      <div className="flex flex-wrap items-center justify-center gap-1.5">
-        <span className="mr-0.5 text-xs font-medium text-muted-foreground">Filtrar por canal:</span>
-        <FiltroOrigem id="todas" rotulo="Todos os canais" total={doPeriodo.length}
-          ativo={origemFiltro === 'todas'} onClick={() => setOrigemFiltro('todas')} />
-        {[...ORIGENS, SEM_ORIGEM]
-          .filter(o => (porOrigem.get(o.id) ?? 0) > 0)
-          .map(o => (
-            <FiltroOrigem key={o.id} id={o.id} rotulo={o.rotulo} total={porOrigem.get(o.id) ?? 0}
-              ativo={origemFiltro === o.id} onClick={() => setOrigemFiltro(o.id)} />
-          ))}
-      </div>
-
       {/* ── Tabela de Leads ── */}
-      {errorCrm && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-            <p className="text-sm text-destructive">Erro ao carregar leads do CRM.</p>
-          </div>
-          <button onClick={() => refetchCrm()} className="text-xs text-destructive underline hover:no-underline">Tentar novamente</button>
-        </div>
-      )}
-      <div className="rounded-xl border-2 bg-card shadow-sm">
+      <div className="rounded-xl border bg-card shadow-sm">
         {/* Header centralizado — clicável para colapsar */}
         <button
           type="button"
@@ -861,12 +901,12 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 <Bot className="h-6 w-6 text-muted-foreground/50" />
               </div>
               <p className="text-sm font-medium">
-                {buscaDebounced ? 'Nenhum lead encontrado' : 'Nenhum lead neste período'}
+                {buscaDebounced ? 'Nenhum lead encontrado' : 'Nenhum lead aqui'}
               </p>
               <p className="text-sm text-muted-foreground">
                 {buscaDebounced
                   ? `Nada casa com "${buscaDebounced}"${origemFiltro !== 'todas' ? ` no canal ${acharOrigem(origemFiltro).rotulo}` : ''}.`
-                  : leads.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela crm_sombrear_ia'}
+                  : leads.length > 0 ? 'Tente outro período ou canal.' : 'Quando alguém falar com a Amanda no WhatsApp, aparece aqui na hora.'}
               </p>
             </div>
           ) : (
@@ -1005,7 +1045,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                         disabled={marcando}
                                         className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60 transition-colors"
                                       >
-                                        {marcando ? '...' : <><Check className="inline h-3 w-3 mr-1" />Confirmar</>}
+                                        {marcando ? '…' : <><Check className="inline h-3 w-3 mr-1" />Confirmar</>}
                                       </button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); setConfirmId(null) }}
@@ -1221,7 +1261,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                     disabled={marcando}
                                     className="rounded-lg bg-primary px-2 py-0.5 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60 transition-colors"
                                   >
-                                    {marcando ? '...' : <><Check className="inline h-3 w-3 mr-0.5" />Confirmar</>}
+                                    {marcando ? '…' : <><Check className="inline h-3 w-3 mr-0.5" />Confirmar</>}
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setMobileConfirmId(null) }}
@@ -1330,15 +1370,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
       {/* ── Tabela de Orçamentos IA ── */}
       {errorOrc && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-            <p className="text-sm text-destructive">Erro ao carregar orçamentos do Agente IA.</p>
-          </div>
-          <button onClick={() => refetchOrc()} className="text-xs text-destructive underline hover:no-underline">Tentar novamente</button>
-        </div>
+        <AvisoErro mensagem="Não consegui ler os orçamentos da IA agora." aoTentar={() => void refetchOrc()} />
       )}
-      <div className="rounded-xl border-2 bg-card shadow-sm">
+      <div className="rounded-xl border bg-card shadow-sm">
         {/* Header centralizado — clicável para colapsar */}
         <button
           type="button"
@@ -1362,7 +1396,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 <Bot className="h-6 w-6 text-muted-foreground/50" />
               </div>
               <p className="text-sm font-medium">Nenhum orçamento neste período</p>
-              <p className="text-sm text-muted-foreground">{orcamentosIA.length > 0 ? 'Tente um período maior' : 'Dados vêm da tabela orcamentos_sombrear_ia'}</p>
+              <p className="text-sm text-muted-foreground">{orcamentosIA.length > 0 ? 'Tente outro período ou canal.' : 'Quando a Amanda passar um orçamento no WhatsApp, ele aparece aqui.'}</p>
             </div>
           ) : (
             <>
@@ -1435,7 +1469,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                               : '—'}
                           </td>
                           <td className="px-4 py-3.5 text-center tabular-nums text-muted-foreground border-r border-border/20">{o.valor_colocacao != null ? formatCurrency(o.valor_colocacao) : '—'}</td>
-                          <td className="px-4 py-3.5 font-bold text-primary tabular-nums">{total > 0 ? formatCurrency(total) : '—'}</td>
+                          <td className="px-4 py-3.5 text-center font-bold text-primary tabular-nums">{total > 0 ? formatCurrency(total) : '—'}</td>
                         </tr>
                       )
                     })}

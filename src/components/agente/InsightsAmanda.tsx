@@ -261,7 +261,7 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
   const rotuloDelta = rotuloAnterior(periodo)
 
   return (
-    <div className="rounded-xl border-2 bg-card p-5 shadow-sm">
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <Brain className="h-4 w-4 text-primary" aria-hidden="true" />
         <h2 className="font-display text-sm font-semibold tracking-wide">Insights da Amanda</h2>
