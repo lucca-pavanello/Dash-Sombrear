@@ -11,7 +11,7 @@ import type { Orcamento } from '@/lib/supabase'
 import { type CrmLead, isLeadHistorico } from '@/hooks/useAgenteIA'
 import { valorNumerico } from '@/lib/utils'
 import type { Intervalo } from '@/lib/periodos'
-import { dataAtividade, dataVenda, ehVenda, noPeriodo, receita } from './base'
+import { chavePedido, dataAtividade, dataVenda, ehVenda, noPeriodo, receita } from './base'
 
 export type EtapaFunil = {
   id: string
@@ -45,6 +45,8 @@ export function calcularFunil(
   const doPeriodo = orcamentos.filter((o) => noPeriodo(dataVenda(o), faixa))
   const vendas = doPeriodo.filter(ehVenda)
   const receitaFechada = vendas.reduce((s, o) => s + receita(o), 0)
+  // itens do mesmo pedido são uma venda só, como no número de abertura da aba
+  const pedidos = new Set(vendas.map(chavePedido)).size
 
   const comTelefone = vendas.filter((o) => !!o.telefone && o.telefone.trim() !== '')
   const casadas = comTelefone.filter((o) => mapaTelefone.has(normalizar(o.telefone)))
@@ -52,7 +54,7 @@ export function calcularFunil(
   const bruto = [
     { id: 'conversas', rotulo: 'Conversas atendidas', valor: conversas.length, nota: 'gente que chamou no WhatsApp' },
     { id: 'orcadas', rotulo: 'Receberam orçamento', valor: orcadas.length, nota: 'a Amanda passou preço na conversa' },
-    { id: 'vendas', rotulo: 'Fecharam', valor: vendas.length, nota: 'pedidos registrados no Semanário' },
+    { id: 'vendas', rotulo: 'Fecharam', valor: pedidos, nota: 'pedidos registrados no Semanário' },
   ]
 
   // a base da barra é a MAIOR etapa, não a primeira: quando entram vendas de balcão o

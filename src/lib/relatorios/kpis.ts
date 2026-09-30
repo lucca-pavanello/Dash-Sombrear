@@ -139,7 +139,10 @@ export function calcularKpis(
   const txt = (r: LinhaCrm, k: keyof LinhaCrm) => String(r[k] ?? '').trim()
 
   const rows = linhas.filter((r) => r && r.id)
-  const novos = rows.filter((r) => dentro(r.created_at))
+  // o histórico importado do WhatsApp da loja ("historico"/"Novo") não é lead novo,
+  // mesma regra de isLeadHistorico no dash (as abas já cortavam, o resumo não)
+  const historico = (r: LinhaCrm) => ['historico', 'novo'].includes(txt(r, 'status_lead').toLowerCase())
+  const novos = rows.filter((r) => !historico(r) && dentro(r.created_at))
 
   const porOrigem: Record<string, number> = {}
   const porTemperatura: Record<string, number> = {}

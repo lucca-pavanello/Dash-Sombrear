@@ -12,6 +12,7 @@
 import type { Orcamento } from '@/lib/supabase'
 import type { Intervalo } from '@/lib/periodos'
 import { dataVenda, ehVenda, noPeriodo, receita } from './base'
+import { mesDaCasa } from '@/lib/fusoCasa'
 
 export type ResumoDinheiro = {
   receita: number
@@ -66,8 +67,8 @@ export function receitaPorMes(orcamentos: Orcamento[], meses = 6, agora = new Da
     const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1)
     const doMes = orcamentos.filter((o) => {
       if (!ehVenda(o)) return false
-      const q = new Date(dataVenda(o))
-      return q.getFullYear() === d.getFullYear() && q.getMonth() === d.getMonth()
+      // mês de São Paulo, não o do relógio de quem abriu a tela
+      return mesDaCasa(dataVenda(o)) === `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     })
     saida.push({
       mes: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,

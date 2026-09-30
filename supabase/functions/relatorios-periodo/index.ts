@@ -50,16 +50,26 @@ Deno.serve(async (req) => {
     )
     if (!periodo) return resposta(200, { ok: true, gerou: false, motivo: 'nada a gerar' })
 
+    // paginado: o PostgREST corta em 1.000 linhas sem avisar
+    const lerTudo = async (pagina: (de: number, ate: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>) => {
+      const todos: unknown[] = []
+      for (let de = 0; ; de += 1000) {
+        const { data, error } = await pagina(de, de + 999)
+        if (error) return { data: null, error }
+        todos.push(...(data ?? []))
+        if ((data ?? []).length < 1000) return { data: todos, error: null }
+      }
+    }
     const [{ data: leads, error: erroLeads }, { data: vendas, error: erroVendas }] = await Promise.all([
-      db.from('crm_sombrear_ia').select(
+      lerTudo((de, ate) => db.from('crm_sombrear_ia').select(
         'id, created_at, origem, lead_temperatura, status_lead, ultimo_valor_cotado, ' +
         'precisa_humano, avisado_fechamento_em, primeira_resposta_humana_em, ' +
         'desfecho, desfecho_em, desfecho_valor, objecoes',
-      ),
+      ).order('id').range(de, ate)),
       // venda e receita vêm daqui, não do CRM — ver o cabeçalho de kpis.ts
-      db.from('orcamentos').select(
+      lerTudo((de, ate) => db.from('orcamentos').select(
         'id, cliente, valor_cobrado, valor_venda, instalacao, fechado, data_pedido, created_at, pedido_id',
-      ).eq('fechado', true),
+      ).eq('fechado', true).order('id').range(de, ate)),
     ])
     if (erroLeads) return resposta(500, { error: `leitura do CRM: ${erroLeads.message}` })
     if (erroVendas) return resposta(500, { error: `leitura de orçamentos: ${erroVendas.message}` })
