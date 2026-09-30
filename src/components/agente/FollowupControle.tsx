@@ -91,7 +91,7 @@ export default function FollowupControle({ toast }: { toast: (t: 'success' | 'er
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-foreground">Ligado</p>
-            <p className="text-xs text-muted-foreground">A Stella dá um retorno único a leads parados há 48h.</p>
+            <p className="text-xs text-muted-foreground">A Amanda dá um retorno único a leads parados há 48h.</p>
           </div>
           <Chave ligado={ativo} ocupado={ocupado} onChange={v => gravar('followup_ativo', v ? '1' : '0')} />
         </div>
