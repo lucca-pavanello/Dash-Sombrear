@@ -119,7 +119,7 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
 }
 
 export default function ResumosIA() {
-  const { data: relatorios = [], isLoading, isError, refetch } = useRelatoriosIA()
+  const { data: relatorios = [], isPending: isLoading, isError, refetch } = useRelatoriosIA()
   const { data: pendentes = [] } = usePedidosPendentes()
   const pedir = usePedirRelatorio()
 
