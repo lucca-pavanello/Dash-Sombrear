@@ -8,7 +8,6 @@
  */
 import { GitBranch } from 'lucide-react'
 import type { Funil } from '@/lib/analises'
-import { formatCurrency } from '@/lib/utils'
 import { SecaoAnalise, BarraProporcao, NumeroAnimado } from './base'
 
 export default function FunilPeriodo({ funil }: { funil: Funil }) {
@@ -47,20 +46,13 @@ export default function FunilPeriodo({ funil }: { funil: Funil }) {
             ))}
           </ol>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
-            <span>
-              Receita fechada:{' '}
-              <span className="font-semibold tabular-nums text-foreground">
-                {formatCurrency(funil.receitaFechada)}
-              </span>
-            </span>
-            {funil.vendasComTelefone > 0 && (
-              <span>
-                {funil.vendasCasadas} de {funil.vendasComTelefone} vendas com telefone casam com uma
-                conversa — o resto entrou sem passar pela Amanda.
-              </span>
-            )}
-          </div>
+          {/* a receita fechada mora só no Destaque do topo (30/09); aqui fica o rastro da venda */}
+          {funil.vendasComTelefone > 0 && (
+            <p className="mt-4 border-t border-border/60 pt-3 text-[11px] text-muted-foreground">
+              {funil.vendasCasadas} de {funil.vendasComTelefone} vendas com telefone casam com uma
+              conversa. O resto entrou sem passar pela Amanda.
+            </p>
+          )}
         </>
       )}
     </SecaoAnalise>

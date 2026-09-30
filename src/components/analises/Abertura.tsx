@@ -16,7 +16,7 @@
 import { ShoppingBag, Receipt, Percent, MessageCircle } from 'lucide-react'
 import { kpi } from '@/components/shared/estilos'
 import { formatCurrency, cn } from '@/lib/utils'
-import type { Funil, ResumoDinheiro, Observacao, MesReceita, LinhaCanal } from '@/lib/analises'
+import type { Funil, ResumoDinheiro, Observacao, LinhaCanal } from '@/lib/analises'
 import { NumeroAnimado, Delta } from './base'
 import Destaque from './Destaque'
 
@@ -48,7 +48,7 @@ function Tile({
 
 export default function Abertura({
   manchete, observacoes, funil, dinheiro, rotuloComparacao, rotuloPeriodo,
-  deltas, meses, destaqueCanal, semCanal,
+  deltas, destaqueCanal, semCanal,
 }: {
   manchete: string
   observacoes: Observacao[]
@@ -56,7 +56,6 @@ export default function Abertura({
   dinheiro: ResumoDinheiro
   rotuloComparacao: string
   rotuloPeriodo: string
-  meses: MesReceita[]
   destaqueCanal: { linha: LinhaCanal; vezes: number } | null
   semCanal: LinhaCanal
   deltas: {
@@ -77,7 +76,6 @@ export default function Abertura({
         deltaReceita={deltas.receita}
         rotuloComparacao={rotuloComparacao}
         rotuloPeriodo={rotuloPeriodo}
-        meses={meses}
         destaqueCanal={destaqueCanal}
         semCanal={semCanal}
         taxaOrcamento={taxaOrcamento}
