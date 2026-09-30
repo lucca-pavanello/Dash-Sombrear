@@ -17,7 +17,7 @@ import { BarChart3, ChevronRight, Download, Loader2, Thermometer, TrendingUp } f
 import { cn, formatCurrency } from '@/lib/utils'
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { useCrmLeads, isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone } from '@/hooks/useAgenteIA'
-import { filterByPeriod } from '@/hooks/usePeriodFilter'
+import { intervaloAtual } from '@/lib/periodos'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { Button, EmptyState } from '@/components/ui/primitives'
@@ -29,7 +29,9 @@ import type { Orcamento } from '@/lib/supabase'
 import JanelaDados from '@/components/orcamentos/JanelaDados'
 import ResumosIA from '@/components/relatorios/ResumosIA'
 import FunilConversao from '@/components/relatorios/FunilConversao'
-import { receita } from '@/lib/analises/base'
+import { dataVenda, ehTeste, ehVenda, noPeriodo } from '@/lib/analises/base'
+import { leadsQueCompraram } from '@/lib/analises/conversao'
+import { linhasPorCanal, mesAMes, somarCanais } from '@/lib/relatorios/porCanal'
 
 const PERIODOS = [
   { value: 'mes', label: 'Este mês' },
@@ -44,7 +46,6 @@ const PERIODOS = [
 // src/lib/analises/base.ts e a aba Análises importa a mesma. Antes cada uma tinha a sua
 // e as duas abas da MESMA área mostravam faturamentos diferentes para o mesmo mês.
 
-const mesDe = (iso: string) => iso.slice(0, 7)
 const rotuloMes = (ym: string) => {
   const [a, m] = ym.split('-')
   const nomes = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -59,15 +60,17 @@ export default function TabRelatorios() {
   const [ate, setAte] = useState('')
   const [baixando, setBaixando] = useState(false)
 
-  const noPeriodo = useMemo(
-    () => filterByPeriod(orcamentos, periodo, o => o.created_at, de || undefined, ate || undefined),
-    [orcamentos, periodo, de, ate])
+  // mesmo intervalo e mesma data de venda da aba Análises (src/lib/periodos.ts)
+  const faixa = useMemo(() => intervaloAtual(periodo, de || undefined, ate || undefined), [periodo, de, ate])
+  const vendasNoPeriodo = useMemo(
+    () => orcamentos.filter(o => ehVenda(o) && !ehTeste(o) && noPeriodo(dataVenda(o), faixa)),
+    [orcamentos, faixa])
   // Fora o histórico do WhatsApp da loja (importado só pra dar contexto à IA) —
   // senão cada leva de conversa antiga vira um monte de "leads novos" no período.
   const leadsVivos = useMemo(() => leads.filter(l => !isLeadHistorico(l)), [leads])
   const leadsNoPeriodo = useMemo(
-    () => filterByPeriod(leadsVivos, periodo, l => l.created_at, de || undefined, ate || undefined),
-    [leadsVivos, periodo, de, ate])
+    () => leadsVivos.filter(l => noPeriodo(l.created_at, faixa)),
+    [leadsVivos, faixa])
   // Telefone → lead, pra saber de onde veio uma venda de balcão sem canal marcado
   // na mão — mesmo que ela tenha fechado fora do chat com a Stella.
   const leadPorTelefone = useMemo(() => mapaLeadsPorTelefone(leads), [leads])
@@ -82,39 +85,21 @@ export default function TabRelatorios() {
    * balcão puro cai em "Sem origem" só se o telefone também não bater com
    * nenhum lead conhecido (ver `origemEfetiva`).
    */
+  const compraram = useMemo(
+    () => leadsQueCompraram(orcamentos, tel => acharLeadPorTelefone(leadPorTelefone, tel)),
+    [orcamentos, leadPorTelefone])
   const porCanal = useMemo(() => {
-    const recebeuPreco = (v: unknown) => {
-      const s = String(v ?? '').trim()
-      return s !== '' && s !== '0' && s.toLowerCase() !== 'null'
-    }
-    const vazio = () => ({ leads: 0, orcados: 0, fechamentos: 0, faturamento: 0 })
-    const mapa = new Map<string, ReturnType<typeof vazio>>()
-    const pega = (id: string) => {
-      const atual = mapa.get(id) ?? vazio()
-      mapa.set(id, atual)
-      return atual
-    }
-    for (const l of leadsNoPeriodo) {
-      const linha = pega(acharOrigem(l.origem).id)
-      linha.leads++
-      if (recebeuPreco(l.ultimo_valor_cotado)) linha.orcados++
-    }
-    for (const o of noPeriodo) {
-      if (!o.fechado) continue
-      const linha = pega(acharOrigem(origemEfetiva(o)).id)
-      linha.fechamentos++
-      linha.faturamento += receita(o)
-    }
     const ordem: string[] = [...ORIGENS.map(o => o.id), SEM_ORIGEM.id]
-    return [...mapa.entries()]
-      .filter(([, v]) => v.leads > 0 || v.fechamentos > 0)
-      .sort((a, b) => b[1].faturamento - a[1].faturamento
-        || ordem.indexOf(a[0]) - ordem.indexOf(b[0]))
-      .map(([id, v]) => ({ id, ...v,
-        ticket: v.fechamentos > 0 ? v.faturamento / v.fechamentos : 0,
-        conversao: v.leads > 0 ? (v.fechamentos / v.leads) * 100 : null,
-      }))
-  }, [noPeriodo, leadsNoPeriodo, leadPorTelefone])
+    return linhasPorCanal({
+      leads: leadsNoPeriodo,
+      vendas: vendasNoPeriodo,
+      canalDoLead: l => acharOrigem(l.origem).id,
+      canalDaVenda: o => acharOrigem(origemEfetiva(o)).id,
+      compraram,
+    })
+      .filter(v => v.leads > 0 || v.fechamentos > 0)
+      .sort((a, b) => b.faturamento - a.faturamento || ordem.indexOf(a.id) - ordem.indexOf(b.id))
+  }, [vendasNoPeriodo, leadsNoPeriodo, leadPorTelefone, compraram])
 
   /**
    * Qualidade do lead por canal — quantidade já a tabela acima mostra; isso mostra
@@ -154,29 +139,17 @@ export default function TabRelatorios() {
 
   /** vendas fechadas ainda sem canal e sem lead conhecido pelo telefone — é o que trava o relatório */
   const semCanal = useMemo(
-    () => noPeriodo.filter(o => o.fechado && !o.origem && !acharLeadPorTelefone(leadPorTelefone, o.telefone)).length,
-    [noPeriodo, leadPorTelefone])
+    () => new Set(vendasNoPeriodo
+      .filter(o => !o.origem && !acharLeadPorTelefone(leadPorTelefone, o.telefone))
+      .map(o => o.pedido_id ?? o.id)).size,
+    [vendasNoPeriodo, leadPorTelefone])
 
-  const totais = useMemo(() => porCanal.reduce((s, c) => ({
-    leads: s.leads + c.leads,
-    orcados: s.orcados + c.orcados,
-    fechamentos: s.fechamentos + c.fechamentos,
-    faturamento: s.faturamento + c.faturamento,
-  }), { leads: 0, orcados: 0, fechamentos: 0, faturamento: 0 }), [porCanal])
+  const totais = useMemo(() => somarCanais(porCanal), [porCanal])
 
-  /** Mês a mês — o "resultado que ele mostra pro cliente" */
-  const porMes = useMemo(() => {
-    const fechados = orcamentos.filter(o => o.fechado)
-    const meses = [...new Set(fechados.map(o => mesDe(o.created_at)))].sort().slice(-6)
-    const canais = [...new Set(fechados.map(o => acharOrigem(origemEfetiva(o)).id))]
-    return {
-      meses,
-      canais,
-      valor: (mes: string, canal: string) => fechados
-        .filter(o => mesDe(o.created_at) === mes && acharOrigem(origemEfetiva(o)).id === canal)
-        .reduce((s, o) => ({ n: s.n + 1, total: s.total + receita(o) }), { n: 0, total: 0 }),
-    }
-  }, [orcamentos, leadPorTelefone])
+  /** Mês a mês — o "resultado que ele mostra pro cliente": últimos 6 meses, fora do filtro */
+  const porMes = useMemo(
+    () => mesAMes(orcamentos, o => acharOrigem(origemEfetiva(o)).id),
+    [orcamentos, leadPorTelefone])
 
   async function exportarPdf() {
     setBaixando(true)
@@ -196,7 +169,7 @@ export default function TabRelatorios() {
           formatCurrency(c.faturamento), c.ticket > 0 ? formatCurrency(c.ticket) : '—',
         ]),
         foot: [['TOTAL', String(totais.leads), String(totais.orcados), String(totais.fechamentos),
-          totais.leads > 0 ? `${((totais.fechamentos / totais.leads) * 100).toFixed(0)}%` : '—',
+          totais.conversao != null ? `${totais.conversao.toFixed(0)}%` : '—',
           formatCurrency(totais.faturamento), '']],
         ...TEMA_TABELA,
         columnStyles: { ...colunasCentro([1, 2, 3, 4]), ...colunasDireita([5, 6]) },
@@ -312,8 +285,8 @@ export default function TabRelatorios() {
                   <td className="px-4 py-3 text-center tabular-nums">{totais.orcados}</td>
                   <td className="px-4 py-3 text-center tabular-nums">{totais.fechamentos}</td>
                   <td className="px-4 py-3 text-center tabular-nums">
-                    {totais.leads > 0
-                      ? `${((totais.fechamentos / totais.leads) * 100).toFixed(0)}%`
+                    {totais.conversao != null
+                      ? `${totais.conversao.toFixed(0)}%`
                       : '—'}
                   </td>
                   <td className="px-4 py-3 text-center tabular-nums text-primary">{formatCurrency(totais.faturamento)}</td>

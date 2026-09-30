@@ -38,9 +38,20 @@ export function ehVenda(o: VendaMinima): boolean {
   return o.fechado === true
 }
 
-/** a data que vale é a do pedido informada no Semanário; sem ela, a de criação */
+const SO_DATA = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * A data que vale é a do pedido informada no Semanário; sem ela, a de criação.
+ *
+ * `data_pedido` é coluna `date` ("2026-09-01"), sem hora. `new Date("2026-09-01")`
+ * é meia-noite UTC, que em São Paulo é 21h do dia 31/08: a venda do dia 1º caía no
+ * mês anterior em todo lugar que comparava instante. Devolver meio-dia de São Paulo
+ * mantém o dia certo em qualquer fuso de navegador ou servidor (15h em UTC).
+ */
 export function dataVenda(o: VendaMinima): string {
-  return o.data_pedido ?? o.created_at ?? ''
+  const d = o.data_pedido
+  if (d) return SO_DATA.test(d) ? `${d}T12:00:00-03:00` : d
+  return o.created_at ?? ''
 }
 
 /**

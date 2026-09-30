@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { lerTudo } from '@/lib/lerTudo'
 
 // Status usado pelo n8n quando a IA passa o preço e o cliente quer atendimento humano
 export const STATUS_AGUARDANDO = 'aguardando_atendimento'
@@ -187,14 +188,13 @@ export function useCrmLeads() {
   return useQuery({
     queryKey: ['crm-sombrear-ia'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // paginado: acima de 1.000 leads a leitura simples cortava sem avisar
+      return lerTudo<CrmLead>((de, ate) => supabase
         .from('crm_sombrear_ia')
         .select('*')
         .order('created_at', { ascending: false })
-      if (error) {
-        throw error
-      }
-      return data as CrmLead[]
+        .order('id')
+        .range(de, ate))
     },
     retry: 1,
     refetchOnWindowFocus: false,
@@ -238,14 +238,12 @@ export function useOrcamentosIA() {
   return useQuery({
     queryKey: ['orcamentos-sombrear-ia'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      return lerTudo<OrcamentoIA>((de, ate) => supabase
         .from('orcamentos_sombrear_ia')
         .select('*')
         .order('created_at', { ascending: false })
-      if (error) {
-        throw error
-      }
-      return data as OrcamentoIA[]
+        .order('id')
+        .range(de, ate))
     },
     retry: 1,
     refetchOnWindowFocus: false,

@@ -36,6 +36,7 @@ import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE, M
 import { tabela, segmentado, kpi, campoBusca } from '@/components/shared/estilos'
 import { useDebounce } from '@/hooks/useDebounce'
 import { exportCsv } from '@/lib/exportUtils'
+import { ehConvertido, leadsQueCompraram, recebeuPreco } from '@/lib/analises/conversao'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 
@@ -439,15 +440,10 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
   // Telefone → lead, pra achar quem fechou no balcão sem passar pelo botão "Converteu".
   const leadPorTelefone = useMemo(() => mapaLeadsPorTelefone(leads), [leads])
-  const convertidosPorTelefone = useMemo(() => {
-    const set = new Set<string>()
-    for (const o of orcamentosLoja) {
-      if (!o.fechado) continue
-      const lead = acharLeadPorTelefone(leadPorTelefone, o.telefone)
-      if (lead) set.add(lead.id)
-    }
-    return set
-  }, [orcamentosLoja, leadPorTelefone])
+  // só venda feita no dia em que o lead chegou ou depois (src/lib/analises/conversao.ts)
+  const convertidosPorTelefone = useMemo(
+    () => leadsQueCompraram(orcamentosLoja, tel => acharLeadPorTelefone(leadPorTelefone, tel)),
+    [orcamentosLoja, leadPorTelefone])
 
   // O período do lead é a ATIVIDADE (última mensagem), não a criação da linha:
   // um cliente antigo que volta a escrever hoje precisa aparecer em "hoje" — a linha
@@ -479,45 +475,47 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       : doPeriodo.filter(l => acharOrigem(l.origem).id === origemFiltro),
     [doPeriodo, origemFiltro]
   )
-  const orcFiltrados = useMemo(
-    () => filterByPeriod(orcamentosIA, periodo, (o) => o.created_at, customFrom || undefined, customTo || undefined),
-    [orcamentosIA, periodo, customFrom, customTo]
-  )
+  // o chip de canal vale também para os orçamentos: o canal é o do lead dono do orçamento
+  const orcFiltrados = useMemo(() => {
+    const doPer = filterByPeriod(orcamentosIA, periodo, (o) => o.created_at, customFrom || undefined, customTo || undefined)
+    if (origemFiltro === 'todas') return doPer
+    return doPer.filter(o => acharOrigem(leadPorOrc.get(o.id)?.origem).id === origemFiltro)
+  }, [orcamentosIA, periodo, customFrom, customTo, origemFiltro, leadPorOrc])
 
   // KPIs
   const { aguardando, convertidos, comMedicao, foraLeads, foraMsgs, mensagensTotais, valorTotal } = useMemo(() => ({
     aguardando:      filtrados.filter((l) => isAguardando(l.status_lead)),
-    convertidos:     filtrados.filter((l) => isConvertido(l.status_lead, convertidosPorTelefone.has(l.id))),
+    convertidos:     filtrados.filter((l) => ehConvertido(l, convertidosPorTelefone)),
     comMedicao:      filtrados.filter((l) => !!l.data_medicao_instalacao?.trim()),
     foraLeads:       filtrados.filter((l) => isForaDoHorario(l.created_at)),
     foraMsgs:        filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg)),
     mensagensTotais: filtrados.filter((l) => !!l.timestamp_ultima_msg).length,
     valorTotal:      orcFiltrados.reduce((s, o) =>
       s + (o.valor_venda_total_base ?? 0) + (o.valor_venda_acabamento_total ?? 0) + (o.valor_colocacao ?? 0), 0),
-  }), [filtrados, orcFiltrados])
+  }), [filtrados, orcFiltrados, convertidosPorTelefone])
 
   // conversas que uma atendente assumiu: a IA está calada e quem toca é gente
   const comEquipe = useMemo(() => filtrados.filter(estaComEquipe), [filtrados])
 
   const leadsEmEspera = useMemo(() =>
-    filtrados.filter(l => {
-      const status = l.status_lead?.toLowerCase().trim() ?? ''
-      const convertido = status === 'convertido' || status === 'fechado'
-      return !convertido && horasDecorridas(l.timestamp_ultima_msg) > ESPERA_HORAS
-    }), [filtrados])
+    filtrados.filter(l =>
+      !ehConvertido(l, convertidosPorTelefone) && horasDecorridas(l.timestamp_ultima_msg) > ESPERA_HORAS
+    ), [filtrados, convertidosPorTelefone])
 
-  // Funil: respondidos → cotados → pediram humano → convertidos
+  // Funil encaixado: respondidos → cotados → convertidos, cada etapa dentro da anterior.
+  // Quem comprou recebeu preço em algum momento, mesmo que fora do chat, então conta
+  // como cotado. "Pediram atendimento" não é etapa (é o KPI Aguardando).
+  const idsConvertidos = useMemo(() => new Set(convertidos.map(l => l.id)), [convertidos])
   const cotados = useMemo(
-    () => filtrados.filter(l => !!l.ultimo_valor_cotado?.trim() || orcsDoLead(l).length > 0),
+    () => filtrados.filter(l => recebeuPreco(l.ultimo_valor_cotado) || orcsDoLead(l).length > 0 || idsConvertidos.has(l.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtrados, orcsPorLead]
+    [filtrados, orcsPorLead, idsConvertidos]
   )
   const funnelStages = useMemo(() => [
     { label: 'Respondidos pelo agente', value: filtrados.length,   hint: 'Leads atendidos pela IA no período' },
-    { label: 'Receberam cotação',       value: cotados.length,     hint: 'Leads com valor cotado ou orçamento gerado' },
-    { label: 'Pediram atendimento',     value: aguardando.length,  hint: 'Querem falar com um humano' },
-    { label: 'Convertidos',             value: convertidos.length, hint: 'Marcados como convertidos' },
-  ], [filtrados.length, cotados.length, aguardando.length, convertidos.length])
+    { label: 'Receberam cotação',       value: cotados.length,     hint: 'Leads com valor cotado, orçamento gerado ou compra' },
+    { label: 'Convertidos',             value: convertidos.length, hint: 'Marcados como convertidos ou com venda na loja' },
+  ], [filtrados.length, cotados.length, convertidos.length])
 
   const animLeads      = useCountUp(filtrados.length, 700, hasLoaded, resetKey)
   const animAguard     = useCountUp(aguardando.length, 700, hasLoaded, resetKey)

@@ -13,7 +13,7 @@
  */
 
 import type { Orcamento } from '@/lib/supabase'
-import type { CrmLead } from '@/hooks/useAgenteIA'
+import { type CrmLead, isLeadHistorico } from '@/hooks/useAgenteIA'
 import { acharOrigem, SEM_ORIGEM } from '@/components/agente/SeloOrigem'
 import { valorNumerico } from '@/lib/utils'
 import type { Intervalo } from '@/lib/periodos'
@@ -76,7 +76,8 @@ export function analiseDeCanal(
   faixa: Intervalo | null,
   acharLead: (telefone: string | null | undefined) => CrmLead | undefined,
 ): Canais {
-  const doPeriodo = leads.filter((l) => noPeriodo(dataAtividade(l), faixa))
+  // sem o histórico importado da loja, como no funil e na aba Por canal
+  const doPeriodo = leads.filter((l) => !isLeadHistorico(l) && noPeriodo(dataAtividade(l), faixa))
   const identificados = doPeriodo.filter((l) => temOrigem(l.origem))
 
   const mapa = new Map<string, Acumulador>()

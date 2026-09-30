@@ -43,26 +43,32 @@ const linhas = crmFix as unknown as LinhaCrm[]
 const vendas = orcFix as unknown as VendaMinima[]
 const semana = (inicio: string, fim: string): Periodo => ({ tipo: 'semanal', inicio, fim })
 
+/*
+ * Desde 30/09 `leads_novos` corta o histórico importado (status 'historico' e 'Novo'),
+ * como as abas do dash já faziam. Os totais conferidos contra o Postgres continuam
+ * valendo; o número novo é o total menos essas linhas, contadas na mesma fixture:
+ * 14-20/09 27-3, 07-13/09 32-3, 31/08-06/09 61-14, agosto 108-46.
+ */
 describe('KPIs do relatório, conferidos contra o Postgres', () => {
-  it('semana de 14 a 20/09 — 27 leads novos', () => {
-    expect(calcularKpis(linhas, semana('2026-09-14', '2026-09-20')).leads_novos).toBe(27)
+  it('semana de 14 a 20/09 — 27 linhas, 24 leads novos sem o histórico', () => {
+    expect(calcularKpis(linhas, semana('2026-09-14', '2026-09-20')).leads_novos).toBe(24)
   })
 
-  it('semana de 07 a 13/09 — 32 leads novos', () => {
-    expect(calcularKpis(linhas, semana('2026-09-07', '2026-09-13')).leads_novos).toBe(32)
+  it('semana de 07 a 13/09 — 32 linhas, 29 leads novos', () => {
+    expect(calcularKpis(linhas, semana('2026-09-07', '2026-09-13')).leads_novos).toBe(29)
   })
 
-  it('semana de 31/08 a 06/09 — 61 leads novos e SLA médio de 27,1h', () => {
+  it('semana de 31/08 a 06/09 — 61 linhas, 47 leads novos e SLA médio de 27,1h', () => {
     // o relatório salvo diz 60; o SQL de hoje diz 61 (ver cabeçalho)
     const k = calcularKpis(linhas, semana('2026-08-31', '2026-09-06'))
-    expect(k.leads_novos).toBe(61)
+    expect(k.leads_novos).toBe(47)
     expect(k.sla_medio_horas).toBe(27.1)
   })
 
-  it('agosto inteiro — 108 leads novos', () => {
+  it('agosto inteiro — 108 linhas, 62 leads novos sem o histórico', () => {
     // o relatório salvo diz 109; o SQL de hoje diz 108 (ver cabeçalho)
     const k = calcularKpis(linhas, { tipo: 'mensal', inicio: '2026-08-01', fim: '2026-08-31' })
-    expect(k.leads_novos).toBe(108)
+    expect(k.leads_novos).toBe(62)
   })
 
   it('agosto — 13 pedidos e R$ 49.378,95, o que a loja realmente vendeu', () => {
@@ -197,7 +203,7 @@ describe('texto do LLM', () => {
   it('o texto de reserva sai mesmo sem LLM', () => {
     const k = calcularKpis(linhas, semana('2026-09-14', '2026-09-20'))
     const t = textoDeReserva(k)
-    expect(t).toContain('27 leads novos')
+    expect(t).toContain('24 leads novos')
     expect(t.split('\n').length).toBeGreaterThanOrEqual(3)
   })
 
@@ -205,6 +211,6 @@ describe('texto do LLM', () => {
     const k = calcularKpis(linhas, semana('2026-09-14', '2026-09-20'))
     const p = montarPrompt(k)
     expect(p).toContain('REGRA ABSOLUTA')
-    expect(p).toContain('"leads_novos":27')
+    expect(p).toContain('"leads_novos":24')
   })
 })
