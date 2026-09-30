@@ -6,10 +6,12 @@
  * pronto em até ~2 minutos — a lista se atualiza sozinha quando ele chega.
  */
 import { useMemo, useState } from 'react'
-import { CalendarRange, ChevronDown, FileText, Loader2, Sparkles } from 'lucide-react'
+import { AlertCircle, CalendarRange, ChevronDown, FileText, Loader2, Sparkles } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import DatePicker from '@/components/ui/DatePicker'
+import { acharOrigem } from '@/components/agente/SeloOrigem'
+import { acharTemperatura } from '@/components/agente/SeloTemperatura'
 import {
   usePedidosPendentes, usePedirRelatorio, useRelatoriosIA,
   type KpisRelatorio, type RelatorioIA,
@@ -27,6 +29,12 @@ const TIPO: Record<RelatorioIA['tipo'], { rotulo: string; classe: string }> = {
   custom:  { rotulo: 'Período', classe: 'border-border bg-muted/60 text-muted-foreground' },
 }
 
+/** Valor curto na linha (R$ 7.420, R$ 48,3 mil); o exato fica no title. */
+function valorCurto(v: number) {
+  if (v >= 10_000) return `R$ ${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+}
+
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
 function fmtDia(iso: string) {
@@ -39,11 +47,27 @@ function fmtPeriodo(inicio: string, fim: string) {
   const anoFim = fim.slice(0, 4)
   const sufixo = anoFim !== String(new Date().getFullYear()) ? ` ${anoFim.slice(2)}` : ''
   if (inicio === fim) return `${fmtDia(inicio)}${sufixo}`
-  if (anoIni !== anoFim) return `${fmtDia(inicio)} ${anoIni.slice(2)} – ${fmtDia(fim)} ${anoFim.slice(2)}`
-  return `${fmtDia(inicio)} – ${fmtDia(fim)}${sufixo}`
+  if (anoIni !== anoFim) return `${fmtDia(inicio)} ${anoIni.slice(2)} a ${fmtDia(fim)} ${anoFim.slice(2)}`
+  return `${fmtDia(inicio)} a ${fmtDia(fim)}${sufixo}`
 }
 
-/** Números do período em cards pequenos — só os que existem no relatório. */
+/**
+ * Chave crua do relatório ("google_ads", "sem origem", "Google") → nome do canal, somando as
+ * grafias do mesmo canal. Sem isso a linha lia "google (9) · google_ads (2)".
+ */
+function somarPorRotulo(mapa: Record<string, number> | undefined, rotulo: (k: string) => string) {
+  const soma = new Map<string, number>()
+  for (const [k, v] of Object.entries(mapa ?? {})) {
+    if (!(v > 0)) continue
+    const r = rotulo(k)
+    soma.set(r, (soma.get(r) ?? 0) + v)
+  }
+  return [...soma.entries()].sort((a, b) => b[1] - a[1])
+}
+const rotuloOrigem = (k: string) => acharOrigem(k.trim().replace(/\s+/g, '_')).rotulo
+const rotuloTemperatura = (k: string) => acharTemperatura(k).rotulo
+
+/** Números do período em cards pequenos: só os que existem no relatório. */
 function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
   const cards: { rotulo: string; valor: string; destaque?: boolean }[] = []
   const n = (v: number | null | undefined) => v != null && Number.isFinite(v)
@@ -59,17 +83,15 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
   if (n(kpis.sla_medio_horas)) cards.push({ rotulo: 'Resposta média', valor: `${kpis.sla_medio_horas}h` })
   if (cards.length === 0) return null
 
-  const origens = Object.entries(kpis.por_origem ?? {}).filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1])
-  const temperaturas = Object.entries(kpis.por_temperatura ?? {}).filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1])
+  const origens = somarPorRotulo(kpis.por_origem, rotuloOrigem)
+  const temperaturas = somarPorRotulo(kpis.por_temperatura, rotuloTemperatura)
 
   return (
     <div className="mt-3 space-y-2">
       <div className="flex flex-wrap justify-center gap-2">
         {cards.map(c => (
           <div key={c.rotulo} className="min-w-[64px] rounded-lg border bg-background/60 px-2 py-1.5 text-center">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-foreground/40">{c.rotulo}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{c.rotulo}</p>
             <p className={cn('text-[13px] font-bold tabular-nums',
               c.destaque ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground/75')}>{c.valor}</p>
           </div>
@@ -97,7 +119,7 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
 }
 
 export default function ResumosIA() {
-  const { data: relatorios = [], isLoading } = useRelatoriosIA()
+  const { data: relatorios = [], isLoading, isError, refetch } = useRelatoriosIA()
   const { data: pendentes = [] } = usePedidosPendentes()
   const pedir = usePedirRelatorio()
 
@@ -128,7 +150,7 @@ export default function ResumosIA() {
       setPedindo(false)
       setDe(''); setAte('')
     } catch {
-      setAviso('Não deu para pedir agora — tenta de novo em instantes.')
+      setAviso('Não deu para pedir agora. Tente de novo em instantes.')
     }
   }
 
@@ -139,7 +161,7 @@ export default function ResumosIA() {
           <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <h3 className="font-display text-sm font-semibold leading-none tracking-wide">Resumos da IA</h3>
           <span className="hidden text-xs leading-none text-muted-foreground sm:inline">
-            escritos toda semana — ou do período que você pedir
+            escritos toda semana, ou do período que você pedir
           </span>
         </div>
         {!pedindo && (
@@ -175,8 +197,22 @@ export default function ResumosIA() {
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+        // esqueleto da linha fechada, na mesma altura dela (DESIGN.md: nunca spinner no meio)
+        <ul className="divide-y divide-border/50" aria-busy="true" aria-label="Carregando os resumos">
+          {[0, 1, 2, 3].map(i => (
+            <li key={i} className="flex items-center gap-3 px-5 py-3">
+              <span className="h-4 w-12 shrink-0 rounded-full skeleton-shimmer" />
+              <span className="flex h-[1lh] items-center text-sm"><span className="h-[0.7em] w-24 rounded skeleton-shimmer" /></span>
+              <span className="flex h-[1lh] items-center text-sm"><span className="h-[0.7em] w-16 rounded skeleton-shimmer" /></span>
+              <span className="hidden h-[1lh] flex-1 items-center text-xs sm:flex"><span className="h-[0.7em] w-2/3 rounded skeleton-shimmer" /></span>
+            </li>
+          ))}
+        </ul>
+      ) : isError && relatorios.length === 0 ? (
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-5 py-8 text-center">
+          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" aria-hidden="true" />
+          <p className="text-sm font-medium text-destructive">Não consegui ler os resumos agora.</p>
+          <Button variant="outline" size="sm" onClick={() => void refetch()}>Tentar de novo</Button>
         </div>
       ) : relatorios.length === 0 ? (
         <EmptyState icon={FileText} titulo="Nenhum resumo ainda"
@@ -188,6 +224,8 @@ export default function ResumosIA() {
             const cfg = TIPO[r.tipo] ?? TIPO.custom
             const expandido = aberto === r.id
             const primeiraLinha = (r.texto ?? '').split('\n')[0]
+            const receita = r.kpis?.receita_fechada
+            const vendas = r.kpis?.fechados
             return (
               <li key={r.id}>
                 <button type="button"
@@ -198,8 +236,21 @@ export default function ResumosIA() {
                     {cfg.rotulo}
                   </span>
                   <span className="shrink-0 text-sm font-semibold leading-none tabular-nums">{fmtPeriodo(r.periodo_inicio, r.periodo_fim)}</span>
+                  {/* o número do período já na linha fechada: dá pra comparar semanas sem abrir uma por uma */}
+                  {receita != null && Number.isFinite(receita) && (
+                    <span className={cn('shrink-0 text-sm font-bold leading-none tabular-nums',
+                      receita > 0 ? 'text-primary' : 'text-muted-foreground')}
+                      title={receita > 0 ? formatCurrency(receita) : undefined}>
+                      {receita > 0 ? valorCurto(receita) : 'sem venda'}
+                    </span>
+                  )}
+                  {vendas != null && vendas > 0 && (
+                    <span className="shrink-0 text-xs leading-none tabular-nums text-muted-foreground">
+                      {vendas} venda{vendas > 1 ? 's' : ''}
+                    </span>
+                  )}
                   {!expandido && (
-                    <span className="min-w-0 flex-1 truncate text-xs leading-none text-muted-foreground">{primeiraLinha}</span>
+                    <span className="hidden min-w-0 flex-1 truncate text-xs leading-none text-muted-foreground sm:inline">{primeiraLinha}</span>
                   )}
                   <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform',
                     expandido && 'rotate-180')} aria-hidden="true" />
