@@ -4,49 +4,17 @@
  * Quem abre esta aba tem dois segundos de atenção e uma pergunta: "deu resultado?".
  * Quatro cards de igual peso não respondem isso — respondem "aqui estão quatro números".
  * Então o topo passa a ter uma hierarquia explícita: a receita ocupa o espaço de uma
- * manchete, com a trajetória dos últimos meses logo abaixo para que o número tenha
- * contexto sem precisar rolar até o gráfico; ao lado, o resultado do canal, que é o que
- * prova o trabalho de quem traz a gente.
- *
- * A trajetória é de barras e não de linha porque cada mês é uma quantia fechada, não uma
- * medição contínua — linha entre dois meses sugere valores intermediários que não existem.
+ * manchete e, ao lado, o resultado do canal, que é o que prova o trabalho de quem traz a
+ * gente. A trajetória mês a mês mora só no gráfico de "O dinheiro" (30/09, Lucca: a mesma
+ * série em dois lugares da mesma rolagem gastava os dois).
  *
  * É o único lugar da tela com acento de marca no fundo. Um acento só, no que importa
  * mais: é o que a regra de "laranja em ≤10% da superfície" compra.
  */
 import { TrendingUp } from 'lucide-react'
-import type { MesReceita, LinhaCanal } from '@/lib/analises'
+import type { LinhaCanal } from '@/lib/analises'
 import { formatCurrency, cn } from '@/lib/utils'
 import { NumeroAnimado, Delta } from './base'
-
-/** Seis meses cabem sem virar tira de código de barras. */
-function Trajetoria({ meses }: { meses: MesReceita[] }) {
-  const maior = Math.max(1, ...meses.map((m) => m.receita))
-  const ultimo = meses.length - 1
-
-  return (
-    <div className="flex items-end gap-1.5" aria-hidden="true">
-      {meses.map((m, i) => (
-        <div key={m.mes} className="flex flex-1 flex-col items-center gap-1">
-          <div className="flex h-12 w-full items-end">
-            <div
-              title={`${m.rotulo}: ${formatCurrency(m.receita)}`}
-              className={cn(
-                'w-full rounded-t-[3px] transition-[height] duration-700 ease-out motion-reduce:transition-none',
-                i === ultimo ? 'bg-primary' : 'bg-primary/30',
-              )}
-              style={{ height: `${Math.max(m.receita > 0 ? 6 : 2, (m.receita / maior) * 100)}%` }}
-            />
-          </div>
-          <span className={cn('text-[10px] font-medium capitalize tabular-nums',
-            i === ultimo ? 'text-foreground/70' : 'text-muted-foreground/70')}>
-            {m.rotulo}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function BarraCanal({ rotulo, pct, maior, forte }: {
   rotulo: string
@@ -78,14 +46,13 @@ function BarraCanal({ rotulo, pct, maior, forte }: {
 }
 
 export default function Destaque({
-  receita, deltaReceita, rotuloComparacao, rotuloPeriodo, meses,
+  receita, deltaReceita, rotuloComparacao, rotuloPeriodo,
   destaqueCanal, semCanal, taxaOrcamento, orcadas, conversas,
 }: {
   receita: number
   deltaReceita: number | null
   rotuloComparacao: string
   rotuloPeriodo: string
-  meses: MesReceita[]
   destaqueCanal: { linha: LinhaCanal; vezes: number } | null
   semCanal: LinhaCanal
   taxaOrcamento: number
@@ -108,11 +75,6 @@ export default function Destaque({
         <div className="mt-2 flex justify-center lg:justify-start">
           <Delta pct={deltaReceita} rotulo={rotuloComparacao} />
         </div>
-        {meses.length > 1 && (
-          <div className="mt-4 border-t border-primary/15 pt-3">
-            <Trajetoria meses={meses} />
-          </div>
-        )}
       </div>
 
       <div className="border-t border-primary/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">

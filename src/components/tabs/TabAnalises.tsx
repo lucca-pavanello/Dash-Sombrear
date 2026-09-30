@@ -241,7 +241,6 @@ export default function TabAnalises({ data, isLoading, error, resetKey, focoResp
         rotuloComparacao={rotuloComparacao}
         rotuloPeriodo={rotuloPeriodo}
         deltas={calc.deltas}
-        meses={calc.porMes}
         destaqueCanal={calc.destaqueCanal}
         semCanal={calc.canais.semCanal}
       />

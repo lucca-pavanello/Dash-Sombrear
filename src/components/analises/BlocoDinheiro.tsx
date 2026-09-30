@@ -38,7 +38,8 @@ export default function BlocoDinheiro({
     >
       {/* mesma composição centrada da receita `kpi`, sem o chip: são números de apoio
           dentro de uma seção, não os KPIs de abertura */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {/* a receita do período mora só no Destaque do topo (30/09): aqui ficam os números de apoio */}
+      <div className="grid grid-cols-2 gap-3">
         {[
           {
             rotulo: 'Ticket por pedido',
@@ -52,16 +53,10 @@ export default function BlocoDinheiro({
               ? `${dinheiro.comMargem} pedidos com custo calculado`
               : 'registre o custo pra ver a margem',
           },
-          {
-            rotulo: 'Receita no período',
-            valor: formatCurrency(dinheiro.receita),
-            sub: 'o que o cliente pagou de fato',
-            destaque: true,
-          },
         ].map((k) => (
-          <div key={k.rotulo} className={cn('text-center', k.destaque && 'col-span-2 sm:col-span-1')}>
+          <div key={k.rotulo} className="text-center">
             <p className={kpi.rotulo}>{k.rotulo}</p>
-            <p className={cn(kpi.valor, 'text-xl', k.destaque ? kpi.valorCor.primario : kpi.valorCor.neutro)}>
+            <p className={cn(kpi.valor, 'text-xl', kpi.valorCor.neutro)}>
               {k.valor}
             </p>
             <p className={kpi.sub}>{k.sub}</p>
