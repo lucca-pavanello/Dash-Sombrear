@@ -1,111 +1,90 @@
-import { useState, useCallback } from 'react'
-import { formatCurrency } from '@/lib/utils'
-import type { Orcamento } from '@/lib/supabase'
+import { useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
-export type GeminiMessage = { role: 'user' | 'model'; text: string }
+/**
+ * O copiloto do dash. As contas agora acontecem no servidor (Edge Function
+ * `copilot-ia`), com ferramentas que leem os dados reais; o navegador só manda a
+ * pergunta e o histórico.
+ *
+ * `erro: true` marca o balão que é aviso, não resposta: ele não vai para o histórico
+ * da IA (antes "Erro ao contatar o Gemini" era reenviado como se o modelo tivesse dito)
+ * e é ele que o `repetir()` substitui.
+ */
+export type GeminiMessage = { role: 'user' | 'model'; text: string; erro?: true }
 
-export interface GeminiContext {
-  totalOrc: number
-  fechados: number
-  convRate: number
-  faturamento: number
-  ticketMedio: number
-  margemMedia: number | null
-  emAberto: number
-  emRisco: number
-  responsaveis: string[]
-  primeiroOrc: string | null
-  ultimoOrc: string | null
+export type OpcoesPergunta = {
+  /** vendedor em foco no dash: as vendas passam a ser só dele */
+  responsavel?: string | null
 }
 
-function buildSystemPrompt(ctx: GeminiContext): string {
-  const resp = ctx.responsaveis.length > 0 ? ctx.responsaveis.slice(0, 5).join(', ') : 'não informado'
-  return `Você é um assistente de vendas e negócios da empresa Sombrear, especializada em cortinas e sombras sob medida.
-Responda SEMPRE em português BR, de forma direta e acionável (máximo 4 linhas por resposta).
+const MAX_HISTORICO = 10
 
-Dados atuais do dashboard (atualizado agora):
-- Total de orçamentos no período: ${ctx.totalOrc}
-- Fechamentos: ${ctx.fechados} (${ctx.convRate.toFixed(1)}% de conversão)
-- Faturamento total: ${formatCurrency(ctx.faturamento)}
-- Ticket médio: ${ctx.ticketMedio > 0 ? formatCurrency(ctx.ticketMedio) : 'sem dados'}
-- Margem média: ${ctx.margemMedia != null ? ctx.margemMedia.toFixed(1) + '%' : 'sem dados de custo'}
-- Em aberto: ${ctx.emAberto} orçamentos | Em risco (sem resposta +7 dias): ${ctx.emRisco}
-- Período dos dados: primeiro orçamento em ${ctx.primeiroOrc ?? 'sem dados'}, mais recente em ${ctx.ultimoOrc ?? 'sem dados'}
-- Responsáveis: ${resp}
+/** Frase pra quem usa, pelo status da resposta; nunca o corpo cru do erro. */
+export function fraseDoErro(status: number | null): string {
+  if (status === 401) return 'Sua sessão expirou. Entre de novo para usar o copiloto.'
+  if (status === 403) return 'Seu acesso ainda não foi aprovado para usar o copiloto.'
+  if (status === 429) return 'Muita gente perguntando ao mesmo tempo. Espere um minuto e tente de novo.'
+  if (status === null) return 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+  return 'O copiloto não conseguiu responder agora. Tente de novo em instantes.'
+}
 
-Seja objetivo, prático e motivador. Se não souber algo com os dados disponíveis, diga claramente.`
+function statusDoErro(error: unknown): number | null {
+  // FunctionsHttpError traz a Response em `context`; erro de rede não tem status
+  const ctx = (error as { context?: { status?: number } } | null)?.context
+  return typeof ctx?.status === 'number' ? ctx.status : null
 }
 
 export function useGemini() {
   const [messages, setMessages] = useState<GeminiMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const ultimaPergunta = useRef<{ texto: string; opcoes?: OpcoesPergunta } | null>(null)
+  const emVoo = useRef(false)
 
-  const sendMessage = useCallback(async (userText: string, ctx: GeminiContext) => {
-    const userMsg: GeminiMessage = { role: 'user', text: userText }
-    setMessages(prev => [...prev, userMsg])
+  const perguntar = useCallback(async (texto: string, opcoes: OpcoesPergunta | undefined, anteriores: GeminiMessage[]) => {
+    if (emVoo.current) return
+    emVoo.current = true
+    ultimaPergunta.current = { texto, opcoes }
+    setMessages([...anteriores, { role: 'user', text: texto }])
     setIsLoading(true)
-
     try {
-      const history = [...messages, userMsg]
-      const contents = [
-        // Gemini não tem "system" role nativo — colocamos como primeira mensagem de user
-        { role: 'user', parts: [{ text: buildSystemPrompt(ctx) }] },
-        { role: 'model', parts: [{ text: 'Entendido. Estou pronto para ajudar com os dados do Sombrear.' }] },
-        ...history.map(m => ({
-          role: m.role,
-          parts: [{ text: m.text }],
-        })),
-      ]
-
-      const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: { contents },
+      const historico = anteriores.filter(m => !m.erro).slice(-MAX_HISTORICO).map(({ role, text }) => ({ role, text }))
+      const { data, error } = await supabase.functions.invoke('copilot-ia', {
+        body: { pergunta: texto, historico, responsavel: opcoes?.responsavel ?? null },
       })
-
-      if (error) throw new Error(error.message)
-      const reply: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Sem resposta.'
-      setMessages(prev => [...prev, { role: 'model', text: reply }])
+      if (error) throw error
+      if (!data?.ok || typeof data.resposta !== 'string') throw Object.assign(new Error('resposta inválida'), { context: { status: 500 } })
+      setMessages(prev => [...prev, { role: 'model', text: data.resposta }])
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'model', text: 'Erro ao contatar o Gemini. Tente novamente.' }])
-      console.error('Gemini error:', err)
+      console.error('copilot-ia:', err)
+      const status = statusDoErro(err)
+      setMessages(prev => [...prev, { role: 'model', text: fraseDoErro(status), erro: true }])
     } finally {
+      emVoo.current = false
       setIsLoading(false)
     }
-  }, [messages])
+  }, [])
 
-  const clearChat = useCallback(() => setMessages([]), [])
+  const sendMessage = useCallback((texto: string, opcoes?: OpcoesPergunta) => {
+    const t = texto.trim()
+    if (!t) return
+    void perguntar(t, opcoes, messages)
+  }, [messages, perguntar])
 
-  return { messages, isLoading, sendMessage, clearChat, hasKey: true }
-}
+  /** Reenvia a última pergunta, tirando o balão de erro e a pergunta repetida. */
+  const repetir = useCallback(() => {
+    const ultima = ultimaPergunta.current
+    if (!ultima) return
+    let base = [...messages]
+    const ultimo = () => base[base.length - 1]
+    if (ultimo()?.erro) base = base.slice(0, -1)
+    if (ultimo()?.role === 'user' && ultimo()?.text === ultima.texto) base = base.slice(0, -1)
+    void perguntar(ultima.texto, ultima.opcoes, base)
+  }, [messages, perguntar])
 
-export function buildGeminiContext(data: Orcamento[]): GeminiContext {
-  const fechados = data.filter(o => o.fechado === true)
-  const emAberto = data.filter(o => !o.fechado)
-  const faturamento = fechados.reduce((s, o) => s + (o.valor_venda ?? 0) + (o.instalacao ?? 0), 0)
-  const ticketMedio = fechados.length > 0 ? faturamento / fechados.length : 0
-  const comMargem = data.filter(o => o.margem != null)
-  const margemMedia = comMargem.length > 0
-    ? comMargem.reduce((s, o) => s + (o.margem ?? 0), 0) / comMargem.length
-    : null
-  const agora = Date.now()
-  const emRisco = emAberto.filter(o => {
-    const dias = Math.floor((agora - new Date(o.updated_at ?? o.created_at).getTime()) / 86400000)
-    return dias > 7
-  })
-  const responsaveis = [...new Set(data.map(o => o.responsavel))]
-  const datas = data.map(o => new Date(o.created_at).getTime()).filter(t => !Number.isNaN(t))
-  const fmtData = (t: number) => new Date(t).toLocaleDateString('pt-BR')
-  return {
-    totalOrc: data.length,
-    fechados: fechados.length,
-    convRate: data.length > 0 ? (fechados.length / data.length) * 100 : 0,
-    faturamento,
-    ticketMedio,
-    margemMedia,
-    emAberto: emAberto.length,
-    emRisco: emRisco.length,
-    responsaveis,
-    primeiroOrc: datas.length > 0 ? fmtData(Math.min(...datas)) : null,
-    ultimoOrc: datas.length > 0 ? fmtData(Math.max(...datas)) : null,
-  }
+  const clearChat = useCallback(() => {
+    setMessages([])
+    ultimaPergunta.current = null
+  }, [])
+
+  return { messages, isLoading, sendMessage, repetir, clearChat }
 }

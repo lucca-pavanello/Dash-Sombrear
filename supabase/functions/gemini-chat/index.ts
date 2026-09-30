@@ -1,8 +1,13 @@
 /**
  * Edge Function: gemini-chat
  * Proxy para a API do Gemini — mantém a chave no servidor, fora do bundle.
- * Usado pelo AI Copilot dos orçamentos (src/hooks/useGemini.ts).
+ * Usado pelo card de Insights do Agente IA (src/components/agente/InsightsAmanda.tsx).
+ * O copiloto do dash saiu daqui para a `copilot-ia`, que tem ferramentas.
+ *
+ * Só usuário logado e aprovado: antes qualquer um com a URL gastava a chave.
  */
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +20,23 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    const semAcesso = (status: number, error: string) => new Response(JSON.stringify({ error }), {
+      status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+    if (!authHeader) return semAcesso(401, 'Não autorizado')
+    const url = Deno.env.get('SUPABASE_URL')!
+    const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const doUsuario = createClient(url, serviceRole, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user } } = await doUsuario.auth.getUser()
+    if (!user) return semAcesso(401, 'Token inválido')
+    const admin = createClient(url, serviceRole, { auth: { autoRefreshToken: false, persistSession: false } })
+    const { data: perfil } = await admin.from('profiles').select('approved').eq('id', user.id).single()
+    if (perfil?.approved !== true) return semAcesso(403, 'Acesso pendente de aprovação')
+
     const apiKey = Deno.env.get('GEMINI_API_KEY')
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'GEMINI_API_KEY não configurada' }), {
