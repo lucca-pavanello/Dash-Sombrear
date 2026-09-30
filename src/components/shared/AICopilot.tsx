@@ -255,7 +255,7 @@ function AICopilot({ open, onClose }: Props) {
               className={cn(
                 'max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
                 m.role === 'user'
-                  ? 'ml-auto bg-primary text-white rounded-br-sm'
+                  ? 'ml-auto bg-primary/[0.12] text-foreground rounded-br-sm'
                   : 'mr-auto bg-muted/70 text-foreground rounded-bl-sm',
                 'animate-in fade-in-0 slide-in-from-bottom-2 duration-200',
               )}
