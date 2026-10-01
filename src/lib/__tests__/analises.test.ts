@@ -34,7 +34,7 @@ const lead = (p: Partial<CrmLead>): CrmLead => ({
   created_at: '2026-09-10T12:00:00Z',
   identificador_usuario: null, whatsapp: null, nome: null, inicio_atendimento: null,
   status_lead: '2', resumo_conversa: null, ultimo_valor_cotado: null, endereco_cep: null,
-  data_medicao_instalacao: null, timestamp_ultima_msg: null, id_conta_chatwoot: null,
+  data_medicao_instalacao: null, medicao_equipe: null, timestamp_ultima_msg: null, id_conta_chatwoot: null,
   id_conversa_chatwoot: null, id_lead_chatwoot: null, inbox_id_chatwoot: null,
   modelo_interesse: null, ambiente: null, medidas_coletadas: null, quantidade: null,
   tecido_cor: null, acabamento_desejado: null, precisa_instalacao: null, cidade: null,

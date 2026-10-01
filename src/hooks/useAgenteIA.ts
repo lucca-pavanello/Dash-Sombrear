@@ -19,6 +19,8 @@ export type CrmLead = {
   ultimo_valor_cotado: string | null
   endereco_cep: string | null
   data_medicao_instalacao: string | null
+  // medição combinada pela EQUIPE no WhatsApp, lida pelo resumo das conversas com humano (0027)
+  medicao_equipe: string | null
   timestamp_ultima_msg: string | null
   id_conta_chatwoot: string | null
   id_conversa_chatwoot: string | null
@@ -177,6 +179,25 @@ export function useOrcamentosChat() {
         .eq('eh_orcamento', true)
         .order('enviado_em', { ascending: false })
         .order('mensagem_id')
+        .range(de, ate))
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchInterval: 180000,
+  })
+}
+
+/** Quem respondeu cada lead, IA e/ou equipe, das mensagens gravadas (view 0027). */
+export type AtendimentoLead = { lead_id: string; ia_respondeu: boolean; equipe_respondeu: boolean }
+
+export function useAtendimentoPorLead() {
+  return useQuery({
+    queryKey: ['atendimento-por-lead'],
+    queryFn: async () => {
+      return lerTudo<AtendimentoLead>((de, ate) => supabase
+        .from('atendimento_por_lead')
+        .select('lead_id, ia_respondeu, equipe_respondeu')
+        .order('lead_id')
         .range(de, ate))
     },
     retry: 1,
