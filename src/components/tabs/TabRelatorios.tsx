@@ -285,18 +285,15 @@ export default function TabRelatorios() {
                     <tr key={c.id} className={tabela.tr}>
                       <td className="sticky left-0 z-10 whitespace-nowrap bg-card px-4 py-3 text-center"><SeloOrigem origem={c.id} /></td>
                       <td className="px-4 py-3 text-center font-semibold tabular-nums">{c.fechamentos || '—'}</td>
-                      <td className="px-4 py-3 text-center font-bold tabular-nums text-primary">
+                      <td className="px-4 py-3 text-center font-bold tabular-nums text-foreground">
                         {c.faturamento > 0 ? formatCurrency(c.faturamento) : '—'}
                       </td>
-                      <td className="px-4 py-3 text-center tabular-nums text-primary/80">
+                      <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">
                         {c.ticket > 0 ? formatCurrency(c.ticket) : '—'}
                       </td>
                       <td className="px-4 py-3 text-center tabular-nums">
                         {c.conversao != null ? (
-                          <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold',
-                            c.conversao >= 30 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                              : c.conversao >= 15 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
-                              : 'bg-muted text-muted-foreground')}>
+                          <span className={cn('text-sm', c.conversao >= 30 ? 'font-bold text-foreground' : 'text-muted-foreground')}>
                             {c.conversao.toFixed(0)}%
                           </span>
                         ) : <span className="text-muted-foreground/30">—</span>}
@@ -310,8 +307,8 @@ export default function TabRelatorios() {
                   <tr className="border-t-2 bg-muted/20 font-bold">
                     <td className={cn('sticky left-0 z-10 px-4 py-3 text-center text-xs uppercase tracking-wider text-muted-foreground', FUNDO_RODAPE)}>Total</td>
                     <td className="px-4 py-3 text-center tabular-nums">{totais.fechamentos}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-primary">{formatCurrency(totais.faturamento)}</td>
-                    <td className="px-4 py-3 text-center tabular-nums text-primary/80">
+                    <td className="px-4 py-3 text-center tabular-nums text-foreground">{formatCurrency(totais.faturamento)}</td>
+                    <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">
                       {totais.ticket > 0 ? formatCurrency(totais.ticket) : '—'}
                     </td>
                     <td className="px-4 py-3 text-center tabular-nums">

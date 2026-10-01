@@ -64,9 +64,9 @@ export default function Destaque({
     : 0
 
   return (
-    <div className="grid grid-cols-1 gap-4 rounded-xl border border-primary/25 bg-primary/[0.04] p-5 shadow-sm dark:bg-primary/[0.07] lg:grid-cols-[1.15fr_1fr] lg:gap-6 lg:p-6">
+    <div className="grid grid-cols-1 gap-4 rounded-xl border bg-card p-5 shadow-sm lg:grid-cols-[1.15fr_1fr] lg:gap-6 lg:p-6">
       <div className="text-center lg:text-left">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-primary/70">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
           Receita fechada · {rotuloPeriodo}
         </p>
         <p className="font-display mt-1 text-4xl font-bold leading-none tracking-tight text-primary sm:text-5xl">
@@ -77,14 +77,14 @@ export default function Destaque({
         </div>
       </div>
 
-      <div className="border-t border-primary/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+      <div className="border-t pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
         {destaqueCanal ? (
           <>
             <div className="flex items-start gap-2">
               <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
               <p className="text-sm font-semibold leading-snug text-foreground">
                 Quem chega pelo {destaqueCanal.linha.rotulo} pede orçamento{' '}
-                <span className="font-display text-lg font-bold tabular-nums text-primary">
+                <span className="font-display text-lg font-bold tabular-nums text-foreground">
                   {destaqueCanal.vezes.toFixed(1)}×
                 </span>{' '}
                 mais
