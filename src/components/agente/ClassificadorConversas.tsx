@@ -29,16 +29,22 @@ const ESTILO: Record<Resultado, { label: string; classe: string; Icone: typeof C
 const ORDEM: Resultado[] = ['venda', 'negociacao', 'perdida', 'pos_venda', 'sem_interesse', 'indefinido']
 
 /** Selo compacto pra linha do lead. */
-export function SeloClassificacao({ lead, className }: { lead: CrmLead; className?: string }) {
+export function SeloClassificacao({ lead, className, neutro }: {
+  lead: CrmLead; className?: string
+  /** texto neutro e só o ícone na cor do veredito (linha da lista de leads) */
+  neutro?: boolean
+}) {
   const r = (lead.classificacao_ia ?? '') as Resultado
   if (!ESTILO[r]) return null
   const { label, classe, Icone } = ESTILO[r]
+  const corIcone = classe.split(' ').filter(c => c.includes('text-')).join(' ')
   return (
     <span
       title={lead.classificacao_motivo ? `IA: ${lead.classificacao_motivo}` : 'Classificado pela IA'}
-      className={cn('inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap', classe, className)}
+      className={cn('inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap',
+        neutro ? 'border-border text-muted-foreground' : classe, className)}
     >
-      <Icone className="h-2.5 w-2.5 shrink-0" />
+      <Icone className={cn('h-2.5 w-2.5 shrink-0', neutro && corIcone)} />
       {label}
     </span>
   )

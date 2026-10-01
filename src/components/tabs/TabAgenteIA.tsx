@@ -327,9 +327,9 @@ function SeloComEquipe({ className }: { className?: string }) {
   return (
     <span
       title="Uma atendente assumiu esta conversa no Chatwoot — a IA não responde aqui"
-      className={cn('inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap text-sky-600 dark:text-sky-400', className)}
+      className={cn('inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap text-muted-foreground', className)}
     >
-      <Headset className="h-2.5 w-2.5 shrink-0" />
+      <Headset className="h-2.5 w-2.5 shrink-0 text-sky-600 dark:text-sky-400" />
       com a equipe
     </span>
   )
@@ -951,7 +951,6 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                   </thead>
                   <tbody>
                     {paginatedLeads.map((lead, rowIdx) => {
-                      const aguard    = isAguardando(lead.status_lead)
                       const conv      = isConvertido(lead.status_lead, convertidosPorTelefone.has(lead.id))
                       const foraMsg   = isForaDoHorario(lead.timestamp_ultima_msg)
                       const foraEntr  = isForaDoHorario(lead.created_at)
@@ -964,11 +963,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             className={cn(
                               'border-b last:border-0 transition-colors cursor-pointer',
                               conv && 'opacity-60',
-                              // atenção = banho de fundo âmbar (DESIGN.md: nunca listra lateral);
-                              // pede humano é o mais forte, espera longa vem depois
-                              aguard ? 'bg-amber-500/[0.08]'
-                                : emEspera ? 'bg-amber-500/5'
-                                : expanded ? 'bg-muted/30'
+                              // sem banho âmbar na linha (01/10, Lucca: lista colorida demais): quem
+                              // pede humano já tem o selo de status em âmbar e sobe pro topo da lista
+                              expanded ? 'bg-muted/30'
                                 : rowIdx % 2 === 1 ? 'bg-muted/[0.15]' : '',
                               expanded ? '' : 'hover:bg-muted/30',
                             )}
@@ -984,7 +981,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                             <td className="px-4 py-3.5 text-center font-medium border-r border-border/20">
                               <span className="block">{lead.nome ?? '—'}</span>
                               <span className="mt-1 flex flex-wrap items-center justify-center gap-1">
-                                <SeloClassificacao lead={lead} />
+                                <SeloClassificacao lead={lead} neutro />
                                 {estaComEquipe(lead) && <SeloComEquipe />}
                               </span>
                             </td>
@@ -997,7 +994,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                 title={`Ver só os leads de ${acharOrigem(lead.origem).rotulo}`}
                                 className="rounded-full transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                               >
-                                <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
+                                <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} neutro />
                               </button>
                             </td>
                             <td className="px-4 py-3.5 text-center border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
@@ -1013,7 +1010,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                     rel="noopener noreferrer"
                                     onClick={(e) => e.stopPropagation()}
                                     title="Abrir no WhatsApp"
-                                    className="flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20 transition-colors"
+                                    className="flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
                                   >
                                     <MessageCircle className="h-3 w-3 shrink-0" />
                                     WA
@@ -1033,7 +1030,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                 : (lead.ultimo_valor_cotado ?? '—')}
                             </td>
                             <td className="px-4 py-3.5 text-center tabular-nums whitespace-nowrap border-r border-border/20" onClick={() => setExpandedId(expanded ? null : lead.id)}>
-                              <span className={`flex items-center justify-center gap-1 text-sm ${foraMsg ? 'text-amber-600 dark:text-amber-400' : emEspera ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+                              <span className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
                                 {emEspera && <Clock className="h-3 w-3 text-amber-500 shrink-0" />}
                                 {fmtDate(lead.timestamp_ultima_msg)}
                               </span>
@@ -1221,19 +1218,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
               {/* Mobile */}
               <div className="md:hidden divide-y">
                 {paginatedLeads.map((lead) => {
-                  const aguard   = isAguardando(lead.status_lead)
                   const conv     = isConvertido(lead.status_lead, convertidosPorTelefone.has(lead.id))
                   const expanded = expandedId === lead.id
                   const emEspera = !conv && horasDecorridas(lead.timestamp_ultima_msg) > ESPERA_HORAS
                   return (
-                    <div key={lead.id} className={cn(conv && 'opacity-60', aguard ? 'bg-amber-500/[0.08]' : emEspera && 'bg-amber-500/5')}>
+                    <div key={lead.id} className={cn(conv && 'opacity-60')}>
                       <div className="px-4 py-4">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div>
                             <p className="font-semibold text-sm">{lead.nome ?? 'Sem nome'}</p>
                             <div className="mt-1 flex flex-wrap items-center gap-1">
-                              <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} />
-                              <SeloClassificacao lead={lead} />
+                              <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} neutro />
+                              <SeloClassificacao lead={lead} neutro />
                               {estaComEquipe(lead) && <SeloComEquipe />}
                             </div>
                             {lead.whatsapp && (
@@ -1245,7 +1241,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
                                   title="Abrir no WhatsApp"
-                                  className="flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20 transition-colors"
+                                  className="flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
                                 >
                                   <MessageCircle className="h-3 w-3 shrink-0" />
                                   WA

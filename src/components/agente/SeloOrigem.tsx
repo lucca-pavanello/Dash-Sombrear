@@ -35,25 +35,29 @@ export function acharOrigem(valor: string | null | undefined) {
   }
 }
 
-export default function SeloOrigem({ origem, campanha, className, compacto }: {
+export default function SeloOrigem({ origem, campanha, className, compacto, neutro }: {
   origem: string | null | undefined
   /** campanha/anúncio, quando o canal informa — vira tooltip */
   campanha?: string | null
   className?: string
   /** só o ícone, pra caber em espaço curto */
   compacto?: boolean
+  /** pílula neutra e só o ícone na cor do canal: em lista longa, 6 pílulas coloridas
+   *  por tela competiam com o status, que é o que pede ação */
+  neutro?: boolean
 }) {
   const o = acharOrigem(origem)
   const Icone = o.icone
+  const corIcone = o.cor.split(' ').filter(c => c.includes('text-')).join(' ')
   return (
     <span
       title={campanha ? `${o.rotulo} · ${campanha}` : o.rotulo}
       className={cn(
         'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-        o.cor, className,
+        neutro ? 'border-border text-foreground/75' : o.cor, className,
       )}
     >
-      <Icone className="h-3 w-3 shrink-0" aria-hidden="true" />
+      <Icone className={cn('h-3 w-3 shrink-0', neutro && corIcone)} aria-hidden="true" />
       {!compacto && o.rotulo}
     </span>
   )
