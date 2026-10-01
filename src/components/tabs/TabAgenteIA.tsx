@@ -7,7 +7,9 @@ import {
 import { useOrcamentos } from '@/hooks/useOrcamentos'
 import { cn, formatCurrency, valorNumerico } from '@/lib/utils'
 import { Button } from '@/components/ui/primitives'
-import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
+import SeloOrigem, {
+  ORIGENS, SEM_ORIGEM, CANAIS_DO_DADO, GOOGLE_SITE, acharOrigem, acharCanal, contarGoogleSite, DivisaoGoogleSite,
+} from '@/components/agente/SeloOrigem'
 import SeloStatus, { precisaDeHumano } from '@/components/agente/SeloStatus'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -216,12 +218,14 @@ type OrcSort  = { key: 'created_at' | 'modelo' | 'valor'; dir: 'asc' | 'desc' }
 
 // ── Componente principal ─────────────────────────────────────────────────────
 /** Chip de canal: mostra quantos leads vieram dali e filtra a tela inteira */
-function FiltroOrigem({ id, rotulo, total, ativo, onClick }: {
+function FiltroOrigem({ id, rotulo, total, ativo, onClick, divisao }: {
   id: string
   rotulo: string
   total: number
   ativo: boolean
   onClick: () => void
+  /** só no Google + Site: quantos de cada um, pequeno, dentro do chip */
+  divisao?: { google: number; site: number }
 }) {
   const o = id === 'todas' ? null : acharOrigem(id)
   const Icone = o?.icone
@@ -240,6 +244,7 @@ function FiltroOrigem({ id, rotulo, total, ativo, onClick }: {
       {Icone && <Icone className="h-3 w-3 shrink-0" aria-hidden="true" />}
       {rotulo}
       <span className={cn('tabular-nums', ativo ? 'text-primary' : 'text-foreground/45')}>{total}</span>
+      {divisao && <DivisaoGoogleSite {...divisao} className="ml-0.5 font-normal" />}
     </button>
   )
 }
@@ -455,23 +460,24 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const porOrigem = useMemo(() => {
     const mapa = new Map<string, number>()
     for (const l of doPeriodo) {
-      const id = acharOrigem(l.origem).id
+      const id = acharCanal(l.origem).id
       mapa.set(id, (mapa.get(id) ?? 0) + 1)
     }
     return mapa
   }, [doPeriodo])
+  const divisaoGoogleSite = useMemo(() => contarGoogleSite(doPeriodo, l => l.origem), [doPeriodo])
 
   const filtrados = useMemo(
     () => origemFiltro === 'todas'
       ? doPeriodo
-      : doPeriodo.filter(l => acharOrigem(l.origem).id === origemFiltro),
+      : doPeriodo.filter(l => acharCanal(l.origem).id === origemFiltro),
     [doPeriodo, origemFiltro]
   )
   // o chip de canal vale também para os orçamentos: o canal é o do lead dono do orçamento
   const orcFiltrados = useMemo(() => {
     const doPer = filterByPeriod(orcamentosIA, periodo, (o) => o.created_at, customFrom || undefined, customTo || undefined)
     if (origemFiltro === 'todas') return doPer
-    return doPer.filter(o => acharOrigem(leadPorOrc.get(o.id)?.origem).id === origemFiltro)
+    return doPer.filter(o => acharCanal(leadPorOrc.get(o.id)?.origem).id === origemFiltro)
   }, [orcamentosIA, periodo, customFrom, customTo, origemFiltro, leadPorOrc])
 
   // KPIs
@@ -500,7 +506,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     const doPer = filterByPeriod(msgsForaLista, periodo, (m) => m.recebida_em, customFrom || undefined, customTo || undefined)
       .filter(m => {
         const lead = m.lead_id ? porId.get(m.lead_id) : undefined
-        return !!lead && (origemFiltro === 'todas' || acharOrigem(lead.origem).id === origemFiltro)
+        return !!lead && (origemFiltro === 'todas' || acharCanal(lead.origem).id === origemFiltro)
       })
     const iaNaHora = doPer.filter(m => m.respondida_por === 'ia' && (m.minutos_ate_resposta ?? Infinity) <= 5).length
     return { total: doPer.length, iaNaHora }
@@ -514,7 +520,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     const doPer = filterByPeriod(orcamentosChat, periodo, (o) => o.enviado_em, customFrom || undefined, customTo || undefined)
       .filter(o => {
         const lead = o.lead_id ? porId.get(o.lead_id) : undefined
-        return !!lead && (origemFiltro === 'todas' || acharOrigem(lead.origem).id === origemFiltro)
+        return !!lead && (origemFiltro === 'todas' || acharCanal(lead.origem).id === origemFiltro)
       })
     const ultimo = new Map<string, number>()
     const ia = new Set<string>()
@@ -826,11 +832,12 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           <span className="mr-0.5 text-xs font-medium text-muted-foreground">Filtrar por canal:</span>
           <FiltroOrigem id="todas" rotulo="Todos os canais" total={doPeriodo.length}
             ativo={origemFiltro === 'todas'} onClick={() => setOrigemFiltro('todas')} />
-          {[...ORIGENS, SEM_ORIGEM]
+          {[...CANAIS_DO_DADO, SEM_ORIGEM]
             .filter(o => (porOrigem.get(o.id) ?? 0) > 0)
             .map(o => (
               <FiltroOrigem key={o.id} id={o.id} rotulo={o.rotulo} total={porOrigem.get(o.id) ?? 0}
-                ativo={origemFiltro === o.id} onClick={() => setOrigemFiltro(o.id)} />
+                ativo={origemFiltro === o.id} onClick={() => setOrigemFiltro(o.id)}
+                divisao={o.id === GOOGLE_SITE.id ? divisaoGoogleSite : undefined} />
             ))}
         </div>
       </div>
@@ -885,7 +892,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         customFrom={customFrom || undefined}
         customTo={customTo || undefined}
         origemFiltro={origemFiltro}
-        idOrigem={(l) => acharOrigem(l.origem).id}
+        idOrigem={(l) => acharCanal(l.origem).id}
         toast={toast}
       />
 
@@ -1026,8 +1033,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                                   pessoa tenta ao ver a coluna e querer "só os do Google" */}
                               <button
                                 type="button"
-                                onClick={() => setOrigemFiltro(acharOrigem(lead.origem).id)}
-                                title={`Ver só os leads de ${acharOrigem(lead.origem).rotulo}`}
+                                onClick={() => setOrigemFiltro(acharCanal(lead.origem).id)}
+                                title={`Ver só os leads de ${acharCanal(lead.origem).rotulo}`}
                                 className="rounded-full transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                               >
                                 <SeloOrigem origem={lead.origem} campanha={lead.origem_campanha} neutro />

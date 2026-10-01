@@ -22,7 +22,9 @@ import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
 import { Button, EmptyState } from '@/components/ui/primitives'
 import { tabela } from '@/components/shared/estilos'
-import SeloOrigem, { ORIGENS, SEM_ORIGEM, acharOrigem } from '@/components/agente/SeloOrigem'
+import SeloOrigem, {
+  SEM_ORIGEM, CANAIS_DO_DADO, GOOGLE_SITE, acharOrigem, acharCanal, contarGoogleSite, DivisaoGoogleSite,
+} from '@/components/agente/SeloOrigem'
 import { TEMPERATURAS, acharTemperatura } from '@/components/agente/SeloTemperatura'
 import { TEMA_TABELA, alinharSecoes, colunasCentro, colunasDireita, faixaMarca, rodapeMarca } from '@/lib/pdfMarca'
 import type { Orcamento } from '@/lib/supabase'
@@ -92,12 +94,12 @@ export default function TabRelatorios() {
     () => leadsQueCompraram(orcamentos, tel => acharLeadPorTelefone(leadPorTelefone, tel)),
     [orcamentos, leadPorTelefone])
   const porCanal = useMemo(() => {
-    const ordem: string[] = [...ORIGENS.map(o => o.id), SEM_ORIGEM.id]
+    const ordem: string[] = [...CANAIS_DO_DADO.map(o => o.id), SEM_ORIGEM.id]
     return linhasPorCanal({
       leads: leadsNoPeriodo,
       vendas: vendasNoPeriodo,
-      canalDoLead: l => acharOrigem(l.origem).id,
-      canalDaVenda: o => acharOrigem(origemEfetiva(o)).id,
+      canalDoLead: l => acharCanal(l.origem).id,
+      canalDaVenda: o => acharCanal(origemEfetiva(o)).id,
       compraram,
     })
       .filter(v => v.leads > 0 || v.fechamentos > 0)
@@ -123,13 +125,13 @@ export default function TabRelatorios() {
       return atual
     }
     for (const l of leadsNoPeriodo) {
-      const linha = pega(acharOrigem(l.origem).id)
+      const linha = pega(acharCanal(l.origem).id)
       const t = acharTemperatura(l.lead_temperatura)
       if (t.id === 'sem_temperatura') linha.semAvaliacao++
       else linha[t.id as TempId]++
       if (l.lead_score != null) { linha.somaScore += Number(l.lead_score); linha.comScore++ }
     }
-    const ordem: string[] = [...ORIGENS.map(o => o.id), SEM_ORIGEM.id]
+    const ordem: string[] = [...CANAIS_DO_DADO.map(o => o.id), SEM_ORIGEM.id]
     return [...mapa.entries()]
       .filter(([, v]) => v.quente + v.morno + v.frio + v.gelado + v.descarte + v.semAvaliacao > 0)
       .sort((a, b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]))
@@ -148,10 +150,12 @@ export default function TabRelatorios() {
     [vendasNoPeriodo, leadPorTelefone])
 
   const totais = useMemo(() => somarCanais(porCanal), [porCanal])
+  /** leads do período que chegaram pelo Google e pelo Site — a divisão do Google + Site */
+  const divisaoGoogleSite = useMemo(() => contarGoogleSite(leadsNoPeriodo, l => l.origem), [leadsNoPeriodo])
 
   /** Mês a mês — o "resultado que ele mostra pro cliente": últimos 6 meses, fora do filtro */
   const porMes = useMemo(
-    () => mesAMes(orcamentos, o => acharOrigem(origemEfetiva(o)).id),
+    () => mesAMes(orcamentos, o => acharCanal(origemEfetiva(o)).id),
     [orcamentos, leadPorTelefone])
 
   async function exportarPdf() {
@@ -167,7 +171,11 @@ export default function TabRelatorios() {
         startY: inicioY,
         head: [['Canal', 'Leads', 'Orçados', 'Pedidos', 'Conversão', 'Faturamento', 'Ticket médio']],
         body: porCanal.map(c => [
-          acharOrigem(c.id).rotulo, String(c.leads), String(c.orcados), String(c.fechamentos),
+          c.id === GOOGLE_SITE.id
+            ? `${GOOGLE_SITE.rotulo}
+(Google ${divisaoGoogleSite.google} · Site ${divisaoGoogleSite.site})`
+            : acharOrigem(c.id).rotulo,
+          String(c.leads), String(c.orcados), String(c.fechamentos),
           c.conversao != null ? `${c.conversao.toFixed(0)}%` : '—',
           formatCurrency(c.faturamento), c.ticket > 0 ? formatCurrency(c.ticket) : '—',
         ]),
@@ -283,7 +291,10 @@ export default function TabRelatorios() {
                 <tbody className="divide-y divide-border/50">
                   {porCanal.map(c => (
                     <tr key={c.id} className={tabela.tr}>
-                      <td className="sticky left-0 z-10 whitespace-nowrap bg-card px-4 py-3 text-center"><SeloOrigem origem={c.id} /></td>
+                      <td className="sticky left-0 z-10 whitespace-nowrap bg-card px-4 py-3 text-center">
+                        <SeloOrigem origem={c.id} />
+                        {c.id === GOOGLE_SITE.id && <DivisaoGoogleSite {...divisaoGoogleSite} className="mt-1 block" />}
+                      </td>
                       <td className="px-4 py-3 text-center font-semibold tabular-nums">{c.fechamentos || '—'}</td>
                       <td className="px-4 py-3 text-center font-bold tabular-nums text-foreground">
                         {c.faturamento > 0 ? formatCurrency(c.faturamento) : '—'}

@@ -18,6 +18,22 @@ export const ORIGENS = [
   { id: 'direto',    rotulo: 'Direto',    icone: MessageCircle, cor: 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300' },
 ] as const
 
+/**
+ * Google e Site são um canal só no dado (Lucca, 01/10/2026): quem chega pelo site veio,
+ * quase sempre, de uma busca no Google, e separar os dois dividia o mesmo investimento em
+ * duas linhas. Contagem, filtro e relatório usam o canal junto; a divisão entre os dois
+ * aparece pequena embaixo (DivisaoGoogleSite). O selo de cada lead e o campo de editar a
+ * origem continuam mostrando Google ou Site, que é o que está gravado.
+ */
+export const GOOGLE_SITE = {
+  id: 'google_site', rotulo: 'Google + Site', icone: Search,
+  cor: 'border-blue-500/25 bg-blue-500/10 text-blue-700 dark:text-blue-300',
+} as const
+const PARTES_GOOGLE_SITE: readonly string[] = ['google', 'site']
+
+/** Os canais como aparecem nos números: Google + Site no lugar dos dois separados. */
+export const CANAIS_DO_DADO = [GOOGLE_SITE, ...ORIGENS.filter(o => !PARTES_GOOGLE_SITE.includes(o.id))]
+
 export const SEM_ORIGEM = {
   id: 'sem_origem', rotulo: 'Sem origem', icone: HelpCircle,
   cor: 'border-border bg-muted/60 text-muted-foreground',
@@ -29,10 +45,38 @@ export function acharOrigem(valor: string | null | undefined) {
   // o próprio id da ausência também precisa voltar como ausência: o relatório
   // agrupa por id e reenvia 'sem_origem' pra cá
   if (!chave || chave === SEM_ORIGEM.id) return SEM_ORIGEM
+  // o id do canal junto volta pra cá nos relatórios; sem isso, 'google_site' viraria Google
+  if (chave === GOOGLE_SITE.id) return GOOGLE_SITE
   return ORIGENS.find(o => chave === o.id || chave.startsWith(o.id)) ?? {
     id: chave, rotulo: valor as string, icone: HelpCircle,
     cor: 'border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300',
   }
+}
+
+/** Canal pra contar e filtrar: igual a acharOrigem, mas Google e Site viram Google + Site. */
+export function acharCanal(valor: string | null | undefined) {
+  const o = acharOrigem(valor)
+  return PARTES_GOOGLE_SITE.includes(o.id) ? GOOGLE_SITE : o
+}
+
+/** Quantos dos itens vieram do Google e quantos do Site, pela origem gravada. */
+export function contarGoogleSite<T>(itens: T[], origemDe: (item: T) => string | null | undefined) {
+  let google = 0, site = 0
+  for (const item of itens) {
+    const id = acharOrigem(origemDe(item)).id
+    if (id === 'google') google++
+    else if (id === 'site') site++
+  }
+  return { google, site }
+}
+
+/** A divisão pequena embaixo do Google + Site: "Google 80 · Site 40". */
+export function DivisaoGoogleSite({ google, site, className }: { google: number; site: number; className?: string }) {
+  return (
+    <span className={cn('text-[10px] font-medium tabular-nums text-muted-foreground', className)}>
+      Google {google} · Site {site}
+    </span>
+  )
 }
 
 export default function SeloOrigem({ origem, campanha, className, compacto, neutro }: {
