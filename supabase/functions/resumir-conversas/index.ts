@@ -46,12 +46,13 @@ async function resumir(alvo: Alvo): Promise<{ lead: string; ok: boolean; erro?: 
   const campos = lerResposta(r.texto)
   if (!campos) return { lead: alvo.lead_id, ok: false, erro: 'resposta sem JSON válido' }
 
-  // temperatura/próxima ação/motivo só sobrescrevem quando vieram; o resumo sempre
+  // temperatura/próxima ação/motivo/medição só sobrescrevem quando vieram; o resumo sempre
   const { error: e3 } = await db.from('crm_sombrear_ia').update({
     resumo_conversa: campos.resumo_conversa,
     ...(campos.lead_temperatura ? { lead_temperatura: campos.lead_temperatura } : {}),
     ...(campos.lead_proxima_acao ? { lead_proxima_acao: campos.lead_proxima_acao } : {}),
     ...(campos.status_motivo ? { status_motivo: campos.status_motivo } : {}),
+    ...(campos.medicao_equipe ? { medicao_equipe: campos.medicao_equipe } : {}),
     resumo_em: new Date().toISOString(),
   }).eq('id', alvo.lead_id)
   if (e3) return { lead: alvo.lead_id, ok: false, erro: e3.message }

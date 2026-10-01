@@ -36,8 +36,13 @@ describe('lerResposta', () => {
     const c = lerResposta('ok: {"resumo":"Quer rolo blackout.","temperatura":"quente","proxima_acao":"Agendar medição","interesse":"rolo blackout","pendencia":"medida"}')
     expect(c).toEqual({
       resumo_conversa: 'Quer rolo blackout.', lead_temperatura: 'QUENTE', lead_proxima_acao: 'Agendar medição',
-      status_motivo: 'Interesse: rolo blackout | Falta: medida',
+      status_motivo: 'Interesse: rolo blackout | Falta: medida', medicao_equipe: null,
     })
+  })
+
+  it('guarda quando a equipe marcou a medição', () => {
+    expect(lerResposta('{"resumo":"Visita marcada.","medicao":"terça 14h"}')?.medicao_equipe).toBe('terça 14h')
+    expect(lerResposta('{"resumo":"Pediu visita.","medicao":""}')?.medicao_equipe).toBeNull()
   })
 
   it('resposta sem resumo ou sem JSON não grava nada', () => {
