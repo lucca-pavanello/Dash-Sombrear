@@ -206,6 +206,32 @@ export function useAtendimentoPorLead() {
   })
 }
 
+/** Mensagem de cliente que chegou fora do horário comercial, com quem respondeu (view 0028). */
+export type MensagemForaDoHorario = {
+  mensagem_id: number
+  lead_id: string | null
+  recebida_em: string
+  respondida_por: 'ia' | 'equipe' | null
+  minutos_ate_resposta: number | null
+}
+
+export function useMensagensForaDoHorario() {
+  return useQuery({
+    queryKey: ['mensagens-fora-do-horario'],
+    queryFn: async () => {
+      return lerTudo<MensagemForaDoHorario>((de, ate) => supabase
+        .from('mensagens_fora_do_horario')
+        .select('mensagem_id, lead_id, recebida_em, respondida_por, minutos_ate_resposta')
+        .order('recebida_em', { ascending: false })
+        .order('mensagem_id')
+        .range(de, ate))
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchInterval: 180000,
+  })
+}
+
 // Realtime dos leads do agente (WhatsApp/n8n): novos registros aparecem sozinhos,
 // sem precisar remontar a aba. Espelha o padrão de useOrcamentos.
 export function useAgenteIARealtime({ enabled = true, onNewLead }: {

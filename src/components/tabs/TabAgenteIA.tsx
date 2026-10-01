@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import {
-  useCrmLeads, useOrcamentosIA, useOrcamentosChat, useAtendimentoPorLead, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
+  useCrmLeads, useOrcamentosIA, useOrcamentosChat, useAtendimentoPorLead, useMensagensForaDoHorario, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
   isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone, normalizarTelefone,
   STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA,
 } from '@/hooks/useAgenteIA'
@@ -337,6 +337,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   // orçamento mandado no chat, pela IA ou pela equipe (0026)
   const { data: orcamentosChat = [] } = useOrcamentosChat()
   const { data: atendimentoLista = [] } = useAtendimentoPorLead()
+  const { data: msgsForaLista = [] } = useMensagensForaDoHorario()
   // Vendas REAIS da loja (Semanário/Acompanhar) — usadas só pra achar, pelo telefone,
   // um lead que fechou fora do chat (balcão, telefone) sem ninguém marcar "Converteu" nele.
   const { data: orcamentosLoja = [] } = useOrcamentos()
@@ -491,6 +492,20 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
   const idsConvertidos = useMemo(() => new Set(convertidos.map(l => l.id)), [convertidos])
 
+  // Mensagens de clientes que chegaram fora do comercial no período (0028). Antes o card
+  // contava leads cuja ÚLTIMA mensagem foi fora do horário, e passava do "Pessoas fora do
+  // horário" sem explicação. "Na hora" = a Amanda respondeu em até 5 minutos.
+  const msgsFora = useMemo(() => {
+    const porId = new Map(leadsVivos.map(l => [l.id, l]))
+    const doPer = filterByPeriod(msgsForaLista, periodo, (m) => m.recebida_em, customFrom || undefined, customTo || undefined)
+      .filter(m => {
+        const lead = m.lead_id ? porId.get(m.lead_id) : undefined
+        return !!lead && (origemFiltro === 'todas' || acharOrigem(lead.origem).id === origemFiltro)
+      })
+    const iaNaHora = doPer.filter(m => m.respondida_por === 'ia' && (m.minutos_ate_resposta ?? Infinity) <= 5).length
+    return { total: doPer.length, iaNaHora }
+  }, [msgsForaLista, leadsVivos, periodo, customFrom, customTo, origemFiltro])
+
   // Valor cotado: o ÚLTIMO orçamento de cada lead mandado no período, pela IA ou pela
   // equipe. Último, e não a soma, porque a loja reenvia o orçamento revisado e somar
   // contaria a mesma venda duas vezes. O canal segue o chip do topo.
@@ -552,7 +567,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const animMed        = useCountUp(comMedicao.length, 750, hasLoaded, resetKey)
   const animForaLeads  = useCountUp(foraLeads.length, 700, hasLoaded, resetKey)
   const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded, resetKey)
-  const animForaMsgs   = useCountUp(foraMsgs.length, 700, hasLoaded, resetKey)
+  const animForaMsgs   = useCountUp(msgsFora.total, 700, hasLoaded, resetKey)
   const animFechado    = useCountUp(valorFechado, 900, hasLoaded, resetKey)
   const animComEquipe  = useCountUp(comEquipe.length, 700, hasLoaded, resetKey)
 
@@ -560,7 +575,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     { label: 'Pessoas respondidas',      value: Math.round(animLeads),     icon: Users,         alcance: true,  sub: 'atendidas pelo agente' },
     { label: 'Pessoas fora do horário',  value: Math.round(animForaLeads), icon: Moon,          alcance: true,  sub: 'entraram fora do comercial' },
     { label: 'Com conversa',             value: Math.round(animMsgs),      icon: MessageSquare, alcance: true,  sub: 'leads que trocaram mensagem' },
-    { label: 'Msgs fora do horário',     value: Math.round(animForaMsgs),  icon: MessageCircle, alcance: true,  sub: 'última msg fora do comercial' },
+    { label: 'Msgs fora do horário',     value: Math.round(animForaMsgs),  icon: MessageCircle, alcance: true,
+      sub: msgsFora.total > 0 ? `a Amanda respondeu ${msgsFora.iaNaHora} na hora` : 'de clientes, fora do comercial' },
   ]
 
   // 01/10 (Lucca): o Operacional fica no que diz resultado. "Aguardando atendimento" já tem
