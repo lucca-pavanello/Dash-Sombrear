@@ -82,9 +82,12 @@ export function montarPedido(lead: LeadResumo, conversa: string): string {
     '- proxima_acao: o proximo passo concreto da LOJA, em ate 10 palavras.',
     '- interesse: modelo/produto citado (ex: "rolo blackout sala"), vazio se nao houver.',
     '- pendencia: o que falta pra avancar (medida, cor, aprovacao, pagamento...), vazio se nada.',
+    '- medicao: se a LOJA combinou com o cliente uma visita de medicao (data ou dia marcado, ou a visita',
+    '  ja feita), escreva quando, em ate 6 palavras (ex: "terca 14h", "feita em 25/09"). Vazio se a visita',
+    '  nao foi marcada, se o cliente so pediu, ou se a loja so ofereceu sem combinar.',
     '',
     'Responda SOMENTE com JSON valido:',
-    '{"resumo":"<1 a 3 frases>","temperatura":"QUENTE|MORNO|FRIO|CLIENTE","proxima_acao":"<ate 10 palavras>","interesse":"<ou vazio>","pendencia":"<ou vazio>"}',
+    '{"resumo":"<1 a 3 frases>","temperatura":"QUENTE|MORNO|FRIO|CLIENTE","proxima_acao":"<ate 10 palavras>","interesse":"<ou vazio>","pendencia":"<ou vazio>","medicao":"<ou vazio>"}',
     '',
     '=== CONVERSA ===',
     conversa,
@@ -96,6 +99,8 @@ export type CamposCrm = {
   lead_temperatura: string | null
   lead_proxima_acao: string | null
   status_motivo: string | null
+  /** visita de medição combinada pela equipe; null = não marcou (não apaga o que já estava) */
+  medicao_equipe: string | null
 }
 
 const TEMPERATURAS = ['QUENTE', 'MORNO', 'FRIO', 'CLIENTE']
@@ -119,5 +124,6 @@ export function lerResposta(texto: string): CamposCrm | null {
     lead_temperatura: TEMPERATURAS.includes(temp) ? temp : null,
     lead_proxima_acao: s(d.proxima_acao, 200) || null,
     status_motivo: motivo || null,
+    medicao_equipe: s(d.medicao, 80) || null,
   }
 }
