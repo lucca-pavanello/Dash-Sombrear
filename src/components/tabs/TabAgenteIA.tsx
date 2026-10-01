@@ -33,6 +33,20 @@ import { filterByPeriod } from '@/hooks/usePeriodFilter'
 import { useToast } from '@/hooks/useToast'
 import Toaster from '@/components/ui/Toaster'
 import { HORA_INICIO, HORA_FIM, ESPERA_HORAS, LEADS_PAGE_SIZE, ORCS_PAGE_SIZE, MODELOS, CHATWOOT_BASE_URL } from '@/lib/constants'
+
+/** quantas linhas cada lista mostra fechada */
+const PREVIA_LISTA = 3
+
+/** rodapé da lista fechada: abre a lista inteira, paginada */
+function VerTodos({ total, rotulo, onClick }: { total: number; rotulo: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      className="flex w-full items-center justify-center gap-1.5 rounded-b-xl border-t px-5 py-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground">
+      <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
+      Ver {total === 1 ? '' : `todos os ${total} `}{rotulo}
+    </button>
+  )
+}
 import { tabela, segmentado, kpi, campoBusca } from '@/components/shared/estilos'
 import { useDebounce } from '@/hooks/useDebounce'
 import { exportCsv } from '@/lib/exportUtils'
@@ -375,8 +389,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const [mobileConfirmId, setMobileConfirmId] = useState<string | null>(null)
   const [leadsPage, setLeadsPage] = useState(1)
   const [orcsPage, setOrcsPage] = useState(1)
-  const [leadsCollapsed, setLeadsCollapsed] = useState(false)
-  const [orcsCollapsed, setOrcsCollapsed] = useState(false)
+  // as duas listas abrem fechadas, mostrando só as 3 mais recentes; abertas, paginam de 12
+  const [leadsCollapsed, setLeadsCollapsed] = useState(true)
+  const [orcsCollapsed, setOrcsCollapsed] = useState(true)
   const [leadOrcamento, setLeadOrcamento] = useState<CrmLead | null>(null)
   const [orcFechado, setOrcFechado] = useState(false)
 
@@ -624,14 +639,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
   const totalLeadPages = Math.ceil(sortedLeads.length / LEADS_PAGE_SIZE)
   const paginatedLeads = useMemo(
-    () => sortedLeads.slice((leadsPage - 1) * LEADS_PAGE_SIZE, leadsPage * LEADS_PAGE_SIZE),
-    [sortedLeads, leadsPage]
+    () => leadsCollapsed
+      ? sortedLeads.slice(0, PREVIA_LISTA)
+      : sortedLeads.slice((leadsPage - 1) * LEADS_PAGE_SIZE, leadsPage * LEADS_PAGE_SIZE),
+    [sortedLeads, leadsPage, leadsCollapsed]
   )
 
   const totalOrcPages = Math.ceil(sortedOrcs.length / ORCS_PAGE_SIZE)
   const paginatedOrcs = useMemo(
-    () => sortedOrcs.slice((orcsPage - 1) * ORCS_PAGE_SIZE, orcsPage * ORCS_PAGE_SIZE),
-    [sortedOrcs, orcsPage]
+    () => orcsCollapsed
+      ? sortedOrcs.slice(0, PREVIA_LISTA)
+      : sortedOrcs.slice((orcsPage - 1) * ORCS_PAGE_SIZE, orcsPage * ORCS_PAGE_SIZE),
+    [sortedOrcs, orcsPage, orcsCollapsed]
   )
 
   /**
@@ -842,7 +861,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         {/* Header centralizado — clicável para colapsar */}
         <button
           type="button"
-          onClick={() => setLeadsCollapsed(v => !v)}
+          onClick={() => { setLeadsCollapsed(v => !v); setLeadsPage(1) }}
+          aria-expanded={!leadsCollapsed}
           className="relative flex w-full items-center justify-center border-b px-5 py-4 hover:bg-muted/30 transition-colors rounded-t-xl"
         >
           <div className="flex items-center gap-2">
@@ -855,12 +875,12 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           </span>
         </button>
 
-        {!leadsCollapsed && (
+        {(
           <>
             {/* Barra de ferramentas da tabela: busca, eco do filtro ativo e exportação.
                 O eco existe porque o filtro de canal vive ACIMA do card — quem chega aqui
                 vendo 17 linhas em vez de 87 não tinha como saber por quê, nem como voltar. */}
-            <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+            {!leadsCollapsed && <div className="flex flex-wrap items-center gap-2 border-b px-4 py-3">
               <div className="relative min-w-[200px] flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" aria-hidden="true" />
                 <input
@@ -895,7 +915,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 <Download className="h-3.5 w-3.5" aria-hidden="true" />
                 Exportar
               </button>
-            </div>
+            </div>}
 
             {leadsVisiveis.length === 0 ? (
             <div className="py-12 text-center space-y-1">
@@ -1329,8 +1349,13 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 })}
               </div>
 
+              {leadsCollapsed && sortedLeads.length > PREVIA_LISTA && (
+                <VerTodos total={sortedLeads.length} rotulo={sortedLeads.length === 1 ? 'lead' : 'leads'}
+                  onClick={() => { setLeadsCollapsed(false); setLeadsPage(1) }} />
+              )}
+
               {/* Footer centralizado */}
-              {(foraLeads.length > 0 || foraMsgs.length > 0) && (
+              {!leadsCollapsed && (foraLeads.length > 0 || foraMsgs.length > 0) && (
                 <div className="border-t px-5 py-3 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
                   {foraLeads.length > 0 && (
                     <span className="flex items-center gap-1.5">
@@ -1348,7 +1373,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
               )}
 
               {/* Leads pagination */}
-              {totalLeadPages > 1 && (
+              {!leadsCollapsed && totalLeadPages > 1 && (
                 <div className="flex items-center justify-between border-t px-5 py-3">
                   <span className="text-xs text-muted-foreground">
                     {(leadsPage - 1) * LEADS_PAGE_SIZE + 1}–{Math.min(leadsPage * LEADS_PAGE_SIZE, sortedLeads.length)} de {sortedLeads.length}
@@ -1378,7 +1403,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         {/* Header centralizado — clicável para colapsar */}
         <button
           type="button"
-          onClick={() => setOrcsCollapsed(v => !v)}
+          onClick={() => { setOrcsCollapsed(v => !v); setOrcsPage(1) }}
+          aria-expanded={!orcsCollapsed}
           className="relative flex w-full items-center justify-center border-b px-5 py-4 hover:bg-muted/30 transition-colors rounded-t-xl"
         >
           <div className="flex items-center gap-2">
@@ -1391,7 +1417,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           </span>
         </button>
 
-        {!orcsCollapsed && (
+        {(
           orcFiltrados.length === 0 ? (
             <div className="py-12 text-center space-y-1">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
@@ -1504,8 +1530,13 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 })}
               </div>
 
+              {orcsCollapsed && sortedOrcs.length > PREVIA_LISTA && (
+                <VerTodos total={sortedOrcs.length} rotulo={sortedOrcs.length === 1 ? 'orçamento' : 'orçamentos'}
+                  onClick={() => { setOrcsCollapsed(false); setOrcsPage(1) }} />
+              )}
+
               {/* Footer centralizado */}
-              <div className="border-t px-5 py-3 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
+              {!orcsCollapsed && <div className="border-t px-5 py-3 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
                 <span>Total cotado: <span className="font-semibold text-foreground">{formatCurrency(valorTotal)}</span></span>
                 {orcFiltrados.length > 0 && (
                   <span>Ticket médio: <span className="font-semibold text-foreground">
@@ -1515,10 +1546,10 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
                 {orcFiltrados.some((o) => o.valor_colocacao) && (
                   <span>Colocação: <span className="font-semibold text-foreground">{formatCurrency(orcFiltrados.reduce((s, o) => s + (o.valor_colocacao ?? 0), 0))}</span></span>
                 )}
-              </div>
+              </div>}
 
               {/* Orcs pagination */}
-              {totalOrcPages > 1 && (
+              {!orcsCollapsed && totalOrcPages > 1 && (
                 <div className="flex items-center justify-between border-t px-5 py-3">
                   <span className="text-xs text-muted-foreground">
                     {(orcsPage - 1) * ORCS_PAGE_SIZE + 1}–{Math.min(orcsPage * ORCS_PAGE_SIZE, sortedOrcs.length)} de {sortedOrcs.length}
