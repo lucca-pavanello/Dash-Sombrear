@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import {
-  useCrmLeads, useOrcamentosIA, useOrcamentosChat, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
+  useCrmLeads, useOrcamentosIA, useOrcamentosChat, useAtendimentoPorLead, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
   isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone, normalizarTelefone,
   STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA,
 } from '@/hooks/useAgenteIA'
@@ -16,7 +16,7 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
   MessageSquare, CheckCircle2, Bell, Check, HandCoins,
   Clock, MessageCircle,  ChevronLeft,
-  Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset, Eye,
+  Minimize2, Maximize2, FilePlus2, ExternalLink, Headset, Eye,
   Search, X, Download,
 } from 'lucide-react'
 import { useConfigAutomacoes, useDefinirConfigAutomacao, IA_RESPONDE } from '@/hooks/useConfigAutomacoes'
@@ -52,6 +52,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { exportCsv } from '@/lib/exportUtils'
 import { ehConvertido, leadsQueCompraram, recebeuPreco } from '@/lib/analises/conversao'
 import { chavePedido, dataVenda, ehTeste, ehVenda, receita } from '@/lib/analises/venda'
+import { calcularFunilIaEquipe } from '@/lib/analises/funilIaEquipe'
+import { FunilIaEquipe } from '@/components/agente/FunilIaEquipe'
 import { diaDaCasa } from '@/lib/fusoCasa'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
@@ -207,42 +209,6 @@ function KpiCard({ label, value, icon: Icon, sub, attention, destaque, delay }: 
   )
 }
 
-// ── Funil de conversão ───────────────────────────────────────────────────────
-function FunnelChart({ stages }: { stages: { label: string; value: number; hint: string }[] }) {
-  const max = stages[0]?.value ?? 0
-  return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-center gap-2">
-        <Filter className="h-4 w-4 text-primary" />
-        <h2 className="font-display text-sm font-semibold tracking-wide">Funil de conversão</h2>
-        <span className="text-xs text-muted-foreground">no período selecionado</span>
-      </div>
-      <div className="space-y-2.5">
-        {stages.map((s, i) => {
-          const pct = max > 0 ? (s.value / max) * 100 : 0
-          const pctLabel = max > 0 ? `${Math.round(pct)}%` : '—'
-          return (
-            <div key={s.label} className="flex items-center gap-3">
-              <span className="w-40 shrink-0 text-xs font-medium text-muted-foreground truncate" title={s.hint}>{s.label}</span>
-              {/* o número mora fora da barra: dentro, com mix-blend, ele sumia justo na barra curta */}
-              <div className="relative h-7 flex-1 overflow-hidden rounded-lg bg-muted/50">
-                <div
-                  className="h-full rounded-lg bg-primary transition-all duration-500"
-                  style={{ width: `${Math.max(pct, s.value > 0 ? 4 : 0)}%`, opacity: 1 - i * 0.16 }}
-                />
-              </div>
-              <span className="w-16 shrink-0 text-right tabular-nums">
-                <span className="font-display text-sm font-bold text-foreground">{s.value}</span>
-                <span className="ml-1.5 text-[11px] text-muted-foreground">{i === 0 ? '100%' : pctLabel}</span>
-              </span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 type LeadSortKey = 'created_at' | 'nome' | 'timestamp_ultima_msg' | 'origem' | 'valor' | 'status'
 type LeadSort = { key: LeadSortKey; dir: 'asc' | 'desc' }
 
@@ -370,6 +336,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { data: orcamentosIA = [], isPending: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
   // orçamento mandado no chat, pela IA ou pela equipe (0026)
   const { data: orcamentosChat = [] } = useOrcamentosChat()
+  const { data: atendimentoLista = [] } = useAtendimentoPorLead()
   // Vendas REAIS da loja (Semanário/Acompanhar) — usadas só pra achar, pelo telefone,
   // um lead que fechou fora do chat (balcão, telefone) sem ninguém marcar "Converteu" nele.
   const { data: orcamentosLoja = [] } = useOrcamentos()
@@ -510,7 +477,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { aguardando, convertidos, comMedicao, foraLeads, foraMsgs, mensagensTotais, valorTotal } = useMemo(() => ({
     aguardando:      filtrados.filter((l) => isAguardando(l.status_lead)),
     convertidos:     filtrados.filter((l) => ehConvertido(l, convertidosPorTelefone)),
-    comMedicao:      filtrados.filter((l) => !!l.data_medicao_instalacao?.trim()),
+    // medição que a IA coletou ou que a equipe marcou no WhatsApp (resumo das conversas, 0027)
+    comMedicao:      filtrados.filter((l) => !!l.data_medicao_instalacao?.trim() || !!l.medicao_equipe?.trim()),
     foraLeads:       filtrados.filter((l) => isForaDoHorario(l.created_at)),
     foraMsgs:        filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg)),
     mensagensTotais: filtrados.filter((l) => !!l.timestamp_ultima_msg).length,
@@ -521,21 +489,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   // conversas que uma atendente assumiu: a IA está calada e quem toca é gente
   const comEquipe = useMemo(() => filtrados.filter(estaComEquipe), [filtrados])
 
-  // Funil encaixado: respondidos → cotados → convertidos, cada etapa dentro da anterior.
-  // Quem comprou recebeu preço em algum momento, mesmo que fora do chat, então conta
-  // como cotado. "Pediram atendimento" não é etapa (é o KPI Aguardando).
   const idsConvertidos = useMemo(() => new Set(convertidos.map(l => l.id)), [convertidos])
-  // 01/10: o orçamento da EQUIPE no chat também conta. Antes só a cotação da IA entrava, e
-  // 81 leads cotados só pela equipe apareciam como "não cotados".
-  const leadsCotadosNoChat = useMemo(
-    () => new Set(orcamentosChat.map(o => o.lead_id).filter((id): id is string => !!id)),
-    [orcamentosChat])
-  const cotados = useMemo(
-    () => filtrados.filter(l => recebeuPreco(l.ultimo_valor_cotado) || orcsDoLead(l).length > 0
-      || leadsCotadosNoChat.has(l.id) || idsConvertidos.has(l.id)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtrados, orcsPorLead, leadsCotadosNoChat, idsConvertidos]
-  )
 
   // Valor cotado: o ÚLTIMO orçamento de cada lead mandado no período, pela IA ou pela
   // equipe. Último, e não a soma, porque a loja reenvia o orçamento revisado e somar
@@ -579,11 +533,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     return { valorFechado: total, pedidosFechados: pedidos.size }
   }, [orcamentosLoja, leadPorTelefone, idsConvertidos])
 
-  const funnelStages = useMemo(() => [
-    { label: 'Respondidos pelo agente', value: filtrados.length,   hint: 'Leads atendidos pela IA no período' },
-    { label: 'Receberam cotação',       value: cotados.length,     hint: 'Leads que receberam orçamento da IA ou da equipe, ou compraram' },
-    { label: 'Convertidos',             value: convertidos.length, hint: 'Marcados como convertidos ou com venda na loja' },
-  ], [filtrados.length, cotados.length, convertidos.length])
+  // Funil IA x equipe (01/10): cada lado com as suas fases; o lead que passou pelos dois
+  // conta nos dois. Mesmo conjunto de leads dos KPIs (período + canal).
+  const funilIaEquipe = useMemo(() => calcularFunilIaEquipe({
+    leads: filtrados,
+    atendimento: new Map(atendimentoLista.map(a => [a.lead_id, a])),
+    orcamentosChat,
+    idsConvertidos,
+    cotouForaDoChat: l => recebeuPreco(l.ultimo_valor_cotado) || orcsDoLead(l).length > 0,
+  }),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [filtrados, atendimentoLista, orcamentosChat, idsConvertidos, orcsPorLead])
+  const medicao = funilIaEquipe.etapas.find(e => e.chave === 'medicao')!
 
   const animLeads      = useCountUp(filtrados.length, 700, hasLoaded, resetKey)
   const animConv       = useCountUp(convertidos.length, 750, hasLoaded, resetKey)
@@ -611,7 +572,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       sub: pedidosFechados > 0 ? `${pedidosFechados} pedido${pedidosFechados !== 1 ? 's' : ''} lançado${pedidosFechados !== 1 ? 's' : ''}` : 'nenhuma venda lançada' },
     { label: 'Valor cotado',           value: cotacao.valor > 0 ? formatCurrency(animValor) : '—', icon: DollarSign,
       sub: cotacao.leads > 0 ? `${cotacao.leads} lead${cotacao.leads !== 1 ? 's' : ''} · IA ${cotacao.ia} · equipe ${cotacao.equipe}` : 'nenhum orçamento no período' },
-    { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck, sub: 'com data marcada' },
+    { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck,
+      sub: comMedicao.length > 0 ? `IA ${medicao.ia} · equipe ${medicao.equipe}` : 'nenhuma no período' },
     { label: 'Com a equipe',           value: Math.round(animComEquipe), icon: Headset, sub: 'atendimento humano assumiu' },
   ]
 
@@ -786,9 +748,16 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map(cartaoKpi)}</div>
         </div>
         <div className="rounded-xl border bg-card p-5 shadow-sm">
-          {linha('mb-4 text-sm', 'w-40')}
-          <div className="space-y-2.5">
-            {[0, 1, 2].map(i => <div key={i} className="h-7 rounded-lg skeleton-shimmer" />)}
+          {linha('mb-3 text-sm', 'w-72 max-w-full')}
+          <div className="grid grid-cols-[1fr_4.5rem_1fr] items-center gap-x-2 gap-y-2 sm:grid-cols-[1fr_9rem_1fr] sm:gap-x-3">
+            {linha('text-[10px]', 'w-20')}<span />{linha('text-[10px] justify-end', 'w-14')}
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="contents">
+                <div className="h-6 rounded-md skeleton-shimmer" />
+                {linha('text-xs justify-center', 'w-16')}
+                <div className="h-6 rounded-md skeleton-shimmer" />
+              </div>
+            ))}
           </div>
         </div>
         <div className="h-96 rounded-xl border bg-card shadow-sm" />
@@ -885,7 +854,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       </div>
 
       {/* ── Funil de conversão ── */}
-      <FunnelChart stages={funnelStages} />
+      <FunilIaEquipe funil={funilIaEquipe} />
 
       {/* ── Veredito da IA por conversa (venda / negociação / perdida + motivo) ──
            inclui as históricas de propósito: são o material mais rico de leitura */}
