@@ -69,8 +69,8 @@ export const DEFAULT_RESPONSAVEL = 'Sombrear';
 
 // Paginação
 export const PAGE_SIZE = 50;
-export const LEADS_PAGE_SIZE = 20;
-export const ORCS_PAGE_SIZE = 20;
+export const LEADS_PAGE_SIZE = 12;
+export const ORCS_PAGE_SIZE = 12;
 
 // Agente IA — horário comercial e alertas
 export const HORA_INICIO = 8;
