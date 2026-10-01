@@ -14,7 +14,7 @@
 
 import type { Orcamento } from '@/lib/supabase'
 import { type CrmLead, isLeadHistorico } from '@/hooks/useAgenteIA'
-import { acharOrigem, SEM_ORIGEM } from '@/components/agente/SeloOrigem'
+import { acharCanal, contarGoogleSite, SEM_ORIGEM } from '@/components/agente/SeloOrigem'
 import { valorNumerico } from '@/lib/utils'
 import type { Intervalo } from '@/lib/periodos'
 import { dataAtividade, dataVenda, ehVenda, noPeriodo, receita } from './base'
@@ -45,6 +45,8 @@ export type Canais = {
   receitaAtribuida: number
   receitaTotal: number
   temCampanha: boolean
+  /** conversas do Google + Site separadas pela origem gravada, pra mostrar pequeno */
+  divisaoGoogleSite: { google: number; site: number }
 }
 
 /** Uma origem só conta se for texto de verdade — `''` não é canal. */
@@ -91,7 +93,7 @@ export function analiseDeCanal(
 
   for (const l of doPeriodo) {
     if (!temOrigem(l.origem)) { registrar(semCanal, l); continue }
-    const canal = acharOrigem(l.origem)
+    const canal = acharCanal(l.origem)
     if (!mapa.has(canal.id)) mapa.set(canal.id, novo(canal.id, canal.rotulo))
     registrar(mapa.get(canal.id)!, l)
   }
@@ -114,7 +116,7 @@ export function analiseDeCanal(
     const bruta = temOrigem(o.origem) ? o.origem : acharLead(o.telefone)?.origem
     if (!temOrigem(bruta)) { semCanal.receita += receita(o); semCanal.pedidosVistos.add(chavePedido); continue }
 
-    const canal = acharOrigem(bruta)
+    const canal = acharCanal(bruta)
     if (!mapa.has(canal.id)) mapa.set(canal.id, novo(canal.id, canal.rotulo))
     const linha = mapa.get(canal.id)!
     linha.receita += receita(o)
@@ -135,6 +137,7 @@ export function analiseDeCanal(
     identificados: identificados.length,
     total: doPeriodo.length,
     pctCobertura: doPeriodo.length ? (identificados.length / doPeriodo.length) * 100 : 0,
+    divisaoGoogleSite: contarGoogleSite(doPeriodo, (l) => l.origem),
     vendasAtribuidas,
     vendasComTelefone,
     receitaAtribuida,

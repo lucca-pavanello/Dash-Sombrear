@@ -271,8 +271,23 @@ describe('canal — a medida que sobrevive à falta de rastro até a venda', () 
   it('venda sem canal no orçamento herda o canal do lead pelo telefone', () => {
     const origem = lead({ origem: 'google' })
     const c = analiseDeCanal([origem], [orc({ telefone: '17999990000', valor_venda: 1500 })], null, () => origem)
-    expect(c.linhas.find((l) => l.id === 'google')!.receita).toBe(1500)
+    expect(c.linhas.find((l) => l.id === 'google_site')!.receita).toBe(1500)
     expect(c.receitaAtribuida).toBe(1500)
+  })
+
+  it('Google e Site contam juntos, com a divisão guardada à parte', () => {
+    const c = analiseDeCanal([
+      lead({ origem: 'google', ultimo_valor_cotado: '900' }),
+      lead({ origem: 'Google Ads' }),
+      lead({ origem: 'site' }),
+      lead({ origem: 'instagram' }),
+    ], [], null, () => undefined)
+    const junto = c.linhas.find((l) => l.id === 'google_site')!
+    expect(junto.rotulo).toBe('Google + Site')
+    expect(junto.leads).toBe(3)
+    expect(junto.cotados).toBe(1)
+    expect(c.linhas.some((l) => l.id === 'google' || l.id === 'site')).toBe(false)
+    expect(c.divisaoGoogleSite).toEqual({ google: 2, site: 1 })
   })
 
   it('venda que não acha canal nenhum cai na régua e não some da receita total', () => {
@@ -290,7 +305,7 @@ describe('canal — a medida que sobrevive à falta de rastro até a venda', () 
         lead({ origem: null, ultimo_valor_cotado: i < 1 ? '1000' : null })),       // 10%
     ]
     const d = destaqueDeCanal(analiseDeCanal(leads, [], null, () => undefined))!
-    expect(d.linha.id).toBe('google')
+    expect(d.linha.id).toBe('google_site')
     expect(d.vezes).toBeCloseTo(5, 5)
   })
 

@@ -15,12 +15,16 @@
  */
 import { Compass } from 'lucide-react'
 import type { Canais, LinhaCanal } from '@/lib/analises'
-import { acharOrigem } from '@/components/agente/SeloOrigem'
+import { acharOrigem, GOOGLE_SITE, DivisaoGoogleSite } from '@/components/agente/SeloOrigem'
 import { tabela } from '@/components/shared/estilos'
 import { formatCurrency, cn } from '@/lib/utils'
 import { SecaoAnalise, Cobertura, Medidor } from './base'
 
-function Linha({ l, maiorTaxa, regua }: { l: LinhaCanal; maiorTaxa: number; regua?: boolean }) {
+function Linha({ l, maiorTaxa, regua, divisao }: {
+  l: LinhaCanal; maiorTaxa: number; regua?: boolean
+  /** só no Google + Site: quantas conversas de cada um */
+  divisao?: { google: number; site: number }
+}) {
   const Icone = acharOrigem(l.id).icone
   return (
     <tr className={cn(tabela.tr, regua && 'bg-muted/20')}>
@@ -32,6 +36,7 @@ function Linha({ l, maiorTaxa, regua }: { l: LinhaCanal; maiorTaxa: number; regu
             {l.rotulo}
           </span>
         </span>
+        {divisao && <DivisaoGoogleSite {...divisao} className="mt-0.5 block" />}
       </td>
       <td className="px-4 py-3 text-center text-sm tabular-nums text-foreground/80">{l.leads}</td>
       <td className="px-4 py-3">
@@ -89,7 +94,10 @@ export default function CanalHonesto({ canais }: { canais: Canais }) {
               </tr>
             </thead>
             <tbody>
-              {canais.linhas.map((l) => <Linha key={l.id} l={l} maiorTaxa={maiorTaxa} />)}
+              {canais.linhas.map((l) => (
+                <Linha key={l.id} l={l} maiorTaxa={maiorTaxa}
+                  divisao={l.id === GOOGLE_SITE.id ? canais.divisaoGoogleSite : undefined} />
+              ))}
               {canais.semCanal.leads > 0 && (
                 <Linha l={canais.semCanal} maiorTaxa={maiorTaxa} regua />
               )}
