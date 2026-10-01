@@ -167,22 +167,24 @@ function PeriodTabs({
   )
 }
 
-function KpiCard({ label, value, icon: Icon, alcance, sub, attention, delay }: {
+function KpiCard({ label, value, icon: Icon, sub, attention, delay }: {
   label: string; value: string | number; icon: React.ElementType
   alcance?: boolean; attention?: boolean; sub?: string; delay: number
 }) {
-  // mesma composição do card da Lista de orçamentos: centrado, chip em cima
+  // mesma composição do card da Lista de orçamentos: centrado, chip em cima.
+  // Cartão neutro e número escuro: com 10 cards, fundo e número laranja em todos viravam
+  // uma parede de cor e nada se destacava. A cor fica no ícone; o âmbar só no que pede ação.
   const tom = attention ? 'amber' : 'primario'
   return (
     <div
       className={cn('animate-in fade-in-0 slide-in-from-bottom-4 duration-500 hover:shadow-md cursor-default',
-        kpi.cartao, kpi.acento[tom], alcance && !attention && 'ring-1 ring-primary/20')}
+        kpi.cartao, kpi.acento.neutro)}
       style={{ animationFillMode: 'both', animationDelay: `${delay}ms` }}
     >
       <div className="flex flex-col items-center text-center gap-0.5">
         <div className={cn(kpi.chip, kpi.chipCor[tom])}><Icon className="h-4 w-4" /></div>
         <p className={cn(kpi.rotulo, 'w-full')}>{label}</p>
-        <p className={cn(kpi.valor, kpi.valorCor[tom], 'truncate')}>{value}</p>
+        <p className={cn(kpi.valor, attention ? kpi.valorCor.amber : kpi.valorCor.neutro, 'truncate')}>{value}</p>
         {sub && <p className={cn(kpi.sub, 'w-full')}>{sub}</p>}
       </div>
     </div>

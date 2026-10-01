@@ -23,8 +23,8 @@ import {
  * secundárias sancionadas (azul/violeta); ano e período avulso ficam neutros.
  */
 const TIPO: Record<RelatorioIA['tipo'], { rotulo: string; classe: string }> = {
-  semanal: { rotulo: 'Semana', classe: 'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300' },
-  mensal:  { rotulo: 'Mês',    classe: 'border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300' },
+  semanal: { rotulo: 'Semana', classe: 'border-border bg-muted/60 text-muted-foreground' },
+  mensal:  { rotulo: 'Mês',    classe: 'border-border bg-muted/60 text-foreground/70' },
   anual:   { rotulo: 'Ano',    classe: 'border-border bg-muted/60 text-muted-foreground' },
   custom:  { rotulo: 'Período', classe: 'border-border bg-muted/60 text-muted-foreground' },
 }
@@ -93,7 +93,7 @@ function CardsKpi({ kpis }: { kpis: KpisRelatorio }) {
           <div key={c.rotulo} className="min-w-[64px] rounded-lg border bg-background/60 px-2 py-1.5 text-center">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{c.rotulo}</p>
             <p className={cn('text-[13px] font-bold tabular-nums',
-              c.destaque ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground/75')}>{c.valor}</p>
+              c.destaque ? 'text-foreground' : 'text-foreground/75')}>{c.valor}</p>
           </div>
         ))}
       </div>
@@ -239,7 +239,7 @@ export default function ResumosIA() {
                   {/* o número do período já na linha fechada: dá pra comparar semanas sem abrir uma por uma */}
                   {receita != null && Number.isFinite(receita) && (
                     <span className={cn('shrink-0 text-sm font-bold leading-none tabular-nums',
-                      receita > 0 ? 'text-primary' : 'text-muted-foreground')}
+                      receita > 0 ? 'text-foreground' : 'text-muted-foreground')}
                       title={receita > 0 ? formatCurrency(receita) : undefined}>
                       {receita > 0 ? valorCurto(receita) : 'sem venda'}
                     </span>
