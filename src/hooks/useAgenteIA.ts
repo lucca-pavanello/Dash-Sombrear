@@ -152,6 +152,39 @@ export type OrcamentoIA = {
   identificador_whats: string | null
 }
 
+/**
+ * Orçamento mandado no chat (0026): uma linha por mensagem da loja com preço, já lida pela
+ * IA. `autor` diz quem mandou. É a única fonte que enxerga o orçamento da EQUIPE: a
+ * calculadora do dash quase nunca guarda o telefone, então não liga ao lead.
+ */
+export type OrcamentoChat = {
+  mensagem_id: number
+  lead_id: string | null
+  autor: 'ia' | 'equipe'
+  canal_envio: 'chatwoot' | 'celular' | null
+  enviado_em: string
+  valor: number | null
+  produto: string | null
+}
+
+export function useOrcamentosChat() {
+  return useQuery({
+    queryKey: ['orcamentos-chat'],
+    queryFn: async () => {
+      return lerTudo<OrcamentoChat>((de, ate) => supabase
+        .from('orcamentos_chat')
+        .select('mensagem_id, lead_id, autor, canal_envio, enviado_em, valor, produto')
+        .eq('eh_orcamento', true)
+        .order('enviado_em', { ascending: false })
+        .order('mensagem_id')
+        .range(de, ate))
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchInterval: 180000,
+  })
+}
+
 // Realtime dos leads do agente (WhatsApp/n8n): novos registros aparecem sozinhos,
 // sem precisar remontar a aba. Espelha o padrão de useOrcamentos.
 export function useAgenteIARealtime({ enabled = true, onNewLead }: {

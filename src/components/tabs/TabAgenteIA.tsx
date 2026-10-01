@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import {
-  useCrmLeads, useOrcamentosIA, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
+  useCrmLeads, useOrcamentosIA, useOrcamentosChat, useMarcarConvertido, useDefinirOrigem, estaComEquipe,
   isLeadHistorico, mapaLeadsPorTelefone, acharLeadPorTelefone, normalizarTelefone,
   STATUS_CONVERTIDO, type CrmLead, type OrcamentoIA,
 } from '@/hooks/useAgenteIA'
@@ -368,6 +368,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   // a nova tentativa e isLoading vira false sem dado nenhum. A tela mostrava zeros como se fossem fato.
   const { data: leads = [], isPending: loadingCrm, isError: errorCrm, refetch: refetchCrm } = useCrmLeads()
   const { data: orcamentosIA = [], isPending: loadingOrc, isError: errorOrc, refetch: refetchOrc } = useOrcamentosIA()
+  // orçamento mandado no chat, pela IA ou pela equipe (0026)
+  const { data: orcamentosChat = [] } = useOrcamentosChat()
   // Vendas REAIS da loja (Semanário/Acompanhar) — usadas só pra achar, pelo telefone,
   // um lead que fechou fora do chat (balcão, telefone) sem ninguém marcar "Converteu" nele.
   const { data: orcamentosLoja = [] } = useOrcamentos()
@@ -523,11 +525,41 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   // Quem comprou recebeu preço em algum momento, mesmo que fora do chat, então conta
   // como cotado. "Pediram atendimento" não é etapa (é o KPI Aguardando).
   const idsConvertidos = useMemo(() => new Set(convertidos.map(l => l.id)), [convertidos])
+  // 01/10: o orçamento da EQUIPE no chat também conta. Antes só a cotação da IA entrava, e
+  // 81 leads cotados só pela equipe apareciam como "não cotados".
+  const leadsCotadosNoChat = useMemo(
+    () => new Set(orcamentosChat.map(o => o.lead_id).filter((id): id is string => !!id)),
+    [orcamentosChat])
   const cotados = useMemo(
-    () => filtrados.filter(l => recebeuPreco(l.ultimo_valor_cotado) || orcsDoLead(l).length > 0 || idsConvertidos.has(l.id)),
+    () => filtrados.filter(l => recebeuPreco(l.ultimo_valor_cotado) || orcsDoLead(l).length > 0
+      || leadsCotadosNoChat.has(l.id) || idsConvertidos.has(l.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtrados, orcsPorLead, idsConvertidos]
+    [filtrados, orcsPorLead, leadsCotadosNoChat, idsConvertidos]
   )
+
+  // Valor cotado: o ÚLTIMO orçamento de cada lead mandado no período, pela IA ou pela
+  // equipe. Último, e não a soma, porque a loja reenvia o orçamento revisado e somar
+  // contaria a mesma venda duas vezes. O canal segue o chip do topo.
+  const cotacao = useMemo(() => {
+    const porId = new Map(leadsVivos.map(l => [l.id, l]))
+    const doPer = filterByPeriod(orcamentosChat, periodo, (o) => o.enviado_em, customFrom || undefined, customTo || undefined)
+      .filter(o => {
+        const lead = o.lead_id ? porId.get(o.lead_id) : undefined
+        return !!lead && (origemFiltro === 'todas' || acharOrigem(lead.origem).id === origemFiltro)
+      })
+    const ultimo = new Map<string, number>()
+    const ia = new Set<string>()
+    const equipe = new Set<string>()
+    // a lista vem do mais novo para o mais antigo: o primeiro de cada lead é o último enviado
+    for (const o of doPer) {
+      const id = o.lead_id as string
+      if (!ultimo.has(id)) ultimo.set(id, o.valor ?? 0)
+      ;(o.autor === 'ia' ? ia : equipe).add(id)
+    }
+    let valor = 0
+    for (const v of ultimo.values()) valor += v
+    return { valor, leads: ultimo.size, ia: ia.size, equipe: equipe.size }
+  }, [orcamentosChat, leadsVivos, periodo, customFrom, customTo, origemFiltro])
   // Quanto os convertidos do período realmente pagaram: as vendas da loja casadas pelo
   // telefone, feitas no dia em que o lead chegou ou depois (mesma regra do "Convertidos").
   // Quem foi marcado no botão "Converteu" sem venda lançada no Semanário soma zero aqui.
@@ -549,13 +581,13 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
 
   const funnelStages = useMemo(() => [
     { label: 'Respondidos pelo agente', value: filtrados.length,   hint: 'Leads atendidos pela IA no período' },
-    { label: 'Receberam cotação',       value: cotados.length,     hint: 'Leads com valor cotado, orçamento gerado ou compra' },
+    { label: 'Receberam cotação',       value: cotados.length,     hint: 'Leads que receberam orçamento da IA ou da equipe, ou compraram' },
     { label: 'Convertidos',             value: convertidos.length, hint: 'Marcados como convertidos ou com venda na loja' },
   ], [filtrados.length, cotados.length, convertidos.length])
 
   const animLeads      = useCountUp(filtrados.length, 700, hasLoaded, resetKey)
   const animConv       = useCountUp(convertidos.length, 750, hasLoaded, resetKey)
-  const animValor      = useCountUp(valorTotal, 900, hasLoaded, resetKey)
+  const animValor      = useCountUp(cotacao.valor, 900, hasLoaded, resetKey)
   const animMed        = useCountUp(comMedicao.length, 750, hasLoaded, resetKey)
   const animForaLeads  = useCountUp(foraLeads.length, 700, hasLoaded, resetKey)
   const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded, resetKey)
@@ -577,7 +609,8 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     { label: 'Convertidos',            value: Math.round(animConv),    icon: CheckCircle2,  sub: `de ${filtrados.length} leads` },
     { label: 'Valor fechado',          value: valorFechado > 0 ? formatCurrency(animFechado) : '—', icon: HandCoins, destaque: true,
       sub: pedidosFechados > 0 ? `${pedidosFechados} pedido${pedidosFechados !== 1 ? 's' : ''} lançado${pedidosFechados !== 1 ? 's' : ''}` : 'nenhuma venda lançada' },
-    { label: 'Valor cotado (IA)',       value: valorTotal > 0 ? formatCurrency(animValor) : '—', icon: DollarSign, sub: `${orcFiltrados.length} orçamento${orcFiltrados.length !== 1 ? 's' : ''}` },
+    { label: 'Valor cotado',           value: cotacao.valor > 0 ? formatCurrency(animValor) : '—', icon: DollarSign,
+      sub: cotacao.leads > 0 ? `${cotacao.leads} lead${cotacao.leads !== 1 ? 's' : ''} · IA ${cotacao.ia} · equipe ${cotacao.equipe}` : 'nenhum orçamento no período' },
     { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck, sub: 'com data marcada' },
     { label: 'Com a equipe',           value: Math.round(animComEquipe), icon: Headset, sub: 'atendimento humano assumiu' },
   ]
