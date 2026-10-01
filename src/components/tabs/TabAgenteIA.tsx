@@ -14,7 +14,7 @@ import { useCountUp } from '@/hooks/useCountUp'
 import {
   Bot, DollarSign, FileText, Moon, Users, CalendarCheck,
   ChevronDown, ChevronUp, ChevronsUpDown, Phone, ChevronRight,
-  MessageSquare, CheckCircle2, Bell, Check,
+  MessageSquare, CheckCircle2, Bell, Check, HandCoins,
   Clock, MessageCircle,  ChevronLeft,
   Minimize2, Maximize2, FilePlus2, ExternalLink, Filter, Headset, Eye,
   Search, X, Download,
@@ -51,6 +51,8 @@ import { tabela, segmentado, kpi, campoBusca } from '@/components/shared/estilos
 import { useDebounce } from '@/hooks/useDebounce'
 import { exportCsv } from '@/lib/exportUtils'
 import { ehConvertido, leadsQueCompraram, recebeuPreco } from '@/lib/analises/conversao'
+import { chavePedido, dataVenda, ehTeste, ehVenda, receita } from '@/lib/analises/venda'
+import { diaDaCasa } from '@/lib/fusoCasa'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
 
@@ -181,9 +183,9 @@ function PeriodTabs({
   )
 }
 
-function KpiCard({ label, value, icon: Icon, sub, attention, delay }: {
+function KpiCard({ label, value, icon: Icon, sub, attention, destaque, delay }: {
   label: string; value: string | number; icon: React.ElementType
-  alcance?: boolean; attention?: boolean; sub?: string; delay: number
+  alcance?: boolean; attention?: boolean; destaque?: boolean; sub?: string; delay: number
 }) {
   // mesma composição do card da Lista de orçamentos: centrado, chip em cima.
   // Cartão neutro e número escuro: com 10 cards, fundo e número laranja em todos viravam
@@ -198,7 +200,7 @@ function KpiCard({ label, value, icon: Icon, sub, attention, delay }: {
       <div className="flex flex-col items-center text-center gap-0.5">
         <div className={cn(kpi.chip, kpi.chipCor[tom])}><Icon className="h-4 w-4" /></div>
         <p className={cn(kpi.rotulo, 'w-full')}>{label}</p>
-        <p className={cn(kpi.valor, attention ? kpi.valorCor.amber : kpi.valorCor.neutro, 'truncate')}>{value}</p>
+        <p className={cn(kpi.valor, attention ? kpi.valorCor.amber : destaque ? kpi.valorCor.primario : kpi.valorCor.neutro, 'truncate')}>{value}</p>
         {sub && <p className={cn(kpi.sub, 'w-full')}>{sub}</p>}
       </div>
     </div>
@@ -517,11 +519,6 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   // conversas que uma atendente assumiu: a IA está calada e quem toca é gente
   const comEquipe = useMemo(() => filtrados.filter(estaComEquipe), [filtrados])
 
-  const leadsEmEspera = useMemo(() =>
-    filtrados.filter(l =>
-      !ehConvertido(l, convertidosPorTelefone) && horasDecorridas(l.timestamp_ultima_msg) > ESPERA_HORAS
-    ), [filtrados, convertidosPorTelefone])
-
   // Funil encaixado: respondidos → cotados → convertidos, cada etapa dentro da anterior.
   // Quem comprou recebeu preço em algum momento, mesmo que fora do chat, então conta
   // como cotado. "Pediram atendimento" não é etapa (é o KPI Aguardando).
@@ -531,6 +528,25 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtrados, orcsPorLead, idsConvertidos]
   )
+  // Quanto os convertidos do período realmente pagaram: as vendas da loja casadas pelo
+  // telefone, feitas no dia em que o lead chegou ou depois (mesma regra do "Convertidos").
+  // Quem foi marcado no botão "Converteu" sem venda lançada no Semanário soma zero aqui.
+  const { valorFechado, pedidosFechados } = useMemo(() => {
+    let total = 0
+    const pedidos = new Set<string>()
+    for (const o of orcamentosLoja) {
+      if (!ehVenda(o) || ehTeste(o)) continue
+      const lead = acharLeadPorTelefone(leadPorTelefone, o.telefone)
+      if (!lead || !idsConvertidos.has(lead.id)) continue
+      const diaVenda = diaDaCasa(dataVenda(o))
+      const diaLead = diaDaCasa(lead.created_at)
+      if (!diaVenda || !diaLead || diaVenda < diaLead) continue
+      total += receita(o)
+      pedidos.add(chavePedido(o))
+    }
+    return { valorFechado: total, pedidosFechados: pedidos.size }
+  }, [orcamentosLoja, leadPorTelefone, idsConvertidos])
+
   const funnelStages = useMemo(() => [
     { label: 'Respondidos pelo agente', value: filtrados.length,   hint: 'Leads atendidos pela IA no período' },
     { label: 'Receberam cotação',       value: cotados.length,     hint: 'Leads com valor cotado, orçamento gerado ou compra' },
@@ -538,14 +554,13 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   ], [filtrados.length, cotados.length, convertidos.length])
 
   const animLeads      = useCountUp(filtrados.length, 700, hasLoaded, resetKey)
-  const animAguard     = useCountUp(aguardando.length, 700, hasLoaded, resetKey)
   const animConv       = useCountUp(convertidos.length, 750, hasLoaded, resetKey)
   const animValor      = useCountUp(valorTotal, 900, hasLoaded, resetKey)
   const animMed        = useCountUp(comMedicao.length, 750, hasLoaded, resetKey)
   const animForaLeads  = useCountUp(foraLeads.length, 700, hasLoaded, resetKey)
   const animMsgs       = useCountUp(mensagensTotais, 750, hasLoaded, resetKey)
   const animForaMsgs   = useCountUp(foraMsgs.length, 700, hasLoaded, resetKey)
-  const animEspera     = useCountUp(leadsEmEspera.length, 700, hasLoaded, resetKey)
+  const animFechado    = useCountUp(valorFechado, 900, hasLoaded, resetKey)
   const animComEquipe  = useCountUp(comEquipe.length, 700, hasLoaded, resetKey)
 
   const alcanceKpis = [
@@ -555,13 +570,16 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     { label: 'Msgs fora do horário',     value: Math.round(animForaMsgs),  icon: MessageCircle, alcance: true,  sub: 'última msg fora do comercial' },
   ]
 
-  const opKpis = [
-    { label: 'Aguardando atendimento', value: Math.round(animAguard),  icon: Bell,          attention: true,  sub: 'querem atendimento humano' },
-    { label: 'Convertidos',            value: Math.round(animConv),    icon: CheckCircle2,  attention: false, sub: `de ${filtrados.length} leads` },
-    { label: 'Valor cotado (IA)',       value: valorTotal > 0 ? formatCurrency(animValor) : '—', icon: DollarSign, attention: false, sub: `${orcFiltrados.length} orçamento${orcFiltrados.length !== 1 ? 's' : ''}` },
-    { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck, attention: false, sub: 'com data marcada' },
-    { label: 'Em espera',              value: String(Math.round(animEspera)), icon: Clock, attention: leadsEmEspera.length > 0, sub: `aguardando +${ESPERA_HORAS}h` },
-    { label: 'Com a equipe',           value: Math.round(animComEquipe), icon: Headset, attention: false, sub: 'atendimento humano assumiu' },
+  // 01/10 (Lucca): o Operacional fica no que diz resultado. "Aguardando atendimento" já tem
+  // a faixa logo acima, e "Em espera" repetia a mesma ideia; o valor fechado entra ao lado
+  // do cotado, porque o que a loja quer saber é quanto rendeu, não só quanto foi orçado.
+  const opKpis: { label: string; value: string | number; icon: React.ElementType; sub: string; destaque?: boolean }[] = [
+    { label: 'Convertidos',            value: Math.round(animConv),    icon: CheckCircle2,  sub: `de ${filtrados.length} leads` },
+    { label: 'Valor fechado',          value: valorFechado > 0 ? formatCurrency(animFechado) : '—', icon: HandCoins, destaque: true,
+      sub: pedidosFechados > 0 ? `${pedidosFechados} pedido${pedidosFechados !== 1 ? 's' : ''} lançado${pedidosFechados !== 1 ? 's' : ''}` : 'nenhuma venda lançada' },
+    { label: 'Valor cotado (IA)',       value: valorTotal > 0 ? formatCurrency(animValor) : '—', icon: DollarSign, sub: `${orcFiltrados.length} orçamento${orcFiltrados.length !== 1 ? 's' : ''}` },
+    { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck, sub: 'com data marcada' },
+    { label: 'Com a equipe',           value: Math.round(animComEquipe), icon: Headset, sub: 'atendimento humano assumiu' },
   ]
 
   /**
@@ -730,7 +748,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         </div>
         <div className="space-y-3">
           {linha('text-[10px]', 'w-20')}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">{[0, 1, 2, 3, 4, 5].map(cartaoKpi)}</div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">{[0, 1, 2, 3, 4].map(cartaoKpi)}</div>
           {linha('pt-1 text-[10px]', 'w-28')}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map(cartaoKpi)}</div>
         </div>
@@ -818,10 +836,10 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
            do que a IA atendeu, vem depois. Mesmos cards, mesma cascata e contagem. ── */}
       <div key={periodo} className="space-y-3 animate-in fade-in-0 duration-200">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5">Operacional</p>
-        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-          {opKpis.map(({ label, value, icon, attention, sub }, i) => (
+        <div className="kpi-cascade grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {opKpis.map(({ label, value, icon, destaque, sub }, i) => (
             <KpiCard key={label} label={label} value={value} icon={icon}
-              attention={attention} sub={sub} delay={i * 80} />
+              destaque={destaque} sub={sub} delay={i * 80} />
           ))}
         </div>
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-0.5 pt-1">Alcance do Agente</p>
