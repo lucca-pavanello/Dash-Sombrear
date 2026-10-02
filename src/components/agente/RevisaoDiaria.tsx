@@ -112,7 +112,8 @@ function Pronta({ r, origem }: { r: ResultadoRevisao; origem: 'diaria' | 'manual
         </div>
         {r.analise.melhorias.length === 0 ? (
           <p className="px-5 py-6 text-center text-sm text-muted-foreground">
-            Nada a melhorar nas conversas deste dia.
+            Nenhuma melhoria apontada neste dia. É raro — se repetir, vale conferir se a Amanda
+            está mesmo atendendo ou se as conversas estão indo direto para a equipe.
           </p>
         ) : (
           <ol className="divide-y divide-border/50">

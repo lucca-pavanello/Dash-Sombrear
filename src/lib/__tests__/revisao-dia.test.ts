@@ -219,6 +219,14 @@ describe('o pedido que vai para o modelo', () => {
     expect(base.pedido).toContain('nada que a EQUIPE disse vira melhoria da IA')
   })
 
+  it('pede melhoria, não parecer sobre cada mensagem', () => {
+    // o que o Lucca quer da revisão (02/10): "não é uma revisão de cada mensagem, é
+    // melhoria pra fazer". Sem isto o modelo responde elogiando o dia e entregando nada
+    expect(base.pedido).toContain('LISTA DE MELHORIAS')
+    expect(base.pedido).toContain('não interessa dizer que a conversa foi bem')
+    expect(base.pedido).toContain('OPORTUNIDADE')
+  })
+
   it('dia sem conversa da Amanda gera pedido honesto em vez de transcrição vazia', () => {
     const vazio = montarRevisao({ dia: DIA, mensagens: [] })
     expect(vazio.conversas).toEqual([])
