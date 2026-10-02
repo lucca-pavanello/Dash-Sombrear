@@ -249,6 +249,20 @@ describe('o pedido que vai para o modelo', () => {
     expect(base.pedido).toContain('desmentido pela própria conversa')
   })
 
+  it('diz que a Amanda conhece o produto, para explicação técnica não virar invenção', () => {
+    // 30/09: a revisão apontou "afirmou Wi-Fi sem confirmar". A Amanda tem isso no prompt
+    // dela, que esta régua não alcança — sem dizer o que ela sabe, toda explicação de
+    // produto parece chute. Mas valor, prazo e medida de cabeça continuam defeito
+    expect(base.pedido).toContain('Explicar produto não é inventar')
+    expect(base.pedido).toContain('nunca dá é valor, prazo, desconto e medida')
+    expect(base.pedido).toContain('a própria conversa mostrar a contradição')
+  })
+
+  it('segura ajuste de tom em uma por dia, para não afogar o que vende', () => {
+    expect(base.pedido).toContain('no máximo uma vez por dia')
+    expect(base.pedido).toContain('clima de compra')
+  })
+
   it('manda caçar o fechamento genérico depois de sinal de compra', () => {
     // a melhoria do 29/09 que o Lucca comprou: "qualquer coisa é só me chamar" logo depois
     // de a cliente aprovar o orçamento devolve a iniciativa no melhor momento da venda
