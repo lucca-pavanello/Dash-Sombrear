@@ -8,7 +8,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  conversasDoDia, diaNaCasa, horaNaCasa, lerRevisao, montarRevisao, semRespostaDaIA,
+  casarFotos, conversasDoDia, diaNaCasa, horaNaCasa, lerRevisao, montarRevisao,
+  semRespostaDaIA,
   type MensagemRevisao,
 } from '@/lib/revisao/dia'
 
@@ -277,12 +278,93 @@ describe('o pedido que vai para o modelo', () => {
   })
 })
 
+describe('as fotos que a loja precisa providenciar', () => {
+
+  it('acusa quando a Amanda prometeu a foto e nenhuma imagem saiu dela', () => {
+    // o caso da Anelisa (30/09): duas promessas, nada enviado, a cliente cobrou.
+    // Uma entrada só — é uma foto a comprar, não duas
+    const b = montarRevisao({
+      dia: DIA,
+      mensagens: [
+        msg(1, 'cliente', '09:00', 'tem foto da Double sem bandô?'),
+        msg(1, 'ia', '09:01', 'Deixa eu te mandar uma foto pra você ver como fica!'),
+        msg(1, 'ia', '09:30', 'Deixa eu te mandar uma foto pra você ver como fica!'),
+        msg(1, 'cliente', '09:40', 'não recebi a foto'),
+      ],
+    })
+    expect(b.fotosQueFaltam).toHaveLength(1)
+    expect(b.fotosQueFaltam[0]).toMatchObject({
+      conversa: 'Conversa 1',
+      motivo: 'prometeu_e_nao_enviou',
+      pedido: 'tem foto da Double sem bandô?',
+    })
+  })
+
+  it('não acusa quando a foto saiu logo depois da promessa', () => {
+    const b = montarRevisao({
+      dia: DIA,
+      mensagens: [
+        msg(1, 'cliente', '09:00', 'me manda uma foto?'),
+        msg(1, 'ia', '09:01', 'Deixa eu te mandar uma foto pra você ver como fica!'),
+        { ...msg(1, 'ia', '09:02', ''), anexos: [{ tipo: 'image' }] },
+        msg(1, 'cliente', '09:05', 'que lindo'),
+      ],
+    })
+    expect(b.fotosQueFaltam).toEqual([])
+  })
+
+  it('acusa quando a Amanda avisa que não tem a foto, que é o combinado novo', () => {
+    // desde 8.6b do prompt da Secretaria ela avisa em vez de prometer. Continua sendo
+    // foto que falta no acervo: muda quem fica sabendo, não a compra
+    const b = montarRevisao({
+      dia: DIA,
+      mensagens: [
+        msg(1, 'cliente', '09:00', 'tem foto da Double sem bandô?'),
+        msg(1, 'ia', '09:01', 'Foto da Double sem bandô eu não tenho aqui agora, mas a equipe consegue te passar depois, tá?'),
+      ],
+    })
+    expect(b.fotosQueFaltam).toHaveLength(1)
+    expect(b.fotosQueFaltam[0].motivo).toBe('disse_que_nao_tem')
+    expect(b.fotosQueFaltam[0].resposta).toContain('não tenho aqui')
+  })
+
+  it('leva a linha para o pedido e avisa que não é defeito da Amanda', () => {
+    const b = montarRevisao({
+      dia: DIA,
+      mensagens: [
+        msg(1, 'cliente', '09:00', 'tem foto da Double sem bandô?'),
+        msg(1, 'ia', '09:01', 'Deixa eu te mandar uma foto pra você ver como fica!'),
+      ],
+    })
+    expect(b.pedido).toContain('FOTO QUE FALTOU')
+    expect(b.pedido).toContain('Não as transforme em melhoria')
+  })
+
+  it('o código manda na lista: nome de conversa sem foto faltando é descartado', () => {
+    const achadas = casarFotos(
+      [{ conversa: 'Conversa 1', hora: '09:01', pedido: 'tem foto?', resposta: '', motivo: 'prometeu_e_nao_enviou', o_que: '' }],
+      [{ conversa: 'Conversa 1', o_que: 'Double Vision sem bandô' }, { conversa: 'Conversa 9', o_que: 'inventada' }],
+    )
+    expect(achadas).toHaveLength(1)
+    expect(achadas[0].o_que).toBe('Double Vision sem bandô')
+  })
+
+  it('foto sem nome do modelo continua na lista, só sem título', () => {
+    const achadas = casarFotos(
+      [{ conversa: 'Conversa 1', hora: '09:01', pedido: 'tem foto?', resposta: '', motivo: 'disse_que_nao_tem', o_que: '' }],
+      [],
+    )
+    expect(achadas).toHaveLength(1)
+    expect(achadas[0].o_que).toBe('')
+  })
+})
+
 describe('a leitura da resposta do modelo', () => {
   const rotulos = ['Conversa 1', 'Conversa 2']
 
   it('aceita o JSON dentro de cerca de código', () => {
     const r = lerRevisao('```json\n{"resumo":"dia tranquilo","melhorias":[]}\n```', rotulos)
-    expect(r).toEqual({ resumo: 'dia tranquilo', melhorias: [] })
+    expect(r).toEqual({ resumo: 'dia tranquilo', melhorias: [], fotos: [] })
   })
 
   it('descarta melhoria que cita conversa que não existe', () => {

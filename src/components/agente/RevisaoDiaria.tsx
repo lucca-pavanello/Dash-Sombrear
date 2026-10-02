@@ -107,6 +107,37 @@ function Pronta({ r, origem }: { r: ResultadoRevisao; origem: 'diaria' | 'manual
         </div>
       )}
 
+      {(r.fotos_faltando?.length ?? 0) > 0 && (
+        <div className={CARTAO}>
+          <div className="border-b border-border/60 px-5 py-3">
+            <p className={EYEBROW}>Fotos para providenciar · {r.fotos_faltando!.length}</p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              O cliente quis ver e a loja não tinha a foto. Não é falha da Amanda: ela só manda
+              o que existe no acervo. Tirada a foto e cadastrada, ela passa a enviar sozinha.
+            </p>
+          </div>
+          <ul className="divide-y divide-border/50">
+            {r.fotos_faltando!.map((f, i) => (
+              <li key={i} className="px-5 py-3">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-[13px] font-semibold tabular-nums">{f.hora.replace(':', 'h')}</span>
+                  {f.motivo === 'prometeu_e_nao_enviou' && (
+                    <span className="text-[12px] font-semibold text-destructive">
+                      prometeu e não enviou
+                    </span>
+                  )}
+                  <LinkDaConversa r={r} conversa={f.conversa} />
+                </div>
+                {f.o_que && (
+                  <h3 className="mt-1.5 text-[15px] font-medium leading-snug">{f.o_que}</h3>
+                )}
+                <p className="mt-1 break-words text-sm leading-relaxed text-foreground/90">“{f.pedido}”</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className={CARTAO}>
         <div className="border-b border-border/60 px-5 py-3">
           <p className={EYEBROW}>

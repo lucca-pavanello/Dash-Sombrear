@@ -7,13 +7,15 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Gravidade, Melhoria, SemResposta } from '@/lib/revisao/dia'
+import type { FotoQueFalta, Gravidade, Melhoria, SemResposta } from '@/lib/revisao/dia'
 
 export type ResultadoRevisao = {
   dia: string
   conversas: number
   amostra: { conversa: string; lead_id: string | null; conversa_id: number; nome: string | null }[]
   sem_resposta: SemResposta[]
+  /** só existe nas revisões geradas a partir de 02/10; antes disso vem indefinido */
+  fotos_faltando?: FotoQueFalta[]
   analise: { resumo: string; melhorias: Melhoria[] }
   gerado_em: string
 }
