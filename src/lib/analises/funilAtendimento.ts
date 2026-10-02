@@ -24,7 +24,15 @@ export type Dono = 'ia' | 'ambos' | 'equipe'
 export type FunilAtendimento = {
   conversas: number
   atendeu: { total: number; soEquipe: number }
-  orcamento: { total: number; soIa: number; ambos: number; soEquipe: number }
+  orcamento: {
+    total: number; soIa: number; ambos: number; soEquipe: number
+    /** orçamentos mandados a esses clientes (IA + equipe); um cliente pode receber vários */
+    enviados: number
+    /** enviados ÷ clientes que receberam; 0 sem orçamento */
+    media: number
+    /** o cliente que mais recebeu */
+    maximo: number
+  }
   medicao: { total: number }
   converteu: { total: number; noFechamento: number; soMarcado: number }
 }
@@ -43,14 +51,17 @@ export function calcularFunilAtendimento({ leads, atendimento, orcamentosChat, i
 }): FunilAtendimento {
   const cotouIa = new Set<string>()
   const cotouEquipe = new Set<string>()
+  const porLead = new Map<string, number>()
   for (const o of orcamentosChat) {
-    if (o.lead_id) (o.autor === 'ia' ? cotouIa : cotouEquipe).add(o.lead_id)
+    if (!o.lead_id) continue
+    ;(o.autor === 'ia' ? cotouIa : cotouEquipe).add(o.lead_id)
+    porLead.set(o.lead_id, (porLead.get(o.lead_id) ?? 0) + 1)
   }
 
   const f: FunilAtendimento = {
     conversas: leads.length,
     atendeu: { total: 0, soEquipe: 0 },
-    orcamento: { total: 0, soIa: 0, ambos: 0, soEquipe: 0 },
+    orcamento: { total: 0, soIa: 0, ambos: 0, soEquipe: 0, enviados: 0, media: 0, maximo: 0 },
     medicao: { total: 0 },
     converteu: { total: 0, noFechamento: 0, soMarcado: 0 },
   }
@@ -66,6 +77,10 @@ export function calcularFunilAtendimento({ leads, atendimento, orcamentosChat, i
       if (ia && eq) f.orcamento.ambos++
       else if (ia) f.orcamento.soIa++
       else f.orcamento.soEquipe++
+      // preço passado só fora do chat (calculadora, valor do CRM) conta como um orçamento
+      const n = Math.max(porLead.get(l.id) ?? 0, 1)
+      f.orcamento.enviados += n
+      if (n > f.orcamento.maximo) f.orcamento.maximo = n
     }
 
     if (l.medicao_equipe?.trim()) f.medicao.total++
@@ -76,5 +91,6 @@ export function calcularFunilAtendimento({ leads, atendimento, orcamentosChat, i
       else f.converteu.soMarcado++
     }
   }
+  f.orcamento.media = f.orcamento.total ? f.orcamento.enviados / f.orcamento.total : 0
   return f
 }

@@ -29,11 +29,9 @@ const LAMINA = [
 /** só a cor, pra o quadradinho que liga o texto à lâmina no celular */
 const COR_LAMINA = ['bg-funil-1', 'bg-funil-2', 'bg-funil-3', 'bg-funil-4'] as const
 
-const DONO: Record<Dono, { rotulo: string; cor: string }> = {
-  ia:     { rotulo: 'IA',          cor: 'border-primary/30 bg-primary/[0.08] text-primary' },
-  ambos:  { rotulo: 'IA + equipe', cor: 'border-primary/25 bg-primary/[0.04] text-foreground/80' },
-  equipe: { rotulo: 'Equipe',      cor: 'border-border bg-muted/70 text-foreground/75' },
-}
+// Neutros de propósito (Lucca, 02/10: "ficou muito colorido"): a cor do card fica nas
+// lâminas; o texto ao lado é leitura, em tinta de texto.
+const DONO: Record<Dono, string> = { ia: 'IA', ambos: 'IA + equipe', equipe: 'Equipe' }
 
 type Parte = { rotulo: string; valor: number; cor: string; destaque?: boolean }
 
@@ -46,7 +44,9 @@ type Etapa = {
   anterior: number | null
   /** divisão da etapa, mostrada numa barrinha embaixo */
   partes?: Parte[]
-  nota?: string
+  nota?: React.ReactNode
+  /** linha pequena dentro da lâmina, embaixo do número */
+  dentro?: { texto: string; dica: string }
 }
 
 /** a barrinha de divisão: proporção entre as partes, com legenda escrita (cor nunca sozinha) */
@@ -86,17 +86,22 @@ export function FunilAtendimento({ funil }: { funil: Funil }) {
       rotulo: 'Orçamento', icone: FileText, dono: 'ambos', total: orcamento.total,
       anterior: atendeu.total + atendeu.soEquipe,
       partes: [
-        { rotulo: 'só IA', valor: orcamento.soIa, cor: 'bg-primary' },
-        { rotulo: 'os dois', valor: orcamento.ambos, cor: 'bg-primary/45' },
-        { rotulo: 'só equipe', valor: orcamento.soEquipe, cor: 'bg-foreground/50' },
+        { rotulo: 'só IA', valor: orcamento.soIa, cor: 'bg-foreground/70' },
+        { rotulo: 'os dois', valor: orcamento.ambos, cor: 'bg-foreground/40' },
+        { rotulo: 'só equipe', valor: orcamento.soEquipe, cor: 'bg-foreground/20' },
       ],
+      // um cliente pode receber vários orçamentos: a média mora na lâmina, que é onde o olho está
+      dentro: orcamento.total > 0 ? {
+        texto: `${orcamento.media.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} por cliente`,
+        dica: `${orcamento.enviados} orçamentos para ${orcamento.total} clientes; até ${orcamento.maximo} para o mesmo cliente`,
+      } : undefined,
     },
     { rotulo: 'Medição', icone: CalendarCheck, dono: 'equipe', total: medicao.total, anterior: orcamento.total },
     {
       rotulo: 'Converteu', icone: Handshake, dono: 'equipe', total: converteu.total,
       anterior: medicao.total || orcamento.total,
       partes: [
-        { rotulo: 'lançados no Fechamento', valor: converteu.noFechamento, cor: 'bg-emerald-500' },
+        { rotulo: 'lançados no Fechamento', valor: converteu.noFechamento, cor: 'bg-foreground/70' },
         { rotulo: 'falta lançar', valor: converteu.soMarcado, cor: 'bg-amber-500', destaque: true },
       ],
     },
@@ -134,7 +139,6 @@ export function FunilAtendimento({ funil }: { funil: Funil }) {
             const base = (i + 1) * RECUO
             const meio = (topo + base) / 2
             const Icone = e.icone
-            const d = DONO[e.dono]
             return (
               <div key={e.rotulo} className="contents">
                 {/* a lâmina */}
@@ -157,6 +161,12 @@ export function FunilAtendimento({ funil }: { funil: Funil }) {
                       {e.rotulo}
                     </span>
                     <span className="font-display text-2xl font-bold leading-none tabular-nums sm:text-[28px]">{e.total}</span>
+                    {e.dentro && (
+                      <span title={e.dentro.dica} className="text-[10px] font-semibold tabular-nums opacity-90">
+                        {e.dentro.texto}
+                        <span className="sr-only"> ({e.dentro.dica})</span>
+                      </span>
+                    )}
                   </div>
                   {/* a linha que liga a lâmina ao texto */}
                   <div aria-hidden="true"
@@ -171,14 +181,14 @@ export function FunilAtendimento({ funil }: { funil: Funil }) {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className={cn('h-2.5 w-2.5 shrink-0 rounded-sm sm:hidden', COR_LAMINA[i])} aria-hidden="true" />
                       <span className="text-sm font-semibold text-foreground">{e.rotulo}</span>
-                      <span className={cn('rounded-full border px-1.5 py-px text-[10px] font-semibold', d.cor)}>{d.rotulo}</span>
+                      <span className="rounded-full border border-border px-1.5 py-px text-[10px] font-medium text-muted-foreground">{DONO[e.dono]}</span>
                     </div>
                     <p className="text-xs tabular-nums text-muted-foreground">
                       <span className="font-semibold text-foreground/85">{pct(e.total, conversas)}%</span> das conversas
-                      {e.anterior !== null && e.anterior > 0 && <> · {pct(e.total, e.anterior)}% da etapa anterior</>}
+                      {e.anterior !== null && e.anterior > 0 && <> · {pct(e.total, e.anterior)}% da anterior</>}
                     </p>
                     {e.partes && <Divisao partes={e.partes} />}
-                    {e.nota && <p className="mt-0.5 text-[11px] text-muted-foreground">{e.nota}</p>}
+                    {e.nota && <p className="mt-1 text-[11px] text-muted-foreground">{e.nota}</p>}
                   </div>
                 </div>
               </div>
