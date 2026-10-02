@@ -73,6 +73,13 @@ const MAX_MENSAGENS = 40
 const MAX_FALA = 400
 /** o cliente que escreveu nos últimos minutos ainda pode ser respondido: não é silêncio */
 const MINUTOS_DE_TOLERANCIA = 10
+/**
+ * Quando a equipe cobre em poucos minutos, o cliente não ficou esperando — a loja
+ * atendeu. Medido na revisão de 29/09: das 7 linhas que a seção trouxe, 6 tinham a
+ * equipe respondendo em 0 a 3 minutos. Uma lista assim ensina a ignorar a seção.
+ * Fica o que dói: ninguém respondeu, ou o cliente esperou de verdade.
+ */
+const MINUTOS_PARA_DOER = 10
 
 const ANEXO: Record<string, string> = {
   audio: 'áudio', image: 'foto', video: 'vídeo', file: 'arquivo', location: 'localização',
@@ -206,14 +213,16 @@ export function semRespostaDaIA(conversas: ConversaDoDia[], ateMs: number): SemR
       if (RE_CORTESIA.test(t)) continue
       const resposta = c.msgs.slice(i + 1).find(x => x.autor !== 'cliente')
       if (resposta?.autor === 'ia') continue
+      const espera = resposta
+        ? Math.round((Date.parse(resposta.enviada_em) - quando) / 60_000)
+        : null
+      if (espera !== null && espera < MINUTOS_PARA_DOER) continue
       fora.push({
         conversa: c.rotulo,
         hora: horaNaCasa(m.enviada_em),
         texto: cortar(t, 300),
         respondeu: resposta ? 'equipe' : null,
-        espera_min: resposta
-          ? Math.round((Date.parse(resposta.enviada_em) - quando) / 60_000)
-          : null,
+        espera_min: espera,
       })
     }
   }
