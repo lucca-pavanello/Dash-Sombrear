@@ -15,7 +15,7 @@ describe('calcularFunilAtendimento', () => {
     expect(base([])).toEqual({
       conversas: 0,
       atendeu: { total: 0, soEquipe: 0 },
-      orcamento: { total: 0, soIa: 0, ambos: 0, soEquipe: 0 },
+      orcamento: { total: 0, soIa: 0, ambos: 0, soEquipe: 0, enviados: 0, media: 0, maximo: 0 },
       medicao: { total: 0 },
       converteu: { total: 0, noFechamento: 0, soMarcado: 0 },
     })
@@ -42,7 +42,8 @@ describe('calcularFunilAtendimento', () => {
       ],
       cotouForaDoChat: l => l.id === 'calc',
     })
-    expect(f.orcamento).toEqual({ total: 4, soIa: 2, ambos: 1, soEquipe: 1 })
+    // ia recebeu 2, eq 1, dois 2, calc 1 (fora do chat): 6 orçamentos para 4 clientes
+    expect(f.orcamento).toEqual({ total: 4, soIa: 2, ambos: 1, soEquipe: 1, enviados: 6, media: 1.5, maximo: 2 })
   })
 
   it('medição é só a que a equipe marcou; a data anotada pela IA não conta', () => {
