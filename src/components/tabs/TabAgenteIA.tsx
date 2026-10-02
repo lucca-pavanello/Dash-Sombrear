@@ -54,8 +54,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { exportCsv } from '@/lib/exportUtils'
 import { ehConvertido, leadsQueCompraram, recebeuPreco } from '@/lib/analises/conversao'
 import { chavePedido, dataVenda, ehTeste, ehVenda, receita } from '@/lib/analises/venda'
-import { calcularFunilIaEquipe } from '@/lib/analises/funilIaEquipe'
-import { FunilIaEquipe } from '@/components/agente/FunilIaEquipe'
+import { calcularFunilAtendimento } from '@/lib/analises/funilAtendimento'
+import { FunilAtendimento } from '@/components/agente/FunilAtendimento'
 import { diaDaCasa } from '@/lib/fusoCasa'
 
 // ── Horário comercial ────────────────────────────────────────────────────────
@@ -484,8 +484,9 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
   const { aguardando, convertidos, comMedicao, foraLeads, foraMsgs, mensagensTotais, valorTotal } = useMemo(() => ({
     aguardando:      filtrados.filter((l) => isAguardando(l.status_lead)),
     convertidos:     filtrados.filter((l) => ehConvertido(l, convertidosPorTelefone)),
-    // medição que a IA coletou ou que a equipe marcou no WhatsApp (resumo das conversas, 0027)
-    comMedicao:      filtrados.filter((l) => !!l.data_medicao_instalacao?.trim() || !!l.medicao_equipe?.trim()),
+    // medição é da equipe: a Amanda não oferece horário de visita, então só vale o que a
+    // equipe marcou no WhatsApp (resumo das conversas, 0027). Lucca, 02/10.
+    comMedicao:      filtrados.filter((l) => !!l.medicao_equipe?.trim()),
     foraLeads:       filtrados.filter((l) => isForaDoHorario(l.created_at)),
     foraMsgs:        filtrados.filter((l) => isForaDoHorario(l.timestamp_ultima_msg)),
     mensagensTotais: filtrados.filter((l) => !!l.timestamp_ultima_msg).length,
@@ -554,18 +555,18 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     return { valorFechado: total, pedidosFechados: pedidos.size }
   }, [orcamentosLoja, leadPorTelefone, idsConvertidos])
 
-  // Funil IA x equipe (01/10): cada lado com as suas fases; o lead que passou pelos dois
-  // conta nos dois. Mesmo conjunto de leads dos KPIs (período + canal).
-  const funilIaEquipe = useMemo(() => calcularFunilIaEquipe({
+  // Funil do atendimento (02/10): cada etapa com o seu dono, cada lead uma vez por etapa.
+  // Mesmo conjunto de leads dos KPIs (período + canal).
+  const funil = useMemo(() => calcularFunilAtendimento({
     leads: filtrados,
     atendimento: new Map(atendimentoLista.map(a => [a.lead_id, a])),
     orcamentosChat,
     idsConvertidos,
+    vendaNoFechamento: convertidosPorTelefone,
     cotouForaDoChat: l => recebeuPreco(l.ultimo_valor_cotado) || orcsDoLead(l).length > 0,
   }),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [filtrados, atendimentoLista, orcamentosChat, idsConvertidos, orcsPorLead])
-  const medicao = funilIaEquipe.etapas.find(e => e.chave === 'medicao')!
+  [filtrados, atendimentoLista, orcamentosChat, idsConvertidos, convertidosPorTelefone, orcsPorLead])
 
   const animLeads      = useCountUp(filtrados.length, 700, hasLoaded, resetKey)
   const animConv       = useCountUp(convertidos.length, 750, hasLoaded, resetKey)
@@ -595,7 +596,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
     { label: 'Valor cotado',           value: cotacao.valor > 0 ? formatCurrency(animValor) : '—', icon: DollarSign,
       sub: cotacao.leads > 0 ? `${cotacao.leads} lead${cotacao.leads !== 1 ? 's' : ''} · IA ${cotacao.ia} · equipe ${cotacao.equipe}` : 'nenhum orçamento no período' },
     { label: 'Medições agendadas',     value: Math.round(animMed),     icon: CalendarCheck,
-      sub: comMedicao.length > 0 ? `IA ${medicao.ia} · equipe ${medicao.equipe}` : 'nenhuma no período' },
+      sub: comMedicao.length > 0 ? 'marcadas pela equipe' : 'nenhuma no período' },
     { label: 'Com a equipe',           value: Math.round(animComEquipe), icon: Headset, sub: 'atendimento humano assumiu' },
   ]
 
@@ -877,7 +878,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
       </div>
 
       {/* ── Funil de conversão ── */}
-      <FunilIaEquipe funil={funilIaEquipe} />
+      <FunilAtendimento funil={funil} />
 
       {/* ── Veredito da IA por conversa (venda / negociação / perdida + motivo) ──
            inclui as históricas de propósito: são o material mais rico de leitura */}
