@@ -894,6 +894,7 @@ export default function TabAgenteIA({ resetKey }: { resetKey?: number } = {}) {
         customTo={customTo || undefined}
         origemFiltro={origemFiltro}
         idOrigem={(l) => acharCanal(l.origem).id}
+        compraram={convertidosPorTelefone}
         toast={toast}
       />
 

@@ -58,6 +58,20 @@ export type CrmLead = {
   objecao_outro: string | null
   produto_familia: string | null
   sensibilidade_preco: string | null
+  // Leitura por trecho (0029, classificar-fases): a conversa é partida na passagem para a
+  // equipe. null = o trecho não existe ou ainda não foi lido; [] = lido, nada a marcar.
+  ia_objecao_tags?: string[] | null
+  ia_objecao_outro?: string | null
+  ia_motivo?: string | null
+  ia_sensibilidade_preco?: string | null
+  equipe_assunto?: 'venda' | 'pos_venda' | 'nao_cliente' | null
+  equipe_objecao_tags?: string[] | null
+  equipe_objecao_outro?: string | null
+  equipe_falhas?: string[] | null
+  equipe_falha_outro?: string | null
+  equipe_motivo?: string | null
+  equipe_sensibilidade_preco?: string | null
+  fases_em?: string | null
   // o que na conversa colocou o lead no estágio atual (frase curta, do agente)
   status_motivo: string | null
   // de onde a pessoa veio antes do WhatsApp (capturado na primeira mensagem)
@@ -199,6 +213,39 @@ export function useAtendimentoPorLead() {
         .select('lead_id, ia_respondeu, equipe_respondeu')
         .order('lead_id')
         .range(de, ate))
+    },
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchInterval: 180000,
+  })
+}
+
+/**
+ * Números da equipe por lead (views 0029): quando ela assumiu, quantas mensagens e áudios
+ * mandou, e o tempo de resposta às mensagens que chegaram no horário comercial. Hook à parte
+ * de useAtendimentoPorLead de propósito: se a 0029 ainda não rodou, só os Insights da equipe
+ * ficam sem número, o funil continua de pé.
+ */
+export type EquipeLead = { lead_id: string; passagem_em: string | null; msgs_equipe: number; audios_equipe: number }
+export type RespostasEquipeLead = { lead_id: string; respostas: number; mediana_min: number | null; esperas_longas: number }
+
+export function useNumerosEquipe() {
+  return useQuery({
+    queryKey: ['numeros-equipe'],
+    queryFn: async () => {
+      const [porLead, respostas] = await Promise.all([
+        lerTudo<EquipeLead>((de, ate) => supabase
+          .from('atendimento_por_lead')
+          .select('lead_id, passagem_em, msgs_equipe, audios_equipe')
+          .order('lead_id')
+          .range(de, ate)),
+        lerTudo<RespostasEquipeLead>((de, ate) => supabase
+          .from('respostas_equipe_por_lead')
+          .select('lead_id, respostas, mediana_min, esperas_longas')
+          .order('lead_id')
+          .range(de, ate)),
+      ])
+      return { porLead, respostas }
     },
     retry: 1,
     refetchOnWindowFocus: false,

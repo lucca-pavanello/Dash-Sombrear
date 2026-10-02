@@ -164,3 +164,104 @@ export function acharObjecao(valor: string | null | undefined): Objecao | typeof
 
 export const SENSIBILIDADES = ['baixa', 'media', 'alta'] as const
 export type Sensibilidade = (typeof SENSIBILIDADES)[number]
+
+/**
+ * Falhas de atendimento da EQUIPE (Lucca, 02/10/2026) — o que a equipe deixou passar no
+ * trecho da conversa que ela tocou. É o material da consultoria de vendas do Matheus: a
+ * IA só marca, a leitura e o treino ficam com ele.
+ *
+ * A lista foi fechada lendo 21 trechos reais de conversa da equipe (02/10/2026). O caso
+ * que deu origem a cada slug está ao lado. Mesma regra das objeções: falha que não cabe
+ * em nenhum slug entra como `outro` + texto em `equipe_falha_outro`.
+ *
+ * ⚠️ Espelhada em `supabase/functions/_shared/taxonomia.ts` (o Deno não importa de src/).
+ * Um teste compara as duas listas.
+ */
+export type FalhaId =
+  | 'retorno_esquecido'
+  | 'orcamento_demorado'
+  | 'pergunta_sem_resposta'
+  | 'orcamento_confuso'
+  | 'sem_followup'
+  | 'fechamento_parado'
+  | 'prazo_sem_aviso'
+  | 'outro'
+
+export type Falha = {
+  id: FalhaId
+  rotulo: string
+  /** o que a IA deve procurar no trecho da equipe — vira instrução no prompt */
+  criterio: string
+  /** como isso aparece na conversa, pra quem abre o detalhe */
+  dica: string
+  cor: string
+}
+
+export const FALHAS: readonly Falha[] = [
+  {
+    id: 'retorno_esquecido',
+    rotulo: 'Retorno prometido não veio',
+    // visto: "a última vez que ficaram de me dar um retorno foi 31/08" (23 dias depois)
+    criterio: 'a loja prometeu voltar (com orçamento, data, verificação, foto) e não voltou no combinado; o cliente teve que cobrar ("estou aguardando", "algum retorno?", "já tem data?")',
+    dica: 'O cliente cobrou algo que a loja tinha prometido mandar.',
+    cor: 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  },
+  {
+    id: 'orcamento_demorado',
+    rotulo: 'Orçamento demorou',
+    // visto: medidas passadas em 23/09, "Boa noite, estou aguardando o orçamento" em 29/09
+    criterio: 'o cliente já tinha passado o que precisava (medida, modelo, foto) e esperou mais de 1 dia útil pelo preço, ou cobrou o orçamento',
+    dica: 'Tempo entre o cliente passar as informações e receber o preço.',
+    cor: 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  },
+  {
+    id: 'pergunta_sem_resposta',
+    rotulo: 'Pergunta ficou sem resposta',
+    // visto: "Qual o orçamento para lavar as 4 cortinas? Você não me passou também"
+    criterio: 'o cliente fez uma pergunta escrita (valor, forma de pagamento, prazo, detalhe do produto) e a loja não respondeu nem retomou o assunto depois. Se a loja mandou áudio logo em seguida, NÃO marque: a resposta pode estar no áudio',
+    dica: 'Pergunta escrita do cliente que não teve resposta.',
+    cor: 'border-orange-500/25 bg-orange-500/10 text-orange-700 dark:text-orange-300',
+  },
+  {
+    id: 'orcamento_confuso',
+    rotulo: 'Orçamento confuso ou com erro',
+    // visto: "não pedi varão, as 3 são trilho" e "O final da sua mensagem eu não entendi"
+    criterio: 'o cliente não entendeu o orçamento ou achou erro nele: item que não pediu, valor que mudou sem explicação, instalação ou taxa que não estava dita, e precisou perguntar o que significava',
+    dica: 'O cliente precisou perguntar o que estava no orçamento ou apontou erro.',
+    cor: 'border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  },
+  {
+    id: 'sem_followup',
+    rotulo: 'Sem follow-up depois do preço',
+    // visto: orçamento em 05/09, "vou falar com meu marido", a loja só voltou em 24/09 com a promoção para todos
+    criterio: 'depois do orçamento o cliente ficou em silêncio ou disse que ia pensar ou consultar alguém, e a loja passou mais de 3 dias sem chamar de novo, ou só voltou com mensagem em massa (promoção para todos)',
+    dica: 'Orçamento enviado e a conversa esfriou sem a loja chamar.',
+    cor: 'border-slate-500/25 bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  },
+  {
+    id: 'fechamento_parado',
+    rotulo: 'Cliente pronto e ninguém puxou',
+    // visto: "E qual a forma de pagamento?" e "Vamos fazer a que medimos mesmo com o tecido melhor"
+    criterio: 'o cliente deu sinal de compra (disse que quer fechar, aceitou o valor, perguntou forma de pagamento ou prazo para fazer) e a loja não conduziu o próximo passo: pagamento, data de medição ou de instalação',
+    dica: 'O cliente quis fechar e o próximo passo não foi puxado.',
+    cor: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  },
+  {
+    id: 'prazo_sem_aviso',
+    rotulo: 'Prazo mudou sem aviso',
+    // visto: cliente perguntou a data de instalação quatro vezes entre 09/09 e 01/10
+    criterio: 'o prazo de produção, entrega ou instalação passou ou mudou e o cliente só soube quando perguntou; a loja não avisou antes',
+    dica: 'O cliente foi atrás do prazo em vez de ser avisado.',
+    cor: 'border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
+  },
+  {
+    id: 'outro',
+    rotulo: 'Outra falha',
+    criterio: 'a loja deixou passar algo real que não cabe em nenhum item acima — descreva em falha_outro',
+    dica: 'Ler o texto livre: se o mesmo tema repetir, vira categoria própria.',
+    cor: 'border-border bg-muted/60 text-muted-foreground',
+  },
+] as const
+
+export const ASSUNTOS_EQUIPE = ['venda', 'pos_venda', 'nao_cliente'] as const
+export type AssuntoEquipe = (typeof ASSUNTOS_EQUIPE)[number]
