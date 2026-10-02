@@ -297,10 +297,10 @@ Também NÃO é: a Amanda chamar o cliente por um primeiro nome que ele não esc
 As linhas "SEM RESPOSTA DA AMANDA" já aparecem para o dono em uma seção própria: não repita como melhoria, só cite no resumo se pesarem no dia.
 Antes de sugerir "como fica melhor", confira que a frase sugerida também segue as regras acima.
 
-Responda SOMENTE com um JSON válido, sem texto fora dele:
+Responda SOMENTE com um JSON válido, sem texto fora dele. Os textos entre aspas abaixo descrevem o que vai em cada campo: não os copie para dentro da resposta.
 {
  "resumo": "1 ou 2 frases, começando pela melhoria que mais importa e o que ela muda; depois, em meia frase, como foi o dia",
- "melhorias": [{"conversa": "Conversa N", "o_que_aconteceu": "o que a Amanda fez, em uma frase", "como_fica_melhor": "como fica melhor, com a frase exata entre aspas", "trecho": "a fala da Amanda, citada literalmente", "gravidade": "alta|media|baixa"}]
+ "melhorias": [{"conversa": "Conversa N", "o_que_aconteceu": "o que a Amanda fez, em uma frase", "como_fica_melhor": "o que ela diria em vez disso, começando direto pela frase pronta entre aspas", "trecho": "a fala da Amanda, citada literalmente", "gravidade": "alta|media|baixa"}]
 }
 Regras da resposta: no máximo 8 melhorias, da que mais ajuda a vender para a menos; melhoria repetida em conversas diferentes entra uma vez só, na conversa onde aparece mais claro; se depois de procurar não houver nenhuma de verdade, "melhorias": [] e o resumo diz o que foi bem — mas não encha a lista com observação sem consequência só para não vir vazia; tom de melhoria, nunca de erro ou culpa (nada de "erro", "errou", "falhou", "problema", "devia": diga o que ela fez e como fica melhor); nunca invente, toda citação sai literalmente das conversas acima e o "trecho" é sempre uma fala da AMANDA, nunca da EQUIPE nem do cliente; português do Brasil com acento, sem travessão e sem emoji; sem jargão (fluxo, gatilho, loop, follow).`
 }
