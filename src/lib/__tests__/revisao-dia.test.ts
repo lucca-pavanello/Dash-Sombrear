@@ -147,6 +147,22 @@ describe('sem resposta da Amanda', () => {
     expect(semRespostaDaIA(conversas, FIM_DO_DIA)).toEqual([])
   })
 
+  it('depois que a Amanda avisa que passou pra equipe, o silêncio dela é o combinado', () => {
+    // caso real da primeira revisão (02/10): a cliente mandou medida e nome DEPOIS do
+    // aviso de handoff, e a equipe respondeu em 1 minuto. Era o fluxo funcionando
+    const conversas = conversasDoDia({
+      dia: DIA,
+      mensagens: [
+        msg(1, 'cliente', '10:20', 'preciso de cortina blackout 3,00x2,56'),
+        msg(1, 'ia', '10:21', 'Perfeito, obrigada! Já passei pra equipe de cortinas, eles seguem com você daqui.'),
+        msg(1, 'cliente', '10:22', 'Largura 3,00m Altura 2,56m'),
+        msg(1, 'cliente', '10:22', 'Meu nome é Regina'),
+        msg(1, 'equipe', '10:23', 'Olá'),
+      ],
+    })
+    expect(semRespostaDaIA(conversas, FIM_DO_DIA)).toEqual([])
+  })
+
   it('"ok" e "obrigada" não esperam resposta', () => {
     const conversas = conversasDoDia({
       dia: DIA,
