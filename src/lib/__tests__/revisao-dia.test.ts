@@ -242,6 +242,20 @@ describe('o pedido que vai para o modelo', () => {
     expect(base.pedido).toContain('OPORTUNIDADE')
   })
 
+  it('avisa que o nome do perfil do WhatsApp não aparece aqui, para não virar falso positivo', () => {
+    // 29/09: a revisão apontou "chamou a cliente de Gaby sem ela ter dito o nome". A Amanda
+    // lê o perfil; quem revisa não. Sem este aviso, todo cumprimento pelo nome vira defeito
+    expect(base.pedido).toContain('nome do perfil do WhatsApp, que não aparece aqui')
+    expect(base.pedido).toContain('desmentido pela própria conversa')
+  })
+
+  it('manda caçar o fechamento genérico depois de sinal de compra', () => {
+    // a melhoria do 29/09 que o Lucca comprou: "qualquer coisa é só me chamar" logo depois
+    // de a cliente aprovar o orçamento devolve a iniciativa no melhor momento da venda
+    expect(base.pedido).toContain('sinal de compra')
+    expect(base.pedido).toContain('despedida genérica')
+  })
+
   it('dia sem conversa da Amanda gera pedido honesto em vez de transcrição vazia', () => {
     const vazio = montarRevisao({ dia: DIA, mensagens: [] })
     expect(vazio.conversas).toEqual([])
