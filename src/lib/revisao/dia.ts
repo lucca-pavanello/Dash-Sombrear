@@ -78,6 +78,18 @@ const ANEXO: Record<string, string> = {
   audio: 'áudio', image: 'foto', video: 'vídeo', file: 'arquivo', location: 'localização',
 }
 
+/**
+ * A Amanda avisando que a conversa passou para gente. Daqui para a frente o silêncio
+ * dela é o combinado, mesmo que a equipe só escreva minutos depois.
+ *
+ * As frases são fixas: moram no Code node `code_handoff | pedido_ou_pessoa` do workflow
+ * da Amanda, não no prompt — mudou lá, mudar aqui. Sem isto, a primeira revisão de
+ * verdade (02/10) apontou como "sem resposta" duas mensagens que a cliente mandou DEPOIS
+ * de a Amanda dizer "Já passei pra equipe de cortinas, eles seguem com você daqui", e
+ * que a equipe respondeu em 1 minuto. Era o handoff funcionando, não falha.
+ */
+const RE_HANDOFF = /(j[áa] )?pass(ei|o|ando|ar)\s+(voc[êe]\s+)?(pra|para)\s+(a\s+)?(equipe|stella|atendente|respons[áa]vel)|vou\s+(te\s+)?passar|chamei\s+a\s+equipe|a\s+equipe\s+(segue|assume|continua|vai)|eles\s+seguem\s+com\s+voc[êe]|algu[ée]m\s+da\s+equipe\s+(te\s+)?(chama|responde|retorna)/i
+
 /** "ok", "obrigado", "👍": não esperam resposta, e cobrar silêncio aí é ruído */
 const RE_CORTESIA = /^(ok|okay|blz|beleza|t[aá] bom|tabom|certo|perfeito|show|valeu|vlw|obrigad[oa]|obg|brigad[oa]|de nada|imagina|bom dia|boa tarde|boa noite|sim|n[aã]o|👍|🙏|❤️|😊|👏)[\s!.…]*$/i
 
@@ -168,9 +180,10 @@ export function conversasDoDia(e: {
 /**
  * Cliente que escreveu e a Amanda ficou calada.
  *
- * Só conta ANTES da primeira fala da equipe no dia: depois que uma pessoa entra na
- * conversa, o silêncio da IA é o combinado, não uma falha. Sem essa regra a seção
- * encheria de linhas de conversa em atendimento humano — que é a maioria aqui.
+ * Só conta enquanto a conversa ainda era da IA: até a equipe falar, ou até a própria
+ * Amanda anunciar o handoff — o que vier primeiro. Depois disso o silêncio dela é o
+ * combinado, não uma falha. Sem essa regra a seção encheria de linhas de conversa em
+ * atendimento humano, que é a maioria aqui.
  *
  * `ateMs` é o fim da janela (fim do dia, ou agora quando a revisão roda no próprio dia):
  * quem escreveu nos últimos minutos ainda pode ser respondido.
@@ -179,8 +192,11 @@ export function semRespostaDaIA(conversas: ConversaDoDia[], ateMs: number): SemR
   const limite = ateMs - MINUTOS_DE_TOLERANCIA * 60_000
   const fora: SemResposta[] = []
   for (const c of conversas) {
-    const primeiraEquipe = c.msgs.find(m => m.autor === 'equipe')
-    const corte = primeiraEquipe ? Date.parse(primeiraEquipe.enviada_em) : Infinity
+    // a conversa deixa de ser da IA no que vier primeiro: a equipe falar, ou a própria
+    // Amanda avisar que passou adiante
+    const entrega = c.msgs.find(m =>
+      m.autor === 'equipe' || (m.autor === 'ia' && RE_HANDOFF.test(texto(m))))
+    const corte = entrega ? Date.parse(entrega.enviada_em) : Infinity
     for (let i = 0; i < c.msgs.length; i++) {
       const m = c.msgs[i]
       if (m.autor !== 'cliente') continue
