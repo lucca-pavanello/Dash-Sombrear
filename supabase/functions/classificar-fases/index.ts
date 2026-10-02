@@ -70,13 +70,16 @@ Deno.serve(async (req) => {
   if (!segredoConfere(body)) return resposta(401, { error: 'Não autorizado' })
 
   const simular = body?.simular === true
-  const { data, error } = await db.rpc('conversas_para_fases', { todas: body?.todas === true || simular })
-  if (error) return resposta(500, { ok: false, erro: error.message })
-
-  let alvos = ((data ?? []) as { lead_id: string }[]).map(a => a.lead_id)
-  if (Array.isArray(body?.leads)) {
-    const pedidos = new Set((body!.leads as unknown[]).map(String))
-    alvos = alvos.filter(id => pedidos.has(id))
+  const pedidos = Array.isArray(body?.leads) ? (body!.leads as unknown[]).map(String) : null
+  let alvos: string[]
+  if (simular && pedidos) {
+    // simulação de leads escolhidos não passa pela fila: dá pra conferir o pedido antes da 0029
+    alvos = pedidos
+  } else {
+    const { data, error } = await db.rpc('conversas_para_fases', { todas: body?.todas === true || simular })
+    if (error) return resposta(500, { ok: false, erro: error.message })
+    alvos = ((data ?? []) as { lead_id: string }[]).map(a => a.lead_id)
+    if (pedidos) alvos = alvos.filter(id => pedidos.includes(id))
   }
   const pendentes = alvos.length
   alvos = alvos.slice(0, POR_RODADA)
