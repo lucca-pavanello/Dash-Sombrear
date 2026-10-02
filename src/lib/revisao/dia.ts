@@ -254,7 +254,9 @@ export const REGRAS_DA_CASA = [
 
 export function montarPedido(b: Omit<BaseRevisao, 'pedido'>): string {
   const transcricoes = b.conversas.map(c => transcrever(c, b.semResposta)).join('\n\n')
-  return `Você revisa, a pedido do dono da loja, as conversas de WhatsApp que a Amanda (a IA da Sombrear) teve em ${rotuloDoDia(b.dia)}. Ele lê isso à noite para ver o que dá pra melhorar na IA e pedir o ajuste, sem abrir conversa por conversa.
+  return `Você revisa, a pedido do dono da loja, as conversas de WhatsApp que a Amanda (a IA da Sombrear) teve em ${rotuloDoDia(b.dia)}. Ele lê isso à noite e, no dia seguinte, pede o ajuste — então o que ele espera daqui é uma LISTA DE MELHORIAS, não um parecer sobre cada mensagem.
+
+Procure ativamente o que melhorar. Não é auditoria: não interessa dizer que a conversa foi bem nem comentar mensagem por mensagem. Interessa o que, mudado na Amanda, faria a próxima conversa parecida terminar melhor. Dia sem nenhuma melhoria é possível, mas é raro — antes de responder com a lista vazia, releia procurando oportunidade perdida, não só regra quebrada.
 
 COMO A AMANDA DEVE TRABALHAR:
 ${REGRAS_DA_CASA.map(r => `- ${r}`).join('\n')}
@@ -271,16 +273,24 @@ O que conta como PONTO DE MELHORIA:
 - informação errada ou inventada: medida, valor, prazo, material;
 - conversa que ficou pendurada sem a Amanda passar para a equipe quando devia.
 
+E também OPORTUNIDADE: o que ela deixou de fazer e teria ajudado a vender. Isto conta como melhoria mesmo quando nada do que ela disse está errado:
+- tinha a medida e o modelo na mão e não ofereceu o orçamento;
+- o cliente reagiu ao valor e ela não ofereceu alternativa mais barata nem explicou o que compõe o preço;
+- faltava um dado só para fechar o cálculo e ela não pediu;
+- o cliente demonstrou interesse e ela não propôs o passo seguinte (medição, visita, prazo);
+- respondeu só o que foi perguntado quando dava para adiantar o que viria a seguir.
+Nesses casos o campo "trecho" pode vir vazio, porque a melhoria é sobre o que não foi dito.
+
 NÃO é ponto de melhoria: a IA seguir uma regra da casa; o cliente sumir; a equipe assumir a conversa; a Amanda ficar quieta depois que uma pessoa entrou na conversa; qualquer fala da EQUIPE.
 As linhas "SEM RESPOSTA DA AMANDA" já aparecem para o dono em uma seção própria: não repita como melhoria, só cite no resumo se pesarem no dia.
 Antes de sugerir "como fica melhor", confira que a frase sugerida também segue as regras acima.
 
 Responda SOMENTE com um JSON válido, sem texto fora dele:
 {
- "resumo": "1 ou 2 frases: quantas conversas, como foi o dia e a melhoria que mais importa",
+ "resumo": "1 ou 2 frases, começando pela melhoria que mais importa e o que ela muda; depois, em meia frase, como foi o dia",
  "melhorias": [{"conversa": "Conversa N", "o_que_aconteceu": "o que a Amanda fez, em uma frase", "como_fica_melhor": "como fica melhor, com a frase exata entre aspas", "trecho": "a fala da Amanda, citada literalmente", "gravidade": "alta|media|baixa"}]
 }
-Regras da resposta: no máximo 8 melhorias, da que mais ajuda a vender para a menos; conversa sem o que melhorar não entra; se não houve nenhuma, "melhorias": [] e o resumo diz que o dia foi bem; tom de melhoria, nunca de erro ou culpa (nada de "erro", "errou", "falhou", "problema", "devia": diga o que ela fez e como fica melhor); nunca invente, toda citação sai literalmente das conversas acima e o "trecho" é sempre uma fala da AMANDA, nunca da EQUIPE nem do cliente; português do Brasil com acento, sem travessão e sem emoji; sem jargão (fluxo, gatilho, loop, follow).`
+Regras da resposta: no máximo 8 melhorias, da que mais ajuda a vender para a menos; melhoria repetida em conversas diferentes entra uma vez só, na conversa onde aparece mais claro; se depois de procurar não houver nenhuma de verdade, "melhorias": [] e o resumo diz o que foi bem — mas não encha a lista com observação sem consequência só para não vir vazia; tom de melhoria, nunca de erro ou culpa (nada de "erro", "errou", "falhou", "problema", "devia": diga o que ela fez e como fica melhor); nunca invente, toda citação sai literalmente das conversas acima e o "trecho" é sempre uma fala da AMANDA, nunca da EQUIPE nem do cliente; português do Brasil com acento, sem travessão e sem emoji; sem jargão (fluxo, gatilho, loop, follow).`
 }
 
 /** o pedido pronto, com as conversas e os silêncios já calculados */
