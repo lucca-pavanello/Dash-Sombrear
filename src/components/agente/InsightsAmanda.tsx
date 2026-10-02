@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Sparkles, RefreshCw, Brain, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react'
+import { Sparkles, RefreshCw, Brain } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { CrmLead } from '@/hooks/useAgenteIA'
 import { OBJECOES } from '@/lib/insights/taxonomia'
 import { acharProduto, SEM_PRODUTO } from '@/lib/produtos'
 import { intervaloAtual, periodoAnterior, dentroDe, variacaoPct, rotuloAnterior } from '@/lib/periodos'
 import { segmentado } from '@/components/shared/estilos'
-import { CHATWOOT_BASE_URL } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { leituraPendente } from '@/lib/insights/equipe'
+import { RankingEtiquetas, dataAtividade } from '@/components/agente/RankingEtiquetas'
+import InsightsEquipe from '@/components/agente/InsightsEquipe'
 
 interface Props {
   /** TODOS os leads, não `filtrados` — ver "base própria" abaixo. */
@@ -19,6 +21,8 @@ interface Props {
   origemFiltro: string
   /** normaliza a origem do lead igual ao resto da aba */
   idOrigem: (l: CrmLead) => string
+  /** leads com venda no Fechamento (conversao.ts): o convertido dos números da equipe */
+  compraram: Set<string>
   toast: (type: 'success' | 'error' | 'info', message: string) => void
 }
 
@@ -48,6 +52,7 @@ const MIN_ANALISADAS = 3
 const COMERCIAIS = new Set(['venda', 'negociacao', 'perdida'])
 
 type Aba = 'objecoes' | 'produtos'
+type Lado = 'ia' | 'equipe'
 
 /**
  * A leitura em prosa — as mesmas seções que o card sempre teve, porque é ela que dá a
@@ -63,39 +68,14 @@ type Analise = {
   acoes?: Acao[]
 }
 
-/** mesma regra de data da aba: vale a última mensagem, não a criação da linha */
-function dataAtividade(l: CrmLead): string {
-  const ultima = l.timestamp_ultima_msg ? new Date(l.timestamp_ultima_msg).getTime() : NaN
-  const criada = new Date(l.created_at).getTime()
-  return Number.isFinite(ultima) && ultima > criada ? (l.timestamp_ultima_msg as string) : l.created_at
-}
-
-function linkChatwoot(l: CrmLead): string | null {
-  if (!l.id_conta_chatwoot || !l.id_conversa_chatwoot) return null
-  return `${CHATWOOT_BASE_URL}/app/accounts/${l.id_conta_chatwoot}/conversations/${l.id_conversa_chatwoot}`
-}
-
-function Delta({ pct, rotulo }: { pct: number | null; rotulo: string }) {
-  if (pct === null || Math.abs(pct) < 1) return null
-  const Icone = pct > 0 ? TrendingUp : TrendingDown
-  // subir objeção é ruim, cair é bom — o oposto do delta de faturamento
-  const cor = pct > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
-  return (
-    <span className={cn('flex shrink-0 items-center gap-0.5 text-[11px] font-medium tabular-nums', cor)}>
-      <Icone className="h-3 w-3" aria-hidden="true" />
-      {Math.abs(pct).toFixed(0)}% <span className="font-normal text-muted-foreground">{rotulo}</span>
-    </span>
-  )
-}
-
 export default function InsightsAmanda({
-  leads, periodo, customFrom, customTo, origemFiltro, idOrigem, toast,
+  leads, periodo, customFrom, customTo, origemFiltro, idOrigem, compraram, toast,
 }: Props) {
+  const [lado, setLado] = useState<Lado>('ia')
   const [analise, setAnalise] = useState<Analise | null>(null)
   const [copiada, setCopiada] = useState<number | null>(null)
   const [gerando, setGerando] = useState(false)
   const [aba, setAba] = useState<Aba>('objecoes')
-  const [aberta, setAberta] = useState<string | null>(null)
 
   const faixaAtual = useMemo(
     () => intervaloAtual(periodo, customFrom, customTo),
@@ -116,23 +96,27 @@ export default function InsightsAmanda({
     // dizem nada sobre o atendimento. Ficam fora da conta e o cabeçalho diz quantas foram.
     const naoCliente = doRecorte.filter(l => l.classificacao_ia === 'sem_interesse')
     const conversas = doRecorte.filter(l => l.classificacao_ia !== 'sem_interesse')
-    // "analisada" = já passou pela taxonomia. Array vazio conta: quer dizer "li e não
-    // havia objeção", que é diferente de "nunca li".
-    const analisadas = conversas.filter(l => l.objecao_tags != null)
+    // Desde 02/10 o lado da IA lê só o TRECHO DA AMANDA (antes da equipe assumir,
+    // classificar-fases, 0029). "analisada" = o trecho dela foi lido; array vazio conta:
+    // quer dizer "li e não havia objeção", que é diferente de "nunca li". Conversa lida sem
+    // trecho da IA (a equipe atendeu direto) fica de fora e o cabeçalho diz quantas.
+    const analisadas = conversas.filter(l => l.ia_objecao_tags != null)
+    const pendentes = conversas.filter(leituraPendente).length
+    const semIa = conversas.filter(l => !leituraPendente(l) && l.ia_objecao_tags == null).length
 
-    const anteriores = faixaAnterior
-      ? leads.filter(l =>
-          dentroDe(dataAtividade(l), faixaAnterior) && doCanal(l) &&
-          l.classificacao_ia !== 'sem_interesse' && l.objecao_tags != null)
+    const doPeriodoAnterior = faixaAnterior
+      ? leads.filter(l => dentroDe(dataAtividade(l), faixaAnterior) && doCanal(l))
       : []
+    const anteriores = doPeriodoAnterior.filter(l =>
+      l.classificacao_ia !== 'sem_interesse' && l.ia_objecao_tags != null)
 
-    return { conversas, analisadas, naoCliente, anteriores }
+    return { doRecorte, doPeriodoAnterior, conversas, analisadas, naoCliente, pendentes, semIa, anteriores }
   }, [leads, faixaAtual, faixaAnterior, origemFiltro, idOrigem])
 
   const ranking = useMemo(() => {
     const conta = (arr: CrmLead[]) => {
       const m = new Map<string, number>()
-      for (const l of arr) for (const t of l.objecao_tags ?? []) m.set(t, (m.get(t) ?? 0) + 1)
+      for (const l of arr) for (const t of l.ia_objecao_tags ?? []) m.set(t, (m.get(t) ?? 0) + 1)
       return m
     }
     const atual = conta(base.analisadas)
@@ -156,7 +140,7 @@ export default function InsightsAmanda({
       const p = acharProduto(l.produto_familia)
       const at = m.get(p.id) ?? { n: 0, comObjecao: 0 }
       at.n++
-      if ((l.objecao_tags ?? []).length) at.comObjecao++
+      if ((l.ia_objecao_tags ?? []).length) at.comObjecao++
       m.set(p.id, at)
     }
     return [...m.entries()]
@@ -172,7 +156,7 @@ export default function InsightsAmanda({
   /** conversas de uma objeção — o drill-down que deixa conferir se a etiqueta bate */
   const conversasDa = (tag: string) =>
     base.analisadas
-      .filter(l => (l.objecao_tags ?? []).includes(tag))
+      .filter(l => (l.ia_objecao_tags ?? []).includes(tag))
       .sort((a, b) => new Date(dataAtividade(b)).getTime() - new Date(dataAtividade(a)).getTime())
 
   const comerciais = base.analisadas.filter(l => COMERCIAIS.has(l.classificacao_ia ?? ''))
@@ -191,7 +175,7 @@ export default function InsightsAmanda({
       // apurada mais os motivos reais, então descreve sem inventar ênfase.
       const topo = ranking.slice(0, 6).map(r => {
         const exemplos = conversasDa(r.objecao.id)
-          .map(l => l.classificacao_motivo)
+          .map(l => l.ia_motivo)
           .filter(Boolean)
           .slice(0, 3)
         return `- ${r.objecao.rotulo}: ${r.n} de ${base.analisadas.length} conversas` +
@@ -200,11 +184,12 @@ export default function InsightsAmanda({
       const produtos = porProduto.filter(p => p.id !== SEM_PRODUTO.id).slice(0, 5)
         .map(p => `- ${p.rotulo}: ${p.n} conversas, ${p.comObjecao} com objeção`)
       const sens = ['alta', 'media', 'baixa']
-        .map(s => `${s}: ${base.analisadas.filter(l => l.sensibilidade_preco === s).length}`)
+        .map(s => `${s}: ${base.analisadas.filter(l => l.ia_sensibilidade_preco === s).length}`)
         .join(', ')
 
       const prompt = `Você é analista comercial da Sombrear (cortinas e persianas sob medida em Rio Preto).
-Abaixo estão CONTAGENS REAIS já apuradas das conversas de WhatsApp do período — não são estimativas, não são amostra.
+Abaixo estão CONTAGENS REAIS já apuradas das conversas de WhatsApp do período, só no trecho atendido pela Amanda
+(a IA da recepção), antes de a equipe assumir — não são estimativas, não são amostra.
 
 Base: ${base.analisadas.length} conversas analisadas. Dessas, ${comerciais.length} são de venda; o resto é pós-venda ou conversa curta demais para julgar.
 Sensibilidade a preço declarada nas conversas — ${sens}.
@@ -264,29 +249,43 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
     <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <Brain className="h-4 w-4 text-primary" aria-hidden="true" />
-        <h2 className="font-display text-sm font-semibold tracking-wide">Insights da Amanda</h2>
+        <h2 className="font-display text-sm font-semibold tracking-wide">Insights do atendimento</h2>
         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">beta</span>
-        <span className="text-xs text-muted-foreground">o que trava os clientes, contado conversa a conversa</span>
+        <span className="text-xs text-muted-foreground">contado conversa a conversa, com a IA e a equipe separadas</span>
       </div>
 
+      {/* A conversa é partida na passagem para a equipe (02/10): cada lado vê só o seu trecho. */}
+      <div className={cn(segmentado.trilho, 'mb-3 mt-3 w-fit')}>
+        {([['ia', 'Atendimento da IA'], ['equipe', 'Atendimento da equipe']] as const).map(([id, rotulo]) => (
+          <button key={id} onClick={() => setLado(id)} aria-pressed={lado === id}
+            className={cn(segmentado.item, lado === id ? segmentado.ativo : segmentado.inativo)}>
+            {rotulo}
+          </button>
+        ))}
+      </div>
+
+      {lado === 'equipe' ? (
+        <InsightsEquipe leads={base.doRecorte} anteriores={base.doPeriodoAnterior}
+          compraram={compraram} rotuloDelta={rotuloDelta} toast={toast} />
+      ) : (
+      <>
       {/* Cobertura: de onde vem o número. Sem isto, "12 conversas" não se sabe sobre o quê. */}
       <p className="mb-4 text-xs text-muted-foreground">
         <span className="font-semibold text-foreground tabular-nums">{base.conversas.length}</span> conversas no período
         {' · '}
-        <span className="font-semibold text-foreground tabular-nums">{base.analisadas.length}</span> analisadas ({cobertura}%)
+        <span className="font-semibold text-foreground tabular-nums">{base.analisadas.length}</span> com o trecho da Amanda lido ({cobertura}%)
+        {base.semIa > 0 && <> · {base.semIa} sem a Amanda (a equipe atendeu direto)</>}
         {base.naoCliente.length > 0 && <> · {base.naoCliente.length} fora por não ser cliente</>}
-        {cobertura < 100 && base.conversas.length > 0 && (
-          <> — para analisar o resto, use o painel de classificação acima.</>
-        )}
+        {base.pendentes > 0 && <> · {base.pendentes} esperando leitura (roda sozinha a cada 20 minutos)</>}
       </p>
 
       {base.analisadas.length < MIN_ANALISADAS ? (
         <div className="flex items-center gap-3 rounded-lg bg-muted/40 px-4 py-3.5">
           <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
           <p className="text-sm text-muted-foreground">
-            Ainda não há conversa analisada suficiente neste período
+            Ainda não há conversa com o trecho da Amanda lido neste período
             (<span className="font-semibold text-foreground">{base.analisadas.length}</span> de {MIN_ANALISADAS}).
-            Classifique as conversas no painel acima, ou escolha um período maior.
+            A leitura roda sozinha a cada 20 minutos; escolha um período maior se precisar.
           </p>
         </div>
       ) : (
@@ -296,7 +295,7 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
               {([['objecoes', 'Objeções'], ['produtos', 'Por produto']] as const).map(([id, rotulo]) => (
                 <button
                   key={id}
-                  onClick={() => { setAba(id); setAberta(null) }}
+                  onClick={() => setAba(id)}
                   className={cn(segmentado.item, aba === id ? segmentado.ativo : segmentado.inativo)}
                 >
                   {rotulo}
@@ -320,74 +319,14 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
                 declarou um motivo para travar. Isso é resultado legítimo, não falta de dado.
               </p>
             ) : (
-              <div className="space-y-2.5">
-                {ranking.map(({ objecao, n, pct, delta }) => {
-                  const aberto = aberta === objecao.id
-                  return (
-                    <div key={objecao.id}>
-                      <button
-                        onClick={() => setAberta(aberto ? null : objecao.id)}
-                        aria-expanded={aberto}
-                        className="w-full rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                      >
-                        <div className="mb-1 flex items-center justify-between gap-2">
-                          <span className="flex min-w-0 items-center gap-1.5">
-                            <span className={cn('h-2 w-2 shrink-0 rounded-full border', objecao.cor)} aria-hidden="true" />
-                            <span className="truncate text-xs font-medium">{objecao.rotulo}</span>
-                          </span>
-                          <span className="flex shrink-0 items-center gap-2">
-                            <Delta pct={delta} rotulo={rotuloDelta} />
-                            <span className="text-xs tabular-nums text-muted-foreground">
-                              {n} <span className="text-muted-foreground/50">· {pct.toFixed(0)}%</span>
-                            </span>
-                          </span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
-                          <div
-                            className="h-full rounded-full bg-foreground/25 transition-all duration-500"
-                            style={{ width: `${Math.max(pct, 2)}%` }}
-                          />
-                        </div>
-                      </button>
-
-                      {aberto && (
-                        <div className="mt-2 space-y-1.5 rounded-lg bg-muted/25 px-3 py-2.5">
-                          <p className="text-[11px] text-muted-foreground">{objecao.dica}</p>
-                          {conversasDa(objecao.id).map(l => {
-                            const url = linkChatwoot(l)
-                            return (
-                              <div key={l.id} className="flex items-start justify-between gap-2 border-t border-border/50 pt-1.5 first:border-0 first:pt-0">
-                                <div className="min-w-0">
-                                  <p className="truncate text-xs font-medium">{l.nome || 'sem nome'}</p>
-                                  <p className="text-[11px] text-muted-foreground">
-                                    {l.classificacao_motivo || 'sem motivo registrado'}
-                                  </p>
-                                </div>
-                                <span className="flex shrink-0 items-center gap-2">
-                                  <span className="text-[11px] tabular-nums text-muted-foreground">
-                                    {new Date(dataAtividade(l)).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                  </span>
-                                  {url && (
-                                    <a
-                                      href={url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title="Abrir a conversa no Chatwoot"
-                                      className="text-muted-foreground transition-colors hover:text-primary"
-                                    >
-                                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                                    </a>
-                                  )}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+              <RankingEtiquetas
+                linhas={ranking.map(({ objecao, n, pct, delta }) => ({
+                  id: objecao.id, rotulo: objecao.rotulo, cor: objecao.cor, dica: objecao.dica, n, pct, delta,
+                }))}
+                conversasDe={conversasDa}
+                fraseDe={l => l.ia_motivo}
+                rotuloDelta={rotuloDelta}
+              />
             )
           )}
 
@@ -490,6 +429,8 @@ A Sombrear FAZ limpeza e manutenção em alguns modelos — nunca proponha regra
             </div>
           )}
         </>
+      )}
+      </>
       )}
     </div>
   )
