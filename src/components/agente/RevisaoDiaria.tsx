@@ -30,6 +30,10 @@ const GRAVIDADE_CLASSE = {
   baixa: 'border-border text-muted-foreground',
 } as const
 
+/** antes disto não há mensagem gravada (`mensagens_sombrear` começa em 21/08/2026):
+ *  revisão de dia anterior sairia sempre vazia e pareceria defeito */
+const PRIMEIRO_DIA = '2026-08-21'
+
 const SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
 
 /** 'AAAA-MM-DD' lido como data da casa — `new Date('...')` leria em UTC e voltaria um dia */
@@ -151,6 +155,7 @@ export default function RevisaoDiaria() {
   const ehAdmin = perfil?.is_admin === true
   const { mutate: pedir, isPending: pedindo, error: erroPedido } = usePedirRevisao()
   const [escolhida, setEscolhida] = useState<string | null>(null)
+  const [diaPedido, setDiaPedido] = useState(hojeNaCasa)
 
   // uma por dia: a mais recente de cada dia é a que vale (um "tentar de novo" cria linha nova)
   const porDia = useMemo(() => {
@@ -160,16 +165,28 @@ export default function RevisaoDiaria() {
   }, [revisoes])
 
   const atual: RevisaoIA | undefined =
-    porDia.find(r => r.id === escolhida) ?? porDia[porDia.length - 1]
+    porDia.find(r => r.id === escolhida)
+    // o dia que acabou de ser pedido manda na tela: quem clicou quer ver aquele
+    ?? porDia.find(r => r.dia === diaPedido)
+    ?? porDia[porDia.length - 1]
   const pos = atual ? porDia.findIndex(r => r.id === atual.id) : -1
-  const temHoje = porDia.some(r => r.dia === hojeNaCasa())
 
+  // escolher o dia existe para afinar a revisão contra dia passado, que é como ela
+  // melhora: rodar sobre um dia que já se conhece e comparar com o que saiu
+  const jaTem = porDia.some(r => r.dia === diaPedido)
+  const pedidoDeHoje = diaPedido === hojeNaCasa()
   const botao = ehAdmin && (
-    <button type="button" onClick={() => pedir(undefined)} disabled={pedindo}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 disabled:opacity-60">
-      {pedindo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-      {temHoje ? 'Refazer a de hoje' : 'Revisar hoje'}
-    </button>
+    <div className="flex items-center gap-1.5">
+      <input type="date" value={diaPedido} max={hojeNaCasa()} min={PRIMEIRO_DIA}
+        onChange={e => { setDiaPedido(e.target.value || hojeNaCasa()); setEscolhida(null) }}
+        aria-label="Dia a revisar"
+        className="h-[30px] rounded-lg border border-border bg-background px-2 text-xs tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60" />
+      <button type="button" onClick={() => { setEscolhida(null); pedir(diaPedido) }} disabled={pedindo}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 disabled:opacity-60">
+        {pedindo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+        {jaTem ? 'Refazer' : pedidoDeHoje ? 'Revisar hoje' : 'Revisar este dia'}
+      </button>
+    </div>
   )
 
   if (isPending) {
