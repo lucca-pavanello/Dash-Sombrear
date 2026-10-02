@@ -31,7 +31,8 @@ import JanelaDados from '@/components/orcamentos/JanelaDados'
 
 const TabOrcamentos   = lazyComRecarga(() => import('@/components/tabs/TabOrcamentos'))
 const TabPlanilha     = lazyComRecarga(() => import('@/components/tabs/TabPlanilha'))
-const TabAgenteIA     = lazyComRecarga(() => import('@/components/tabs/TabAgenteIA'))
+// a aba Agente IA com as suas duas visões (Visão geral e Revisão diária)
+const TabAgenteIA     = lazyComRecarga(() => import('@/components/agente/AbaAgente'))
 const TabCotacao      = lazyComRecarga(() => import('@/components/tabs/TabCotacao'))
 const TabCalculoCusto = lazyComRecarga(() => import('@/components/tabs/TabCalculoCusto'))
 
@@ -410,7 +411,7 @@ export default function Dashboard() {
         import('@/components/tabs/TabAnalises')
         import('@/components/tabs/TabCalculoCusto')
       }
-      if (canAgenteIA) import('@/components/tabs/TabAgenteIA')
+      if (canAgenteIA) import('@/components/agente/AbaAgente')
       if (isAdmin) import('@/components/admin/PainelAdmin')
       if (canPrecos) import('@/components/admin/TabPrecos')
       if (canEstoque) import('@/components/tabs/TabEstoque')
