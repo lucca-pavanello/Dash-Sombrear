@@ -18,6 +18,13 @@
  * Os NÚMEROS saem de código (src/lib/revisao/dia.ts, testado); o modelo só escreve a
  * leitura e cita trecho literal. Se algo falha no meio, a linha vira 'erro' com uma
  * frase — nunca fica 'rodando' para sempre.
+ *
+ * Deploy: npx supabase functions deploy revisao-diaria --no-verify-jwt
+ *   O `--no-verify-jwt` é obrigatório e não afasta ninguém: o pg_cron chama sem JWT, e
+ *   a plataforma rejeitaria a chamada com 401 ANTES de chegar aqui (foi o que aconteceu
+ *   no primeiro disparo). Quem confere a identidade é esta função: segredo do Vault para
+ *   o cron, getUser + profiles.is_admin para o dash. Todas as outras chamadas por cron
+ *   do projeto estão assim.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { preflight, resposta } from '../_shared/resposta.ts'
