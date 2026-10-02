@@ -19,6 +19,23 @@ export const CHAVE_LEADS = ['crm-sombrear-ia'] as const
 /** A edge function processa 25 por chamada; o teto existe pra nunca virar laço infinito. */
 const MAX_RODADAS = 12
 
+/**
+ * `functions.invoke` resume QUALQUER não-2xx como "Edge Function returned a non-2xx
+ * status code" e descarta o corpo — que é justamente onde a função escreve o motivo.
+ * Em 02/10 isso fez o botão parecer que não fazia nada: a função devolvia 500 dizendo
+ * que o modelo não respondeu, e a tela mostrava uma frase genérica sobre status HTTP.
+ */
+async function motivo(error: unknown): Promise<string> {
+  const corpo = (error as { context?: Response }).context
+  if (corpo && typeof corpo.json === 'function') {
+    try {
+      const j = await corpo.json()
+      if (j?.error) return String(j.error)
+    } catch { /* não era JSON: fica a mensagem original */ }
+  }
+  return error instanceof Error ? error.message : 'Não consegui ler agora.'
+}
+
 export type ResultadoLeitura = {
   total: number
   restantes: number
@@ -36,7 +53,7 @@ export async function classificarPendentes(
   try {
     for (let rodada = 0; rodada < MAX_RODADAS; rodada++) {
       const { data, error } = await supabase.functions.invoke('classificar-conversas', { body: {} })
-      if (error) throw new Error(error.message)
+      if (error) throw new Error(await motivo(error))
       const r = data as { classificadas?: number; restantes?: number; mensagem?: string; error?: string }
       if (r.error) throw new Error(r.error)
 
