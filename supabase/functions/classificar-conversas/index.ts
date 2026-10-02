@@ -6,8 +6,14 @@
  *
  * Só processa o que ainda não foi classificado ou o que mudou desde a última
  * classificação — clicar de novo não re-queima tokens à toa.
+ *
+ * Roda no Muse (`_shared/muse.ts`) desde 02/10/2026. Esta era a ÚLTIMA peça ainda no
+ * Gemini depois da migração de 24/09, e por isso parou sozinha: a última conversa lida
+ * é de 12/09 e as 84 seguintes ficaram na fila, enquanto a tela seguia mostrando as
+ * contagens antigas como se fossem o retrato inteiro.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { pedirTexto } from '../_shared/muse.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -94,31 +100,19 @@ function resposta(status: number, body: unknown) {
   })
 }
 
-async function chamarGemini(apiKey: string, prompt: string): Promise<string> {
-  let ultimoErro = 'sem resposta'
-  for (const modelo of ['gemini-3.7-flash', 'gemini-flash-latest']) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
-        }),
-      },
-    )
-    const data = await res.json()
-    if (res.ok) {
-      const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text
-      if (texto) return texto
-      ultimoErro = 'resposta vazia'
-      continue
-    }
-    ultimoErro = JSON.stringify(data?.error ?? data).slice(0, 200)
-    if (res.status !== 404) break
-  }
-  throw new Error(`Gemini: ${ultimoErro}`)
+/**
+ * O modelo às vezes devolve o array dentro de uma cerca ```json. O Gemini aceitava
+ * `responseMimeType: 'application/json'` e garantia JSON puro; o Muse não tem esse
+ * parâmetro, então a limpeza passa a ser nossa.
+ */
+function extrairJson(bruto: string): string {
+  const t = bruto.trim()
+  const cerca = t.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (cerca) return cerca[1].trim()
+  const ini = t.indexOf('[')
+  const fim = t.lastIndexOf(']')
+  if (ini !== -1 && fim > ini) return t.slice(ini, fim + 1)
+  return t
 }
 
 Deno.serve(async (req) => {
@@ -142,9 +136,6 @@ Deno.serve(async (req) => {
     })
     const { data: perfil } = await db.from('profiles').select('approved').eq('id', caller.id).single()
     if (perfil?.approved !== true) return resposta(403, { error: 'Acesso pendente de aprovação' })
-
-    const apiKey = Deno.env.get('GEMINI_API_KEY')
-    if (!apiKey) return resposta(500, { error: 'GEMINI_API_KEY não configurada' })
 
     // ── Conversas que precisam de veredito ──────────────────
     const { data: leads, error: leadErro } = await db
@@ -221,15 +212,23 @@ SENSIBILIDADE A PREÇO: "alta" (preço foi o assunto central, pediu desconto ou 
 CONVERSAS:
 ${JSON.stringify(amostra)}`
 
-    const bruto = await chamarGemini(apiKey, prompt)
+    const llm = await pedirTexto(prompt, { maxTokens: 8000 })
+    if (!llm.ok) {
+      // fail-loud: sem este log a falha só aparecia como 500 sem corpo legível, e foi
+      // assim que a leitura ficou parada de 12/09 a 02/10 sem ninguém saber o motivo
+      console.error('[classificar-conversas] LLM falhou:', llm.erro)
+      return resposta(502, { error: `A IA não respondeu: ${llm.erro}` })
+    }
+    const bruto = llm.texto
     let itens: Array<{
       id?: string; resultado?: string; motivo?: string; temperatura?: string
       objecoes?: unknown; objecao_outro?: string; produto?: string; sensibilidade_preco?: string
     }>
     try {
-      const parsed = JSON.parse(bruto)
+      const parsed = JSON.parse(extrairJson(bruto))
       itens = Array.isArray(parsed) ? parsed : (parsed.conversas ?? parsed.itens ?? [])
     } catch {
+      console.error('[classificar-conversas] resposta fora do formato:', bruto.slice(0, 300))
       return resposta(502, { error: 'A IA devolveu um formato inesperado. Tente de novo.' })
     }
 
@@ -272,6 +271,8 @@ ${JSON.stringify(amostra)}`
 
     return resposta(200, { classificadas: gravadas, restantes: Math.max(0, restantes) })
   } catch (err) {
-    return resposta(500, { error: err instanceof Error ? err.message : 'Erro interno' })
+    const message = err instanceof Error ? err.message : 'Erro interno'
+    console.error('[classificar-conversas]', message)
+    return resposta(500, { error: message })
   }
 })
