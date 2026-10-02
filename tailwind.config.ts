@@ -48,6 +48,13 @@ const config: Config = {
           1: 'hsl(var(--serie-1))',
           2: 'hsl(var(--serie-2))',
         },
+        // Lâminas do funil do atendimento — passos e tintas em src/index.css, por modo.
+        funil: {
+          1: 'hsl(var(--funil-1))', '1-tinta': 'hsl(var(--funil-1-tinta))',
+          2: 'hsl(var(--funil-2))', '2-tinta': 'hsl(var(--funil-2-tinta))',
+          3: 'hsl(var(--funil-3))', '3-tinta': 'hsl(var(--funil-3-tinta))',
+          4: 'hsl(var(--funil-4))', '4-tinta': 'hsl(var(--funil-4-tinta))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

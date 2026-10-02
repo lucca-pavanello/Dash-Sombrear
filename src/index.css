@@ -32,6 +32,13 @@
        (L 0,48–0,67). Gráfico de série única continua usando --primary. */
     --serie-1: 25 82% 51%;   /* #E8701A — a marca */
     --serie-2: 196 88% 40%;  /* #0C8FBF — contraponto frio */
+    /* Funil do atendimento: lâminas de persiana do laranja queimado ao claro, uma rampa só
+       da marca. Cada lâmina tem a sua tinta (texto) com contraste medido: branco nas três
+       escuras (8,9 · 6,0 · 4,2:1), marrom na clara (7:1). */
+    --funil-1: 24 78% 26%;  --funil-1-tinta: 0 0% 100%;
+    --funil-2: 24 80% 35%;  --funil-2-tinta: 0 0% 100%;
+    --funil-3: 25 81% 43%;  --funil-3-tinta: 0 0% 100%;
+    --funil-4: 29 86% 66%;  --funil-4-tinta: 24 70% 14%;
     --radius: 0.75rem;
   }
 
@@ -59,6 +66,12 @@
     /* ver nota em :root — passos próprios do modo escuro, não um espelho do claro */
     --serie-1: 25 82% 47%;   /* #DA6816 */
     --serie-2: 197 82% 42%;  /* #1391C4 */
+    /* lâminas mais claras no escuro pra destacar do card; tinta marrom nas duas claras
+       (branco 6,4 · 4,6:1; marrom 4,4 · 7,4:1) */
+    --funil-1: 24 72% 34%;  --funil-1-tinta: 0 0% 100%;
+    --funil-2: 24 80% 41%;  --funil-2-tinta: 0 0% 100%;
+    --funil-3: 25 82% 48%;  --funil-3-tinta: 24 70% 14%;
+    --funil-4: 29 85% 66%;  --funil-4-tinta: 24 70% 14%;
   }
 
   * {

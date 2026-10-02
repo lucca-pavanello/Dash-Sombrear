@@ -1,127 +1,193 @@
-import { Filter } from 'lucide-react'
+import { CalendarCheck, FileText, Handshake, MessageCircle, type LucideIcon } from 'lucide-react'
 import type { Dono, FunilAtendimento as Funil } from '@/lib/analises/funilAtendimento'
 import { cn } from '@/lib/utils'
 
 /**
- * Funil do atendimento (Lucca, 02/10): uma fila só, de cima pra baixo, e cada etapa
- * diz de quem é. Todas as barras medem contra o total de conversas do período, então
- * o afunilamento aparece na largura. Ao lado de cada etapa, quanto passou da anterior.
+ * Funil do atendimento (Lucca, 02/10): desenhado como uma PERSIANA, que é o que a
+ * Sombrear vende. Um bandô em cima e as etapas como lâminas que vão afinando, com o
+ * respiro entre elas, do laranja queimado ao claro da marca (tokens --funil-* no
+ * index.css, uma tinta medida por lâmina e por modo). Ao lado de cada lâmina, ligado por
+ * uma linha, de quem é a etapa e quanto passou.
  *
- * Cor (DESIGN.md): laranja = IA, neutro = equipe, emerald = venda lançada no Fechamento,
- * âmbar = convertido que falta lançar. A cor nunca é o único sinal: o selo do dono e o
- * texto embaixo de cada barra dizem a mesma coisa em palavra.
+ * A largura da lâmina é desenho, não medida: o número dentro dela e as porcentagens ao
+ * lado é que dizem o tamanho. Proporcional, a lâmina de "Converteu" ficaria fina demais
+ * pra caber o próprio número.
  */
 
 const pct = (n: number, de: number) => (de > 0 ? Math.round((n / de) * 100) : 0)
-const largura = (n: number, de: number) => (de > 0 ? Math.max((n / de) * 100, n > 0 ? 1.5 : 0) : 0)
+
+/** quanto cada lâmina recua de cada lado, em % da coluna */
+const RECUO = 7.5
+
+const LAMINA = [
+  'bg-funil-1 text-funil-1-tinta',
+  'bg-funil-2 text-funil-2-tinta',
+  'bg-funil-3 text-funil-3-tinta',
+  'bg-funil-4 text-funil-4-tinta',
+] as const
+
+/** só a cor, pra o quadradinho que liga o texto à lâmina no celular */
+const COR_LAMINA = ['bg-funil-1', 'bg-funil-2', 'bg-funil-3', 'bg-funil-4'] as const
 
 const DONO: Record<Dono, { rotulo: string; cor: string }> = {
-  ia:     { rotulo: 'IA',          cor: 'border-primary/25 bg-primary/[0.07] text-primary' },
+  ia:     { rotulo: 'IA',          cor: 'border-primary/30 bg-primary/[0.08] text-primary' },
   ambos:  { rotulo: 'IA + equipe', cor: 'border-primary/25 bg-primary/[0.04] text-foreground/80' },
-  equipe: { rotulo: 'Equipe',      cor: 'border-border bg-muted/60 text-foreground/75' },
+  equipe: { rotulo: 'Equipe',      cor: 'border-border bg-muted/70 text-foreground/75' },
 }
 
-const IA = 'bg-primary'
-const AMBOS = 'bg-primary/45'
-const EQUIPE = 'bg-foreground/55'
-const LANCADO = 'bg-emerald-500'
-const FALTA_LANCAR = 'bg-amber-500'
+type Parte = { rotulo: string; valor: number; cor: string; destaque?: boolean }
 
-type Parte = { valor: number; cor: string }
-
-function Etapa({ rotulo, dono, total, conversas, anterior, partes, detalhe }: {
+type Etapa = {
   rotulo: string
+  icone: LucideIcon
   dono: Dono
   total: number
-  conversas: number
   /** total da etapa de cima; null na primeira */
   anterior: number | null
-  partes: Parte[]
-  detalhe?: React.ReactNode
-}) {
-  const d = DONO[dono]
-  return (
-    <div className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[9rem_1fr_6.5rem]">
-      <div className="flex min-w-0 flex-col gap-1">
-        <span className="text-xs font-semibold text-foreground">{rotulo}</span>
-        <span className={cn('w-fit rounded-full border px-1.5 py-px text-[10px] font-semibold', d.cor)}>{d.rotulo}</span>
-      </div>
-      <div className="flex h-7 overflow-hidden rounded-md bg-muted/50" role="img"
-        aria-label={`${rotulo}: ${total} de ${conversas} conversas`}>
-        {partes.filter(p => p.valor > 0).map((p, i) => (
-          <div key={i} className={cn('h-full transition-[width] duration-500 ease-out motion-reduce:transition-none', p.cor)}
-            style={{ width: `${largura(p.valor, conversas)}%` }} />
-        ))}
-      </div>
-      <div className="text-right tabular-nums">
-        <span className="font-display text-base font-bold text-foreground">{total}</span>
-        <span className="ml-1 text-[11px] text-muted-foreground">{pct(total, conversas)}%</span>
-        {anterior !== null && (
-          <span className="block text-[10px] text-muted-foreground" title="quanto passou da etapa de cima">
-            {pct(total, anterior)}% da anterior
-          </span>
-        )}
-      </div>
-      {detalhe && <p className="col-span-2 col-start-2 text-[11px] text-muted-foreground">{detalhe}</p>}
-    </div>
-  )
+  /** divisão da etapa, mostrada numa barrinha embaixo */
+  partes?: Parte[]
+  nota?: string
 }
 
-function Legenda({ cor, children }: { cor: string; children: React.ReactNode }) {
+/** a barrinha de divisão: proporção entre as partes, com legenda escrita (cor nunca sozinha) */
+function Divisao({ partes }: { partes: Parte[] }) {
+  const soma = partes.reduce((s, p) => s + p.valor, 0)
+  if (soma === 0) return null
   return (
-    <span className="mr-3 inline-flex items-center gap-1 whitespace-nowrap">
-      <span className={cn('inline-block h-2 w-2 rounded-sm', cor)} aria-hidden="true" />
-      {children}
-    </span>
+    <div className="mt-1.5">
+      <div className="flex h-1.5 w-full max-w-[220px] gap-[2px] overflow-hidden rounded-full">
+        {partes.filter(p => p.valor > 0).map(p => (
+          <div key={p.rotulo} className={cn('h-full first:rounded-l-full last:rounded-r-full', p.cor)}
+            style={{ width: `${(p.valor / soma) * 100}%` }} />
+        ))}
+      </div>
+      <p className="mt-1 flex flex-wrap gap-x-2.5 text-[11px] text-muted-foreground">
+        {partes.map(p => (
+          <span key={p.rotulo} className={cn('inline-flex items-center gap-1 whitespace-nowrap',
+            p.destaque && p.valor > 0 && 'font-medium text-amber-700 dark:text-amber-400')}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', p.cor)} aria-hidden="true" />
+            {p.rotulo} <span className="tabular-nums">{p.valor}</span>
+          </span>
+        ))}
+      </p>
+    </div>
   )
 }
 
 export function FunilAtendimento({ funil }: { funil: Funil }) {
   const { conversas, atendeu, orcamento, medicao, converteu } = funil
 
+  const etapas: Etapa[] = [
+    {
+      rotulo: 'Atendeu', icone: MessageCircle, dono: 'ia', total: atendeu.total, anterior: null,
+      nota: atendeu.soEquipe > 0 ? `outras ${atendeu.soEquipe} a equipe atendeu sem a IA` : undefined,
+    },
+    {
+      rotulo: 'Orçamento', icone: FileText, dono: 'ambos', total: orcamento.total,
+      anterior: atendeu.total + atendeu.soEquipe,
+      partes: [
+        { rotulo: 'só IA', valor: orcamento.soIa, cor: 'bg-primary' },
+        { rotulo: 'os dois', valor: orcamento.ambos, cor: 'bg-primary/45' },
+        { rotulo: 'só equipe', valor: orcamento.soEquipe, cor: 'bg-foreground/50' },
+      ],
+    },
+    { rotulo: 'Medição', icone: CalendarCheck, dono: 'equipe', total: medicao.total, anterior: orcamento.total },
+    {
+      rotulo: 'Converteu', icone: Handshake, dono: 'equipe', total: converteu.total,
+      anterior: medicao.total || orcamento.total,
+      partes: [
+        { rotulo: 'lançados no Fechamento', valor: converteu.noFechamento, cor: 'bg-emerald-500' },
+        { rotulo: 'falta lançar', valor: converteu.soMarcado, cor: 'bg-amber-500', destaque: true },
+      ],
+    },
+  ]
+
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <Filter className="h-4 w-4 shrink-0 self-center text-primary" />
-        <h2 className="font-display text-sm font-semibold tracking-wide">Funil do atendimento</h2>
-        <span className="text-xs text-muted-foreground">
-          de {conversas} conversa{conversas !== 1 ? 's' : ''} · {converteu.total} convertido{converteu.total !== 1 ? 's' : ''} ({pct(converteu.total, conversas)}%)
-        </span>
+    <div className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Funil do atendimento</p>
+          <h2 className="font-display text-lg font-bold tracking-tight text-foreground [text-wrap:balance]">
+            {conversas === 0
+              ? 'Nenhuma conversa no período'
+              : <>{converteu.total} de {conversas} conversa{conversas !== 1 ? 's' : ''} viraram venda</>}
+          </h2>
+        </div>
+        {conversas > 0 && (
+          <span className="font-display text-2xl font-bold tabular-nums text-primary">
+            {pct(converteu.total, conversas)}%
+          </span>
+        )}
       </div>
 
-      <div className="space-y-4">
-        <Etapa rotulo="Atendeu" dono="ia" total={atendeu.total} conversas={conversas} anterior={null}
-          partes={[{ valor: atendeu.total, cor: IA }]}
-          detalhe={atendeu.soEquipe > 0 && <>a equipe atendeu outras {atendeu.soEquipe} sem a IA</>} />
+      {conversas > 0 && (
+        // No celular a persiana ocupa a largura toda e os textos descem pra baixo dela (order),
+        // cada um com o quadradinho da cor da sua lâmina. Lado a lado, o texto ficava mais
+        // alto que a lâmina e abria buraco no funil.
+        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          {/* bandô: o trilho de cima da persiana */}
+          <div className="mb-1.5 h-2 rounded-full bg-foreground/80 shadow-sm" aria-hidden="true" />
+          <div className="hidden sm:block" />
 
-        <Etapa rotulo="Orçamento" dono="ambos" total={orcamento.total} conversas={conversas}
-          anterior={atendeu.total + atendeu.soEquipe}
-          partes={[{ valor: orcamento.soIa, cor: IA }, { valor: orcamento.ambos, cor: AMBOS }, { valor: orcamento.soEquipe, cor: EQUIPE }]}
-          detalhe={orcamento.total > 0 && <>
-            <Legenda cor={IA}>só IA {orcamento.soIa}</Legenda>
-            <Legenda cor={AMBOS}>os dois {orcamento.ambos}</Legenda>
-            <Legenda cor={EQUIPE}>só equipe {orcamento.soEquipe}</Legenda>
-          </>} />
+          {etapas.map((e, i) => {
+            const topo = i * RECUO
+            const base = (i + 1) * RECUO
+            const meio = (topo + base) / 2
+            const Icone = e.icone
+            const d = DONO[e.dono]
+            return (
+              <div key={e.rotulo} className="contents">
+                {/* a lâmina */}
+                <div className="relative h-[72px] py-[3px] sm:h-[84px]">
+                  <div
+                    className={cn(
+                      'flex h-full flex-col items-center justify-center gap-0.5',
+                      'animate-in fade-in-0 slide-in-from-top-2 fill-mode-both duration-300 motion-reduce:animate-none',
+                      LAMINA[i],
+                    )}
+                    style={{
+                      clipPath: `polygon(${topo}% 0, ${100 - topo}% 0, ${100 - base}% 100%, ${base}% 100%)`,
+                      // brilho de cima: luz passando pelo tecido
+                      backgroundImage: 'linear-gradient(180deg, hsl(0 0% 100% / 0.16), hsl(0 0% 100% / 0) 60%)',
+                      animationDelay: `${i * 70}ms`,
+                    }}
+                  >
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] opacity-90">
+                      <Icone className="h-3.5 w-3.5" aria-hidden="true" />
+                      {e.rotulo}
+                    </span>
+                    <span className="font-display text-2xl font-bold leading-none tabular-nums sm:text-[28px]">{e.total}</span>
+                  </div>
+                  {/* a linha que liga a lâmina ao texto */}
+                  <div aria-hidden="true"
+                    className="absolute top-1/2 hidden h-px border-t border-dashed border-foreground/25 sm:block"
+                    style={{ left: `calc(${100 - meio}% + 6px)`, right: 0 }} />
+                </div>
 
-        <Etapa rotulo="Medição" dono="equipe" total={medicao.total} conversas={conversas} anterior={orcamento.total}
-          partes={[{ valor: medicao.total, cor: EQUIPE }]} />
+                {/* o que a etapa quer dizer */}
+                <div className="flex min-w-0 items-center gap-3 max-sm:order-1 max-sm:mt-3">
+                  <span className="hidden h-2 w-2 shrink-0 rounded-full bg-foreground/40 sm:block" aria-hidden="true" />
+                  <div className="min-w-0 py-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={cn('h-2.5 w-2.5 shrink-0 rounded-sm sm:hidden', COR_LAMINA[i])} aria-hidden="true" />
+                      <span className="text-sm font-semibold text-foreground">{e.rotulo}</span>
+                      <span className={cn('rounded-full border px-1.5 py-px text-[10px] font-semibold', d.cor)}>{d.rotulo}</span>
+                    </div>
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      <span className="font-semibold text-foreground/85">{pct(e.total, conversas)}%</span> das conversas
+                      {e.anterior !== null && e.anterior > 0 && <> · {pct(e.total, e.anterior)}% da etapa anterior</>}
+                    </p>
+                    {e.partes && <Divisao partes={e.partes} />}
+                    {e.nota && <p className="mt-0.5 text-[11px] text-muted-foreground">{e.nota}</p>}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
-        <Etapa rotulo="Converteu" dono="equipe" total={converteu.total} conversas={conversas}
-          anterior={medicao.total || orcamento.total}
-          partes={[{ valor: converteu.noFechamento, cor: LANCADO }, { valor: converteu.soMarcado, cor: FALTA_LANCAR }]}
-          detalhe={converteu.total > 0 && <>
-            <Legenda cor={LANCADO}>lançados no Fechamento {converteu.noFechamento}</Legenda>
-            {converteu.soMarcado > 0 && (
-              <Legenda cor={FALTA_LANCAR}>
-                <span className="text-amber-700 dark:text-amber-400">
-                  só marcados no WhatsApp {converteu.soMarcado}, falta lançar
-                </span>
-              </Legenda>
-            )}
-          </>} />
-      </div>
-
-      <p className="mt-4 text-[11px] text-muted-foreground">
+      <p className="mt-5 border-t pt-3 text-[11px] text-muted-foreground">
         Cada lead conta uma vez por etapa: quem foi marcado no WhatsApp e também lançado no Fechamento é um convertido só.
       </p>
     </div>
