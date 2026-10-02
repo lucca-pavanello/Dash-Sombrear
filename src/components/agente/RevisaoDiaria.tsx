@@ -86,8 +86,8 @@ function Pronta({ r, origem }: { r: ResultadoRevisao; origem: 'diaria' | 'manual
           <div className="border-b border-border/60 px-5 py-3">
             <p className={EYEBROW}>Sem resposta da Amanda · {r.sem_resposta.length}</p>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              O cliente escreveu enquanto a conversa era da IA e ela ficou calada. Depois que alguém da
-              equipe entra, o silêncio dela é o combinado e não entra aqui.
+              O cliente escreveu enquanto a conversa era da IA e ela ficou calada. Só entra o que
+              custou espera: ninguém respondeu, ou a equipe levou mais de 10 minutos.
             </p>
           </div>
           <ul className="divide-y divide-border/50">

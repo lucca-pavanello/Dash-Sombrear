@@ -131,6 +131,21 @@ describe('sem resposta da Amanda', () => {
     })
   })
 
+  it('equipe que cobriu em poucos minutos não vira linha: a loja atendeu', () => {
+    // revisão de 29/09: 6 das 7 linhas eram equipe respondendo em 0 a 3 minutos.
+    // Lista assim ensina a ignorar a seção
+    const conversas = conversasDoDia({
+      dia: DIA,
+      mensagens: [
+        msg(1, 'cliente', '12:16', 'quanto fica?'),
+        msg(1, 'ia', '12:16', 'me passa a medida'),
+        msg(1, 'cliente', '12:17', 'Altura 2,5m Largura 4,32'),
+        msg(1, 'equipe', '12:19', 'já te respondo'),
+      ],
+    })
+    expect(semRespostaDaIA(conversas, FIM_DO_DIA)).toEqual([])
+  })
+
   it('depois que uma pessoa entra na conversa, o silêncio da IA é o combinado', () => {
     // o handoff é a regra da casa: cobrar a Amanda aqui encheria a seção de atendimento
     // humano, que é a maior parte do dia na Sombrear
