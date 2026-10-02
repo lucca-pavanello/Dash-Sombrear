@@ -31,7 +31,8 @@ import { preflight, resposta } from '../_shared/resposta.ts'
 import { segredoConfere } from '../_shared/automacao.ts'
 import { pedirTexto } from '../_shared/muse.ts'
 import {
-  diaNaCasa, lerRevisao, montarRevisao, type LeadRevisao, type MensagemRevisao,
+  casarFotos, diaNaCasa, lerRevisao, montarRevisao,
+  type LeadRevisao, type MensagemRevisao,
 } from '../../../src/lib/revisao/dia.ts'
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
@@ -84,8 +85,11 @@ async function revisar(id: string, dia: string, hoje: boolean): Promise<void> {
       await fechar(id, {
         status: 'pronta',
         resultado: {
-          dia, conversas: 0, amostra, sem_resposta: [], gerado_em,
-          analise: { resumo: 'A Amanda não respondeu nenhuma conversa neste dia.', melhorias: [] },
+          dia, conversas: 0, amostra, sem_resposta: [], fotos_faltando: [], gerado_em,
+          analise: {
+            resumo: 'A Amanda não respondeu nenhuma conversa neste dia.',
+            melhorias: [], fotos: [],
+          },
         },
       })
       return
@@ -101,7 +105,10 @@ async function revisar(id: string, dia: string, hoje: boolean): Promise<void> {
       status: 'pronta',
       resultado: {
         dia, conversas: base.conversas.length, amostra,
-        sem_resposta: base.semResposta, analise: lida, gerado_em,
+        sem_resposta: base.semResposta,
+        // o código manda na lista; o modelo só dá nome ao que fotografar
+        fotos_faltando: casarFotos(base.fotosQueFaltam, lida.fotos),
+        analise: lida, gerado_em,
       },
     })
   } catch (err) {

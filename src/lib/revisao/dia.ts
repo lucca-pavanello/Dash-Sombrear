@@ -49,6 +49,25 @@ export type SemResposta = {
   espera_min: number | null
 }
 
+/**
+ * Foto que o cliente quis ver e a loja não tinha para mostrar na hora.
+ *
+ * Não é defeito da Amanda: é compra de acervo. A IA só manda foto que exista em
+ * `modelo_fotos_referencia` com a combinação certa de modelo, tecido e acabamento —
+ * faltando a linha, não há o que enviar. Esta lista é o pedido de foto para a loja.
+ */
+export type FotoQueFalta = {
+  conversa: string
+  hora: string
+  /** a fala que pediu ou prometeu a foto, literal */
+  pedido: string
+  /** a fala da Amanda dizendo que não tem, quando ela disse */
+  resposta: string
+  motivo: 'disse_que_nao_tem' | 'prometeu_e_nao_enviou'
+  /** o que precisa ser fotografado, nomeado pelo modelo a partir da conversa */
+  o_que: string
+}
+
 export type Gravidade = 'alta' | 'media' | 'baixa'
 
 export type Melhoria = {
@@ -59,12 +78,18 @@ export type Melhoria = {
   gravidade: Gravidade
 }
 
-export type Revisao = { resumo: string; melhorias: Melhoria[] }
+export type Revisao = {
+  resumo: string
+  melhorias: Melhoria[]
+  /** o modelo nomeando o que falta fotografar, uma entrada por conversa */
+  fotos: { conversa: string; o_que: string }[]
+}
 
 export type BaseRevisao = {
   dia: string
   conversas: ConversaDoDia[]
   semResposta: SemResposta[]
+  fotosQueFaltam: FotoQueFalta[]
   pedido: string
 }
 
@@ -96,6 +121,22 @@ const ANEXO: Record<string, string> = {
  * que a equipe respondeu em 1 minuto. Era o handoff funcionando, não falha.
  */
 const RE_HANDOFF = /(j[áa] )?pass(ei|o|ando|ar)\s+(voc[êe]\s+)?(pra|para)\s+(a\s+)?(equipe|stella|atendente|respons[áa]vel)|vou\s+(te\s+)?passar|chamei\s+a\s+equipe|a\s+equipe\s+(segue|assume|continua|vai)|eles\s+seguem\s+com\s+voc[êe]|algu[ée]m\s+da\s+equipe\s+(te\s+)?(chama|responde|retorna)/i
+
+/**
+ * Foto pedida e não entregue.
+ *
+ * Vem do caso da Anelisa (30/09, conversa 405): ela quis ver a Double Vision, a Amanda
+ * prometeu foto duas vezes, nada chegou, e a cliente teve que cobrar. A causa não era a
+ * IA: `modelo_fotos_referencia` só tinha Double com acabamento "Bando Branco", e o
+ * seletor do n8n não casa linha específica com pedido sem acabamento. Desde então o
+ * prompt da Secretaria (8.6b) manda ela AVISAR que não tem em vez de prometer — por
+ * isso os dois gatilhos convivem: o aviso novo e a promessa vazia antiga.
+ */
+const RE_PROMETE_FOTO = /(te\s+)?mand(ar|o|a)\s+(uma\s+|umas\s+|as\s+)?fotos?|fotos?\s+pra\s+voc[ê]\s+ver|deixa\s+eu\s+te\s+mandar/i
+const RE_NAO_TEM_FOTO = /n[ãa]o\s+(tenho|temos|tem)\s+(essa\s+|a\s+|uma\s+|aqui\s+)?fotos?|fotos?[^.!?]{0,40}n[ãa]o\s+(tenho|temos|tem)|n[ãa]o\s+tenho\s+aqui/i
+const RE_CLIENTE_QUER_FOTO = /fotos?|imagens?|print|ver\s+como\s+(fica|é)/i
+/** depois da promessa, foto que viesse em até isto ainda era a resposta àquele pedido */
+const MINUTOS_PARA_A_FOTO_CHEGAR = 15
 
 /** "ok", "obrigado", "👍": não esperam resposta, e cobrar silêncio aí é ruído */
 const RE_CORTESIA = /^(ok|okay|blz|beleza|t[aá] bom|tabom|certo|perfeito|show|valeu|vlw|obrigad[oa]|obg|brigad[oa]|de nada|imagina|bom dia|boa tarde|boa noite|sim|n[aã]o|👍|🙏|❤️|😊|👏)[\s!.…]*$/i
@@ -229,8 +270,76 @@ export function semRespostaDaIA(conversas: ConversaDoDia[], ateMs: number): SemR
   return fora
 }
 
+/**
+ * As fotos que a loja precisa providenciar, lidas das conversas do dia.
+ *
+ * Dois gatilhos, porque o comportamento da Amanda mudou no meio do caminho:
+ *  - ela avisou que não tem a foto (o combinado desde 8.6b do prompt);
+ *  - ela prometeu a foto e nenhuma imagem saiu dela na sequência (o jeito antigo, que
+ *    deixava o cliente esperando sem ninguém saber).
+ *
+ * Uma entrada por conversa e por gatilho: a Anelisa pediu duas vezes na mesma conversa,
+ * e isso é uma foto a comprar, não duas.
+ */
+export function fotosQueFaltam(conversas: ConversaDoDia[]): FotoQueFalta[] {
+  const fora: FotoQueFalta[] = []
+  for (const c of conversas) {
+    const vistos = new Set<string>()
+    for (let i = 0; i < c.msgs.length; i++) {
+      const m = c.msgs[i]
+      if (m.autor !== 'ia') continue
+      const t = texto(m)
+      const disse = RE_NAO_TEM_FOTO.test(t)
+      if (!disse && !RE_PROMETE_FOTO.test(t)) continue
+
+      // prometer e cumprir não é falta: só entra quando nenhuma imagem saiu da IA logo
+      // depois. O corte em minutos existe porque a foto sai num passo separado do texto
+      if (!disse) {
+        const prazo = Date.parse(m.enviada_em) + MINUTOS_PARA_A_FOTO_CHEGAR * 60_000
+        const veio = c.msgs.slice(i + 1).some(x =>
+          x.autor === 'ia' && Date.parse(x.enviada_em) <= prazo &&
+          (x.anexos ?? []).some(a => a.tipo === 'image'))
+        if (veio) continue
+      }
+
+      const motivo = disse ? 'disse_que_nao_tem' : 'prometeu_e_nao_enviou'
+      if (vistos.has(motivo)) continue
+      vistos.add(motivo)
+
+      // o pedido do cliente é o que nomeia a foto ("a Double sem bandô"); a fala da
+      // Amanda sozinha costuma ser genérica demais para virar item de compra
+      const antes = c.msgs.slice(0, i).reverse()
+        .find(x => x.autor === 'cliente' && RE_CLIENTE_QUER_FOTO.test(texto(x)))
+      fora.push({
+        conversa: c.rotulo,
+        hora: horaNaCasa(m.enviada_em),
+        pedido: cortar(antes ? texto(antes) : t, 300),
+        resposta: disse ? cortar(t, 300) : '',
+        motivo,
+        o_que: '',
+      })
+    }
+  }
+  return fora
+}
+
+/**
+ * Junta o que o código achou com o nome que o modelo deu. O código manda na lista: nome
+ * que cite conversa sem foto faltando é descartado, para a seção nunca pedir uma foto
+ * que ninguém pediu.
+ */
+export function casarFotos(
+  fotos: FotoQueFalta[],
+  nomeadas: { conversa: string; o_que: string }[],
+): FotoQueFalta[] {
+  const nome = new Map(nomeadas.map(n => [n.conversa, n.o_que]))
+  return fotos.map(f => ({ ...f, o_que: nome.get(f.conversa) ?? '' }))
+}
+
 /** a conversa como o dono leria: uma linha por mensagem, com a hora e quem falou */
-export function transcrever(c: ConversaDoDia, semResposta: SemResposta[]): string {
+export function transcrever(
+  c: ConversaDoDia, semResposta: SemResposta[], fotos: FotoQueFalta[] = [],
+): string {
   const linhas = c.msgs.slice(0, MAX_MENSAGENS)
     .map(m => `${quem(m)} (${horaNaCasa(m.enviada_em)}): ${cortar(texto(m), MAX_FALA)}`)
   const silencios = semResposta.filter(s => s.conversa === c.rotulo)
@@ -240,6 +349,8 @@ export function transcrever(c: ConversaDoDia, semResposta: SemResposta[]): strin
     ...silencios.map(s =>
       `SEM RESPOSTA DA AMANDA (${s.hora}): «${s.texto}» ${
         s.respondeu ? `(a equipe respondeu ${s.espera_min} min depois)` : '(ninguém respondeu)'}`),
+    ...fotos.filter(f => f.conversa === c.rotulo).map(f =>
+      `FOTO QUE FALTOU (${f.hora}): o cliente quis «${f.pedido}» e a loja não tinha a foto`),
   ].join('\n')
 }
 
@@ -266,7 +377,8 @@ export const REGRAS_DA_CASA = [
 ] as const
 
 export function montarPedido(b: Omit<BaseRevisao, 'pedido'>): string {
-  const transcricoes = b.conversas.map(c => transcrever(c, b.semResposta)).join('\n\n')
+  const fotos = b.fotosQueFaltam ?? []
+  const transcricoes = b.conversas.map(c => transcrever(c, b.semResposta, fotos)).join('\n\n')
   return `Você revisa, a pedido do dono da loja, as conversas de WhatsApp que a Amanda (a IA da Sombrear) teve em ${rotuloDoDia(b.dia)}. Ele lê isso à noite e, no dia seguinte, pede o ajuste — então o que ele espera daqui é uma LISTA DE MELHORIAS, não um parecer sobre cada mensagem.
 
 Procure ativamente o que melhorar. Não é auditoria: não interessa dizer que a conversa foi bem nem comentar mensagem por mensagem. Interessa o que, mudado na Amanda, faria a próxima conversa parecida terminar melhor. Dia sem nenhuma melhoria é possível, mas é raro — antes de responder com a lista vazia, releia procurando oportunidade perdida, não só regra quebrada.
@@ -300,13 +412,16 @@ NÃO é ponto de melhoria: a IA seguir uma regra da casa; o cliente sumir; a equ
 Também NÃO é: a Amanda explicar característica de modelo, motor, comando ou tecido. Ela conhece o catálogo e você não tem o prompt dela para conferir. Só vira melhoria se a própria conversa mostrar a contradição (ela disse uma coisa e depois outra, ou a equipe corrigiu), ou se junto da explicação vier valor, prazo ou medida que ela não tinha como saber. Em dúvida sobre detalhe técnico, não aponte — isto vale só aqui, para produto, não para as oportunidades perdidas.
 Também NÃO é: a Amanda chamar o cliente por um primeiro nome que ele não escreveu na conversa. Ela lê o nome do perfil do WhatsApp, que não aparece aqui. Só vira melhoria se o nome estiver desmentido pela própria conversa (o cliente se apresentou com outro nome e ela continuou no antigo) ou se ela tratar o cliente por nome de loja ou apelido.
 As linhas "SEM RESPOSTA DA AMANDA" já aparecem para o dono em uma seção própria: não repita como melhoria, só cite no resumo se pesarem no dia.
+As linhas "FOTO QUE FALTOU" também têm seção própria, e não são defeito da Amanda: a loja não tem essa foto no acervo, então não havia o que enviar. Não as transforme em melhoria. O que o dono precisa de você nelas é só o NOME do que fotografar, no campo "fotos" abaixo.
 Antes de sugerir "como fica melhor", confira que a frase sugerida também segue as regras acima.
 
 Responda SOMENTE com um JSON válido, sem texto fora dele. Os textos entre aspas abaixo descrevem o que vai em cada campo: não os copie para dentro da resposta.
 {
  "resumo": "1 ou 2 frases, começando pela melhoria que mais importa e o que ela muda; depois, em meia frase, como foi o dia",
- "melhorias": [{"conversa": "Conversa N", "o_que_aconteceu": "o que a Amanda fez, em uma frase", "como_fica_melhor": "o que ela diria em vez disso, começando direto pela frase pronta entre aspas", "trecho": "a fala da Amanda, citada literalmente", "gravidade": "alta|media|baixa"}]
+ "melhorias": [{"conversa": "Conversa N", "o_que_aconteceu": "o que a Amanda fez, em uma frase", "como_fica_melhor": "o que ela diria em vez disso, começando direto pela frase pronta entre aspas", "trecho": "a fala da Amanda, citada literalmente", "gravidade": "alta|media|baixa"}],
+ "fotos": [{"conversa": "Conversa N", "o_que": "o que precisa ser fotografado, como a conversa descreve: modelo, tecido e acabamento que der para saber"}]
 }
+Regras de "fotos": uma entrada para cada linha "FOTO QUE FALTOU", nenhuma a mais, e nenhuma para conversa que não tem essa linha. O "o_que" é curto e serve de pedido para o fotógrafo ("Double Vision sem bandô", "Rolo blackout com kit box"). Diga só o que a conversa mostra: se o cliente não disse o tecido ou o acabamento, não complete o que falta. Sem nenhuma linha dessas no dia, "fotos": [].
 Regras da resposta: no máximo 8 melhorias, da que mais ajuda a vender para a menos; melhoria repetida em conversas diferentes entra uma vez só, na conversa onde aparece mais claro; se depois de procurar não houver nenhuma de verdade, "melhorias": [] e o resumo diz o que foi bem — mas não encha a lista com observação sem consequência só para não vir vazia; tom de melhoria, nunca de erro ou culpa (nada de "erro", "errou", "falhou", "problema", "devia": diga o que ela fez e como fica melhor); nunca invente, toda citação sai literalmente das conversas acima e o "trecho" é sempre uma fala da AMANDA, nunca da EQUIPE nem do cliente; português do Brasil com acento, sem travessão e sem emoji; sem jargão (fluxo, gatilho, loop, follow).`
 }
 
@@ -320,7 +435,11 @@ export function montarRevisao(e: {
   const conversas = conversasDoDia(e)
   const ate = e.ateMs ?? Date.parse(`${e.dia}T23:59:59-03:00`)
   const semResposta = semRespostaDaIA(conversas, ate)
-  return { dia: e.dia, conversas, semResposta, pedido: montarPedido({ dia: e.dia, conversas, semResposta }) }
+  const faltando = fotosQueFaltam(conversas)
+  return {
+    dia: e.dia, conversas, semResposta, fotosQueFaltam: faltando,
+    pedido: montarPedido({ dia: e.dia, conversas, semResposta, fotosQueFaltam: faltando }),
+  }
 }
 
 const GRAVIDADES: Gravidade[] = ['alta', 'media', 'baixa']
@@ -365,5 +484,16 @@ export function lerRevisao(texto: string, rotulos: Iterable<string>): Revisao | 
       gravidade: GRAVIDADES.includes(g) ? g : 'media',
     })
   }
-  return { resumo, melhorias }
+  const fotos: { conversa: string; o_que: string }[] = []
+  const brutasFotos = Array.isArray(d.fotos) ? d.fotos : []
+  for (const x of brutasFotos) {
+    if (fotos.length >= 8) break
+    if (!x || typeof x !== 'object') continue
+    const f = x as Record<string, unknown>
+    const conversa = limpar(f.conversa, 40)
+    const oQue = limpar(f.o_que, 120)
+    if (!validos.has(conversa) || !oQue) continue
+    fotos.push({ conversa, o_que: oQue })
+  }
+  return { resumo, melhorias, fotos }
 }
