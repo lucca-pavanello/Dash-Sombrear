@@ -70,3 +70,38 @@ export function filterByPeriod<T>(
     return true;
   });
 }
+
+/**
+ * Para onde a venda foi parar quando ela some da lista depois de salva.
+ *
+ * O Semanário se filtra pela `data_pedido` (ou, na falta dela, pela `created_at`).
+ * Ajustar uma venda lançada hoje para a data real do pedido — digamos 11/09 — a joga
+ * para setembro, e ela desaparece da tela de outubro sem uma palavra. Quem está
+ * fechando lê "sumiu" como "não salvou" e lança de novo: foi assim que o pedido 175
+ * entrou SEIS vezes no banco na tarde de 02/10/2026.
+ *
+ * Devolve `null` enquanto a venda continua visível. Quando não continua, devolve o mês
+ * civil da data, pronto para virar um período `custom` que a traz de volta à tela.
+ *
+ * Usa de propósito o mesmo `filterByPeriod` da lista: se a regra de visibilidade mudar,
+ * o aviso muda junto, em vez de virar uma segunda verdade.
+ */
+export function ondeAVendaFoiParar(
+  dataEfetiva: string | null | undefined,
+  periodo: string,
+  dateFrom?: string,
+  dateTo?: string
+): { de: string; ate: string; mes: string } | null {
+  if (!dataEfetiva) return null;
+  const d = new Date(dataEfetiva);
+  if (Number.isNaN(d.getTime())) return null;
+  if (filterByPeriod([dataEfetiva], periodo, x => x, dateFrom, dateTo).length > 0) return null;
+
+  const iso = (dia: Date) =>
+    `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, '0')}-${String(dia.getDate()).padStart(2, '0')}`;
+  return {
+    de: iso(new Date(d.getFullYear(), d.getMonth(), 1)),
+    ate: iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)),
+    mes: d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+  };
+}

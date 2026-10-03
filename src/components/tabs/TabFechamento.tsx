@@ -15,7 +15,7 @@ import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import {
   useOrcamentos, usePedidos, useUpdatePedido, useVincularItensAoPedido, useExcluirPedido,
 } from '@/hooks/useOrcamentos'
-import { filterByPeriod } from '@/hooks/usePeriodFilter'
+import { filterByPeriod, ondeAVendaFoiParar } from '@/hooks/usePeriodFilter'
 import { ratear } from '@/lib/rateio'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import DatePicker from '@/components/ui/DatePicker'
@@ -142,6 +142,10 @@ export default function TabFechamento() {
   const [rascunho, setRascunho] = useState<{ cobrado: string; parceira: string; formaReal: string; parcelasReal: string; origem: string; dataPedido: string; dataEntrega: string; numeroPedido: string }>(
     { cobrado: '', parceira: '', formaReal: '', parcelasReal: '', origem: '', dataPedido: '', dataEntrega: '', numeroPedido: '' })
   const [erroAjuste, setErroAjuste] = useState<string | null>(null)
+  /* a venda salva que saiu do período visível — sem este aviso ela só "some" (ver
+     ondeAVendaFoiParar); guarda para onde ela foi para o botão poder levar até lá */
+  const [vendaSumiu, setVendaSumiu] = useState<
+    { cliente: string; de: string; ate: string; mes: string } | null>(null)
   const [salvandoAjuste, setSalvandoAjuste] = useState(false)
   const [reconstruindo, setReconstruindo] = useState<string | null>(null)
   // exclusão passa por modal: mexe em faturamento, não pode sair num clique torto
@@ -163,6 +167,7 @@ export default function TabFechamento() {
   const [selecionando, setSelecionando] = useState(false)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [agrupando, setAgrupando] = useState(false)
+  const [erroAgrupar, setErroAgrupar] = useState<string | null>(null)
   const [numeroNovoPedido, setNumeroNovoPedido] = useState('')
 
   /**
@@ -274,7 +279,9 @@ export default function TabFechamento() {
         const auto = `${nReal}x de ${formatCurrency(cobradoEf / nReal)}${juros}`
         formaRealFinal = formaRealFinal ? `${auto} — ${formaRealFinal}` : auto
       }
-      const { error } = await supabase.from('orcamentos').update({
+      /* o .select() não é enfeite: sem ele, uma linha barrada pela RLS volta 204 com
+         zero linhas e error nulo, e o código comemora um salvar que não aconteceu */
+      const { data, error } = await supabase.from('orcamentos').update({
         valor_cobrado: numero(rascunho.cobrado),
         valor_parceiro_pago: numero(rascunho.parceira),
         forma_pagamento_real: formaRealFinal || null,
@@ -282,10 +289,18 @@ export default function TabFechamento() {
         data_pedido: rascunho.dataPedido || null,
         data_entrega: rascunho.dataEntrega || null,
         numero_pedido: rascunho.numeroPedido.trim() || null,
-      }).eq('id', o.id)
+      }).eq('id', o.id).select('id')
       if (error) throw error
+      if (!data || data.length === 0) throw new Error('Nada foi gravado — a venda não foi encontrada ou você não tem permissão para alterá-la.')
+      const destino = ondeAVendaFoiParar(
+        dataDe({ ...o, data_pedido: rascunho.dataPedido || null }),
+        periodo, de || undefined, ate || undefined,
+      )
       setEditando(null)
       await refetch()
+      setVendaSumiu(destino && { cliente: o.cliente ?? '', ...destino })
+    } catch (err) {
+      setErroAjuste(err instanceof Error ? err.message : 'Não deu para salvar')
     } finally {
       setSalvandoAjuste(false)
     }
@@ -398,11 +413,19 @@ export default function TabFechamento() {
         const patch: Record<string, number | string | null> = { data_entrega: rascunhoPedido.dataEntrega || null }
         if (cobrados) patch.valor_cobrado = cobrados[i]
         if (parceiras) patch.valor_parceiro_pago = parceiras[i]
-        const { error } = await supabase.from('orcamentos').update(patch).eq('id', g.itens[i].id)
+        const { data, error } = await supabase.from('orcamentos').update(patch)
+          .eq('id', g.itens[i].id).select('id')
         if (error) throw error
+        if (!data || data.length === 0) throw new Error(`O item ${i + 1} do pedido não foi gravado — sem permissão ou linha inexistente. Confira os valores antes de tentar de novo.`)
       }
+      const destino = ondeAVendaFoiParar(
+        `${rascunhoPedido.dataPedido}T12:00:00`, periodo, de || undefined, ate || undefined,
+      )
       setEditandoPedido(null)
       await refetch()
+      setVendaSumiu(destino && { cliente: g.itens[0].cliente ?? '', ...destino })
+    } catch (err) {
+      setErroAjustePedido(err instanceof Error ? err.message : 'Não deu para salvar')
     } finally {
       setSalvandoAjustePedido(false)
     }
@@ -444,6 +467,8 @@ export default function TabFechamento() {
       setSelecionando(false)
       setNumeroNovoPedido('')
       await refetch()
+    } catch (err) {
+      setErroAgrupar(err instanceof Error ? err.message : 'Não deu para agrupar')
     } finally {
       setAgrupando(false)
     }
@@ -735,7 +760,7 @@ export default function TabFechamento() {
       {/* Filtros + ações */}
       <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-xl border bg-card px-3 py-2.5 shadow-sm">
         <CustomSelect className="w-44 py-2" value={periodo}
-          onChange={v => { setPeriodo(v); if (v !== 'custom') { setDe(''); setAte('') } }} options={PERIODOS} />
+          onChange={v => { setPeriodo(v); setVendaSumiu(null); if (v !== 'custom') { setDe(''); setAte('') } }} options={PERIODOS} />
         <DatePicker value={de} onChange={v => { setDe(v); if (v) setPeriodo('custom') }}
           placeholder="De" triggerClassName="py-2" className="w-36" />
         <DatePicker value={ate} onChange={v => { setAte(v); if (v) setPeriodo('custom') }}
@@ -751,11 +776,37 @@ export default function TabFechamento() {
           PDF
         </Button>
         <Button variant={selecionando ? 'primary' : 'outline'}
-          onClick={() => { setSelecionando(v => !v); setSelecionados(new Set()) }}>
+          onClick={() => { setSelecionando(v => !v); setSelecionados(new Set()); setErroAgrupar(null) }}>
           <Link2 className="h-4 w-4" aria-hidden="true" />
           {selecionando ? 'Cancelar agrupar' : 'Agrupar itens'}
         </Button>
       </div>
+
+      {/* Salvou, mas a venda saiu desta lista. Sem isto ela apenas some da tela e quem
+          está fechando lança tudo de novo — o pedido 175 virou seis linhas assim. */}
+      {vendaSumiu && (
+        <div className="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-500/40 bg-amber-500/[0.06] px-3 py-2.5 shadow-sm">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <p className="text-xs text-foreground/80">
+            <b className="font-semibold">Salvo.</b> A venda
+            {vendaSumiu.cliente && <> de <b className="font-semibold">{vendaSumiu.cliente}</b></>}
+            {' '}saiu desta lista porque a data do pedido é de{' '}
+            <b className="font-semibold">{vendaSumiu.mes}</b>. Ela não se perdeu — está lá.
+          </p>
+          <Button variant="outline" size="sm"
+            onClick={() => {
+              setPeriodo('custom'); setDe(vendaSumiu.de); setAte(vendaSumiu.ate)
+              setVendaSumiu(null)
+            }}>
+            Ver {vendaSumiu.mes}
+          </Button>
+          <button type="button" onClick={() => setVendaSumiu(null)}
+            title="Fechar aviso"
+            className="rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {selecionando && (
         <div className="mb-4 flex flex-wrap items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.03] px-3 py-2.5 shadow-sm">
@@ -771,6 +822,9 @@ export default function TabFechamento() {
             <Layers className="h-3.5 w-3.5" aria-hidden="true" />
             Agrupar em um pedido
           </Button>
+          {erroAgrupar && (
+            <p className="w-full text-center text-[11px] font-medium text-destructive">{erroAgrupar}</p>
+          )}
         </div>
       )}
 
