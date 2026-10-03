@@ -7,7 +7,8 @@ import { supabase } from '@/lib/supabase'
  * Quem fabrica é um workflow n8n (Dash | Relatorios por periodo (IA)): os números
  * são calculados por código a partir do CRM e o Gemini só escreve a prosa.
  * Semanais e mensais entram sozinhos; período avulso é pedido por aqui
- * (`relatorios_pedidos`) e fica pronto em até ~2 minutos.
+ * (`relatorios_pedidos`) e um gatilho no banco avisa o n8n na hora — fica pronto
+ * em cerca de 15 segundos. (Até 03/10/2026 o n8n varria a tabela de 2 em 2 minutos.)
  */
 
 export type KpisRelatorio = {
