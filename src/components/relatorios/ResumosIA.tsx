@@ -3,7 +3,7 @@
  *
  * Semanais e mensais chegam sozinhos (workflow n8n roda os números por código e
  * o Gemini escreve a prosa). Período avulso: a pessoa pede aqui e o resumo fica
- * pronto em até ~2 minutos — a lista se atualiza sozinha quando ele chega.
+ * pronto em cerca de 15 segundos — a lista se atualiza sozinha quando ele chega.
  */
 import { useMemo, useState } from 'react'
 import { AlertCircle, CalendarRange, ChevronDown, FileText, Loader2, Sparkles } from 'lucide-react'
@@ -191,7 +191,7 @@ export default function ResumosIA() {
         <div className="flex items-center justify-center gap-2 border-b bg-primary/[0.04] px-5 py-2.5">
           <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" aria-hidden="true" />
           <p className="text-xs font-medium text-foreground/70">
-            Escrevendo o resumo… fica pronto em uns 2 minutos e aparece aqui sozinho.
+            Escrevendo o resumo… fica pronto em alguns segundos e aparece aqui sozinho.
           </p>
         </div>
       )}
